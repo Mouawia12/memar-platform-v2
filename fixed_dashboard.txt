@@ -1,0 +1,316 @@
+const Dashboard = {
+  render() {
+    const pg = document.getElementById('p-dashboard');
+    const late = (window.DATA.notifications || []).filter(n=>n.type==='late');
+    const today = (window.DATA.notifications || []).filter(n=>n.type==='today');
+    const upcoming = (window.DATA.notifications || []).filter(n=>n.type==='upcoming');
+
+    // Stats
+    const activeProj  = (window.DB_TABLES.projects || []).filter(p=>p.status==='active').length;
+    const todayTasks  = (window.DB_TABLES.tasks || []).filter(t => t.status === 'in_progress' || t.status === 'review').length;
+    const totalRevenue = (window.DB_TABLES.invoices || []).filter(i=>i.status==='paid').reduce((s,i)=>s+i.paid,0);
+    const outstanding  = (window.DB_TABLES.invoices || []).filter(i=>i.status!=='paid'&&i.status!=='cancelled').reduce((s,i)=>s+(i.total-i.paid),0);
+    const presentToday = (window.DB_TABLES.employees || []).filter(e=>e.status==='present').length;
+
+    pg.innerHTML = `
+      <!-- 1. NOTIFICATION BAR -->
+      <div class="notif-bar">
+        <span class="notif-label">📌 التنبيهات:</span>
+        <div class="notif-pill late" onclick="Dashboard.showNotifList('late')">
+          <span class="notif-count">${late.length}</span> متأخرة
+        </div>
+        <div class="notif-pill today" onclick="Dashboard.showNotifList('today')">
+          <span class="notif-count">${today.length}</span> اليوم
+        </div>
+        <div class="notif-pill upcoming" onclick="Dashboard.showNotifList('upcoming')">
+          <span class="notif-count">${upcoming.length}</span> قادمة
+        </div>
+        <div class="notif-pill done" style="margin-right:auto">
+          <span class="notif-count">11</span> منجزة
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="ERP.navigate('appointments')">عرض الكل</button>
+      </div>
+
+      <!-- 2. TODAY'S APPOINTMENTS -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📅 مواعيد اليوم</div>
+            <div class="card-subtitle">${new Date().toLocaleDateString('ar-KW',{weekday:'long',day:'numeric',month:'long'})}</div>
+          </div>
+          <button class="btn btn-sm btn-primary" onclick="Appointments.showAddModal()">+ موعد جديد</button>
+        </div>
+        <div class="card-body" style="padding-top:12px">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>الوقت</th><th>الموعد</th><th>العميل / الجهة</th>
+                <th>النوع</th><th>الموقع</th><th>المدة</th><th>الحالة</th><th></th>
+              </tr></thead>
+              <tbody>
+                ${(window.DB_TABLES.appointments || []).map(a=>`
+                  <tr class="${ERP.typeColor(a.type)}" style="cursor:pointer" onclick="Appointments.showDetail(${a.id})">
+                    <td><strong style="font-family:'Inter';color:var(--primary)">${a.time}</strong></td>
+                    <td class="td-bold">${a.title}</td>
+                    <td>${a.client}</td>
+                    <td><span class="badge ${a.type==='client'?'badge-blue':a.type==='site'?'badge-green':a.type==='internal'?'badge-orange':'badge-purple'}">${ERP.typeLabel(a.type)}</span></td>
+                    <td class="td-muted">${a.location}</td>
+                    <td class="td-muted">${a.duration} دق</td>
+                    <td>${ERP.statusBadge(a.status==='مؤكد'?'active':'pending')}</td>
+                    <td><button class="btn btn-sm btn-secondary" style="padding:4px 8px">تفاصيل</button></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. SUMMARY ROW -->
+      <div class="grid-2" style="margin-bottom:18px">
+
+        <!-- Today Summary -->
+        <div>
+          <div class="section-header"><div>
+            <div class="section-title">ملخص اليوم</div>
+            <div class="section-subtitle">${new Date().toLocaleDateString('ar-KW',{day:'numeric',month:'long',year:'numeric'})}</div>
+          </div></div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon blue">✅</div>
+              <div class="kpi-body">
+                <div class="kpi-label">مهام اليوم</div>
+                <div class="kpi-value">${todayTasks}</div>
+                <div class="kpi-sub"><span class="down">2 متأخرة</span></div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon orange">📅</div>
+              <div class="kpi-body">
+                <div class="kpi-label">المواعيد</div>
+                <div class="kpi-value">${(window.DB_TABLES.appointments || []).length}</div>
+                <div class="kpi-sub">آخرها 17:00</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon green">👤</div>
+              <div class="kpi-body">
+                <div class="kpi-label">الحضور</div>
+                <div class="kpi-value">${presentToday}/${(window.DB_TABLES.employees || []).length}</div>
+                <div class="kpi-sub"><span class="down">1 غائب</span></div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon red">⚠️</div>
+              <div class="kpi-body">
+                <div class="kpi-label">تنبيهات معلقة</div>
+                <div class="kpi-value">${late.length}</div>
+                <div class="kpi-sub">تحتاج متابعة</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Projects Summary -->
+        <div>
+          <div class="section-header"><div>
+            <div class="section-title">ملخص المشاريع</div>
+            <div class="section-subtitle">${(window.DB_TABLES.projects || []).length} مشروع إجمالاً</div>
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="ERP.navigate('projects')">عرض الكل</button>
+          </div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon blue">🏗️</div>
+              <div class="kpi-body">
+                <div class="kpi-label">مشاريع نشطة</div>
+                <div class="kpi-value">${activeProj}</div>
+                <div class="kpi-sub"><span class="up">↑ 1 هذا الشهر</span></div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon orange">⏸️</div>
+              <div class="kpi-body">
+                <div class="kpi-label">معلقة</div>
+                <div class="kpi-value">${(window.DB_TABLES.projects || []).filter(p=>p.status==='on_hold').length}</div>
+                <div class="kpi-sub">تحتاج مراجعة</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon green">✔️</div>
+              <div class="kpi-body">
+                <div class="kpi-label">مكتملة</div>
+                <div class="kpi-value">${(window.DB_TABLES.projects || []).filter(p=>p.status==='completed').length}</div>
+                <div class="kpi-sub">هذا العام</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon purple">💰</div>
+              <div class="kpi-body">
+                <div class="kpi-label">إجمالي العقود</div>
+                <div class="kpi-value" style="font-size:18px">${ERP.fmt((window.DB_TABLES.projects || []).reduce((s,p)=>s+(p.area*(p.type==='سكني'?35:p.type==='تجاري'?20:25)),0))}</div>
+                <div class="kpi-sub">تقديري</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. CHARTS ROW -->
+      <div class="grid-3" style="margin-bottom:24px">
+        <!-- Revenue Chart -->
+        <div class="card" style="grid-column:span 1">
+          <div class="card-header">
+            <div class="card-title">💵 الإيرادات والمصروفات</div>
+            <span class="badge badge-green">أبريل 2026</span>
+          </div>
+          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="ch-revenue"></canvas></div></div>
+          <div class="card-footer">
+            <span style="font-size:12px;color:var(--text-3)">مجموع الإيرادات</span>
+            <strong style="color:var(--success)">${ERP.fmt(totalRevenue)}</strong>
+          </div>
+        </div>
+
+        <!-- Attendance Chart -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📈 نسبة الحضور الشهرية</div>
+            <span class="badge badge-blue">7 أشهر</span>
+          </div>
+          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="ch-attendance"></canvas></div></div>
+          <div class="card-footer">
+            <span style="font-size:12px;color:var(--text-3)">متوسط الحضور</span>
+            <strong style="color:var(--primary)">93%</strong>
+          </div>
+        </div>
+
+        <!-- Projects by Type -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🍩 تصنيف المشاريع</div>
+          </div>
+          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="ch-types"></canvas></div></div>
+          <div class="card-footer">
+            <span style="font-size:12px;color:var(--text-3)">إجمالي المشاريع</span>
+            <strong>${(window.DB_TABLES.projects || []).length}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outstanding & Top projects -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💳 الفواتير المستحقة</div>
+            <button class="btn btn-sm btn-ghost" onclick="ERP.navigate('finance')">عرض الكل</button>
+          </div>
+          <div class="card-body" style="padding-top:8px">
+            ${(window.DB_TABLES.invoices || []).filter(i=>i.status!=='paid').slice(0,4).map(inv=>`
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--divider)">
+                <div>
+                  <div style="font-size:13px;font-weight:700">${inv.num}</div>
+                  <div style="font-size:11.5px;color:var(--text-3)">${inv.client}</div>
+                </div>
+                <div style="text-align:left">
+                  <div style="font-size:13px;font-weight:800;color:${inv.status==='overdue'?'var(--danger)':'var(--text)'}">${ERP.fmt(inv.total - inv.paid)}</div>
+                  ${ERP.statusBadge(inv.status)}
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏗️ تقدم المشاريع النشطة</div>
+            <button class="btn btn-sm btn-ghost" onclick="ERP.navigate('projects')">عرض الكل</button>
+          </div>
+          <div class="card-body" style="padding-top:8px">
+            ${(window.DB_TABLES.projects || []).filter(p=>p.status==='active').map(p=>`
+              <div style="padding:10px 0;border-bottom:1px solid var(--divider)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <div>
+                    <div style="font-size:13px;font-weight:700">${p.name}</div>
+                    <div style="font-size:11.5px;color:var(--text-3)">${p.type} · ${p.location}</div>
+                  </div>
+                  <span style="font-size:13px;font-weight:800;color:var(--primary)">${p.progress}%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill ${p.progress>=80?'green':p.progress>=50?'blue':'orange'}" style="width:${p.progress}%"></div></div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+
+    // Render charts after DOM is ready
+    setTimeout(() => Dashboard.renderCharts(), 50);
+  },
+
+  renderCharts() {
+    // Revenue Chart
+    const rCtx = document.getElementById('ch-revenue');
+    if (rCtx) {
+      ERP.charts.revenue = new Chart(rCtx, {
+        type: 'bar',
+        data: {
+          labels: MONTHLY.labels,
+          datasets: [
+            { label:'إيرادات', data: MONTHLY.revenue,  backgroundColor: 'rgba(27,108,168,.75)', borderRadius:6, borderSkipped:false },
+            { label:'مصروفات', data: MONTHLY.expenses, backgroundColor: 'rgba(220,38,38,.55)', borderRadius:6, borderSkipped:false },
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:true, labels:{ font:{family:'Cairo',size:11}, boxWidth:10 } }, tooltip:{ callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ERP.fmt(ctx.raw)}` } } },
+          scales:{ x:{ grid:{display:false}, ticks:{font:{family:'Cairo',size:10}} }, y:{ grid:{color:'#F1F5F9'}, ticks:{font:{family:'Cairo',size:10}, callback:v=>`${(v/1000)}k`} } }
+        }
+      });
+    }
+
+    // Attendance Chart
+    const aCtx = document.getElementById('ch-attendance');
+    if (aCtx) {
+      ERP.charts.attendance = new Chart(aCtx, {
+        type: 'line',
+        data: {
+          labels: MONTHLY.labels,
+          datasets: [{ label:'نسبة الحضور %', data: MONTHLY.attendance, borderColor:'#0284C7', backgroundColor:'rgba(2,132,199,.1)', fill:true, tension:.4, pointBackgroundColor:'#0284C7', pointRadius:4 }]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>`${ctx.raw}%` } } },
+          scales:{ x:{ grid:{display:false}, ticks:{font:{family:'Cairo',size:10}} }, y:{ min:80,max:100, grid:{color:'#F1F5F9'}, ticks:{font:{family:'Cairo',size:10}, callback:v=>`${v}%`} } }
+        }
+      });
+    }
+
+    // Project Types Donut
+    const tCtx = document.getElementById('ch-types');
+    if (tCtx) {
+      const types = {};
+      (window.DB_TABLES.projects || []).forEach(p => { types[p.type] = (types[p.type]||0) + 1; });
+      ERP.charts.types = new Chart(tCtx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(types),
+          datasets: [{ data: Object.values(types), backgroundColor:['#1B6CA8','#059669','#D97706','#D97706','#0284C7','#7C3AED'], borderWidth:0, hoverOffset:4 }]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false, cutout:'68%',
+          plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Cairo',size:10}, boxWidth:10, padding:8 } } }
+        }
+      });
+    }
+  },
+
+  showNotifList(type) {
+    const labels = {late:'المتأخرة 🔴', today:'اليوم 🟡', upcoming:'القادمة 🔵'};
+    const items = (window.DATA.notifications || []).filter(n=>n.type===type);
+    const body = items.map(n=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid var(--divider)">
+        <span style="font-size:20px">${n.entity==='task'?'✅':n.entity==='appointment'?'📅':n.entity==='invoice'?'💰':'📌'}</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${n.title}</div>
+          <div style="font-size:11.5px;color:var(--text-3)">${n.due}</div>
+        </div>
+      </div>`).join('');
+    ERP.openModal(`التنبيهات — ${labels[type]}`, body);
+  },
+};

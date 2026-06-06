@@ -1,0 +1,816 @@
+<!DOCTYPE html><html><head>
+
+<style id="Pricing3-styles">
+#p-pricing3 {
+  --bg:     #F0F4F8;
+  --bg2:    #E8EDF3;
+  --card:   #ffffff;
+  --card2:  #F8FAFC;
+  --navy:   #1B3A6B;
+  --navy2:  #2952A3;
+  --navy3:  #EEF2F9;
+  --gold:   #B8922A;
+  --gold2:  #D4A843;
+  --gbg:    #FFF8E8;
+  --gb:     #F0DCA0;
+  --tx:     #1A2332;
+  --tx2:    #4B5563;
+  --mt:     #9CA3AF;
+  --brd:    #E5E7EB;
+  --brd2:   #D1D5DB;
+  --ok:     #059669;
+  --okb:    #ECFDF5;
+  --okbr:   #A7F3D0;
+  --warn:   #D97706;
+  --warnb:  #FFFBEB;
+  --warnbr: #FCD34D;
+  --err:    #DC2626;
+  --errb:   #FEF2F2;
+  --errbr:  #FECACA;
+  --inf:    #2563EB;
+  --infb:   #EFF6FF;
+  --infbr:  #BFDBFE;
+  --pur:    #7C3AED;
+  --purb:   #F5F3FF;
+  --purbr:  #DDD6FE;
+  --r:   12px;
+  --rs:  8px;
+  --sh:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --sh2: 0 4px 16px rgba(0,0,0,.10);
+  --sh3: 0 8px 30px rgba(0,0,0,.13);
+
+  --p2-primary: var(--navy);
+  --p2-success: var(--ok);
+  --p2-danger: var(--err);
+  --p2-warn: var(--warn);
+  --p2-gray: var(--mt);
+}
+
+/* Base Mapping */
+.p2-wrap { display:flex; flex-direction:column; gap:16px; min-height:calc(100vh - 120px); background:var(--bg); padding:24px; font-family:'Cairo',sans-serif; }
+.p2-left { display:flex; flex-direction:column; gap:16px; }
+.p2-right { position:sticky; top:0; height:calc(100vh - 120px); overflow-y:auto; background:var(--card); border-right:1px solid var(--brd); box-shadow:var(--sh); }
+.p2-step { background:var(--card); border-radius:var(--r); border:1px solid var(--brd); overflow:hidden; transition:box-shadow .2s; box-shadow:var(--sh); }
+.p2-step:hover { box-shadow:var(--sh2); }
+.p2-step-hdr { display:flex; align-items:center; gap:12px; padding:16px 20px; background:linear-gradient(135deg,var(--navy3),var(--card)); border-bottom:1px solid var(--brd); }
+.p2-step-num { width:32px; height:32px; border-radius:50%; background:var(--navy); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.p2-step-title { font-weight:700; font-size:14px; color:var(--tx); }
+.p2-step-sub { font-size:12px; color:var(--mt); margin-top:2px; }
+.p2-step-body { padding:16px 20px; }
+
+/* Grid & Cards */
+.cat-grid { display:flex; flex-wrap:wrap; gap:8px; }
+.cat-card { display:flex; align-items:center; gap:8px; border:1px solid var(--brd); border-radius:var(--rs); padding:6px 12px; cursor:pointer; transition:all .2s; background:var(--card); }
+.cat-card:hover { border-color:var(--navy); transform:translateY(-2px); box-shadow:var(--sh2); }
+.cat-card.active { border-color:var(--navy); background:var(--navy3); box-shadow:0 0 0 3px color-mix(in srgb,var(--navy) 20%,transparent); }
+.cat-card-icon { font-size:18px; margin-bottom:0; }
+.cat-card-label { font-size:13px; font-weight:700; color:var(--tx); }
+.cat-card-desc { display:none; }
+
+.restype-pills { display:flex; gap:8px; margin-top:14px; padding-top:14px; border-top:1px dashed var(--brd); }
+.restype-pill { flex:1; padding:10px 6px; border:2px solid var(--brd); border-radius:10px; text-align:center; cursor:pointer; font-size:12px; font-weight:600; color:var(--tx2); transition:all .2s; }
+.restype-pill.active { border-color:var(--navy); background:var(--navy3); color:var(--navy); }
+.restype-pill.disabled { opacity:.4; cursor:not-allowed; }
+
+.area-val-display { text-align:center; margin-bottom:14px; }
+.area-val-num { font-size:36px; font-weight:800; color:var(--navy); }
+.area-val-unit { font-size:16px; color:var(--mt); margin-right:4px; }
+.area-tier-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
+.area-tier-badge.normal { background:var(--navy3); color:var(--navy); }
+.area-tier-badge.custom-tier { background:var(--warnb); color:var(--warn); }
+.area-presets { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.area-preset { padding:6px 14px; border:1.5px solid var(--brd); border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; color:var(--tx2); }
+.area-preset:hover { border-color:var(--navy); color:var(--navy); }
+.area-preset.active { background:var(--navy); border-color:var(--navy); color:#fff; }
+
+.pkg-list { display:flex; flex-direction:column; gap:8px; }
+.pkg-row { border:2px solid var(--brd); border-radius:var(--r); padding:14px 16px; cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:14px; position:relative; overflow:hidden; background:var(--card); }
+.pkg-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--pkg-color,var(--navy)); opacity:0; transition:.2s; }
+.pkg-row:hover { border-color:var(--pkg-color,var(--navy)); transform:translateX(-2px); box-shadow:var(--sh); }
+.pkg-row.active { border-color:var(--pkg-color,var(--navy)); background:var(--pkg-bg,var(--navy3)); }
+.pkg-row.active::before { opacity:1; }
+.pkg-row-icon { font-size:28px; flex-shrink:0; }
+.pkg-row-info { flex:1; min-width:0; }
+.pkg-row-name { font-weight:700; font-size:14px; color:var(--tx); }
+.pkg-row-desc { font-size:11px; color:var(--tx2); margin-top:2px; }
+.pkg-row-svcs { font-size:10px; color:var(--mt); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pkg-row-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; background:var(--pkg-color,var(--navy)); color:#fff; flex-shrink:0; }
+.pkg-popular-tag { position:absolute; top:8px; left:8px; font-size:9px; font-weight:800; background:var(--gold); color:#fff; padding:2px 8px; border-radius:10px; }
+
+.svc-group-hdr { font-size:11px; font-weight:800; color:var(--mt); text-transform:uppercase; letter-spacing:.08em; padding:10px 0 6px; margin-top:4px; border-bottom:1px solid var(--bg); margin-bottom:6px; }
+.svc-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid transparent; border-radius:10px; cursor:pointer; transition:all .15s; }
+.svc-item:hover { background:var(--card2); border-color:var(--brd); }
+.svc-item.active { background:var(--navy3); border-color:var(--brd2); }
+.svc-item-chk { width:18px; height:18px; border:2px solid var(--brd2); border-radius:5px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .15s; }
+.svc-item.active .svc-item-chk { background:var(--navy); border-color:var(--navy); color:#fff; }
+.svc-item-icon { font-size:18px; flex-shrink:0; }
+.svc-item-info { flex:1; min-width:0; }
+.svc-item-name { font-size:13px; font-weight:600; color:var(--tx); }
+.svc-item-desc { font-size:11px; color:var(--mt); margin-top:1px; }
+.svc-item-price { text-align:left; flex-shrink:0; }
+.svc-item-rate { font-size:11px; color:var(--tx2); }
+.svc-item-amt { font-size:12px; font-weight:700; color:var(--navy); }
+.svc-item-manual { font-size:10px; color:var(--err); font-weight:600; background:var(--errb); padding:2px 6px; border-radius:6px; }
+
+.addon-grid2 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.addon-card2 { border:1.5px solid var(--brd); border-radius:10px; padding:12px 8px; text-align:center; cursor:pointer; transition:all .2s; }
+.addon-card2:hover { border-color:var(--navy); transform:translateY(-1px); }
+.addon-card2.active { border-color:var(--navy); background:var(--navy3); }
+.addon-card2-icon { font-size:22px; margin-bottom:4px; }
+.addon-card2-name { font-size:11px; font-weight:600; color:var(--tx2); }
+.addon-card2-price { font-size:11px; color:var(--navy); font-weight:700; margin-top:3px; }
+
+.client-fields { display:flex; flex-direction:column; gap:10px; }
+.p2-field { display:flex; flex-direction:column; gap:4px; }
+.p2-label { font-size:11px; font-weight:600; color:var(--tx2); }
+.p2-input { padding:10px 14px; border:1.5px solid var(--brd); border-radius:var(--rs); font-size:13px; font-family:inherit; outline:none; transition:border .2s; background:var(--bg); color:var(--tx); }
+.p2-input:focus { border-color:var(--navy); background:#fff; box-shadow:0 0 0 3px rgba(27,58,107,.07); }
+
+.qcard { padding:0; display:flex; flex-direction:column; height:100%; border-radius:var(--r); background:var(--card); box-shadow:var(--sh); border:1px solid var(--brd); overflow:hidden; }
+.qcard-hdr { padding:24px 20px 20px; color:#fff; position:relative; overflow:hidden; background:linear-gradient(135deg, var(--navy), var(--navy2)); }
+.qcard-hdr::after { content:'🏛️'; position:absolute; left:-10px; bottom:-10px; font-size:110px; opacity:.06; line-height:1; }
+.qcard-logo { font-size:11px; opacity:.8; margin-bottom:4px; }
+.qcard-company { font-size:16px; font-weight:900; }
+.qcard-en { font-size:11px; opacity:.7; margin-top:2px; }
+.qcard-meta { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--brd); border-bottom:1px solid var(--brd); }
+.qcard-meta-cell { padding:10px 16px; background:var(--card2); }
+.qcard-meta-lbl { font-size:10px; color:var(--mt); font-weight:600; }
+.qcard-meta-val { font-size:13px; font-weight:700; color:var(--tx); margin-top:2px; }
+.qcard-client { padding:14px 20px; border-bottom:1px solid var(--bg); background:var(--gbg); }
+.qcard-client-to { font-size:10px; color:var(--mt); }
+.qcard-client-name { font-size:16px; font-weight:800; color:var(--tx); }
+.qcard-body { flex:1; padding:16px 20px; overflow-y:auto; }
+.qcard-sec-title { font-size:10px; font-weight:800; color:var(--mt); text-transform:uppercase; letter-spacing:.08em; margin:14px 0 8px; display:flex; align-items:center; gap:6px; }
+.qcard-sec-title::after { content:''; flex:1; height:1px; background:var(--bg); }
+.qline { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:3px; font-size:13px; }
+.qline:hover { background:var(--card2); }
+.qline-name { color:var(--tx2); display:flex; align-items:center; gap:6px; }
+.qline-amt { font-weight:700; color:var(--tx); }
+.qline.discount { background:var(--okb); }
+.qline.discount .qline-name { color:var(--ok); }
+.qline.discount .qline-amt { color:var(--ok); }
+.qline.gov { background:var(--navy3); }
+.qline.manual .qline-amt { color:var(--err); font-size:11px; }
+
+.qtotals { background:var(--card2); border-radius:12px; padding:14px 16px; margin-top:12px; }
+.qtotal-row { display:flex; justify-content:space-between; font-size:12px; color:var(--tx2); padding:3px 0; }
+.qtotal-row.green { color:var(--ok); font-weight:600; }
+.qgrand { display:flex; justify-content:space-between; align-items:center; border-top:2px solid var(--brd); margin-top:10px; padding-top:12px; }
+.qgrand-lbl { font-size:14px; font-weight:800; color:var(--tx); }
+.qgrand-val { font-size:22px; font-weight:900; color:var(--gold); }
+.qgrand-manual { font-size:11px; color:var(--err); font-weight:700; }
+
+.qcard-pkg { text-align:center; margin:10px 0; }
+.qcard-pkg-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 16px; border-radius:20px; font-size:12px; font-weight:700; background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#fff; }
+
+.qdocs { display:flex; flex-direction:column; gap:4px; }
+.qdoc-item { display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 0; color:var(--tx2); }
+.qdoc-item.req { color:var(--ok); font-weight:600; }
+
+.qtimeline { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.qtl-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--tx2); padding:6px 8px; background:var(--card2); border-radius:8px; }
+.qtl-days { font-weight:700; color:var(--navy); }
+
+.qconds { font-size:11px; color:var(--tx2); padding:10px 12px; background:var(--card2); border-radius:8px; border-right:3px solid var(--brd2); }
+.qconds li { padding:3px 0; }
+.qnotes { font-size:12px; color:var(--warn); padding:10px 12px; background:var(--warnb); border-radius:8px; border-right:3px solid var(--warnbr); }
+
+.qcard-validity { text-align:center; font-size:11px; color:var(--mt); padding:12px 16px; border-top:1px solid var(--bg); margin-top:8px; }
+.qcard-actions { padding:12px 16px; border-top:1px solid var(--brd); display:flex; flex-direction:column; gap:8px; }
+
+/* Buttons */
+.qbtn { display:flex; align-items:center; justify-content:center; gap:8px; padding:7px 14px; border-radius:var(--rs); font-size:12.5px; font-weight:700; cursor:pointer; border:1.5px solid transparent; transition:all .2s; font-family:inherit; }
+.qbtn-wa { background:var(--okb); color:var(--ok); border-color:var(--okbr); }
+.qbtn-wa:hover { background:var(--ok); color:#fff; }
+.qbtn-pdf { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:#fff; }
+.qbtn-pdf:hover { box-shadow:var(--sh2); }
+.qbtn-row { display:flex; gap:8px; }
+.qbtn-copy { flex:1; background:var(--card); border-color:var(--brd); color:var(--tx2); }
+.qbtn-copy:hover { border-color:var(--navy); color:var(--navy); background:var(--navy3); }
+.qbtn-save { flex:1; background:var(--okb); color:var(--ok); border-color:var(--okbr); }
+.qbtn-save:hover { background:var(--ok); color:#fff; }
+
+.p2-toolbar { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:linear-gradient(135deg,var(--navy),var(--navy2)); border-radius:14px; margin-bottom:4px; color:#fff; }
+.p2-toolbar-title { font-size:18px; font-weight:900; }
+.p2-toolbar-sub { font-size:12px; opacity:.7; margin-top:2px; }
+.p2-toolbar-actions { display:flex; align-items:center; gap:10px; }
+.p2-admin-badge { font-size:11px; padding:4px 12px; border-radius:20px; background:rgba(255,255,255,.15); color:#fff; font-weight:600; border:1px solid rgba(255,255,255,.2); }
+.admin-mode-active .p2-step { border-color:var(--warn) !important; }
+
+.admin-inp { width:60px; padding:3px 6px; border:1px solid var(--brd2); border-radius:6px; font-size:11px; text-align:center; background:var(--bg); color:var(--tx); }
+.admin-row-acts { display:flex; gap:4px; margin-top:4px; }
+.admin-btn { padding:3px 8px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; border:1px solid var(--brd); background:var(--card); color:var(--tx2); }
+.admin-btn:hover { background:var(--bg); color:var(--navy); }
+.admin-btn.danger { color:var(--err); border-color:var(--errbr); }
+.admin-btn.hide { color:var(--warn); border-color:var(--warnbr); }
+
+.svc-item.hidden-svc { opacity:.4; background:var(--warnb); border-style:dashed; border-color:var(--warnbr); }
+
+.p2-select-bar { display:flex; gap:6px; margin-bottom:10px; }
+.p2-select-btn { padding:5px 12px; border:1.5px solid var(--brd); border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; background:var(--card); color:var(--tx2); transition:all .2s; }
+.p2-select-btn:hover { border-color:var(--navy); color:var(--navy); }
+.p2-custom-tier-warning { padding:12px 16px; background:var(--warnb); border:1px solid var(--warnbr); border-radius:10px; font-size:12px; color:var(--warn); font-weight:600; text-align:center; }
+
+.qcard-sec-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid var(--brd); padding-bottom:4px; margin-top:16px; }
+.sec-toggle { cursor:pointer; background:none; border:none; opacity:0.3; font-size:14px; transition:all 0.2s; padding:4px; }
+.sec-toggle:hover { opacity:1; transform:scale(1.1); }
+.hidden-sec .qcard-sec-content { display:none; }
+.hidden-sec .qcard-sec-title { color: var(--mt) !important; text-decoration: line-through; }
+@media print { .hidden-sec { display:none !important; } .sec-toggle { display:none !important; } .qcard-sec-hdr { border:none; margin-bottom:4px; padding-bottom:0; } }
+</style>
+</head><body><div id="p-pricing3"><div class="p2-wrap ">
+          <div class="p2-toolbar" style="background:linear-gradient(135deg,#4F46E5,#4F46E5cc);">
+      <div>
+        <div class="p2-toolbar-title">🧮 محرك التسعير الذكي</div>
+        <div class="p2-toolbar-sub">احسب تكلفة مشروعك وأنشئ عرض سعر فوري · مجموعة معمار الهندسية</div>
+      </div>
+      <div class="p2-toolbar-actions">
+        
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="admin-mode-toggle" style="width:16px;height:16px;">
+          <span class="p2-admin-badge">⚙️ إدارة</span>
+        </label>
+      </div>
+    </div>
+          
+          <!-- Professional Client Header + Area Slider -->
+          <div class="p2-client-info" style="display:flex; flex-direction:column; gap:16px; background:#fff; padding:20px 24px; border-radius:14px; border:1px solid #E2E8F0; margin-bottom:16px; box-shadow:0 2px 10px rgba(0,0,0,0.03);">
+            
+            <div style="display:grid; grid-template-columns:2fr 1.5fr 1fr 1.5fr 3fr; gap:16px; align-items:center;">
+              <div class="p2-field" style="margin:0;"><label class="p2-label" style="font-size:12px;color:var(--tx2);font-weight:700;">👤 اسم العميل</label>
+                <input class="p2-input" id="quote-client" value="" oninput="PricingState3.clientName=this.value;Pricing3.refreshSummary()" style="border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; font-weight:600; font-size:14px; background:#F8FAFC; width:100%; box-sizing:border-box;"></div>
+              
+              <div class="p2-field" style="margin:0;"><label class="p2-label" style="font-size:12px;color:var(--tx2);font-weight:700;">📍 المنطقة</label>
+                <select class="p2-input" id="quote-region" onchange="PricingState3.region=this.value;Pricing3.refreshSummary()" style="border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; font-weight:600; font-size:14px; background:#F8FAFC; width:100%; box-sizing:border-box;">
+                  <option value=""></option>
+                  <option value="العاصمة">العاصمة</option><option value="حولي">حولي</option><option value="الفروانية">الفروانية</option><option value="الأحمدي">الأحمدي</option><option value="الجهراء">الجهراء</option><option value="مبارك الكبير">مبارك الكبير</option>
+                </select></div>
+              
+              <div class="p2-field" style="margin:0;"><label class="p2-label" style="font-size:12px;color:var(--tx2);font-weight:700;">🔢 القطعة</label>
+                <select class="p2-input" id="quote-block" onchange="PricingState3.block=this.value;Pricing3.refreshSummary()" style="border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; font-weight:600; font-size:14px; background:#F8FAFC; width:100%; box-sizing:border-box;">
+                  <option value=""></option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                </select></div>
+              
+              <div class="p2-field" style="margin:0;"><label class="p2-label" style="font-size:12px;color:var(--tx2);font-weight:700;">🏠 القسيمة</label>
+                <input type="text" class="p2-input" id="quote-plot" value="" oninput="PricingState3.plot=this.value;Pricing3.refreshSummary()" style="border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; font-weight:600; font-size:14px; background:#F8FAFC; width:100%; box-sizing:border-box;"></div>
+
+              <div class="p2-field" style="margin:0;">
+                <div class="p2-step">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label class="p2-label" style="font-size:12px;color:var(--tx2);font-weight:700;margin:0;">📐 مساحة المشروع/القسيمة (م²)</label>
+        
+      </div>
+      <div class="p2-step-body" style="padding:0;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div class="area-val-display" style="margin:0; min-width:80px; text-align:center;">
+            <span class="area-val-num" style="font-size:24px;">400</span>
+            <span class="area-val-unit">م²</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; margin-right:12px; border-right:1px solid #E2E8F0; padding-right:12px;">
+            <span style="font-size:10px;color:#94A3B8;">الأدوار</span>
+            <input type="number" value="1" min="1" max="50" oninput="PricingState3.floors=Math.max(1,+this.value);Pricing3.refreshSummary()" style="width:40px; text-align:center; border:1px solid #CBD5E1; border-radius:6px; font-size:12px; padding:2px;">
+          </div>
+          <input type="range" id="area-slider" min="100" max="1500" step="50" value="400" style="flex:1;accent-color:var(--p2-primary,#4F46E5);cursor:pointer;" oninput="PricingState3.area=+this.value;PricingState3.customArea=false;Pricing3.refresh()">
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+          <div class="area-tier-info" style="margin:0;">
+            <span class="area-tier-badge normal" style="font-size:10px; padding:4px 8px;">
+              🏷️ حتى 400 م²
+            </span>
+          </div>
+          <div class="area-presets" style="margin:0; gap:4px; flex-wrap:nowrap; overflow-x:auto;">
+            <div class="area-preset " style="padding:4px 8px;font-size:10px;" onclick="PricingState3.area=200;PricingState3.customArea=false;document.getElementById('area-slider').value=200;Pricing3.refresh()">200</div><div class="area-preset " style="padding:4px 8px;font-size:10px;" onclick="PricingState3.area=300;PricingState3.customArea=false;document.getElementById('area-slider').value=300;Pricing3.refresh()">300</div><div class="area-preset active" style="padding:4px 8px;font-size:10px;" onclick="PricingState3.area=400;PricingState3.customArea=false;document.getElementById('area-slider').value=400;Pricing3.refresh()">400</div><div class="area-preset " style="padding:4px 8px;font-size:10px;" onclick="PricingState3.area=500;PricingState3.customArea=false;document.getElementById('area-slider').value=500;Pricing3.refresh()">500</div><div class="area-preset " style="padding:4px 8px;font-size:10px;" onclick="PricingState3.area=600;PricingState3.customArea=false;document.getElementById('area-slider').value=600;Pricing3.refresh()">600</div>
+            <div class="area-preset " style="padding:4px 8px;font-size:10px;" onclick="PricingState3.customArea=true;Pricing3.refresh()">✏️ مخصص</div>
+          </div>
+        </div>
+        
+        
+      </div>
+    </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px dashed #E2E8F0; padding-top:16px;">
+              <div class="p2-field" style="margin:0;"><label class="p2-label" style="font-size:12px;color:var(--tx2);font-weight:700;">📝 الملاحظات</label>
+                <input class="p2-input" id="quote-notes" value="" oninput="PricingState3.notes=this.value;Pricing3.refreshSummary()" style="border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; font-weight:600; font-size:14px; background:#F8FAFC; width:100%; box-sizing:border-box;"></div>
+            </div>
+          </div>
+
+          <!-- Row 2: Sector/Category (Right, Bigger) & Packages (Left, Smaller) -->
+          <div class="p2-middle-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom: 24px;">
+            <div><div class="p2-step-area-wrapper">
+      <div class="p2-step-hdr">
+        
+        <div><div class="p2-step-title">نوع المشروع</div><div class="p2-step-sub">اختر القطاع والتصنيف المناسب</div></div>
+        
+      </div>
+      <div class="p2-step-body">
+        <div class="cat-grid">
+          <div class="cat-card active" data-cat="residential" style="--cat-color:#4F46E5">
+            <div class="cat-card-icon">🏠</div>
+            <div class="cat-card-label">سكن خاص</div>
+            <div class="cat-card-desc">فلل · شقق · منازل</div>
+          </div><div class="cat-card " data-cat="investment" style="--cat-color:#8B5CF6">
+            <div class="cat-card-icon">📈</div>
+            <div class="cat-card-label">سكن استثماري</div>
+            <div class="cat-card-desc">عمارات · مجمعات استثمارية</div>
+          </div><div class="cat-card " data-cat="commercial" style="--cat-color:#059669">
+            <div class="cat-card-icon">🏢</div>
+            <div class="cat-card-label">تجاري</div>
+            <div class="cat-card-desc">مكاتب · مراكز تجارية</div>
+          </div><div class="cat-card " data-cat="industrial" style="--cat-color:#D97706">
+            <div class="cat-card-icon">🏭</div>
+            <div class="cat-card-label">صناعي</div>
+            <div class="cat-card-desc">مصانع · مستودعات</div>
+          </div><div class="cat-card " data-cat="medical" style="--cat-color:#EF4444">
+            <div class="cat-card-icon">🏥</div>
+            <div class="cat-card-label">طبي</div>
+            <div class="cat-card-desc">مراكز طبية · عيادات</div>
+          </div><div class="cat-card " data-cat="general" style="--cat-color:#64748B">
+            <div class="cat-card-icon">⚙️</div>
+            <div class="cat-card-label">خدمات</div>
+            <div class="cat-card-desc">خدمات عامة متفرقة</div>
+          </div>
+        </div>
+        <div class="restype-pills">
+        <div class="restype-pill active" onclick="PricingState3.resType='new_const';Pricing3.refresh()">🏗️ بناء جديد</div>
+        <div class="restype-pill " onclick="PricingState3.resType='mod_add';Pricing3.refresh()">🛠️ تعديل وإضافة</div>
+        <div class="restype-pill disabled">🔨 هدم وبناء (قريباً)</div>
+      </div>
+      </div>
+    </div></div> <!-- Right (First child in RTL) -->
+            <div><div class="p2-step">
+      <div class="p2-step-hdr">
+        
+        <div><div class="p2-step-title">اختر الباقة</div><div class="p2-step-sub">سعر ثابت شامل · لا تسعير مفصّل داخل الباقة</div></div>
+        
+      </div>
+      <div class="p2-step-body">
+        
+        
+        <select class="form-input" style="font-weight:700;margin-bottom:12px;padding:10px;width:100%;border:2px solid #E2E8F0;border-radius:10px;" onchange="PricingState3.package=this.value; const selPkg=PricingDB3.packages.find(p=>p.id===this.value); if(selPkg &amp;&amp; selPkg.id!=='custom') PricingState3.services=[...(selPkg.services||[])]; Pricing3.refresh();">
+          <option value="drawings">📐 مخططات</option><option value="licensing" selected="">📝 تراخيص</option><option value="premium">🏛️ معمار</option><option value="vision">👁️ رؤية</option><option value="custom">✏️ تسعير مفصّل</option>
+        </select>
+
+        
+          <div class="pkg-row active" style="--pkg-color:#0284C7;--pkg-bg:#EFF6FF;margin-top:8px;">
+            <div class="pkg-popular-tag">⭐ الأكثر طلباً</div>
+            <div class="pkg-row-icon">📝</div>
+            <div class="pkg-row-info">
+              <div class="pkg-row-name">تراخيص</div>
+              <div class="pkg-row-desc">باقة متكاملة للمخططات واستخراج رخصة البناء</div>
+              <div class="pkg-row-svcs">✅ 8 خدمة · 🎁 3 هدايا · ⏱ 45 يوم</div>
+              <div style="margin-top:8px;padding:6px 8px;background:#F8FAFC;border-radius:6px;"><div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;color:var(--tx2);"><span>حتى 400 م²</span><span style="font-weight:700;color:#0284C7">550 د.ك</span></div><div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;color:var(--tx2);"><span>401 – 600 م²</span><span style="font-weight:700;color:#0284C7">616 د.ك</span></div><div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;color:var(--tx2);"><span>601 – 750 م²</span><span style="font-weight:700;color:#0284C7">682 د.ك</span></div><div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;color:var(--tx2);"><span>751 – 1000 م²</span><span style="font-weight:700;color:#0284C7">748 د.ك</span></div><div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;color:var(--tx2);"><span>أكثر من 1000 م²</span><span style="font-weight:700;color:#0284C7">يدوي</span></div></div>
+            </div>
+            <div style="text-align:left;flex-shrink:0;min-width:70px;">
+              
+            </div>
+          </div>
+          
+      </div>
+    </div></div> <!-- Left (Second child in RTL) -->
+          </div>
+
+          <!-- Bottom Grid: Summary (Right, Bigger) & Services (Left, Smaller) -->
+          <div class="p2-main-grid" style="display:grid; grid-template-columns: 1fr 340px; gap:24px; align-items:start;">
+            
+            <!-- First child in RTL -> Right -> Quote Summary -->
+            <div class="p2-grid-right" style="display:flex; flex-direction:column; gap:16px; position:sticky; top:24px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:-8px;">
+                <div style="font-size:18px; font-weight:800; color:var(--tx);">🖨️ عرض السعر النهائي</div>
+                <button class="admin-btn" style="background:#1E293B; color:#fff;" onclick="window.print()">🖨️ طباعة العرض</button>
+              </div>
+              <div id="pricing-summary-panel">
+                <div class="qcard">
+        <div class="qcard-hdr" style="background:linear-gradient(135deg,#4F46E5,#4F46E5aa);">
+          <div class="qcard-logo">مجموعة معمار للاستشارات الهندسية</div>
+          <div class="qcard-company">عرض سعر — تراخيص</div>
+          <div class="qcard-en">Kuwait Engineering Consultancy Group</div>
+        </div>
+        <div class="qcard-meta">
+          <div class="qcard-meta-cell"><div class="qcard-meta-lbl">التاريخ</div><div class="qcard-meta-val">٢٥ أبريل ٢٠٢٦</div></div>
+          <div class="qcard-meta-cell"><div class="qcard-meta-lbl">رقم العرض</div><div class="qcard-meta-val" style="font-family:'Inter',monospace">#MEQ-142745</div></div>
+          <div class="qcard-meta-cell"><div class="qcard-meta-lbl">النوع</div><div class="qcard-meta-val">🏠 سكن خاص</div></div>
+          <div class="qcard-meta-cell"><div class="qcard-meta-lbl">المساحة</div><div class="qcard-meta-val">400 م²</div></div>
+        </div>
+        
+        <div class="qcard-body">
+
+          <!-- Package Big Price Card -->
+          <div style="background:linear-gradient(135deg,#EFF6FF,#EFF6FFaa);border:2px solid #0284C722;border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;">
+            <div style="font-size:13px;color:#0284C7;font-weight:700;margin-bottom:4px;">📝 تراخيص</div>
+            <div style="font-size:11px;color:#94A3B8;margin-bottom:12px;">باقة متكاملة للمخططات واستخراج رخصة البناء</div>
+            <div style="font-size:32px;font-weight:900;color:#0284C7;">٥٥٠٫٠٠٠ د.ك</div>
+            <div style="font-size:11px;color:#94A3B8;margin-top:4px;">السعر الأساسي ليس&nbsp;رقمًا د.ك · معامل المساحة ×1</div>
+          </div>
+
+          <!-- Services List (informational only - no prices) -->
+          
+          <div class="qcard-sec-title">الخدمات المشمولة</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>🏛️</span><span>التصميم المعماري</span>
+            </div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>⚙️</span><span>التصميم الإنشائي</span>
+            </div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>⚡</span><span>المخططات الكهربائية</span>
+            </div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>💧</span><span>المخططات الصحية</span>
+            </div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>🖼️</span><span>تصميم الواجهات 3D</span>
+            </div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>📝</span><span>إصدار رخصة بناء</span>
+            </div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>🔌</span><span>موافقة الكهرباء</span>
+            </div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;padding:5px 8px;background:#F8FAFC;border-radius:8px;">
+              <span>🔬</span><span>تنسيق فحص التربة</span>
+            </div>
+          </div>
+
+          <!-- Gifts -->
+          
+          <div class="qcard-sec-title" style="color:#D97706;">🎁 هدايا الباقة</div>
+          <div style="background:#FFFBEB;border-radius:10px;padding:12px;">
+            <div style="font-size:12px;color:#92400E;padding:3px 0;">🎀 استشارة هندسية مجانية</div><div style="font-size:12px;color:#92400E;padding:3px 0;">🎀 مخطط الأثاث (2D)</div><div style="font-size:12px;color:#92400E;padding:3px 0;">🎀 متابعة بلدية مجانية</div>
+          </div>
+
+          <!-- Extra standalone services -->
+          
+
+          <!-- Add-ons -->
+          
+
+          <!-- Gov Fees -->
+          
+          <div class="qcard-sec-title">الرسوم الحكومية</div>
+          <div class="qline gov"><span class="qline-name">🏛 رسوم رخصة البناء</span><span class="qline-amt">٤٥٠٫٠٠٠ د.ك</span></div><div class="qline gov"><span class="qline-name">🏛 رسوم شهادة الإنجاز</span><span class="qline-amt">١٥٠٫٠٠٠ د.ك</span></div><div class="qline gov"><span class="qline-name">🏛 رسوم اعتماد المخططات</span><span class="qline-amt">١٢٠٫٠٠٠ د.ك</span></div>
+
+          <!-- Grand Total -->
+          <div class="qtotals">
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--tx2);">
+              <span>سعر الباقة</span><span>٥٥٠٫٠٠٠ د.ك</span>
+            </div>
+            
+            
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--tx2);"><span>رسوم حكومية</span><span>٧٢٠٫٠٠٠ د.ك</span></div>
+            <div class="qgrand">
+              <span class="qgrand-lbl">الإجمالي الكلي</span>
+              <span class="qgrand-val" style="color:#4F46E5">١٬٢٧٠٫٠٠٠ د.ك</span>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          
+          <div class="qcard-sec-title">الجدول الزمني المتوقع</div>
+          <div style="text-align:center;padding:12px;background:#F0FDF4;border-radius:10px;">
+            <div style="font-size:28px;font-weight:800;color:#059669;">45</div>
+            <div style="font-size:12px;color:var(--tx2);">يوم عمل تقريباً</div>
+          </div>
+
+          <!-- Documents -->
+          
+          <div class="qcard-sec-title">المستندات المطلوبة</div>
+          <div class="qdocs"><div class="qdoc-item req">✅ وثيقة الملكية / شهادة لمن يهمه الأمر</div><div class="qdoc-item req">✅ البطاقات المدنية للملاك</div><div class="qdoc-item req">✅ كروكي مساحي</div><div class="qdoc-item req">✅ سند ملكية / حصر ورثة / توكيل</div></div>
+
+          <!-- Notes & Conditions -->
+          
+          <div class="qcard-sec-title">الشروط والأحكام</div>
+            <div class="qconds"><ul><li>الأسعار بالدينار الكويتي (KWD)</li><li>العرض غير شامل للتعديلات الجوهرية</li><li>الرسوم الحكومية قابلة للتغيير</li></ul></div>
+          <div class="qcard-validity">⏳ هذا العرض ساري لمدة <strong>30 يوماً</strong> من تاريخ الإصدار</div>
+        </div>
+        <div class="qcard-actions">
+          <button class="qbtn qbtn-wa" onclick="Pricing3.exportWhatsApp()">💬 إرسال واتساب</button>
+          <button class="qbtn qbtn-pdf" onclick="Pricing3.exportPDF()">📄 تنزيل PDF</button>
+          <div class="qbtn-row">
+            <button class="qbtn qbtn-copy" onclick="Pricing3.copyQuote()">📋 نسخ النص</button>
+            <button class="qbtn qbtn-save" onclick="Pricing3.saveQuote()">💾 حفظ</button>
+          </div>
+        </div>
+      </div>
+              </div>
+            </div>
+
+            <!-- Second child in RTL -> Left -> Services & Addons -->
+            <div class="p2-grid-left" style="display:flex; flex-direction:column; gap:16px;">
+              <div class="p2-step">
+      <div class="p2-step-hdr">
+        
+        <div><div class="p2-step-title">الخدمات</div><div class="p2-step-sub">8 خدمة مختارة</div></div>
+        <div class="p2-select-bar" style="margin-right:auto;margin-bottom:0;">
+          <button class="p2-select-btn" onclick="Pricing3.selectAll()">تحديد الكل</button>
+          <button class="p2-select-btn" onclick="Pricing3.clearAll()">إلغاء الكل</button>
+          
+        </div>
+      </div>
+      <div class="p2-step-body">
+        
+          <div class="svc-group-hdr">🔧 الخدمات الهندسية</div>
+          <div class="svc-item active" onclick="Pricing3.toggleService('arch')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">🏛️</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">التصميم المعماري <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">المخططات المعمارية الكاملة</div>
+                <div class="svc-duration">⏱ 15 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">35 د.ك/م²</div>
+                    <div class="svc-item-amt">١٤٬٠٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item active" onclick="Pricing3.toggleService('struct')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">⚙️</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">التصميم الإنشائي <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">تصميم الهيكل الإنشائي</div>
+                <div class="svc-duration">⏱ 10 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">20 د.ك/م²</div>
+                    <div class="svc-item-amt">٨٬٠٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item active" onclick="Pricing3.toggleService('elec')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">⚡</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">المخططات الكهربائية <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">تصميم التمديدات الكهربائية</div>
+                <div class="svc-duration">⏱ 5 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">10 د.ك/م²</div>
+                    <div class="svc-item-amt">٤٬٠٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item active" onclick="Pricing3.toggleService('plumb')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">💧</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">المخططات الصحية <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">تصميم التمديدات الصحية (سباكة)</div>
+                <div class="svc-duration">⏱ 5 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">10 د.ك/م²</div>
+                    <div class="svc-item-amt">٤٬٠٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item active" onclick="Pricing3.toggleService('facade3d')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">🖼️</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">تصميم الواجهات 3D <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">تصميم ثلاثي الأبعاد للواجهات</div>
+                <div class="svc-duration">⏱ 7 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">300 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">٣٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('interior')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">🛋️</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">التصميم الداخلي </div>
+                <div class="svc-item-desc">تصميم الفراغات الداخلية</div>
+                <div class="svc-duration">⏱ 20 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">28 د.ك/م²</div>
+                    <div class="svc-item-amt">١١٬٢٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('quantity')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">📊</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">حساب الكميات </div>
+                <div class="svc-item-desc">جداول الكميات الدقيقة للمشروع</div>
+                <div class="svc-duration">⏱ 7 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">150 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">١٥٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item active" onclick="Pricing3.toggleService('soil_coord')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">🔬</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">تنسيق فحص التربة <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">التنسيق مع مختبرات التربة المعتمدة</div>
+                <div class="svc-duration">⏱ 7 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">50 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">٥٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div>
+        
+          <div class="svc-group-hdr">📝 خدمات التراخيص</div>
+          <div class="svc-item active" onclick="Pricing3.toggleService('permit')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">📝</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">إصدار رخصة بناء <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">إجراءات استخراج رخصة البناء الجديدة</div>
+                <div class="svc-duration">⏱ 30 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">400 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">٤٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('mod_license')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">🛠️</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">رخصة تعديل </div>
+                <div class="svc-item-desc">إصدار رخصة للتعديلات المعمارية</div>
+                <div class="svc-duration">⏱ 20 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">350 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">٣٥٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('add_license')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">🏗️</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">رخصة إضافة </div>
+                <div class="svc-item-desc">إصدار رخصة لإضافة مساحات جديدة</div>
+                <div class="svc-duration">⏱ 20 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">350 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">٣٥٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('data_mod')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">🔄</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">تعديل بيانات رخصة </div>
+                <div class="svc-item-desc">تعديل بيانات المالك أو البيانات الفنية للرخصة</div>
+                <div class="svc-duration">⏱ 10 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  <div class="svc-item-manual">تسعير يدوي</div>
+                
+              </div>
+            </div><div class="svc-item active" onclick="Pricing3.toggleService('elec_appr')">
+              <div class="svc-item-chk">✓</div>
+              <div class="svc-item-icon">🔌</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">موافقة الكهرباء <span style="font-size:10px;color:#0284C7;background:#DBEAFE;padding:1px 6px;border-radius:10px;">في الباقة</span></div>
+                <div class="svc-item-desc">اعتماد مخططات وزارة الكهرباء</div>
+                <div class="svc-duration">⏱ 10 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">150 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">١٥٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div>
+        
+          <div class="svc-group-hdr">⚙️ خدمات أخرى</div>
+          <div class="svc-item " onclick="Pricing3.toggleService('garden_permit')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">🌳</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">ترخيص حديقة </div>
+                <div class="svc-item-desc">استخراج ترخيص حديقة خارجية</div>
+                <div class="svc-duration">⏱ 7 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">120 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">١٢٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('canopy_permit')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">☂️</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">ترخيص مظلات </div>
+                <div class="svc-item-desc">استخراج ترخيص للمظلات</div>
+                <div class="svc-duration">⏱ 7 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">100 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">١٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('supervision')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">👷</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">إشراف هندسي </div>
+                <div class="svc-item-desc">إشراف على التنفيذ (شهري/مقطوع)</div>
+                
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">250 د.ك/شهر</div>
+                    <div class="svc-item-amt">٢٥٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div><div class="svc-item " onclick="Pricing3.toggleService('as_built')">
+              <div class="svc-item-chk"></div>
+              <div class="svc-item-icon">📐</div>
+              <div class="svc-item-info">
+                <div class="svc-item-name">مخططات As-Built </div>
+                <div class="svc-item-desc">مخططات مطابقة للتنفيذ الفعلي</div>
+                <div class="svc-duration">⏱ 10 يوم</div>
+              </div>
+              <div class="svc-item-price">
+                
+                  
+                    <div class="svc-item-rate">200 د.ك/مقطوع</div>
+                    <div class="svc-item-amt">٢٠٠٫٠٠٠ د.ك</div>
+                  
+                
+              </div>
+            </div>
+        
+      </div>
+    </div>
+              <div class="p2-step">
+      <div class="p2-step-hdr">
+        
+        <div><div class="p2-step-title">خدمات إضافية</div><div class="p2-step-sub">تضاف بدون خصم</div></div>
+        
+      </div>
+      <div class="p2-step-body">
+        <div class="addon-grid2">
+          <div class="addon-card2 " onclick="Pricing3.toggleAddon('render3d')">
+              <div class="addon-card2-icon">🎨</div>
+              <div class="addon-card2-name">مجسمات ثلاثية الأبعاد</div>
+              <div class="addon-card2-price">350 د.ك / مجسم</div>
+            </div><div class="addon-card2 " onclick="Pricing3.toggleAddon('survey')">
+              <div class="addon-card2-icon">📏</div>
+              <div class="addon-card2-name">مسح الموقع (كروكي)</div>
+              <div class="addon-card2-price">150 د.ك / زيارة</div>
+            </div><div class="addon-card2 " onclick="Pricing3.toggleAddon('vr_tour')">
+              <div class="addon-card2-icon">🥽</div>
+              <div class="addon-card2-name">جولة افتراضية (VR)</div>
+              <div class="addon-card2-price">250 د.ك / جولة</div>
+            </div>
+        </div>
+        
+      </div>
+    </div>
+            </div>
+
+          </div>
+        </div></div></body></html>

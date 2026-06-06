@@ -1,0 +1,177 @@
+  openClientProfile(id) {
+    this._activeClient = id;
+    this._viewMode = 'profile';
+    this.render();
+  },
+
+  closeClientProfile() {
+    this._activeClient = null;
+    this._viewMode = 'list';
+    this.render();
+  },
+
+  rClientProfile() {
+    const allC = this.getAllClients();
+    const c = allC.find(x => String(x.id) === String(this._activeClient));
+    if (!c) {
+      // Client not found — safely go back without infinite loop
+      this._viewMode = 'list';
+      this._activeClient = null;
+      return this.rClients();
+    }
+    
+    const isAdmin = ['admin', 'manager', 'management', 'المدير العام', 'المدير التنفيذي'].includes(window.getCurrentUserRole());
+    const projects = (window.ORM && typeof window.ORM.getProjectsByClient === 'function') ? window.ORM.getProjectsByClient(c.id) : [];
+    
+    let linkedTeamHtml = '';
+    if (c.type === 'company' && c.name) {
+       const allU = this.getAllClients();
+       const linked = allU.filter(u => u.company_name === c.name && u.id !== c.id);
+       if (linked.length) {
+         linkedTeamHtml = `
+           <div class="card" style="margin-top:16px;">
+             <h4 style="margin-bottom:12px; font-weight:bold; color:var(--primary);">الكوادر المرتبطة بالشركة</h4>
+             <table style="width:100%; text-align:right;">
+               <thead><tr><th style="padding:8px;border-bottom:1px solid var(--border)">الاسم</th><th style="padding:8px;border-bottom:1px solid var(--border)">المنصب / التصنيف</th><th style="padding:8px;border-bottom:1px solid var(--border)">بيانات التواصل</th></tr></thead>
+               <tbody>
+                 ${linked.map(l => `
+                    <tr>
+                      <td style="padding:8px;border-bottom:1px solid var(--border)">${l.name||'—'}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border)">${l.type === 'employee' ? '👔 موظف شركة' : l.type === 'collaborator' ? '🤝 متعاون فني' : l.type === 'contractor' ? '👷‍♂️ مقاول' : 'فرد'}</td>
+                      <td style="padding:8px;border-bottom:1px solid var(--border)" dir="ltr">${l.phone||'—'}<br><span style="font-size:11px;color:var(--text-3)">${l.email||''}</span></td>
+                    </tr>
+                 `).join('')}
+               </tbody>
+             </table>
+           </div>
+         `;
+       }
+    }
+
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+         <div>
+            <button class="btn btn-outline" onclick="ClientsPage.closeClientProfile()">⬅ رجوع للسجل</button>
+         </div>
+         <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" onclick="ClientsPage.openAddModal('${c.id}')">✏️ تعديل البيانات الأساسية</button>
+         </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+         <div>
+            <div class="card" style="margin-bottom:16px;">
+              <h3 style="margin-bottom:12px; font-weight:bold; font-size:18px;">${c.name||'بدون اسم'}</h3>
+              <div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:16px;">
+                 <div style="background:var(--bg-1); padding:10px 14px; border-radius:8px; flex:1; min-width:150px;">
+                    <div style="font-size:11px; color:var(--text-3);">التصنيف</div>
+                    <div style="font-weight:bold; font-size:14px;">${c.type === 'company'?'🏢 شركة':c.type==='contractor'?'👷‍♂️ مقاول':c.type==='employee'?'👔 موظف شركة':c.type==='collaborator'?'🤝 متعاون فني':'👤 فرد'}</div>
+                 </div>
+                 <div style="background:var(--bg-1); padding:10px 14px; border-radius:8px; flex:1; min-width:150px; display:${c.company_name?'block':'none'}">
+                    <div style="font-size:11px; color:var(--text-3);">الشركة التابع لها</div>
+                    <div style="font-weight:bold; font-size:14px;">${c.company_name||'—'}</div>
+                 </div>
+                 <div style="background:var(--bg-1); padding:10px 14px; border-radius:8px; flex:1; min-width:150px;">
+                    <div style="font-size:11px; color:var(--text-3);">الهاتف</div>
+                    <div style="font-weight:bold; font-size:14px;" dir="ltr">${c.phone||'—'}</div>
+                 </div>
+                 <div style="background:var(--bg-1); padding:10px 14px; border-radius:8px; flex:1; min-width:150px;">
+                    <div style="font-size:11px; color:var(--text-3);">الإيميل</div>
+                    <div style="font-weight:bold; font-size:14px;">${c.email||'—'}</div>
+                 </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px;">
+               <h4 style="margin-bottom:12px; font-weight:bold; color:var(--primary);">المشاريع الحالية</h4>
+               ${projects.length ? `
+                 <div style="display:flex; flex-direction:column; gap:8px;">
+                   ${projects.map(p => `
+                     <div style="background:var(--bg-1); border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                          <div style="font-weight:bold;">${p.name}</div>
+                          <div style="font-size:11px; color:var(--text-3);">${p.location || 'بدون موقع'}</div>
+                        </div>
+                        <span class="badge badge-blue">${p.status === 'active' ? 'نشط' : p.status}</span>
+                     </div>
+                   `).join('')}
+                 </div>
+               ` : '<div style="color:var(--text-3); font-size:13px;">لا توجد مشاريع حالية للعميل</div>'}
+            </div>
+
+            ${linkedTeamHtml}
+         </div>
+
+         <div>
+            <div class="card" style="margin-bottom:16px;">
+               <h4 style="margin-bottom:12px; font-weight:bold;">تصنيف الحساب الأساسي</h4>
+               <div style="margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:12px;">
+                 <label class="form-label" style="font-size:12px; color:var(--primary); font-weight:bold;">نوع الحساب / العميل</label>
+                 <select class="form-input" id="prof_client_type" onchange="document.getElementById('prof_comp_wrap').style.display=(this.value==='company'?'block':'none')" style="margin-bottom:8px;">
+                    <option value="client" ${c.type==='client'||c.type==='individual'?'selected':''}>👤 مالك قسيمة / فرد</option>
+                    <option value="investor" ${c.type==='investor'?'selected':''}>💼 مستثمر عقاري</option>
+                    <option value="company" ${c.type==='company'?'selected':''}>🏢 شركة / مؤسسة</option>
+                    <option value="contractor" ${c.type==='contractor'?'selected':''}>👷‍♂️ مقاول منفذ</option>
+                 </select>
+                 
+                 <div id="prof_comp_wrap" style="display:${c.type==='company'?'block':'none'}; background:var(--bg-1); padding:8px; border-radius:6px;">
+                    <label class="form-label" style="font-size:11px;">المنصب / صفة الممثل</label>
+                    <select class="form-input" id="prof_client_position" style="font-size:12px;">
+                       <option value="owner" ${c.position==='owner'?'selected':''}>مالك</option>
+                       <option value="ceo" ${c.position==='ceo'?'selected':''}>مدير تنفيذي</option>
+                       <option value="engineer" ${c.position==='engineer'?'selected':''}>مهندس</option>
+                       <option value="secretary" ${c.position==='secretary'?'selected':''}>سكرتير</option>
+                       <option value="accountant" ${c.position==='accountant'?'selected':''}>محاسب</option>
+                       <option value="employee" ${c.position==='employee'?'selected':''}>موظف</option>
+                       <option value="partner" ${c.position==='partner'?'selected':''}>شريك</option>
+                       <option value="other" ${c.position==='other'?'selected':''}>أخرى...</option>
+                    </select>
+                 </div>
+               </div>
+               <button class="btn btn-outline w-full" onclick="ClientsPage.saveProfileType('${c.id}')" style="font-size:12px;">تحديث التصنيف الأساسي</button>
+            </div>
+
+            ${isAdmin ? `
+            <div class="card" style="margin-bottom:16px;">
+               <h4 style="margin-bottom:12px; font-weight:bold; color:var(--primary);">متابعة وتقييم الإدارة</h4>
+               
+               <div style="margin-bottom:12px;">
+                 <label class="form-label" style="font-size:12px;">تصنيف الحالة (التقييم)</label>
+                 <select class="form-input" id="prof_eval_tag">
+                    <option value="" ${!c.evaluation ? 'selected' : ''}>-- طبيعي / بدون تقييم --</option>
+                    <option value="فرصة" ${c.evaluation === 'فرصة' ? 'selected' : ''}>🎯 فرصة (Opportunity)</option>
+                    <option value="مهم جدا" ${c.evaluation === 'مهم جدا' ? 'selected' : ''}>🌟 مهم جداً</option>
+                    <option value="مهم" ${c.evaluation === 'مهم' ? 'selected' : ''}>⭐ مهم</option>
+                    <option value="مشاغب" ${c.evaluation === 'مشاغب' ? 'selected' : ''}>⚠️ مشاغب / متعب</option>
+                    <option value="متأخر في الدفع" ${c.evaluation === 'متأخر في الدفع' ? 'selected' : ''}>💸 متأخر في الدفع</option>
+                    <option value="غير منظم" ${c.evaluation === 'غير منظم' ? 'selected' : ''}>📝 غير منظم</option>
+                 </select>
+               </div>
+               
+               <div style="margin-bottom:12px;">
+                 <label class="form-label" style="font-size:12px;">إضافة ملاحظة سرية للعميل</label>
+                 <textarea class="form-input" id="prof_eval_notes" rows="3" placeholder="سجل ملاحظاتك هنا...">${c.admin_notes || ''}</textarea>
+               </div>
+               
+               <button class="btn btn-primary w-full" onclick="ClientsPage.saveAdminFollowUp('${c.id}')" style="margin-bottom:20px;">💾 حفظ الملاحظات والتقييم</button>
+               
+               <h5 style="margin-bottom:8px; font-weight:bold; font-size:13px; color:var(--text-2);">سجل المتابعة والتعديلات</h5>
+               <div style="max-height: 350px; overflow-y: auto; padding-right: 4px;">
+                 ${(c.eval_history && c.eval_history.length) ? [...c.eval_history].reverse().map(h => `
+                    <div style="background:var(--bg-1); border-radius:8px; padding:10px; margin-bottom:8px; border:1px solid var(--border);">
+                      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span class="badge badge-blue" style="font-weight:bold; font-size:11px;">${h.eval_tag || 'بدون تقييم'}</span>
+                        <span style="color:var(--text-3); font-size:10px;" dir="ltr">${new Date(h.date).toLocaleString('ar-KW')}</span>
+                      </div>
+                      <div style="font-size:12px; color:var(--text-1); margin-bottom:6px; line-height:1.5;">${h.notes ? h.notes.replace(/\n/g, '<br>') : '<span style="color:var(--text-3);font-style:italic">لا توجد ملاحظات</span>'}</div>
+                      <div style="font-size:10px; color:var(--text-3);">بواسطة: <strong style="color:var(--text-2)">${h.by || 'النظام'}</strong></div>
+                    </div>
+                 `).join('') : '<div style="color:var(--text-3); font-size:12px; text-align:center; padding:10px;">لا يوجد سجل سابق</div>'}
+               </div>
+            </div>
+            ` : ''}
+         </div>
+      </div>
+    `;
+  },
+

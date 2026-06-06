@@ -1,0 +1,730 @@
+/* ═══════════════════════════════════════════════════════════
+   MEMAR ERP — Document & Contract Preparation Module
+   Version: 1.0 | Author: Memar Dev Team
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Module Container ────────────────────────────────────── */
+.dc-module { animation: fadeIn .3s ease; }
+
+/* ── KPI Strip ───────────────────────────────────────────── */
+.dc-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dc-kpi {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--sh-sm);
+  transition: box-shadow .2s, transform .2s;
+  position: relative;
+  overflow: hidden;
+}
+.dc-kpi:hover {
+  box-shadow: var(--sh-md);
+  transform: translateY(-2px);
+}
+.dc-kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; left: 0;
+  height: 3px;
+  border-radius: var(--r) var(--r) 0 0;
+}
+.dc-kpi.kpi-total::before    { background: linear-gradient(90deg, #274A78, #3B6B9C); }
+.dc-kpi.kpi-active::before   { background: linear-gradient(90deg, #10B981, #34D399); }
+.dc-kpi.kpi-draft::before    { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+.dc-kpi.kpi-value::before    { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+.dc-kpi.kpi-expired::before  { background: linear-gradient(90deg, #EF4444, #F87171); }
+.dc-kpi.kpi-docs::before     { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+
+.dc-kpi-icon {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.dc-kpi-body { flex: 1; min-width: 0; }
+.dc-kpi-label { font-size: 11.5px; color: var(--text-3); margin-bottom: 3px; font-weight: 600; }
+.dc-kpi-value { font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
+.dc-kpi-sub { font-size: 11px; color: var(--text-4); margin-top: 3px; }
+
+/* ── Tab Navigation ──────────────────────────────────────── */
+.dc-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--divider);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.dc-tab {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-family);
+}
+.dc-tab:hover { color: var(--primary); background: rgba(39,74,120,.05); }
+.dc-tab.active {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: var(--sh-xs);
+  font-weight: 700;
+}
+.dc-tab-icon { font-size: 15px; }
+.dc-tab-badge {
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ── Section Header ──────────────────────────────────────── */
+.dc-section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dc-section-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dc-section-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Contract Cards (Kanban View) ────────────────────────── */
+.dc-kanban {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.dc-kanban-col {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  min-height: 200px;
+}
+.dc-kanban-col-hdr {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  border-radius: var(--r) var(--r) 0 0;
+}
+.dc-kanban-col-title {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dc-kanban-col-count {
+  background: var(--divider);
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.dc-kanban-cards {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 60px;
+}
+
+/* ── Contract Card ───────────────────────────────────────── */
+.dc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px;
+  cursor: pointer;
+  transition: box-shadow .18s, transform .18s, border-color .18s;
+  box-shadow: var(--sh-xs);
+  position: relative;
+}
+.dc-card:hover {
+  box-shadow: var(--sh-md);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+.dc-card-num {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dc-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.dc-card-client {
+  font-size: 12px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.dc-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dc-card-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.dc-card-date {
+  font-size: 11px;
+  color: var(--text-4);
+}
+.dc-card-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.dc-card-tag {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* ── Status Colors ───────────────────────────────────────── */
+.dc-status-draft     { background: #FEF3C7; color: #D97706; }
+.dc-status-review    { background: #DBEAFE; color: #2563EB; }
+.dc-status-approved  { background: #EDE9FE; color: #7C3AED; }
+.dc-status-active    { background: #D1FAE5; color: #059669; }
+.dc-status-completed { background: #F0FDF4; color: #16A34A; }
+.dc-status-cancelled { background: #FEE2E2; color: #DC2626; }
+.dc-status-expired   { background: #FFF1F2; color: #BE123C; }
+
+/* ── Contract Table ──────────────────────────────────────── */
+.dc-table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: var(--sh-sm);
+}
+.dc-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--divider);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dc-table-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dc-table-search input {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 12.5px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  font-family: var(--font-family);
+  min-width: 200px;
+}
+.dc-table-search input:focus { border-color: var(--primary); background: #fff; }
+.dc-filter-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.dc-filter-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all .15s;
+  font-family: var(--font-family);
+}
+.dc-filter-chip:hover { border-color: var(--primary); color: var(--primary); }
+.dc-filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ── Document Templates Grid ─────────────────────────────── */
+.dc-templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.dc-template-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: var(--sh-xs);
+  position: relative;
+}
+.dc-template-card:hover {
+  box-shadow: var(--sh-md);
+  border-color: var(--primary);
+  transform: translateY(-3px);
+}
+.dc-template-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+}
+.dc-template-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.dc-template-desc {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.dc-template-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: var(--primary-50);
+  color: var(--primary);
+}
+
+/* ── Contract Detail View ────────────────────────────────── */
+.dc-detail {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+.dc-detail-main { display: flex; flex-direction: column; gap: 16px; }
+.dc-detail-sidebar { display: flex; flex-direction: column; gap: 14px; }
+
+.dc-detail-header {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  box-shadow: var(--sh-sm);
+}
+.dc-detail-num {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.dc-detail-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.dc-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.dc-meta-item {}
+.dc-meta-label { font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+.dc-meta-value { font-size: 13px; font-weight: 700; color: var(--text); }
+
+/* ── Timeline / Activity Log ─────────────────────────────── */
+.dc-timeline {
+  position: relative;
+  padding-right: 24px;
+}
+.dc-timeline::before {
+  content: '';
+  position: absolute;
+  right: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.dc-timeline-item {
+  position: relative;
+  margin-bottom: 16px;
+  padding-right: 20px;
+}
+.dc-timeline-item::before {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.dc-timeline-date {
+  font-size: 10.5px;
+  color: var(--text-4);
+  margin-bottom: 3px;
+}
+.dc-timeline-text {
+  font-size: 12.5px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+/* ── Progress Bar for Contract Stages ────────────────────── */
+.dc-progress-stages {
+  display: flex;
+  gap: 0;
+  margin: 14px 0;
+}
+.dc-progress-stage {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+.dc-progress-stage::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  z-index: 0;
+}
+.dc-progress-stage:last-child::after { display: none; }
+.dc-progress-stage.done::after { background: var(--success); }
+.dc-progress-stage.current::after { background: linear-gradient(to left, var(--border), var(--primary)); }
+
+.dc-progress-dot {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--divider);
+  border: 2px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-3);
+  position: relative;
+  z-index: 1;
+  margin-bottom: 5px;
+  transition: all .2s;
+}
+.dc-progress-stage.done .dc-progress-dot {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+.dc-progress-stage.current .dc-progress-dot {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(39,74,120,.15);
+}
+.dc-progress-label {
+  font-size: 10.5px;
+  color: var(--text-4);
+}
+.dc-progress-stage.done .dc-progress-label { color: var(--success); font-weight: 600; }
+.dc-progress-stage.current .dc-progress-label { color: var(--primary); font-weight: 700; }
+
+/* ── Items / Clauses Table ───────────────────────────────── */
+.dc-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.dc-items-table th {
+  background: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+.dc-items-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--divider);
+  color: var(--text-2);
+}
+.dc-items-table tr:hover td { background: var(--bg); }
+.dc-items-table tfoot td {
+  background: var(--primary-50);
+  font-weight: 900;
+  color: var(--primary);
+  border-top: 2px solid var(--primary);
+}
+
+/* ── Empty State ─────────────────────────────────────────── */
+.dc-empty {
+  text-align: center;
+  padding: 48px 20px;
+}
+.dc-empty-icon { font-size: 52px; margin-bottom: 14px; opacity: .5; }
+.dc-empty-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.dc-empty-text { font-size: 13px; color: var(--text-3); margin-bottom: 16px; }
+
+/* ── Print Preview ───────────────────────────────────────── */
+.dc-print-preview {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: var(--sh-lg);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.dc-print-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--primary);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+.dc-print-logo {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--primary);
+}
+.dc-print-info { text-align: left; font-size: 11px; color: var(--text-3); }
+.dc-print-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--primary);
+  margin-bottom: 20px;
+  padding: 10px;
+  background: var(--primary-50);
+  border-radius: 8px;
+}
+.dc-print-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.dc-print-party {
+  padding: 14px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.dc-print-party h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.dc-print-clause {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: #FAFBFC;
+  border-radius: 6px;
+  border-right: 3px solid var(--primary);
+}
+.dc-print-clause h5 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.dc-print-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 2px dashed var(--border);
+}
+.dc-print-sig {
+  text-align: center;
+}
+.dc-print-sig-line {
+  border-top: 1px solid var(--text);
+  margin-top: 60px;
+  padding-top: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dc-detail { grid-template-columns: 1fr; }
+  .dc-kanban { grid-template-columns: 1fr 1fr; }
+  .dc-print-preview { padding: 20px; }
+  .dc-print-parties { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .dc-kpi-strip { grid-template-columns: 1fr 1fr; }
+  .dc-kanban { grid-template-columns: 1fr; }
+  .dc-templates-grid { grid-template-columns: 1fr; }
+}
+
+@media print {
+  .dc-tabs, .dc-kpi-strip, .dc-section-hdr, .sidebar, .topbar, .dc-section-actions { display: none !important; }
+  .dc-print-preview { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+}
+
+/* ── Visual PDF Mapper ───────────────────────────────────── */
+.dc-mapper-container {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 20px;
+  height: 70vh;
+  min-height: 500px;
+}
+.dc-mapper-canvas-wrap {
+  background: #E2E8F0;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+.dc-mapper-page {
+  width: 595px; /* A4 aspect ratio representation */
+  height: 842px;
+  background: #fff;
+  box-shadow: var(--sh-md);
+  position: relative;
+  cursor: crosshair;
+}
+.dc-mapper-page::before {
+  content: '📄 معاينة المستند (مكان تخيلي للـ PDF)';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-4);
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.dc-mapper-field {
+  position: absolute;
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid var(--primary);
+  border-radius: 4px;
+  cursor: move;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  user-select: none;
+}
+.dc-mapper-field.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--success);
+  color: var(--success);
+  z-index: 10;
+}
+.dc-mapper-sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.dc-field-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 11px;
+}
+.dc-field-item.active {
+  border-color: var(--success);
+  background: #F0FDF4;
+}
+
+/* ── Office Settings / Stamp Profile ─────────────────────── */
+.dc-profile-upload {
+  border: 2px dashed var(--border);
+  border-radius: var(--r);
+  padding: 30px;
+  text-align: center;
+  background: #F8FAFC;
+  transition: all .2s;
+  cursor: pointer;
+}
+.dc-profile-upload:hover { border-color: var(--primary); background: #EFF6FF; }
+.dc-profile-img-preview {
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  object-fit: contain;
+}

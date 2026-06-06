@@ -1,0 +1,634 @@
+/* ══════════════════════════════════════════════════════
+   MIMAR UI SKIN v2.0 — Theme Overlay
+   Applied on top of existing design system
+   ══════════════════════════════════════════════════════ */
+
+/* ── Token Alignment ─────────────────────────────── */
+:root {
+  /* Navy palette — aligned with Mimar skin */
+  --primary:       #1B3A6B;
+  --primary-dark:  #142E55;
+  --primary-mid:   #2952A3;
+  --primary-light: #2952A3;
+  --primary-50:    #EEF2F9;
+  --primary-100:   #D6E2F0;
+  --primary-200:   #A8C0DB;
+
+  /* Gold accent */
+  --gold:       #B8922A;
+  --gold-light: #D4A843;
+  --accent:     #B8922A;
+  --accent-dark:#9A7A22;
+  --accent-light:#FFF8E8;
+
+  /* Success */
+  --success:     #059669;
+  --success-50:  #ECFDF5;
+  --success-100: #A7F3D0;
+
+  /* Warning */
+  --warning:     #D97706;
+  --warning-50:  #FFFBEB;
+  --warning-100: #FCD34D;
+
+  /* Danger */
+  --danger:      #DC2626;
+  --danger-50:   #FEF2F2;
+  --danger-100:  #FECACA;
+
+  /* Info */
+  --info:        #2563EB;
+  --info-50:     #EFF6FF;
+  --info-100:    #BFDBFE;
+
+  /* Purple */
+  --purple:      #7C3AED;
+  --purple-50:   #F5F3FF;
+
+  /* Neutrals */
+  --bg:          #F0F4F8;
+  --bg-card:     #FFFFFF;
+  --bg-subtle:   #E8EDF3;
+  --card:        #FFFFFF;
+
+  --text:        #1A2332;
+  --text-2:      #334155;
+  --text-3:      #4B5563;
+  --text-4:      #9CA3AF;
+  --muted:       #9CA3AF;
+
+  --border:      #E5E7EB;
+  --border-2:    #D1D5DB;
+  --divider:     #F1F5F9;
+
+  /* Shadows — Mimar style */
+  --sh-xs:  0 1px 2px rgba(0,0,0,.05);
+  --sh-sm:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --sh-md:  0 4px 16px rgba(0,0,0,.1);
+  --sh-lg:  0 8px 30px rgba(0,0,0,.13);
+  --sh-xl:  0 16px 40px rgba(0,0,0,.15);
+  --sh-card:0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --sh-primary: 0 3px 10px rgba(27,58,107,.25);
+
+  /* Radius — slightly rounder */
+  --r:     12px;
+  --r-sm:  8px;
+  --r-md:  12px;
+  --r-lg:  16px;
+  --r-xl:  20px;
+
+  /* Mimar short aliases */
+  --navy:  #1B3A6B;
+  --navy2: #2952A3;
+  --navy3: #EEF2F9;
+  --tx:    var(--text);
+  --tx2:   var(--text-3);
+  --mt:    var(--text-4);
+  --brd:   var(--border);
+  --ok:    var(--success);
+  --okb:   var(--success-50);
+  --err:   var(--danger);
+  --errb:  var(--danger-50);
+  --inf:   var(--info);
+  --infb:  var(--info-50);
+  --gbg:   #FFF8E8;
+  --gb:    #F0DCA0;
+}
+
+/* ── Sidebar — Mimar compact ───────────────────── */
+.sidebar {
+  width: 242px !important;
+  min-width: 242px !important;
+  background: #FFFFFF !important;
+  border-left-color: var(--border) !important;
+}
+.main {
+  margin-right: 242px !important;
+  max-width: calc(100vw - 242px) !important;
+}
+:root { --sidebar-w: 242px; }
+
+/* Sidebar logo */
+.sb-logo, .sb-brand {
+  padding: 16px 14px 13px !important;
+}
+.sb-logo-icon, .sb-brand-icon {
+  width: 33px !important; height: 33px !important;
+  border-radius: 9px !important;
+  background: linear-gradient(135deg, var(--navy), var(--navy2)) !important;
+  font-size: 15px !important;
+}
+.sb-logo-text h1 {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  color: var(--navy) !important;
+}
+.sb-logo-text span {
+  font-size: 9.5px !important;
+  color: var(--text-4) !important;
+}
+
+/* Nav items — compact Mimar style */
+.sb-section-label, .sb-section, .sb-label {
+  padding: 14px 14px 3px !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  color: var(--text-4) !important;
+  letter-spacing: 1.5px !important;
+}
+.nav-item {
+  padding: 9px 14px !important;
+  margin: 1px 7px !important;
+  border-radius: var(--r-sm) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--text-3) !important;
+  gap: 9px !important;
+}
+.nav-item:hover {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+.nav-item.active {
+  background: var(--navy3) !important;
+  color: var(--navy) !important;
+  font-weight: 700 !important;
+}
+.nav-item.active::before {
+  width: 3px !important;
+  background: var(--navy) !important;
+  border-radius: 3px 0 0 3px !important;
+  right: -7px !important;
+  left: auto !important;
+  box-shadow: none !important;
+}
+.nav-icon {
+  font-size: 16px !important;
+  min-width: 22px !important;
+  opacity: 1 !important;
+}
+.nav-badge {
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  padding: 1px 5px !important;
+  background: var(--danger-50) !important;
+  color: var(--danger) !important;
+  border: 1px solid var(--danger-100) !important;
+}
+
+/* Sidebar footer */
+.sb-user {
+  padding: 10px 14px !important;
+  border-top: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+}
+.sb-avatar {
+  width: 31px !important; height: 31px !important;
+  background: linear-gradient(135deg, var(--navy), var(--navy2)) !important;
+  font-size: 11px !important;
+}
+.sb-user-info strong { font-size: 12px !important; }
+.sb-user-info span { font-size: 10px !important; }
+
+/* ── Topbar — Mimar compact ────────────────────── */
+.topbar {
+  height: 58px !important;
+  min-height: 58px !important;
+  background: #FFFFFF !important;
+  backdrop-filter: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: var(--sh-sm) !important;
+  padding: 0 18px !important;
+  gap: 12px !important;
+  z-index: 100 !important;
+}
+:root { --topbar-h: 58px; }
+
+.topbar-page-title {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: var(--navy) !important;
+}
+
+.topbar-search {
+  max-width: 300px !important;
+}
+.topbar-search input {
+  border-radius: 30px !important;
+  padding: 7px 13px 7px 34px !important;
+  font-size: 12.5px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--bg) !important;
+}
+.topbar-search input:focus {
+  border-color: var(--navy) !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.icon-btn {
+  width: 33px !important; height: 33px !important;
+  border-radius: 9px !important;
+  background: var(--bg) !important;
+  border: 1.5px solid var(--border) !important;
+}
+.icon-btn:hover {
+  border-color: var(--navy) !important;
+  background: var(--navy3) !important;
+  transform: none !important;
+}
+.icon-btn .bubble {
+  width: 7px !important; height: 7px !important;
+  border: 2px solid var(--bg-card) !important;
+}
+
+.topbar-user {
+  padding: 4px 8px !important;
+  border-radius: 9px !important;
+}
+.topbar-user-avatar {
+  width: 31px !important; height: 31px !important;
+  background: linear-gradient(135deg, var(--navy), var(--navy2)) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+.topbar-date {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  color: var(--navy) !important;
+  background: var(--navy3) !important;
+  padding: 4px 10px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(27,58,107,.14) !important;
+}
+
+/* ── Buttons — Mimar ──────────────────────────── */
+.btn {
+  padding: 7px 14px !important;
+  border-radius: var(--r-sm) !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  border: 1.5px solid transparent !important;
+  gap: 5px !important;
+}
+.btn-primary {
+  background: var(--navy) !important;
+  color: #fff !important;
+  border-color: var(--navy) !important;
+  box-shadow: none !important;
+}
+.btn-primary:hover {
+  background: var(--navy2) !important;
+  box-shadow: var(--sh-primary) !important;
+  transform: none !important;
+}
+.btn-accent {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light)) !important;
+  color: #fff !important;
+}
+.btn-secondary {
+  background: var(--bg-card) !important;
+  border: 1.5px solid var(--border) !important;
+  color: var(--text-3) !important;
+}
+.btn-secondary:hover {
+  border-color: var(--navy) !important;
+  color: var(--navy) !important;
+  background: var(--navy3) !important;
+}
+.btn-success {
+  background: var(--success-50) !important;
+  border-color: var(--success-100) !important;
+  color: var(--success) !important;
+  box-shadow: none !important;
+}
+.btn-success:hover {
+  background: var(--success) !important;
+  color: #fff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.btn-danger {
+  background: var(--danger-50) !important;
+  border-color: var(--danger-100) !important;
+  color: var(--danger) !important;
+}
+.btn-danger:hover {
+  background: var(--danger) !important;
+  color: #fff !important;
+}
+.btn-ghost {
+  background: transparent !important;
+  border: 1.5px solid var(--border) !important;
+  color: var(--text-3) !important;
+}
+.btn-ghost:hover {
+  border-color: var(--navy) !important;
+  color: var(--navy) !important;
+  background: var(--navy3) !important;
+}
+.btn-sm { padding: 4px 10px !important; font-size: 11.5px !important; }
+.btn-xs { padding: 2px 7px !important; font-size: 11px !important; }
+
+/* ── Cards — Mimar ────────────────────────────── */
+.card {
+  border-radius: var(--r) !important;
+  box-shadow: var(--sh-sm) !important;
+  border: 1px solid var(--border) !important;
+}
+.card:hover { box-shadow: var(--sh-md) !important; }
+.card-header { padding: 14px 18px 0 !important; }
+.card-body   { padding: 14px 18px !important; }
+.card-title  {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+/* ── KPI / Stat Cards — Mimar ─────────────────── */
+.kpi-card {
+  border-radius: var(--r) !important;
+  padding: 16px 18px !important;
+  box-shadow: var(--sh-sm) !important;
+  gap: 12px !important;
+}
+.kpi-card:hover {
+  box-shadow: var(--sh-md) !important;
+  transform: translateY(-1px) !important;
+}
+.kpi-card::after { display: none !important; }
+.kpi-icon {
+  width: 44px !important; height: 44px !important;
+  border-radius: 11px !important;
+}
+.kpi-value {
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: var(--text) !important;
+  background-clip: unset !important;
+}
+.kpi-label { font-size: 11.5px !important; }
+.kpi-sub { font-size: 11px !important; }
+
+/* ── Tables — Mimar ──────────────────────────── */
+.table-wrap {
+  border-radius: var(--r) !important;
+  box-shadow: var(--sh-sm) !important;
+}
+th {
+  background: var(--bg) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--text-3) !important;
+  padding: 10px 14px !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+td {
+  padding: 11px 14px !important;
+  font-size: 12.5px !important;
+}
+tr:hover td {
+  background: #F8FAFC !important;
+}
+
+/* ── Badges — Mimar pill style ────────────────── */
+.badge {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 20px !important;
+  border: 1px solid transparent !important;
+}
+.badge::before { font-size: 6px !important; }
+.badge-blue   { background: var(--navy3) !important; color: var(--navy) !important; border-color: rgba(27,58,107,.18) !important; }
+.badge-green  { background: var(--success-50) !important; color: var(--success) !important; border-color: var(--success-100) !important; }
+.badge-orange { background: var(--warning-50) !important; color: var(--warning) !important; border-color: var(--warning-100) !important; }
+.badge-red    { background: var(--danger-50) !important; color: var(--danger) !important; border-color: var(--danger-100) !important; }
+.badge-gray   { background: var(--bg) !important; color: var(--text-3) !important; border-color: var(--border) !important; }
+.badge-purple { background: var(--purple-50) !important; color: var(--purple) !important; border-color: #DDD6FE !important; }
+.badge-info   { background: var(--info-50) !important; color: var(--info) !important; border-color: var(--info-100) !important; }
+
+/* ── Forms — Mimar ───────────────────────────── */
+.form-input, .form-control {
+  background: var(--bg) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--r-sm) !important;
+  padding: 8px 11px !important;
+  font-size: 12.5px !important;
+}
+.form-input:focus, .form-control:focus {
+  border-color: var(--navy) !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(27,58,107,.07) !important;
+}
+.form-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+/* ── Modal — Mimar ───────────────────────────── */
+.modal-backdrop {
+  background: rgba(0,0,0,.42) !important;
+  backdrop-filter: blur(3px) !important;
+}
+.modal {
+  border-radius: 16px !important;
+  max-width: 640px !important;
+  box-shadow: var(--sh-lg) !important;
+}
+.modal-header {
+  padding: 16px 20px !important;
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.modal-title {
+  font-size: 14.5px !important;
+  font-weight: 900 !important;
+}
+.modal-close {
+  width: 28px !important; height: 28px !important;
+  border-radius: 7px !important;
+  background: var(--bg-card) !important;
+  border: 1.5px solid var(--border) !important;
+  font-size: 14px !important;
+}
+.modal-close:hover {
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+  transform: none !important;
+}
+.modal-body { padding: 20px !important; }
+.modal-footer {
+  padding: 13px 20px !important;
+  background: var(--bg) !important;
+  border-top: 1px solid var(--border) !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  gap: 7px !important;
+}
+
+/* ── Progress Bar — Mimar ────────────────────── */
+.progress-bar {
+  height: 6px !important;
+  background: var(--bg-subtle) !important;
+  border-radius: 3px !important;
+}
+.progress-fill {
+  background: linear-gradient(90deg, var(--navy), var(--navy2)) !important;
+  border-radius: 3px !important;
+}
+.progress-fill::after { display: none !important; }
+.progress-fill.green { background: linear-gradient(90deg, var(--success), #34D399) !important; }
+.progress-fill.orange { background: linear-gradient(90deg, var(--warning), #FBBF24) !important; }
+.progress-fill.red { background: linear-gradient(90deg, var(--danger), #F87171) !important; }
+
+/* ── Tabs — Mimar ────────────────────────────── */
+.tabs {
+  background: var(--bg) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--r-sm) !important;
+  padding: 3px !important;
+  box-shadow: none !important;
+}
+.tab-btn {
+  padding: 5px 12px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text-3) !important;
+}
+.tab-btn.active {
+  background: var(--bg-card) !important;
+  color: var(--navy) !important;
+  box-shadow: var(--sh-sm) !important;
+}
+
+/* ── Section Headers — Mimar ─────────────────── */
+.section-title {
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: var(--text) !important;
+  background-clip: unset !important;
+}
+.section-header {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 16px !important;
+}
+
+/* ── Toast — Mimar ───────────────────────────── */
+.toast {
+  background: var(--bg-card) !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-right: 4px solid var(--navy) !important;
+  border-left: none !important;
+  box-shadow: var(--sh-md) !important;
+  max-width: 280px !important;
+  color: var(--text) !important;
+}
+.toast.ok, .toast.success { border-right-color: var(--success) !important; }
+.toast.err, .toast.error  { border-right-color: var(--danger) !important; }
+.toast.info                { border-right-color: var(--info) !important; }
+
+/* ── Notification Pills — Mimar ──────────────── */
+.notif-bar {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--r) !important;
+}
+.notif-bar::before { display: none !important; }
+.notif-pill { border-radius: 20px !important; }
+
+/* ── Project Cards — Mimar ───────────────────── */
+.proj-card {
+  border-radius: var(--r) !important;
+  box-shadow: var(--sh-sm) !important;
+}
+.proj-card::before { display: none !important; }
+.proj-card:hover {
+  box-shadow: var(--sh-md) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Kanban — Mimar ──────────────────────────── */
+.kb-col {
+  border-radius: var(--r) !important;
+}
+.kb-card {
+  border-radius: var(--r-sm) !important;
+}
+.kb-card:hover {
+  transform: translateY(-1px) !important;
+  border-color: var(--navy) !important;
+}
+
+/* ── Scrollbar — Mimar ───────────────────────── */
+::-webkit-scrollbar { width: 5px !important; height: 5px !important; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-2) !important;
+  border-radius: 5px !important;
+}
+
+/* ── Page animation — Mimar ──────────────────── */
+.page.active {
+  animation: mimarPageIn .22s ease !important;
+}
+@keyframes mimarPageIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Profile header gradient — Mimar ─────────── */
+.project-hero, .portal-hero {
+  background: linear-gradient(135deg, var(--navy), var(--navy2)) !important;
+  border-radius: var(--r) var(--r) 0 0 !important;
+}
+
+/* ── Filter/Search — Mimar ───────────────────── */
+.filter-select {
+  border-radius: var(--r-sm) !important;
+  background: var(--bg) !important;
+  border: 1.5px solid var(--border) !important;
+  font-size: 12px !important;
+}
+.filter-select:focus {
+  border-color: var(--navy) !important;
+}
+.search-input {
+  border-radius: 30px !important;
+  border: 1.5px solid var(--border) !important;
+}
+.search-input:focus {
+  border-color: var(--navy) !important;
+}
+
+/* ── Quick Add Panel — Mimar ─────────────────── */
+.tb-quick-add {
+  background: var(--navy) !important;
+  border-radius: var(--r-sm) !important;
+  box-shadow: none !important;
+  padding: 6px 14px !important;
+  font-size: 12.5px !important;
+}
+.tb-quick-add:hover {
+  background: var(--navy2) !important;
+  transform: none !important;
+  box-shadow: var(--sh-primary) !important;
+}
+
+/* ── Responsive — Mimar ──────────────────────── */
+@media (max-width: 900px) {
+  .main { margin-right: 0 !important; max-width: 100vw !important; }
+  .sidebar { display: flex !important; transform: translateX(100%) !important; }
+  .sidebar.open { transform: translateX(0) !important; }
+}
+@media (max-width: 580px) {
+  .sidebar { display: none !important; }
+}

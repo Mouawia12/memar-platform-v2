@@ -1,0 +1,213 @@
+/* ══════════════════════════════════════════════════════
+   TRANSACTION TIMELINE - BASELINE UI (Memar ERP)
+══════════════════════════════════════════════════════ */
+
+#p-transaction-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--font-family);
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.tl-header-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 20px;
+  box-shadow: var(--sh-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tl-header-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.tl-header-sub {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ── Simple Vertical Timeline List ── */
+.tl-stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+/* Vertical line connecting cards */
+.tl-stage-list::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  right: 24px;
+  width: 2px;
+  border-right: 2px dashed var(--border-2);
+  z-index: 0;
+}
+
+/* Individual Stage Card */
+.tl-stage-card {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 20px 16px 40px;
+  box-shadow: var(--sh-xs);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tl-stage-card:hover {
+  transform: translateX(-4px);
+  border-color: var(--primary-100);
+  box-shadow: var(--sh-sm);
+}
+
+.tl-stage-card.active {
+  border: 2px solid var(--primary);
+  background: var(--primary-50);
+}
+
+/* Status Dot to the right (RTL layout) */
+.tl-status-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tl-stage-card.done .tl-status-dot { background: var(--success); border-color: var(--success-100); }
+.tl-stage-card.active .tl-status-dot { background: var(--primary); border-color: var(--primary-100); box-shadow: 0 0 0 3px rgba(27,108,168,0.2); }
+.tl-stage-card.delayed .tl-status-dot { background: var(--danger); border-color: var(--danger-100); }
+
+/* Card Body Layout */
+.tl-card-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 20px; /* space for the dot */
+}
+
+.tl-card-row-1 {
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.tl-stage-name {
+  font-size: 14.5px; font-weight: 800; color: var(--text);
+}
+
+.tl-stage-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px;
+}
+.tl-stage-badge.done { background: var(--success-50); color: var(--success); }
+.tl-stage-badge.active { background: var(--primary-50); color: var(--primary); }
+.tl-stage-badge.upcoming { background: var(--divider); color: var(--text-4); }
+
+.tl-card-row-2 {
+  display: flex; gap: 16px; font-size: 12px; color: var(--text-3); font-weight: 600;
+}
+
+/* Integrations & Badges */
+.tl-integrations {
+  display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;
+}
+.tl-int-badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border); color: var(--text-3); font-weight: 700;
+}
+
+/* ── Modal & Stage Details ── */
+.tl-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.tl-modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+.tl-modal-box {
+  background: var(--bg); width: 650px; max-width: 95vw;
+  height: 85vh; border-radius: var(--r-lg);
+  display: flex; flex-direction: column;
+  box-shadow: var(--sh-xl); transform: translateY(20px); transition: transform .2s ease;
+}
+.tl-modal-overlay.open .tl-modal-box { transform: translateY(0); }
+
+.tl-modal-header {
+  padding: 16px 20px; background: #fff; border-bottom: 1px solid var(--border);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.tl-modal-title { font-size: 16px; font-weight: 800; color: var(--text); }
+.tl-modal-close { background: none; border: none; font-size: 20px; font-weight: bold; cursor: pointer; color: var(--text-4); transition: color .15s; }
+.tl-modal-close:hover { color: var(--danger); }
+
+/* Details Body */
+.tl-modal-body {
+  flex: 1; padding: 20px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 16px;
+  scrollbar-width: thin; scrollbar-color: var(--border-2) transparent;
+}
+.tl-modal-body::-webkit-scrollbar { width: 6px; }
+.tl-modal-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+/* Chat Input inside Modal Header or Footer */
+.tl-modal-footer {
+  padding: 14px 20px; background: #fff; border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  display: flex; gap: 10px;
+}
+.tl-chat-input {
+  flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
+  font-size: 13px; outline: none; font-family: var(--font-family); background: var(--bg);
+}
+.tl-chat-input:focus { border-color: var(--primary); background: #fff; }
+
+.tl-send-btn {
+  background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0 16px;
+  font-weight: 700; cursor: pointer; transition: background .15s;
+}
+.tl-send-btn:hover { background: var(--primary-dark); }
+
+/* Messages (Newest First) */
+.tl-msg-list {
+  display: flex;
+  flex-direction: column; /* JS handles array reversing */
+  gap: 12px;
+}
+
+.tl-msg-item {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 12px 14px;
+  box-shadow: var(--sh-xs); display: flex; flex-direction: column; gap: 6px;
+}
+.tl-msg-hdr { display: flex; justify-content: space-between; align-items: center; }
+.tl-msg-user { font-size: 12px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.tl-msg-user.system { color: var(--primary); }
+.tl-msg-time { font-size: 11px; color: var(--text-4); font-weight: 600; }
+
+.tl-msg-content { font-size: 13px; line-height: 1.6; color: var(--text-2); }
+.tl-msg-content.system { font-weight: 600; color: var(--text); }
+.tl-msg-file {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--primary);
+}

@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Env & secrets (المستودع عام — لا ترفع الأسرار أبداً)
+.env
+.env.*
+!.env.example
+*.key
+
+# Laravel
+/backend-memar/storage/*.key
+/backend-memar/storage/framework/cache/*
+/backend-memar/storage/framework/sessions/*
+/backend-memar/storage/framework/views/*
+/backend-memar/storage/logs/*
+/backend-memar/bootstrap/cache/*
+
+# Logs & runtime
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

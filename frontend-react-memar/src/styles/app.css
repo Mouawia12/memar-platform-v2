@@ -1,0 +1,18 @@
+/* أنماط تطبيق React فوق تصميم الـERP الموروث — تعديلات خفيفة فقط. */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Cairo', 'Inter', system-ui, sans-serif;
+}
+
+/* ضمان تخطيط الصفحة (احتياطي إن لم يعرّفه CSS الموروث) */
+.app {
+  display: flex;
+  min-height: 100vh;
+}

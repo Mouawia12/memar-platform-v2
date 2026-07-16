@@ -1,7 +1,12 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 
 import { useAuthStore } from '../store/auth';
-import type { ApiEnvelope } from '../types/api';
+import type { ApiEnvelope, PaginationMeta } from '../types/api';
+
+export interface Paginated<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
 
 /**
  * عميل HTTP موحّد للتواصل مع Laravel API.
@@ -51,6 +56,12 @@ export async function apiPatch<T>(url: string, body?: unknown, config?: AxiosReq
 export async function apiDelete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   const res = await api.delete<ApiEnvelope<T>>(url, config);
   return res.data.data;
+}
+
+/** جلب قائمة مصفّحة — يعيد data + meta معًا. */
+export async function apiGetPaginated<T>(url: string, config?: AxiosRequestConfig): Promise<Paginated<T>> {
+  const res = await api.get<ApiEnvelope<T[]>>(url, config);
+  return { data: res.data.data, meta: res.data.meta as PaginationMeta };
 }
 
 /** استخراج رسالة خطأ عربية من استجابة الـAPI. */

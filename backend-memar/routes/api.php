@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Support\ApiResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 | API Routes — v1
 |--------------------------------------------------------------------------
 | كل المسارات تحت /api/v1 وتُرجع الظرف الموحّد { success, message, data }.
-| تُضاف وحدات الـAPI (auth, users, projects…) هنا تباعًا.
+| كل وحدة في ملف مستقل تحت routes/api/ للتنظيم.
 */
 
 Route::prefix('v1')->group(function (): void {
@@ -23,13 +22,10 @@ Route::prefix('v1')->group(function (): void {
         'time' => now()->toIso8601String(),
     ], 'الخدمة تعمل'));
 
-    // مسارات محمية (نموذج — تُستبدل بوحدة auth لاحقًا)
-    Route::middleware('auth:sanctum')->group(function (): void {
-        Route::get('/me', fn (Request $request) => ApiResponse::success($request->user()));
-    });
-
-    // ── وحدات الـAPI (تُضاف تباعًا) ─────────────────────────────
-    // require __DIR__.'/api/auth.php';
-    // require __DIR__.'/api/users.php';
-    // ...
+    // ── وحدات الـAPI ─────────────────────────────
+    require __DIR__.'/api/auth.php';
+    require __DIR__.'/api/users.php';
+    require __DIR__.'/api/contacts.php';
+    require __DIR__.'/api/companies.php';
+    require __DIR__.'/api/projects.php';
 });

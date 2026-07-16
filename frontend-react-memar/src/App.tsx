@@ -2,13 +2,18 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { NAV_SECTIONS } from './config/nav';
-import { LoginPage } from './features/auth/LoginPage';
+import { LoginPage } from './features/auth/pages/LoginPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { ClientsPage } from './features/clients/pages/ClientsPage';
+import { CompaniesPage } from './features/companies/pages/CompaniesPage';
+import { ProjectsPage } from './features/projects/pages/ProjectsPage';
+import { UsersPage } from './features/users/pages/UsersPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
-// مسارات الوحدات التي لم تُنقل بعد → صفحة مؤقتة (ما عدا لوحة التحكم).
-const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.key !== 'dashboard');
+// الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects'];
+const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
   return (
@@ -18,6 +23,10 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/user-logs" element={<UsersPage />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
           {placeholderItems.map((item) => (
             <Route key={item.path} path={item.path} element={<PlaceholderPage title={item.label} />} />
           ))}

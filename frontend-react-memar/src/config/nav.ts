@@ -13,6 +13,15 @@ export interface NavSection {
   items: NavItem[];
 }
 
+/** عنوان الصفحة الحالي من المسار (للشريط العلوي). */
+export function getPageTitle(pathname: string): string {
+  const items = NAV_SECTIONS.flatMap((s) => s.items);
+  const exact = items.find((i) => i.path === pathname);
+  if (exact) return exact.label;
+  const partial = items.find((i) => i.path !== '/dashboard' && pathname.startsWith(i.path));
+  return partial?.label ?? 'لوحة التحكم';
+}
+
 export const NAV_SECTIONS: NavSection[] = [
   {
     id: 'home',

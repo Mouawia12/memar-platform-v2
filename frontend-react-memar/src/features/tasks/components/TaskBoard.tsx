@@ -31,6 +31,6 @@ export function TaskBoard({ tasks, onEdit, onDelete, onMove }: Props) {
   );
 }
 
-const board: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', alignItems: 'start' };
-const column: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '10px', minHeight: '120px' };
+const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '8px' };
+const column: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '10px', minHeight: '120px', flex: '1 1 240px', minWidth: '240px' };
 const colHeader: CSSProperties = { fontWeight: 700, fontSize: '14px', padding: '4px 8px 10px', color: '#274A78' };

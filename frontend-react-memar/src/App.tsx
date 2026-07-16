@@ -9,13 +9,14 @@ import { CompaniesPage } from './features/companies/pages/CompaniesPage';
 import { AppointmentsPage } from './features/appointments/pages/AppointmentsPage';
 import { InvoicesPage } from './features/invoices/pages/InvoicesPage';
 import { ProjectsPage } from './features/projects/pages/ProjectsPage';
+import { ServicesPage } from './features/services/pages/ServicesPage';
 import { TasksPage } from './features/tasks/pages/TasksPage';
 import { UsersPage } from './features/users/pages/UsersPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
-const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices'];
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
           <Route path="/finance/invoices" element={<InvoicesPage />} />
+          <Route path="/services" element={<ServicesPage />} />
           {placeholderItems.map((item) => (
             <Route key={item.path} path={item.path} element={<PlaceholderPage title={item.label} />} />
           ))}

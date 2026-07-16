@@ -41,6 +41,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: 'companies', label: 'الشركات (B2B)', icon: '🏢', path: '/companies' },
       { key: 'clients', label: 'سجل العملاء', icon: '📖', path: '/clients' },
       { key: 'projects', label: 'المشاريع', icon: '🏗️', path: '/projects' },
+      { key: 'documents', label: 'المستندات', icon: '📄', path: '/documents' },
       { key: 'appointments', label: 'المواعيد', icon: '📅', path: '/appointments' },
       { key: 'whatsapp', label: 'التواصل', icon: '💬', path: '/whatsapp' },
     ],

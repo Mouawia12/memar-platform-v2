@@ -21,12 +21,19 @@ interface Props {
   onMove: (t: Task, status: TaskStatus) => void;
 }
 
+const COLUMN_COLORS: Record<TaskStatus, string> = {
+  todo: '#6B7280',
+  in_progress: '#274A78',
+  review: '#D97706',
+  done: '#059669',
+};
+
 /** عمود قابل للإفلات فيه. */
 function DroppableColumn({ status, count, children }: { status: TaskStatus; count: number; children: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
-    <div ref={setNodeRef} style={{ ...column, ...(isOver ? columnOver : null) }}>
-      <div style={colHeader}>
+    <div ref={setNodeRef} style={{ ...column, borderTop: `3px solid ${COLUMN_COLORS[status]}`, ...(isOver ? columnOver : null) }}>
+      <div style={{ ...colHeader, color: COLUMN_COLORS[status] }}>
         {STATUS_LABELS[status]} <span style={{ opacity: 0.5 }}>({count})</span>
       </div>
       {children}

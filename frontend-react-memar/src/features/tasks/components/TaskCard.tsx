@@ -15,7 +15,7 @@ export function TaskCard({ task, onEdit, onDelete, onMove }: Props) {
   const next = idx < STATUS_ORDER.length - 1 ? STATUS_ORDER[idx + 1] : null;
 
   return (
-    <div className="card" style={card}>
+    <div className="card" style={{ ...card, borderInlineStart: `4px solid ${PRIORITY_COLORS[task.priority]}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px' }}>
         <b style={{ fontSize: '14px' }}>{task.title}</b>
         <span style={{ ...badge, background: `${PRIORITY_COLORS[task.priority]}1a`, color: PRIORITY_COLORS[task.priority] }}>

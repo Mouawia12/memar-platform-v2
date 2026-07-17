@@ -88,3 +88,35 @@ body {
 table {
   min-width: 520px;
 }
+
+/* ── توحيد الجداول مع تصميم الأصل (.ds-table) ──
+   يُطبَّق على كل جداول .table دفعةً واحدة؛ يفرض بنية الأصل
+   (رأس بخلفية/حروف مصغّرة، حشوة 12×16، حدود خفيفة، تمرير الصفوف)
+   مع الإبقاء على ألوان الخلايا الخاصة (المبالغ/الحالات). */
+.table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  min-width: 620px;
+}
+.table thead th {
+  background: #f0f4f8 !important;
+  color: #64748b !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  text-align: right !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  opacity: 1 !important;
+  white-space: nowrap;
+}
+.table tbody td {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  vertical-align: middle;
+}
+.table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+.table tbody tr:hover td {
+  background: #f8fafc !important;
+}

@@ -30,6 +30,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: 'dashboard', label: 'لوحة التحكم', icon: '⊞', path: '/dashboard' },
       { key: 'tasks', label: 'المهام والمتابعة', icon: '✅', path: '/tasks' },
       { key: 'meetings', label: 'الاجتماعات', icon: '📹', path: '/meetings' },
+      { key: 'forum', label: 'المنتدى', icon: '🗨️', path: '/forum' },
       { key: 'requests', label: 'الطلبات', icon: '📩', path: '/requests' },
     ],
   },

@@ -27,6 +27,8 @@ class ContactResource extends JsonResource
             'position' => $this->position,
             'type' => $this->type,
             'status' => $this->status,
+            'stage' => $this->stage,
+            'deal_value_kwd' => $this->deal_value_kwd,
             'notes' => $this->notes,
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? [
                 'id' => $this->owner->id,

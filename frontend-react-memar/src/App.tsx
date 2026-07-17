@@ -10,6 +10,9 @@ import { ChatbotPage } from './features/chatbot/pages/ChatbotPage';
 import { CompaniesPage } from './features/companies/pages/CompaniesPage';
 import { ContractsPage } from './features/contracts/pages/ContractsPage';
 import { AppointmentsPage } from './features/appointments/pages/AppointmentsPage';
+import { CareersPage } from './features/careers/pages/CareersPage';
+import { CrmPage } from './features/crm/pages/CrmPage';
+import { RolesPage } from './features/roles/pages/RolesPage';
 import { MeetingsPage } from './features/appointments/pages/MeetingsPage';
 import { AttendancePage } from './features/attendance/pages/AttendancePage';
 import { DocumentsPage } from './features/documents/pages/DocumentsPage';
@@ -27,7 +30,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
-const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings'];
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
@@ -57,6 +60,9 @@ export default function App() {
           <Route path="/hr" element={<EmployeesPage />} />
           <Route path="/hr/attendance" element={<AttendancePage />} />
           <Route path="/hr/payroll" element={<PayrollPage />} />
+          <Route path="/crm" element={<CrmPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/roles" element={<RolesPage />} />
           {placeholderItems.map((item) => (
             <Route key={item.path} path={item.path} element={<PlaceholderPage title={item.label} />} />
           ))}

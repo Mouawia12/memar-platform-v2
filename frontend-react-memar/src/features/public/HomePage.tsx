@@ -1,11 +1,17 @@
 import { type CSSProperties, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const SLIDES = [
+import { apiGet } from '../../lib/api';
+
+interface Slide { title: string; subtitle: string; cta: string; bg: string }
+
+const DEFAULT_SLIDES: Slide[] = [
   { title: 'مجموعة معمار للاستشارات الهندسية', subtitle: 'نحوّل رؤيتك إلى تصاميم معمارية استثنائية في الكويت', cta: 'اطلب استشارة', bg: 'linear-gradient(135deg, #274A78 0%, #1A3356 100%)' },
   { title: 'تصميم • إشراف • دراسات جدوى', subtitle: 'فريق هندسي محترف يرافق مشروعك من الفكرة حتى التسليم', cta: 'خدماتنا', bg: 'linear-gradient(135deg, #0F766E 0%, #134E4A 100%)' },
   { title: 'احصل على عرض سعر فوري', subtitle: 'محرك تسعير ذكي يعطيك تكلفة مشروعك خلال دقائق', cta: 'احسب التكلفة', bg: 'linear-gradient(135deg, #B45309 0%, #7C2D12 100%)' },
 ];
+
+interface ApiSlide { title: string; subtitle: string | null; cta_label: string | null; bg_gradient: string }
 
 const SERVICES = [
   { icon: '📐', title: 'التصميم المعماري', desc: 'تصاميم عصرية تجمع الجمال والوظيفة، مطابقة للأنظمة الكويتية.' },
@@ -24,13 +30,25 @@ const PORTFOLIO = [
 
 export function HomePage() {
   const [slide, setSlide] = useState(0);
+  const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
 
+  // جلب الشرائح المُدارة من لوحة التحكم (مع بديل افتراضي)
   useEffect(() => {
-    const t = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), 5000);
-    return () => clearInterval(t);
+    apiGet<ApiSlide[]>('/public/hero-slides')
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setSlides(data.map((s) => ({ title: s.title, subtitle: s.subtitle ?? '', cta: s.cta_label ?? 'اطلب استشارة', bg: s.bg_gradient })));
+        }
+      })
+      .catch(() => { /* الإبقاء على الشرائح الافتراضية */ });
   }, []);
 
-  const active = SLIDES[slide];
+  useEffect(() => {
+    const t = setInterval(() => setSlide((s) => (s + 1) % slides.length), 5000);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  const active = slides[slide] ?? slides[0];
 
   return (
     <div style={{ fontFamily: "'Cairo', sans-serif", color: '#1e293b' }}>
@@ -48,7 +66,7 @@ export function HomePage() {
           <Link to="/login" style={heroBtn}>{active.cta}</Link>
         </div>
         <div style={{ position: 'absolute', bottom: '24px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px' }}>
-          {SLIDES.map((_, i) => (
+          {slides.map((_, i) => (
             <button key={i} type="button" onClick={() => setSlide(i)} style={{ width: i === slide ? '28px' : '10px', height: '10px', borderRadius: '5px', border: 'none', background: i === slide ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all .3s' }} />
           ))}
         </div>

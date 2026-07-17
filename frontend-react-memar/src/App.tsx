@@ -5,6 +5,7 @@ import { NAV_SECTIONS } from './config/nav';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { ClientsPage } from './features/clients/pages/ClientsPage';
+import { ChatbotPage } from './features/chatbot/pages/ChatbotPage';
 import { CompaniesPage } from './features/companies/pages/CompaniesPage';
 import { ContractsPage } from './features/contracts/pages/ContractsPage';
 import { AppointmentsPage } from './features/appointments/pages/AppointmentsPage';
@@ -24,7 +25,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
-const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum'];
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/finance/contracts" element={<ContractsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/forum" element={<ForumPage />} />
+          <Route path="/chatbot" element={<ChatbotPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/pricing" element={<QuotationsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />

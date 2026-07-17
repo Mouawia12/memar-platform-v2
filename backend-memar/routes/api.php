@@ -40,4 +40,5 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/contracts.php';
     require __DIR__.'/api/reports.php';
     require __DIR__.'/api/forum.php';
+    require __DIR__.'/api/chatbot.php';
 });

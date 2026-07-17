@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
+import { ChatWidget } from '../features/chatbot/components/ChatWidget';
 
 /**
  * تخطيط لوحة التحكم — يطابق بنية `.app` + `.sidebar` + `.topbar` في الأصل،
@@ -22,6 +23,7 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 }

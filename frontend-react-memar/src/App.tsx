@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { NAV_SECTIONS } from './config/nav';
 import { LoginPage } from './features/auth/pages/LoginPage';
+import { HomePage } from './features/public/HomePage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { ClientsPage } from './features/clients/pages/ClientsPage';
 import { ChatbotPage } from './features/chatbot/pages/ChatbotPage';
@@ -32,6 +33,7 @@ const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DON
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<ProtectedRoute />}>
@@ -58,7 +60,6 @@ export default function App() {
           {placeholderItems.map((item) => (
             <Route key={item.path} path={item.path} element={<PlaceholderPage title={item.label} />} />
           ))}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Route>
 

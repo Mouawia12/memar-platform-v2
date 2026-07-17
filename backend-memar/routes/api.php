@@ -37,4 +37,5 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/attendance.php';
     require __DIR__.'/api/employees.php';
     require __DIR__.'/api/salaries.php';
+    require __DIR__.'/api/contracts.php';
 });

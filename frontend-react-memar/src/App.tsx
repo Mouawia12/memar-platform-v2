@@ -12,6 +12,8 @@ import { ContractsPage } from './features/contracts/pages/ContractsPage';
 import { AppointmentsPage } from './features/appointments/pages/AppointmentsPage';
 import { CareersPage } from './features/careers/pages/CareersPage';
 import { CrmPage } from './features/crm/pages/CrmPage';
+import { FinancePage } from './features/finance/pages/FinancePage';
+import { RequestsPage } from './features/requests/pages/RequestsPage';
 import { RolesPage } from './features/roles/pages/RolesPage';
 import { MeetingsPage } from './features/appointments/pages/MeetingsPage';
 import { AttendancePage } from './features/attendance/pages/AttendancePage';
@@ -30,7 +32,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
-const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles'];
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
@@ -63,6 +65,8 @@ export default function App() {
           <Route path="/crm" element={<CrmPage />} />
           <Route path="/careers" element={<CareersPage />} />
           <Route path="/roles" element={<RolesPage />} />
+          <Route path="/requests" element={<RequestsPage />} />
+          <Route path="/finance" element={<FinancePage />} />
           {placeholderItems.map((item) => (
             <Route key={item.path} path={item.path} element={<PlaceholderPage title={item.label} />} />
           ))}

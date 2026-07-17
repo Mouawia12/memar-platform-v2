@@ -26,6 +26,7 @@ class RolesAndAdminSeeder extends Seeder
             'users.view', 'users.manage',
             'roles.view', 'roles.manage',
             'crm.view', 'crm.manage',
+            'requests.view', 'requests.manage',
             'projects.view', 'projects.manage',
             'tasks.view', 'tasks.manage',
             'appointments.view', 'appointments.manage',
@@ -43,7 +44,7 @@ class RolesAndAdminSeeder extends Seeder
         // ── الأدوار ──
         $roles = [
             'super_admin' => $permissions, // كل الصلاحيات
-            'manager' => ['crm.view', 'crm.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view'],
+            'manager' => ['crm.view', 'crm.manage', 'requests.view', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view'],
             'architect' => ['projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'crm.view'],
             'accountant' => ['finance.view', 'finance.manage', 'pricing.view'],
             'hr_manager' => ['hr.view', 'hr.manage'],

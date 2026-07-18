@@ -24,7 +24,7 @@ function val(id: string): string {
   return el ? el.value : '';
 }
 
-export function initHomepage(navigate: Nav): () => void {
+export function initHomepage(navigate: Nav, onAuthPopup?: () => void): () => void {
   const w = window as unknown as Record<string, unknown>;
   let currentPricingMode: string | null = null;
 
@@ -221,7 +221,8 @@ export function initHomepage(navigate: Nav): () => void {
     document.documentElement.classList.toggle('theme-premium');
   }
   function toggleAuthPopup() {
-    navigate('/login');
+    if (onAuthPopup) onAuthPopup();
+    else navigate('/login');
   }
 
   // ── مستمعو الإغلاق عند النقر خارج القوائم ──

@@ -28,6 +28,14 @@ class JobOpeningController extends ApiController
         return $this->paginated($paginator, JobOpeningResource::class);
     }
 
+    /** الوظائف المفتوحة فقط — نقطة عامة للموقع (بدون مصادقة). */
+    public function publicIndex(): JsonResponse
+    {
+        $jobs = JobOpening::where('status', 'open')->latest()->get();
+
+        return $this->ok(JobOpeningResource::collection($jobs));
+    }
+
     public function store(StoreJobOpeningRequest $request): JsonResponse
     {
         $opening = $this->recruitment->create($request->validated());

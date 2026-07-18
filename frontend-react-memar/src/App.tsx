@@ -11,6 +11,7 @@ import { CompaniesPage } from './features/companies/pages/CompaniesPage';
 import { ContractsPage } from './features/contracts/pages/ContractsPage';
 import { AppointmentsPage } from './features/appointments/pages/AppointmentsPage';
 import { CareersPage } from './features/careers/pages/CareersPage';
+import { PublicCareersPage } from './features/careers/pages/PublicCareersPage';
 import { CommunicationsPage } from './features/communications/pages/CommunicationsPage';
 import { CrmPage } from './features/crm/pages/CrmPage';
 import { FinancePage } from './features/finance/pages/FinancePage';
@@ -42,6 +43,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/jobs" element={<PublicCareersPage />} />
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<ProtectedRoute />}>

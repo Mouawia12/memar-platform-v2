@@ -10,13 +10,19 @@ const CHIPS = ['🏠 سكن خاص', '📍 الموقع', '🧮 تسعير فو�
 const WELCOME_BULLETS = ['معرفة أسعار مشروعك', 'الخدمات والتراخيص', 'حجز استشارة مجانية'];
 const QUICK_REPLIES = ['احسب مشروعي', 'الباقات', 'احجز'];
 
+interface ChatWidgetProps {
+  /** جهة الزر العائم — 'left' افتراضيًا (يناسب الـERP لأن الشريط الجانبي يمين). */
+  side?: 'left' | 'right';
+}
+
 /** مساعد معمار الذكي — زر عائم + لوحة محادثة بتصميم الموقع القديم. */
-export function ChatWidget() {
+export function ChatWidget({ side = 'left' }: ChatWidgetProps = {}) {
   const [open, setOpen] = useState(false);
   const [big, setBig] = useState(false);
   const [text, setText] = useState('');
   const chat = useChatbot();
   const endRef = useRef<HTMLDivElement>(null);
+  const sideStyle = side === 'right' ? { right: '24px' } : { left: '24px' };
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chat.messages, chat.loading, open]);
 
@@ -29,7 +35,7 @@ export function ChatWidget() {
   return (
     <>
       {open && (
-        <div style={{ ...panel, ...(big ? panelBig : null) }}>
+        <div style={{ ...panel, ...sideStyle, ...(big ? panelBig : null) }}>
           {/* الرأس */}
           <div style={head}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
@@ -94,7 +100,7 @@ export function ChatWidget() {
         </div>
       )}
 
-      <button type="button" onClick={() => setOpen((o) => !o)} style={fab} title="مساعد معمار الذكي">
+      <button type="button" onClick={() => setOpen((o) => !o)} style={{ ...fab, ...sideStyle }} title="مساعد معمار الذكي">
         {open ? '✕' : '🤖'}
         {!open && <span style={fabDot} />}
       </button>
@@ -104,11 +110,11 @@ export function ChatWidget() {
 
 const keyframes = `@keyframes memarBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}`;
 
-const fab: CSSProperties = { position: 'fixed', bottom: '24px', insetInlineStart: '24px', width: '56px', height: '56px', borderRadius: '50%', background: `linear-gradient(135deg,${PRIMARY},${SECONDARY})`, boxShadow: '0 4px 18px rgba(26,90,153,.45)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', border: '2px solid #fff', zIndex: 9998, color: '#fff' };
+const fab: CSSProperties = { position: 'fixed', bottom: '24px', width: '56px', height: '56px', borderRadius: '50%', background: `linear-gradient(135deg,${PRIMARY},${SECONDARY})`, boxShadow: '0 4px 18px rgba(26,90,153,.45)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', border: '2px solid #fff', zIndex: 9998, color: '#fff' };
 const fabDot: CSSProperties = { position: 'absolute', top: '0px', insetInlineEnd: '-2px', width: '14px', height: '14px', background: SECONDARY, borderRadius: '50%', border: '2px solid #fff' };
 
-const panel: CSSProperties = { position: 'fixed', bottom: '90px', insetInlineStart: '24px', width: '340px', maxWidth: 'calc(100vw - 40px)', maxHeight: '80vh', background: '#fff', borderRadius: '14px', boxShadow: '0 8px 40px rgba(0,0,0,.2)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #E4E8EF', fontFamily: "'Cairo',sans-serif", direction: 'rtl' };
-const panelBig: CSSProperties = { bottom: 0, insetInlineStart: 0, width: '100%', height: '100vh', maxHeight: '100vh', borderRadius: 0 };
+const panel: CSSProperties = { position: 'fixed', bottom: '90px', width: '340px', maxWidth: 'calc(100vw - 40px)', maxHeight: '80vh', background: '#fff', borderRadius: '14px', boxShadow: '0 8px 40px rgba(0,0,0,.2)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #E4E8EF', fontFamily: "'Cairo',sans-serif", direction: 'rtl' };
+const panelBig: CSSProperties = { bottom: 0, left: 0, right: 0, width: '100%', height: '100vh', maxHeight: '100vh', borderRadius: 0 };
 const head: CSSProperties = { background: '#fff', borderBottom: '1px solid #E4E8EF', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 };
 const headIcon: CSSProperties = { width: '34px', height: '34px', background: `linear-gradient(135deg,${PRIMARY},${SECONDARY})`, borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', position: 'relative', color: '#fff' };
 const headIconDot: CSSProperties = { position: 'absolute', bottom: '-2px', insetInlineEnd: '-2px', width: '9px', height: '9px', background: '#2ECC71', borderRadius: '50%', border: '1.5px solid #fff' };

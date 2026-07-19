@@ -57,8 +57,8 @@ export function HomePage() {
         </div>
       )}
 
-      {/* مساعد معمار الذكي */}
-      <ChatWidget />
+      {/* مساعد معمار الذكي — يمين الصفحة (أزرار الموقع العائمة على اليسار) */}
+      <ChatWidget side="right" />
     </>
   );
 }

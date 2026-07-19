@@ -5,6 +5,8 @@ export interface NavItem {
   label: string;
   icon: string;
   path: string;
+  /** صلاحية العرض المطلوبة لإظهار العنصر (فارغة = متاح للجميع). */
+  perm?: string;
 }
 
 export interface NavSection {
@@ -28,31 +30,31 @@ export const NAV_SECTIONS: NavSection[] = [
     title: '🏠 الرئيسية',
     items: [
       { key: 'dashboard', label: 'لوحة التحكم', icon: '⊞', path: '/dashboard' },
-      { key: 'tasks', label: 'المهام والمتابعة', icon: '✅', path: '/tasks' },
-      { key: 'meetings', label: 'الاجتماعات', icon: '📹', path: '/meetings' },
+      { key: 'tasks', label: 'المهام والمتابعة', icon: '✅', path: '/tasks', perm: 'tasks.view' },
+      { key: 'meetings', label: 'الاجتماعات', icon: '📹', path: '/meetings', perm: 'appointments.view' },
       { key: 'forum', label: 'المنتدى', icon: '🗨️', path: '/forum' },
-      { key: 'requests', label: 'الطلبات', icon: '📩', path: '/requests' },
+      { key: 'requests', label: 'الطلبات', icon: '📩', path: '/requests', perm: 'requests.view' },
     ],
   },
   {
     id: 'business',
     title: '💼 إدارة الأعمال',
     items: [
-      { key: 'crm', label: 'CRM', icon: '🎯', path: '/crm' },
-      { key: 'companies', label: 'الشركات (B2B)', icon: '🏢', path: '/companies' },
-      { key: 'clients', label: 'سجل العملاء', icon: '📖', path: '/clients' },
-      { key: 'projects', label: 'المشاريع', icon: '🏗️', path: '/projects' },
-      { key: 'documents', label: 'المستندات', icon: '📄', path: '/documents' },
-      { key: 'appointments', label: 'المواعيد', icon: '📅', path: '/appointments' },
-      { key: 'whatsapp', label: 'التواصل', icon: '💬', path: '/whatsapp' },
+      { key: 'crm', label: 'CRM', icon: '🎯', path: '/crm', perm: 'crm.view' },
+      { key: 'companies', label: 'الشركات (B2B)', icon: '🏢', path: '/companies', perm: 'crm.view' },
+      { key: 'clients', label: 'سجل العملاء', icon: '📖', path: '/clients', perm: 'crm.view' },
+      { key: 'projects', label: 'المشاريع', icon: '🏗️', path: '/projects', perm: 'projects.view' },
+      { key: 'documents', label: 'المستندات', icon: '📄', path: '/documents', perm: 'documents.view' },
+      { key: 'appointments', label: 'المواعيد', icon: '📅', path: '/appointments', perm: 'appointments.view' },
+      { key: 'whatsapp', label: 'التواصل', icon: '💬', path: '/whatsapp', perm: 'crm.view' },
     ],
   },
   {
     id: 'pricing',
     title: '💰 الأسعار',
     items: [
-      { key: 'services', label: 'الخدمات والأسعار', icon: '💼', path: '/services' },
-      { key: 'pricing', label: 'محرك التسعير', icon: '⚡', path: '/pricing' },
+      { key: 'services', label: 'الخدمات والأسعار', icon: '💼', path: '/services', perm: 'pricing.view' },
+      { key: 'pricing', label: 'محرك التسعير', icon: '⚡', path: '/pricing', perm: 'pricing.view' },
       { key: 'chatbot', label: 'المساعد الذكي', icon: '🤖', path: '/chatbot' },
     ],
   },
@@ -60,30 +62,30 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'employees',
     title: '👥 إدارة الموظفين',
     items: [
-      { key: 'hr', label: 'الموظفين', icon: '👤', path: '/hr' },
-      { key: 'attendance', label: 'الحضور', icon: '⏱️', path: '/hr/attendance' },
-      { key: 'payroll', label: 'الرواتب', icon: '💵', path: '/hr/payroll' },
-      { key: 'careers', label: 'التوظيف', icon: '💼', path: '/careers' },
+      { key: 'hr', label: 'الموظفين', icon: '👤', path: '/hr', perm: 'hr.view' },
+      { key: 'attendance', label: 'الحضور', icon: '⏱️', path: '/hr/attendance', perm: 'hr.view' },
+      { key: 'payroll', label: 'الرواتب', icon: '💵', path: '/hr/payroll', perm: 'hr.view' },
+      { key: 'careers', label: 'التوظيف', icon: '💼', path: '/careers', perm: 'hr.view' },
     ],
   },
   {
     id: 'permissions',
     title: '🔐 المستخدمون والصلاحيات',
     items: [
-      { key: 'user_logs', label: 'سجل المستخدمين', icon: '📝', path: '/user-logs' },
-      { key: 'roles', label: 'الصلاحيات', icon: '🔐', path: '/roles' },
-      { key: 'web_builder', label: 'إدارة الموقع', icon: '🌐', path: '/web-builder' },
-      { key: 'hero_ads', label: 'واجهة الإعلانات', icon: '🎬', path: '/hero-ads' },
-      { key: 'reports', label: 'التقارير', icon: '📊', path: '/reports' },
+      { key: 'user_logs', label: 'سجل المستخدمين', icon: '📝', path: '/user-logs', perm: 'users.view' },
+      { key: 'roles', label: 'الصلاحيات', icon: '🔐', path: '/roles', perm: 'users.view' },
+      { key: 'web_builder', label: 'إدارة الموقع', icon: '🌐', path: '/web-builder', perm: 'settings.manage' },
+      { key: 'hero_ads', label: 'واجهة الإعلانات', icon: '🎬', path: '/hero-ads', perm: 'settings.manage' },
+      { key: 'reports', label: 'التقارير', icon: '📊', path: '/reports', perm: 'finance.view' },
     ],
   },
   {
     id: 'accounts',
     title: '💳 الحسابات',
     items: [
-      { key: 'finance', label: 'الحسابات', icon: '💰', path: '/finance' },
-      { key: 'invoices', label: 'الفواتير', icon: '🧾', path: '/finance/invoices' },
-      { key: 'contracts', label: 'العقود والتحصيل', icon: '📄', path: '/finance/contracts' },
+      { key: 'finance', label: 'الحسابات', icon: '💰', path: '/finance', perm: 'finance.view' },
+      { key: 'invoices', label: 'الفواتير', icon: '🧾', path: '/finance/invoices', perm: 'finance.view' },
+      { key: 'contracts', label: 'العقود والتحصيل', icon: '📄', path: '/finance/contracts', perm: 'contracts.view' },
     ],
   },
 ];

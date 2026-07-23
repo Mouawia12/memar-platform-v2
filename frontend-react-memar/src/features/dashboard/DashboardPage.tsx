@@ -39,7 +39,7 @@ export function DashboardPage() {
 
   const activeProjects = projectList.filter((p) => p.status === 'active').length;
   const onHold = projectList.filter((p) => p.status === 'on_hold').length;
-  const completed = projectList.filter((p) => p.status === 'completed').length;
+  const completed = projectList.filter((p) => p.status === 'done').length;
 
   const contractsValue = contractList.reduce((s, c) => s + Number(c.value_kwd), 0);
   const overdueInvoices = invoiceList.filter((i) => i.is_overdue).length;

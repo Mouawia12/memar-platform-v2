@@ -35,7 +35,6 @@ export function initHomepage(navigate: Nav, onAuthPopup?: () => void): () => voi
       document.querySelector(arg)?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    // @ts-expect-error تمرير الأصل
     return originalScrollTo(arg as never, y as never);
   };
 

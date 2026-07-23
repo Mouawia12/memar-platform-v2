@@ -32,8 +32,8 @@ export function UserFormModal({ user, roles, onClose }: Props) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     // عند التعديل: لا نرسل كلمة مرور فارغة
-    const data = { ...form } as UserFormData & { password?: string };
-    if (user && !data.password) delete data.password;
+    const { password, ...withoutPassword } = form;
+    const data = (user && !password ? withoutPassword : form) as UserFormData;
     save.mutate(
       { id: user?.id, data: data as UserFormData },
       { onSuccess: onClose },

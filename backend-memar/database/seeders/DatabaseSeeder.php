@@ -13,8 +13,11 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // كل السيدرات الأساسية — آمنة للتكرار (firstOrCreate / updateOrCreate)
         $this->call([
-            RolesAndAdminSeeder::class,
+            RolesAndAdminSeeder::class,   // الصلاحيات + الأدوار + مستخدم الأدمن
+            HeroSlidesSeeder::class,      // شرائح كاروسيل الصفحة الرئيسية
+            JobOpeningsSeeder::class,     // الوظائف المعروضة في صفحة /jobs
         ]);
     }
 }

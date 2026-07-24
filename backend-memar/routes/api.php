@@ -52,4 +52,5 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/engineer-portal.php';
     require __DIR__.'/api/client-portal.php';
     require __DIR__.'/api/public-intake.php';
+    require __DIR__.'/api/workspace.php';
 });

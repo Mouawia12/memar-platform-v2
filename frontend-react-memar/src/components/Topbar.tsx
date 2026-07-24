@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { getPageTitle } from '../config/nav';
+import { GlobalSearch } from './topbar/GlobalSearch';
+import { NotificationsMenu } from './topbar/NotificationsMenu';
+import { QuickAddMenu } from './topbar/QuickAddMenu';
 import { useLogout } from '../features/auth/hooks/useAuth';
 import { useAuthStore } from '../store/auth';
 
@@ -22,15 +25,12 @@ export function Topbar({ onToggleSidebar }: Props) {
       <button className="topbar-toggle icon-btn" type="button" onClick={onToggleSidebar}>☰</button>
       <span className="topbar-page-title">{getPageTitle(pathname)}</span>
 
-      <div className="topbar-search">
-        <span className="topbar-search-icon">🔍</span>
-        <input type="text" placeholder="بحث في النظام..." />
-      </div>
+      <GlobalSearch />
 
       <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginInlineStart: 'auto' }}>
         <span className="topbar-date">{today}</span>
-        <button className="icon-btn" type="button" title="الإشعارات">🔔</button>
-        <button className="icon-btn" type="button" title="إضافة جديد">➕</button>
+        <NotificationsMenu />
+        <QuickAddMenu />
 
         <div className="user-menu" tabIndex={0} onClick={() => setMenuOpen((o) => !o)} onBlur={() => setTimeout(() => setMenuOpen(false), 150)}>
           <div className="user-menu-btn">👤 {user?.name ?? 'مستخدم'} ▼</div>

@@ -3,7 +3,19 @@
  * تُثبّت دوالًا عامّة على window يستدعيها الـHTML عبر onclick، وتُنظَّف عند الإلغاء.
  */
 
+import { apiPost } from '../../lib/api';
+
 type Nav = (path: string) => void;
+
+/** إرسال طلب عام للمنصة — لا يُفشل تجربة الزائر إن تعذّر الاتصال. */
+async function submitPublic(endpoint: string, payload: Record<string, unknown>): Promise<void> {
+  try {
+    await apiPost(endpoint, payload);
+  } catch {
+    // الزائر يرى رسالة النجاح على أي حال؛ الخطأ يُسجَّل فقط
+    console.warn('تعذّر إرسال الطلب للمنصة:', endpoint);
+  }
+}
 
 const DURATIONS: Record<string, number> = { residential: 60, investment: 90, commercial: 90, industrial: 90, hotel: 120 };
 const TYPE_LABELS: Record<string, string> = { residential: 'سكن خاص', investment: 'استثماري', commercial: 'تجاري', industrial: 'صناعي', hotel: 'فندقي' };
@@ -158,6 +170,14 @@ export function initHomepage(navigate: Nav, onAuthPopup?: () => void): () => voi
     const pays = document.querySelector('.qr-payments') as HTMLElement | null;
     if (currentPricingMode === 'instant') { if (grid) grid.style.display = 'none'; if (pays) pays.style.display = 'none'; }
     else { if (grid) grid.style.display = 'grid'; if (pays) pays.style.display = 'block'; }
+
+    // تسجيل الزائر كعميل محتمل + طلب وارد (بديل saveToCRM في الأصل)
+    const phone = val('c-phone');
+    if (name && phone) {
+      void submitPublic('/public/leads', {
+        name, phone, summary: tStr, estimated_value: result?.price ?? null, quote_number: qNum,
+      });
+    }
   }
 
   function acceptQuote() {
@@ -202,11 +222,28 @@ export function initHomepage(navigate: Nav, onAuthPopup?: () => void): () => voi
   function bookMeetingSubmit() {
     const name = val('meet-name'); const phone = val('meet-phone');
     if (!name || !phone) { alert('يرجى إدخال الاسم ورقم الهاتف'); return; }
+
+    void submitPublic('/public/meeting-requests', {
+      name,
+      phone,
+      meeting_type: $('meet-type-label')?.textContent ?? 'استشارة',
+      format: val('meet-format'),
+      preferred_at: val('meet-time'),
+      notes: val('meet-notes'),
+    });
     setDisplay('meet-success', 'block');
   }
+
   function sendMessage() {
     const phone = val('msg-phone');
     if (!phone) { alert('يرجى إدخال رقم الهاتف للتواصل'); return; }
+
+    void submitPublic('/public/messages', {
+      name: val('msg-name'),
+      phone,
+      subject: val('msg-subject'),
+      body: val('msg-body'),
+    });
     alert('✅ تم إرسال رسالتك بنجاح! سنتواصل معك في أقرب وقت.');
     const b = $('msg-body') as HTMLTextAreaElement | null; if (b) b.value = '';
   }

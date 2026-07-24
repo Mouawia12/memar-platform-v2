@@ -32,6 +32,7 @@ import { EmployeesPage } from './features/hr/pages/EmployeesPage';
 import { InvoicesPage } from './features/invoices/pages/InvoicesPage';
 import { PayrollPage } from './features/payroll/pages/PayrollPage';
 import { ReportsPage } from './features/reports/pages/ReportsPage';
+import { ProjectDetailPage } from './features/projects/pages/ProjectDetailPage';
 import { ProjectsPage } from './features/projects/pages/ProjectsPage';
 import { QuotationsPage } from './features/quotations/pages/QuotationsPage';
 import { ServicesPage } from './features/services/pages/ServicesPage';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
           <Route path="/finance/invoices" element={<InvoicesPage />} />

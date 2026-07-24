@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS, type Project } from '../types';
@@ -34,7 +35,7 @@ export function ProjectsTable({ projects, onEdit, onDelete }: Props) {
           {projects.map((p) => (
             <tr key={p.id}>
               <td style={td}><code>{p.code ?? '—'}</code></td>
-              <td style={td}><b>{p.name}</b></td>
+              <td style={td}><Link to={`/projects/${p.id}`} style={{ color: '#1B6CA8', textDecoration: 'none', fontWeight: 700 }}>{p.name}</Link></td>
               <td style={td}>{p.client?.name ?? '—'}</td>
               <td style={td}>{p.manager?.name ?? '—'}</td>
               <td style={td}>

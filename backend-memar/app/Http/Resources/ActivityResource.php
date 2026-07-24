@@ -31,6 +31,11 @@ class ActivityResource extends JsonResource
         'JobOpening' => 'وظيفة',
         'DocumentTemplate' => 'قالب مستند',
         'User' => 'مستخدم',
+        'FieldVisit' => 'زيارة ميدانية',
+        'StoredFile' => 'ملف',
+        'Communication' => 'تواصل',
+        'HeroSlide' => 'شريحة إعلانية',
+        'JobApplication' => 'طلب توظيف',
     ];
 
     /** تسميات عربية للأحداث. */

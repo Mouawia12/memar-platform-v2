@@ -9,6 +9,7 @@ use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
+use App\Services\ProjectOverviewService;
 use App\Services\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,14 @@ class ProjectController extends ApiController
     public function show(Project $project): JsonResponse
     {
         return $this->ok(new ProjectResource($project->load(['client', 'manager'])));
+    }
+
+    /** نظرة شاملة: مؤشرات المشروع + تايم‌لاين أحداثه. */
+    public function overview(Project $project, ProjectOverviewService $overview): JsonResponse
+    {
+        return $this->ok([
+            'project' => new ProjectResource($project->load(['client:id,full_name', 'manager:id,name'])),
+        ] + $overview->build($project));
     }
 
     public function update(UpdateProjectRequest $request, Project $project): JsonResponse

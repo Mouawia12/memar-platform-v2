@@ -27,6 +27,7 @@ class UpdateUserRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30'],
             'password' => ['nullable', 'string', 'min:6'],
             'is_active' => ['boolean'],
+            'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ];

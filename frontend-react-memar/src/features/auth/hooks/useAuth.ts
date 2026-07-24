@@ -13,7 +13,9 @@ export function useLogin() {
     mutationFn: (payload: LoginPayload) => authApi.login(payload),
     onSuccess: (data) => {
       setAuth(data.token, data.user);
-      navigate('/dashboard');
+      // العميل يذهب لبوابته مباشرة؛ بقية الأدوار للوحة التحكم
+      const isClient = data.user.roles?.includes('client') && !data.user.roles.some((r) => r !== 'client');
+      navigate(isClient ? '/client-portal' : '/dashboard');
     },
   });
 }

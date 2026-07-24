@@ -1,6 +1,7 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
+import { useContacts } from '../../clients/hooks/useContacts';
 import { useSaveUser } from '../hooks/useUsers';
 import type { Role, User, UserFormData } from '../types';
 
@@ -10,15 +11,16 @@ interface Props {
   onClose: () => void;
 }
 
-const empty: UserFormData = { name: '', email: '', phone: '', password: '', is_active: true, roles: [] };
+const empty: UserFormData = { name: '', email: '', phone: '', password: '', is_active: true, roles: [], contact_id: '' };
 
 export function UserFormModal({ user, roles, onClose }: Props) {
+  const { data: contacts } = useContacts({ per_page: 200 });
   const save = useSaveUser();
   const [form, setForm] = useState<UserFormData>(empty);
 
   useEffect(() => {
     if (user) {
-      setForm({ name: user.name, email: user.email, phone: user.phone ?? '', password: '', is_active: user.is_active, roles: user.roles });
+      setForm({ name: user.name, email: user.email, phone: user.phone ?? '', password: '', is_active: user.is_active, roles: user.roles, contact_id: user.contact_id ?? '' });
     } else {
       setForm(empty);
     }
@@ -67,6 +69,13 @@ export function UserFormModal({ user, roles, onClose }: Props) {
             </label>
           ))}
         </div>
+
+        <label style={label}>العميل المرتبط (لتفعيل بوابة العميل)
+          <select className="input" style={input} value={form.contact_id} onChange={(e) => set('contact_id', e.target.value ? Number(e.target.value) : '')}>
+            <option value="">غير مرتبط</option>
+            {contacts?.data.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+          </select>
+        </label>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '8px 0' }}>
           <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} />

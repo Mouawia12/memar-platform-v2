@@ -1,4 +1,6 @@
 export interface User {
+  contact_id?: number | null;
+  contact_name?: string | null;
   id: number;
   name: string;
   email: string;
@@ -15,6 +17,11 @@ export interface Role {
   label: string;
 }
 
+export interface UserContactLink {
+  contact_id?: number | null;
+  contact_name?: string | null;
+}
+
 export interface UserFormData {
   name: string;
   email: string;
@@ -22,4 +29,6 @@ export interface UserFormData {
   password: string;
   is_active: boolean;
   roles: string[];
+  /** ربط الحساب بسجل عميل — يُفعّل بوابة العميل. */
+  contact_id: number | '';
 }

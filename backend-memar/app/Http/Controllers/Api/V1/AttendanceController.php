@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
+use App\Http\Requests\StoreAttendanceRequest;
 use App\Http\Resources\AttendanceResource;
 use App\Services\AttendanceService;
 use Illuminate\Http\JsonResponse;
@@ -55,5 +56,23 @@ class AttendanceController extends ApiController
         );
 
         return $this->paginated($paginator, AttendanceResource::class);
+    }
+
+    /** تسجيل يدوي (غياب/إجازة/تصحيح) — للموارد البشرية. */
+    public function store(StoreAttendanceRequest $request): JsonResponse
+    {
+        $record = $this->attendance->record($request->validated());
+
+        return $this->created(new AttendanceResource($record), 'تم حفظ سجل الحضور');
+    }
+
+    /** ملخّص الحضور لكل موظف ضمن المدة. */
+    public function summary(Request $request): JsonResponse
+    {
+        return $this->ok($this->attendance->summary(
+            $request->integer('user_id') ?: null,
+            $request->string('from')->toString() ?: null,
+            $request->string('to')->toString() ?: null,
+        ));
     }
 }

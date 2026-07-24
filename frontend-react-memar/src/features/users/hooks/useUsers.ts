@@ -6,10 +6,12 @@ import type { UserFormData } from '../types';
 
 const USERS_KEY = ['users'];
 
-export function useUsers(params: UsersQuery) {
+/** `enabled` يمنع إطلاق الاستعلام لمن لا يملك صلاحية عرض المستخدمين. */
+export function useUsers(params: UsersQuery, enabled = true) {
   return useQuery({
     queryKey: [...USERS_KEY, params],
     queryFn: () => usersApi.list(params),
+    enabled,
   });
 }
 

@@ -16,4 +16,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
 
     Route::get('/attendance', [AttendanceController::class, 'index'])->middleware('permission:hr.view');
+    Route::get('/attendance/summary', [AttendanceController::class, 'summary'])->middleware('permission:hr.view');
+    Route::post('/attendance', [AttendanceController::class, 'store'])->middleware('permission:hr.manage');
 });

@@ -24,3 +24,24 @@ export const STATUS_COLORS: Record<AttendanceStatus, string> = {
   absent: '#DC2626',
   leave: '#6B7280',
 };
+
+/** ملخّص حضور موظف ضمن مدة. */
+export interface AttendanceSummary {
+  user_id: number;
+  name: string;
+  present: number;
+  late: number;
+  absent: number;
+  leave: number;
+  work_minutes: number;
+  attendance_pct: number | null;
+}
+
+export interface AttendanceFormData {
+  user_id: number | '';
+  date: string;
+  status: AttendanceStatus;
+  check_in_at: string;
+  check_out_at: string;
+  notes: string;
+}

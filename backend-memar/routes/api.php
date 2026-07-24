@@ -49,4 +49,5 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/audit.php';
     require __DIR__.'/api/files.php';
     require __DIR__.'/api/field-visits.php';
+    require __DIR__.'/api/engineer-portal.php';
 });

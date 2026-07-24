@@ -30,6 +30,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: '🏠 الرئيسية',
     items: [
       { key: 'dashboard', label: 'لوحة التحكم', icon: '⊞', path: '/dashboard' },
+      { key: 'engineer_portal', label: 'بوابة المهندس', icon: '🧑\u200d💼', path: '/engineer-portal' },
       { key: 'tasks', label: 'المهام والمتابعة', icon: '✅', path: '/tasks', perm: 'tasks.view' },
       { key: 'meetings', label: 'الاجتماعات', icon: '📹', path: '/meetings', perm: 'appointments.view' },
       { key: 'forum', label: 'المنتدى', icon: '🗨️', path: '/forum' },

@@ -73,6 +73,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: '🔐 المستخدمون والصلاحيات',
     items: [
       { key: 'user_logs', label: 'سجل المستخدمين', icon: '📝', path: '/user-logs', perm: 'users.view' },
+      { key: 'audit', label: 'سجل التدقيق', icon: '🕵️', path: '/audit', perm: 'users.view' },
       { key: 'roles', label: 'الصلاحيات', icon: '🔐', path: '/roles', perm: 'users.view' },
       { key: 'web_builder', label: 'إدارة الموقع', icon: '🌐', path: '/web-builder', perm: 'settings.manage' },
       { key: 'hero_ads', label: 'واجهة الإعلانات', icon: '🎬', path: '/hero-ads', perm: 'settings.manage' },

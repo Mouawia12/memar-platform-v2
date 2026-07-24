@@ -10,6 +10,7 @@ import { ChatbotPage } from './features/chatbot/pages/ChatbotPage';
 import { CompaniesPage } from './features/companies/pages/CompaniesPage';
 import { ContractsPage } from './features/contracts/pages/ContractsPage';
 import { AppointmentsPage } from './features/appointments/pages/AppointmentsPage';
+import { AuditPage } from './features/audit/pages/AuditPage';
 import { CareersPage } from './features/careers/pages/CareersPage';
 import { PublicCareersPage } from './features/careers/pages/PublicCareersPage';
 import { CommunicationsPage } from './features/communications/pages/CommunicationsPage';
@@ -36,7 +37,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
-const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads'];
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads', 'audit'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="/crm" element={<CrmPage />} />
           <Route path="/careers" element={<CareersPage />} />
           <Route path="/roles" element={<RolesPage />} />
+          <Route path="/audit" element={<AuditPage />} />
           <Route path="/requests" element={<RequestsPage />} />
           <Route path="/finance" element={<FinancePage />} />
           <Route path="/whatsapp" element={<CommunicationsPage />} />

@@ -1,7 +1,11 @@
 import { type CSSProperties, type FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { apiErrorMessage } from '../../../lib/api';
+import { SHOW_DEMO_ACCOUNTS, type DemoAccount } from '../demoAccounts';
 import { useLogin } from '../hooks/useAuth';
+import { DemoAccountsPanel } from './DemoAccountsPanel';
+import { RegisterForm } from './RegisterForm';
 
 interface Props {
   onClose?: () => void;
@@ -20,7 +24,7 @@ const STATS = [
   { n: '87', l: 'عميل نشط' },
 ];
 
-/** شاشة تسجيل الدخول — تصميم عمودين (لوحة مزايا + نموذج) مطابق للموقع القديم. */
+/** شاشة تسجيل الدخول — عمودان (لوحة مزايا + نموذج) مطابقة للموقع القديم. */
 export function LoginView({ onClose }: Props) {
   const login = useLogin();
   const [tab, setTab] = useState<'login' | 'register'>('login');
@@ -32,7 +36,12 @@ export function LoginView({ onClose }: Props) {
     e.preventDefault();
     login.mutate({ email: id.trim(), password: pass });
   };
-  const fillDemo = () => { setId('admin@memar.local'); setPass('password'); login.mutate({ email: 'admin@memar.local', password: 'password' }); };
+
+  const pickDemo = (account: DemoAccount) => {
+    setId(account.email);
+    setPass(account.password);
+    login.mutate({ email: account.email, password: account.password });
+  };
 
   return (
     <div className="memar-login" style={wrap}>
@@ -74,9 +83,8 @@ export function LoginView({ onClose }: Props) {
 
       {/* لوحة النموذج */}
       <div style={rightPanel}>
-        {onClose && (
-          <button type="button" onClick={onClose} aria-label="إغلاق" style={closeBtn}>×</button>
-        )}
+        {onClose && <button type="button" onClick={onClose} aria-label="إغلاق" style={closeBtn}>×</button>}
+
         <div style={{ width: '100%' }}>
           <div style={{ textAlign: 'center', marginBottom: '22px' }}>
             <div style={{ fontSize: '36px', marginBottom: '8px' }}>🏛️</div>
@@ -92,58 +100,47 @@ export function LoginView({ onClose }: Props) {
           {login.isError && <div style={errMsg}>{apiErrorMessage(login.error, 'فشل تسجيل الدخول — تحقّق من البيانات')}</div>}
 
           {tab === 'login' ? (
-            <form onSubmit={submit}>
-              <div style={{ marginBottom: '13px' }}>
-                <label style={lbl}>البريد الإلكتروني أو الهاتف</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={inputIcon}>📧</span>
-                  <input className="ml-input" style={{ ...input, paddingInlineStart: '40px' }} value={id} onChange={(e) => setId(e.target.value)} placeholder="email@example.com | 5XXXXXXXX" autoComplete="username" required />
+            <>
+              <form onSubmit={submit}>
+                <div style={{ marginBottom: '13px' }}>
+                  <label style={lbl}>البريد الإلكتروني أو الهاتف</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={inputIcon}>📧</span>
+                    <input className="ml-input" style={{ ...input, paddingInlineStart: '40px' }} value={id} onChange={(e) => setId(e.target.value)} placeholder="email@example.com | 5XXXXXXXX" autoComplete="username" required />
+                  </div>
                 </div>
-              </div>
-              <div style={{ marginBottom: '13px' }}>
-                <label style={lbl}>كلمة المرور</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={inputIcon}>🔒</span>
-                  <input className="ml-input" style={{ ...input, paddingInlineStart: '40px' }} type={showPass ? 'text' : 'password'} value={pass} onChange={(e) => setPass(e.target.value)} placeholder="••••••••" autoComplete="current-password" required />
-                  <button type="button" onClick={() => setShowPass((s) => !s)} style={pwdToggle}>👁️</button>
+                <div style={{ marginBottom: '13px' }}>
+                  <label style={lbl}>كلمة المرور</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={inputIcon}>🔒</span>
+                    <input className="ml-input" style={{ ...input, paddingInlineStart: '40px' }} type={showPass ? 'text' : 'password'} value={pass} onChange={(e) => setPass(e.target.value)} placeholder="••••••••" autoComplete="current-password" required />
+                    <button type="button" onClick={() => setShowPass((s) => !s)} style={pwdToggle} title={showPass ? 'إخفاء' : 'إظهار'}>{showPass ? '🙈' : '👁️'}</button>
+                  </div>
                 </div>
-              </div>
-              <div style={formOpts}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><input type="checkbox" /> تذكرني</label>
-                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('لإعادة تعيين كلمة المرور، تواصل مع إدارة النظام.'); }} style={{ color: '#1B6CA8', textDecoration: 'none' }}>نسيت كلمة المرور؟</a>
-              </div>
-              <button className="ml-btn" type="submit" disabled={login.isPending} style={btnPrimary}>{login.isPending ? 'جارٍ الدخول…' : '🚀 تسجيل الدخول'}</button>
+                <div style={formOpts}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><input type="checkbox" /> تذكرني</label>
+                  <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('لإعادة تعيين كلمة المرور، تواصل مع إدارة النظام.'); }} style={{ color: '#1B6CA8', textDecoration: 'none' }}>نسيت كلمة المرور؟</a>
+                </div>
+                <button className="ml-btn" type="submit" disabled={login.isPending} style={btnPrimary}>{login.isPending ? 'جارٍ الدخول…' : '🚀 تسجيل الدخول'}</button>
 
-              <div style={divider}><span style={dividerLine} />أو<span style={dividerLine} /></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <button type="button" className="ml-soc" style={socBtn} onClick={() => alert('تسجيل الدخول عبر Google — قريباً.')}>🌐 Google</button>
-                <button type="button" className="ml-soc" style={socBtn} onClick={() => alert('تسجيل الدخول عبر واتساب — قريباً.')}>💬 واتساب OTP</button>
-              </div>
-
-              <div style={demoBox}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#1B6CA8', marginBottom: '8px' }}>🎯 حساب تجريبي للدخول السريع</div>
-                <button type="button" className="ml-demo" style={demoBtn} onClick={fillDemo}>
-                  <span>👑 مدير النظام</span><span style={dbadge}>admin@memar.local</span>
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div>
-              <div style={{ marginBottom: '13px' }}>
-                <label style={lbl}>نوع الحساب</label>
+                <div style={divider}><span style={dividerLine} />أو<span style={dividerLine} /></div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div style={{ ...roleCard, ...roleCardSel }}><div style={{ fontSize: '24px', marginBottom: '6px' }}>🏠</div><div style={{ fontSize: '13px', fontWeight: 700 }}>عميل</div><div style={{ fontSize: '10px', opacity: 0.85 }}>متابعة مشاريع</div></div>
-                  <div style={roleCard}><div style={{ fontSize: '24px', marginBottom: '6px' }}>🏢</div><div style={{ fontSize: '13px', fontWeight: 700 }}>شركة / مستثمر</div><div style={{ fontSize: '10px', opacity: 0.7 }}>مشاريع متعددة</div></div>
+                  <button type="button" className="ml-soc" style={socBtn} onClick={() => alert('تسجيل الدخول عبر Google — قريباً.')}>🌐 Google</button>
+                  <button type="button" className="ml-soc" style={socBtn} onClick={() => alert('تسجيل الدخول عبر واتساب — قريباً.')}>💬 واتساب OTP</button>
                 </div>
-              </div>
-              <div style={{ marginBottom: '13px' }}><label style={lbl}>الاسم الكامل *</label><input className="ml-input" style={input} placeholder="أدخل اسمك الكريم" /></div>
-              <div style={{ marginBottom: '13px' }}><label style={lbl}>رقم الهاتف *</label><input className="ml-input" style={input} placeholder="5XXXXXXXX" dir="ltr" /></div>
-              <div style={{ marginBottom: '13px' }}><label style={lbl}>البريد الإلكتروني *</label><input className="ml-input" style={input} type="email" placeholder="email@example.com" dir="ltr" /></div>
-              <div style={{ marginBottom: '13px' }}><label style={lbl}>كلمة المرور *</label><input className="ml-input" style={input} type="password" placeholder="8 أحرف على الأقل" /></div>
-              <button type="button" style={btnPrimary} onClick={() => alert('التسجيل الذاتي غير مُفعّل حاليًا — تواصل مع إدارة معمار لإنشاء حسابك.')}>إنشاء الحساب</button>
-              <p style={{ fontSize: '12px', color: '#5A6478', textAlign: 'center', marginTop: '12px' }}>لديك حساب؟ <button type="button" onClick={() => setTab('login')} style={{ background: 'none', border: 'none', color: '#1B6CA8', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>سجّل الدخول</button></p>
-            </div>
+              </form>
+
+              {SHOW_DEMO_ACCOUNTS && <DemoAccountsPanel onPick={pickDemo} disabled={login.isPending} />}
+            </>
+          ) : (
+            <RegisterForm onSwitchToLogin={() => setTab('login')} />
           )}
+
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            {onClose
+              ? <button type="button" onClick={onClose} style={backLinkBtn}>← العودة للموقع الرئيسي</button>
+              : <Link to="/" style={backLink}>← العودة للموقع الرئيسي</Link>}
+          </div>
         </div>
       </div>
     </div>
@@ -173,16 +170,13 @@ const authTabActive: CSSProperties = { background: '#1B6CA8', color: '#fff' };
 const lbl: CSSProperties = { display: 'block', fontSize: '12px', fontWeight: 600, color: '#1A1F2E', marginBottom: '5px' };
 const input: CSSProperties = { width: '100%', padding: '10px 14px', border: '1.5px solid #E4E8EF', borderRadius: '8px', fontFamily: "'Cairo',sans-serif", fontSize: '13px', color: '#1A1F2E', outline: 'none', background: '#fff' };
 const inputIcon: CSSProperties = { position: 'absolute', insetInlineStart: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', color: '#5A6478' };
-const pwdToggle: CSSProperties = { position: 'absolute', insetInlineStart: '36px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: 0 };
+const pwdToggle: CSSProperties = { position: 'absolute', insetInlineEnd: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: 0 };
 const formOpts: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', fontSize: '12px' };
 const btnPrimary: CSSProperties = { width: '100%', padding: '12px', border: 'none', borderRadius: '8px', fontFamily: "'Cairo',sans-serif", fontSize: '14px', fontWeight: 700, cursor: 'pointer', background: '#1B6CA8', color: '#fff', marginTop: '4px', transition: 'all .22s' };
 const divider: CSSProperties = { display: 'flex', alignItems: 'center', gap: '12px', margin: '14px 0', color: '#5A6478', fontSize: '12px' };
 const dividerLine: CSSProperties = { flex: 1, height: '1px', background: '#E4E8EF' };
 const socBtn: CSSProperties = { padding: '10px', border: '1.5px solid #E4E8EF', borderRadius: '8px', background: '#fff', fontFamily: "'Cairo',sans-serif", fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#1A1F2E', transition: 'border .2s' };
-const demoBox: CSSProperties = { background: '#F8FAFF', border: '1px solid #D0E4F5', borderRadius: '10px', padding: '11px', marginTop: '12px' };
-const demoBtn: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1.5px solid transparent', background: '#fff', fontFamily: "'Cairo',sans-serif", fontSize: '12px', cursor: 'pointer', color: '#1A1F2E', transition: 'all .18s' };
-const dbadge: CSSProperties = { fontSize: '10px', background: '#1B6CA8', color: '#fff', padding: '2px 8px', borderRadius: '4px', direction: 'ltr' };
 const errMsg: CSSProperties = { background: '#FDE8E8', border: '1px solid #DC4A3D33', color: '#DC4A3D', padding: '9px 14px', borderRadius: '8px', fontSize: '12px', marginBottom: '12px' };
-const roleCard: CSSProperties = { border: '2px solid #E4E8EF', borderRadius: '10px', padding: '14px', cursor: 'pointer', textAlign: 'center', color: '#1A1F2E' };
-const roleCardSel: CSSProperties = { borderColor: '#1B6CA8', background: '#1B6CA8', color: '#fff' };
 const closeBtn: CSSProperties = { position: 'absolute', top: '12px', insetInlineStart: '14px', width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#F0F2F5', color: '#5A6478', fontSize: '20px', cursor: 'pointer', lineHeight: 1 };
+const backLink: CSSProperties = { fontSize: '12px', color: '#5A6478', textDecoration: 'none' };
+const backLinkBtn: CSSProperties = { ...backLink, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' };

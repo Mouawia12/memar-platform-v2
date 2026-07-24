@@ -7,11 +7,12 @@ interface Props {
   onEdit: (q: Quotation) => void;
   onDelete: (q: Quotation) => void;
   onPrint: (q: Quotation) => void;
+  onConvert: (q: Quotation) => void;
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
 
-export function QuotationsTable({ quotations, onEdit, onDelete, onPrint }: Props) {
+export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConvert }: Props) {
   if (quotations.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد عروض أسعار.</p>;
   }
@@ -45,6 +46,9 @@ export function QuotationsTable({ quotations, onEdit, onDelete, onPrint }: Props
               <td style={td}>{q.valid_until ?? '—'}</td>
               <td style={{ ...td, whiteSpace: 'nowrap' }}>
                 <button className="btn btn-sm" onClick={() => onPrint(q)} type="button" style={{ background: '#274A78', color: '#fff' }}>🖨️ طباعة</button>{' '}
+                {q.status !== 'accepted' && (
+                  <><button className="btn btn-sm" onClick={() => onConvert(q)} type="button" style={{ background: '#2D9B6F', color: '#fff' }} title="إنشاء عقد من هذا العرض">📄 تحويل لعقد</button>{' '}</>
+                )}
                 <button className="btn btn-sm" onClick={() => onEdit(q)} type="button">تعديل</button>{' '}
                 <button className="btn btn-sm" onClick={() => onDelete(q)} type="button" style={{ color: '#ef4444' }}>حذف</button>
               </td>

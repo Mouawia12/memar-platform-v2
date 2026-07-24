@@ -54,3 +54,15 @@ export function useDeleteQuotation() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+/** تحويل عرض السعر إلى عقد. */
+export function useConvertQuotation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => quotationsApi.convertToContract(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ['contracts'] });
+    },
+  });
+}

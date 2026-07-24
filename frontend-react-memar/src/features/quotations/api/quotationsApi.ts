@@ -14,4 +14,6 @@ export const quotationsApi = {
   create: (payload: Record<string, unknown>) => apiPost<Quotation>('/quotations', payload),
   update: (id: number, payload: Record<string, unknown>) => apiPatch<Quotation>(`/quotations/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/quotations/${id}`),
+  /** تحويل العرض إلى عقد. */
+  convertToContract: (id: number) => apiPost<unknown>(`/quotations/${id}/convert-to-contract`),
 };

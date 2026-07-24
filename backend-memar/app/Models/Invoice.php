@@ -17,7 +17,7 @@ class Invoice extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'number', 'client_id', 'project_id', 'subtotal_kwd', 'tax_kwd',
+        'number', 'client_id', 'project_id', 'contract_id', 'subtotal_kwd', 'tax_kwd',
         'total_kwd', 'paid_kwd', 'status', 'issue_date', 'due_date', 'notes',
     ];
 
@@ -44,6 +44,11 @@ class Invoice extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function contract(): BelongsTo
+    {
+        return $this->belongsTo(Contract::class);
     }
 
     public function payments(): HasMany

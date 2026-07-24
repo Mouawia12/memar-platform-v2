@@ -2,7 +2,8 @@ import { useState } from 'react';
 
 import { ContractFormModal } from '../components/ContractFormModal';
 import { ContractsTable } from '../components/ContractsTable';
-import { useContracts, useDeleteContract } from '../hooks/useContracts';
+import { apiErrorMessage } from '../../../lib/api';
+import { useContracts, useDeleteContract, useGenerateInvoices } from '../hooks/useContracts';
 import { STATUS_LABELS, type Contract, type ContractStatus } from '../types';
 
 export function ContractsPage() {
@@ -17,6 +18,16 @@ export function ContractsPage() {
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (c: Contract) => { setEditing(c); setModalOpen(true); };
+  const gen = useGenerateInvoices();
+
+  const handleGenerate = (c: Contract) => {
+    if (!confirm(`توليد فواتير جدول الدفعات (40/30/30) للعقد "${c.number ?? c.id}"؟`)) return;
+    gen.mutate(c.id, {
+      onSuccess: () => alert('✅ تم توليد 3 فواتير — راجعها في صفحة الفواتير.'),
+      onError: (e) => alert(apiErrorMessage(e, 'تعذّر التوليد')),
+    });
+  };
+
   const handleDelete = (c: Contract) => { if (confirm(`حذف عقد "${c.number}"؟`)) del.mutate(c.id); };
 
   const meta = data?.meta;
@@ -45,7 +56,7 @@ export function ContractsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العقود.</p>}
-        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} />}
+        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} onGenerateInvoices={handleGenerate} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

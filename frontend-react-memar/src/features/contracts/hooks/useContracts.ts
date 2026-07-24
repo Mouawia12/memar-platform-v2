@@ -35,3 +35,15 @@ export function useSaveContract() {
 export function useDeleteContract() {
   return useMutation({ mutationFn: (id: number) => contractsApi.remove(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }) });
 }
+
+/** توليد فواتير جدول الدفعات للعقد. */
+export function useGenerateInvoices() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => contractsApi.generateInvoices(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}

@@ -2,8 +2,9 @@ import { useState } from 'react';
 
 import { quotationsApi } from '../api/quotationsApi';
 import { QuotationFormModal } from '../components/QuotationFormModal';
+import { apiErrorMessage } from '../../../lib/api';
 import { QuotationsTable } from '../components/QuotationsTable';
-import { useDeleteQuotation, useQuotations } from '../hooks/useQuotations';
+import { useConvertQuotation, useDeleteQuotation, useQuotations } from '../hooks/useQuotations';
 import { printQuotation } from '../print';
 import { STATUS_LABELS, type Quotation, type QuotationStatus } from '../types';
 
@@ -16,6 +17,15 @@ export function QuotationsPage() {
 
   const { data, isLoading, isError } = useQuotations({ search: search || undefined, status: status || undefined, page });
   const del = useDeleteQuotation();
+  const convert = useConvertQuotation();
+
+  const handleConvert = (q: Quotation) => {
+    if (!confirm(`تحويل عرض السعر "${q.number ?? q.id}" إلى عقد؟`)) return;
+    convert.mutate(q.id, {
+      onSuccess: () => alert('✅ تم إنشاء العقد — يمكنك توليد فواتير الدفعات من صفحة العقود.'),
+      onError: (e) => alert(apiErrorMessage(e, 'تعذّر التحويل')),
+    });
+  };
 
   const openCreate = () => { setEditingId(null); setModalOpen(true); };
   const openEdit = (q: Quotation) => { setEditingId(q.id); setModalOpen(true); };
@@ -52,7 +62,7 @@ export function QuotationsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العروض.</p>}
-        {data && <QuotationsTable quotations={data.data} onEdit={openEdit} onDelete={handleDelete} onPrint={handlePrint} />}
+        {data && <QuotationsTable quotations={data.data} onEdit={openEdit} onDelete={handleDelete} onPrint={handlePrint} onConvert={handleConvert} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

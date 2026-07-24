@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Contracts\StoreContractRequest;
 use App\Http\Requests\Contracts\UpdateContractRequest;
 use App\Http\Resources\ContractResource;
+use App\Http\Resources\InvoiceResource;
 use App\Models\Contract;
 use App\Services\ContractService;
+use App\Services\SalesWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -48,6 +50,18 @@ class ContractController extends ApiController
         $contract = $this->contracts->update($contract, $request->validated());
 
         return $this->ok(new ContractResource($contract), 'تم تحديث العقد');
+    }
+
+    /** توليد فواتير جدول الدفعات (40/30/30) للعقد. */
+    public function generateInvoices(Contract $contract, SalesWorkflowService $workflow): JsonResponse
+    {
+        try {
+            $invoices = $workflow->contractToInvoices($contract);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422);
+        }
+
+        return $this->created(InvoiceResource::collection(collect($invoices)), 'تم توليد '.count($invoices).' فواتير لجدول الدفعات');
     }
 
     public function destroy(Contract $contract): JsonResponse

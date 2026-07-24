@@ -1,7 +1,8 @@
-import { type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
+import { apiErrorMessage } from '../../../lib/api';
 import { careersApi } from '../api/careersApi';
 import { EMPLOYMENT_LABELS, type JobOpening } from '../types';
 
@@ -106,15 +107,32 @@ export function PublicCareersPage() {
 }
 
 function ApplyModal({ job, jobs, onClose }: { job: JobOpening; jobs: JobOpening[]; onClose: () => void }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [done, setDone] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [cvName, setCvName] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) { alert('يرجى إدخال الاسم ورقم الهاتف'); return; }
-    setDone(true);
+    if (!formRef.current) return;
+
+    const payload = new FormData(formRef.current);
+    payload.append('job_opening_id', String(job.id));
+
+    setSending(true);
+    setError('');
+    try {
+      await careersApi.apply(payload);
+      setDone(true);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'تعذّر إرسال الطلب — حاول مرة أخرى.'));
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -126,31 +144,32 @@ function ApplyModal({ job, jobs, onClose }: { job: JobOpening; jobs: JobOpening[
         </div>
         <div className="mc-modal-body">
           {!done ? (
-            <form onSubmit={submit}>
+            <form ref={formRef} onSubmit={submit}>
               <div className="mc-badge">📌 التقديم على: {job.title}</div>
               <div className="mc-row">
-                <div className="mc-fg"><label>الاسم الكامل *</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم الثلاثي" /></div>
-                <div className="mc-fg"><label>رقم الهاتف *</label><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5XXXXXXXX" dir="ltr" /></div>
+                <div className="mc-fg"><label>الاسم الكامل *</label><input name="applicant_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم الثلاثي" /></div>
+                <div className="mc-fg"><label>رقم الهاتف *</label><input name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5XXXXXXXX" dir="ltr" /></div>
               </div>
-              <div className="mc-fg"><label>البريد الإلكتروني</label><input type="email" placeholder="example@email.com" dir="ltr" /></div>
+              <div className="mc-fg"><label>البريد الإلكتروني</label><input name="email" type="email" placeholder="example@email.com" dir="ltr" /></div>
               <div className="mc-row">
                 <div className="mc-fg"><label>الوظيفة المطلوبة</label>
-                  <select defaultValue={job.title}>{jobs.map((j) => <option key={j.id} value={j.title}>{j.title}</option>)}</select>
+                  <select name="position" defaultValue={job.title}>{jobs.map((j) => <option key={j.id} value={j.title}>{j.title}</option>)}</select>
                 </div>
                 <div className="mc-fg"><label>سنوات الخبرة</label>
-                  <select><option>بدون خبرة</option><option>1-3 سنوات</option><option>3-5 سنوات</option><option>5-10 سنوات</option><option>+10 سنوات</option></select>
+                  <select name="experience"><option>بدون خبرة</option><option>1-3 سنوات</option><option>3-5 سنوات</option><option>5-10 سنوات</option><option>+10 سنوات</option></select>
                 </div>
               </div>
-              <div className="mc-fg"><label>المهارات</label><input placeholder="مثال: AutoCAD, Revit, 3D Max" /></div>
+              <div className="mc-fg"><label>المهارات</label><input name="skills" placeholder="مثال: AutoCAD, Revit, 3D Max" /></div>
               <div className="mc-fg"><label>السيرة الذاتية (CV)</label>
                 <div className="mc-file">
-                  <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setCvName(e.target.files?.[0]?.name ?? '')} />
+                  <input name="cv" type="file" accept=".pdf,.doc,.docx" onChange={(e) => setCvName(e.target.files?.[0]?.name ?? '')} />
                   <div className="icon">📄</div><div className="txt">اضغط لرفع الملف (PDF/Word)</div>
                   {cvName && <div className="txt">📎 {cvName}</div>}
                 </div>
               </div>
-              <div className="mc-fg"><label>رسالة تعريفية (اختياري)</label><textarea placeholder="اكتب نبذة عن نفسك وسبب اهتمامك بالوظيفة..." /></div>
-              <button className="mc-btn mc-btn-primary mc-btn-full" type="submit">📤 إرسال الطلب</button>
+              <div className="mc-fg"><label>رسالة تعريفية (اختياري)</label><textarea name="message" placeholder="اكتب نبذة عن نفسك وسبب اهتمامك بالوظيفة..." /></div>
+              {error && <div style={{ color: '#DC4A3D', fontSize: '13px', marginBottom: '10px' }}>{error}</div>}
+              <button className="mc-btn mc-btn-primary mc-btn-full" type="submit" disabled={sending}>{sending ? 'جارٍ الإرسال…' : '📤 إرسال الطلب'}</button>
             </form>
           ) : (
             <div className="mc-success">

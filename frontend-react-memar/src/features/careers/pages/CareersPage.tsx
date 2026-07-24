@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { ApplicationsTab } from '../components/ApplicationsTab';
 import { JobOpeningFormModal } from '../components/JobOpeningFormModal';
 import { useDeleteJobOpening, useJobOpenings } from '../hooks/useCareers';
 import { EMPLOYMENT_LABELS, STATUS_LABELS, type JobOpening } from '../types';
@@ -9,6 +10,7 @@ type StatusFilter = '' | 'open' | 'closed';
 export function CareersPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilter>('');
+  const [tab, setTab] = useState<'jobs' | 'applications'>('jobs');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<JobOpening | null>(null);
 
@@ -27,7 +29,7 @@ export function CareersPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>التوظيف</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ وظيفة جديدة</button>
+        {tab === 'jobs' && <button className="btn btn-primary" onClick={openCreate} type="button">+ وظيفة جديدة</button>}
       </div>
 
       {/* بطاقات مؤشرات */}
@@ -37,6 +39,12 @@ export function CareersPage() {
         <div className="kpi-card"><div style={{ ...kpiVal, color: '#B45309' }}>{totalApplicants}</div><div style={kpiLbl}>إجمالي المتقدّمين</div></div>
       </div>
 
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button type="button" style={tabBtn(tab === 'jobs')} onClick={() => setTab('jobs')}>الوظائف الشاغرة</button>
+        <button type="button" style={tabBtn(tab === 'applications')} onClick={() => setTab('applications')}>📥 طلبات التوظيف</button>
+      </div>
+
+      {tab === 'applications' ? <div className="card" style={{ padding: '16px' }}><ApplicationsTab /></div> : (<>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <input className="input" placeholder="بحث بالمسمى أو القسم…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '220px' }} />
         <select className="input" value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)}>
@@ -74,6 +82,8 @@ export function CareersPage() {
         {data && openings.length === 0 && <p style={{ opacity: 0.6 }}>لا توجد وظائف — أضف وظيفة جديدة.</p>}
       </div>
 
+      </>)}
+
       {modalOpen && <JobOpeningFormModal opening={editing} onClose={() => setModalOpen(false)} />}
     </div>
   );
@@ -82,3 +92,10 @@ export function CareersPage() {
 const kpiVal: CSSProperties = { fontSize: '28px', fontWeight: 800, color: '#274A78' };
 const kpiLbl: CSSProperties = { fontSize: '13px', opacity: 0.65, marginTop: '2px' };
 const badge: CSSProperties = { display: 'inline-block', padding: '2px 10px', borderRadius: '6px', fontSize: '12px', height: 'fit-content', whiteSpace: 'nowrap' };
+
+const tabBtn = (active: boolean): CSSProperties => ({
+  padding: '8px 18px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+  border: `1px solid ${active ? '#274A78' : '#e2e8f0'}`,
+  background: active ? '#274A78' : '#fff',
+  color: active ? '#fff' : '#475569',
+});

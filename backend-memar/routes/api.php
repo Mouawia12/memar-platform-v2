@@ -47,4 +47,5 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/site.php';
     require __DIR__.'/api/communications.php';
     require __DIR__.'/api/audit.php';
+    require __DIR__.'/api/files.php';
 });

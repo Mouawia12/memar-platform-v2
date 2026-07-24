@@ -15,6 +15,7 @@ import { CareersPage } from './features/careers/pages/CareersPage';
 import { PublicCareersPage } from './features/careers/pages/PublicCareersPage';
 import { CommunicationsPage } from './features/communications/pages/CommunicationsPage';
 import { CrmPage } from './features/crm/pages/CrmPage';
+import { FieldVisitsPage } from './features/fieldVisits/pages/FieldVisitsPage';
 import { FilesPage } from './features/files/pages/FilesPage';
 import { FinancePage } from './features/finance/pages/FinancePage';
 import { HeroAdsPage } from './features/hero/pages/HeroAdsPage';
@@ -38,7 +39,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
-const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads', 'audit', 'file_manager'];
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads', 'audit', 'file_manager', 'field_visits'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/pricing" element={<QuotationsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/files" element={<FilesPage />} />
+          <Route path="/field-visits" element={<FieldVisitsPage />} />
           <Route path="/hr" element={<EmployeesPage />} />
           <Route path="/hr/attendance" element={<AttendancePage />} />
           <Route path="/hr/payroll" element={<PayrollPage />} />

@@ -44,6 +44,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: 'companies', label: 'الشركات (B2B)', icon: '🏢', path: '/companies', perm: 'crm.view' },
       { key: 'clients', label: 'سجل العملاء', icon: '📖', path: '/clients', perm: 'crm.view' },
       { key: 'projects', label: 'المشاريع', icon: '🏗️', path: '/projects', perm: 'projects.view' },
+      { key: 'field_visits', label: 'الزيارات الميدانية', icon: '🚧', path: '/field-visits', perm: 'projects.view' },
       { key: 'documents', label: 'المستندات', icon: '📄', path: '/documents', perm: 'documents.view' },
       { key: 'file_manager', label: 'مدير الملفات', icon: '🗂️', path: '/files', perm: 'documents.view' },
       { key: 'appointments', label: 'المواعيد', icon: '📅', path: '/appointments', perm: 'appointments.view' },

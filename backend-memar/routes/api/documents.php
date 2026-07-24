@@ -22,5 +22,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/documents', [GeneratedDocumentController::class, 'index'])->middleware('permission:documents.view');
     Route::post('/documents', [GeneratedDocumentController::class, 'store'])->middleware('permission:documents.manage');
     Route::get('/documents/{generatedDocument}', [GeneratedDocumentController::class, 'show'])->middleware('permission:documents.view');
+    Route::match(['put', 'patch'], '/documents/{generatedDocument}', [GeneratedDocumentController::class, 'update'])->middleware('permission:documents.manage');
     Route::delete('/documents/{generatedDocument}', [GeneratedDocumentController::class, 'destroy'])->middleware('permission:documents.manage');
 });

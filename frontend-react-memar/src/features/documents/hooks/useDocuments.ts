@@ -39,3 +39,12 @@ export function useGenerateDocument() {
 export function useDeleteDocument() {
   return useMutation({ mutationFn: (id: number) => generatedApi.remove(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: GKEY }) });
 }
+
+/** حفظ تعديلات مستند مولّد (المحرر الغني). */
+export function useUpdateDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) => generatedApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: GKEY }),
+  });
+}

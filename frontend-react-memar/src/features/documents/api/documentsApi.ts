@@ -11,5 +11,6 @@ export const templatesApi = {
 export const generatedApi = {
   list: (params: { page?: number }) => apiGetPaginated<GeneratedDocument>('/documents', { params }),
   generate: (payload: Record<string, unknown>) => apiPost<GeneratedDocument>('/documents', payload),
+  update: (id: number, payload: Record<string, unknown>) => apiPatch<GeneratedDocument>(`/documents/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/documents/${id}`),
 };

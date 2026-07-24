@@ -76,6 +76,18 @@ class DocumentService
         ]);
     }
 
+    /**
+     * تحديث مستند مولّد بعد تحريره يدويًا.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function updateGenerated(GeneratedDocument $document, array $data): GeneratedDocument
+    {
+        $document->update($data);
+
+        return $document->load(['template', 'project']);
+    }
+
     public function deleteGenerated(GeneratedDocument $document): void
     {
         $document->delete();

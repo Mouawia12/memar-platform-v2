@@ -1,10 +1,11 @@
 import { type CSSProperties, useState } from 'react';
 
+import { DocumentEditModal } from '../components/DocumentEditModal';
 import { GenerateModal } from '../components/GenerateModal';
 import { TemplateFormModal } from '../components/TemplateFormModal';
 import { useDeleteDocument, useDeleteTemplate, useGeneratedDocs, useTemplates } from '../hooks/useDocuments';
 import { printDocument } from '../print';
-import { TEMPLATE_TYPE_LABELS, type DocumentTemplate } from '../types';
+import { TEMPLATE_TYPE_LABELS, type DocumentTemplate, type GeneratedDocument } from '../types';
 
 type Tab = 'generated' | 'templates';
 
@@ -13,6 +14,7 @@ export function DocumentsPage() {
   const [tplModal, setTplModal] = useState(false);
   const [genModal, setGenModal] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocumentTemplate | null>(null);
+  const [editingDoc, setEditingDoc] = useState<GeneratedDocument | null>(null);
 
   const templates = useTemplates();
   const generated = useGeneratedDocs();
@@ -47,6 +49,7 @@ export function DocumentsPage() {
                       <td style={td}>{d.project?.name ?? '—'}</td>
                       <td style={td}>{d.created_at ? new Date(d.created_at).toLocaleDateString('ar') : '—'}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-sm" type="button" onClick={() => setEditingDoc(d)}>✍️ تحرير</button>{' '}
                         <button className="btn btn-sm" type="button" style={{ background: '#274A78', color: '#fff' }} onClick={() => printDocument(d.title, d.body_html)}>🖨️ طباعة</button>{' '}
                         <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => confirm(`حذف "${d.title}"؟`) && delDoc.mutate(d.id)}>حذف</button>
                       </td>
@@ -82,6 +85,7 @@ export function DocumentsPage() {
         )}
       </div>
 
+      {editingDoc && <DocumentEditModal document={editingDoc} onClose={() => setEditingDoc(null)} />}
       {tplModal && <TemplateFormModal template={editingTpl} onClose={() => setTplModal(false)} />}
       {genModal && <GenerateModal onClose={() => setGenModal(false)} />}
     </div>

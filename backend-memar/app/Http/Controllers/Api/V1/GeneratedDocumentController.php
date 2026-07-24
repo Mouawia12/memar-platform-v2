@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Documents\GenerateDocumentRequest;
+use App\Http\Requests\Documents\UpdateGeneratedDocumentRequest;
 use App\Http\Resources\GeneratedDocumentResource;
 use App\Models\DocumentTemplate;
 use App\Models\GeneratedDocument;
@@ -39,6 +40,13 @@ class GeneratedDocumentController extends ApiController
     public function show(GeneratedDocument $generatedDocument): JsonResponse
     {
         return $this->ok(new GeneratedDocumentResource($generatedDocument->load(['template', 'project'])));
+    }
+
+    public function update(UpdateGeneratedDocumentRequest $request, GeneratedDocument $generatedDocument): JsonResponse
+    {
+        $document = $this->documents->updateGenerated($generatedDocument, $request->validated());
+
+        return $this->ok(new GeneratedDocumentResource($document), 'تم حفظ التعديلات');
     }
 
     public function destroy(GeneratedDocument $generatedDocument): JsonResponse

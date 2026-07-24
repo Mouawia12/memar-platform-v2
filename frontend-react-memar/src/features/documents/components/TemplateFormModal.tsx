@@ -3,6 +3,7 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveTemplate } from '../hooks/useDocuments';
 import { TEMPLATE_TYPE_LABELS, type DocumentTemplate, type TemplateFormData, type TemplateType } from '../types';
+import { RichTextEditor } from './RichTextEditor';
 
 interface Props {
   template: DocumentTemplate | null;
@@ -14,6 +15,7 @@ const empty: TemplateFormData = { name: '', type: 'contract', body_html: '', is_
 export function TemplateFormModal({ template, onClose }: Props) {
   const save = useSaveTemplate();
   const [form, setForm] = useState<TemplateFormData>(empty);
+  const [mode, setMode] = useState<'rich' | 'html'>('rich');
 
   useEffect(() => {
     if (template) {
@@ -46,7 +48,17 @@ export function TemplateFormModal({ template, onClose }: Props) {
           </label>
         </div>
 
-        <label style={label}>محتوى القالب (HTML — استخدم حقولاً متغيّرة مثل <code dir="ltr">{'{{client_name}}'}</code>)
+        <div style={{ ...label, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          <span>محتوى القالب — استخدم حقولاً متغيّرة مثل <code dir="ltr">{'{{client_name}}'}</code></span>
+          <span style={{ display: 'flex', gap: '4px' }}>
+            <button type="button" onClick={() => setMode('rich')} style={modeBtn(mode === 'rich')}>✍️ محرر غني</button>
+            <button type="button" onClick={() => setMode('html')} style={modeBtn(mode === 'html')}>{'</>'} HTML</button>
+          </span>
+        </div>
+
+        {mode === 'rich' ? (
+          <RichTextEditor value={form.body_html} onChange={(html) => set('body_html', html)} resetKey={`${template?.id ?? 'new'}-${mode}`} minHeight="200px" />
+        ) : (
           <textarea
             className="input"
             style={{ ...input, minHeight: '200px', fontFamily: 'monospace', direction: 'ltr', textAlign: 'left' }}
@@ -55,7 +67,7 @@ export function TemplateFormModal({ template, onClose }: Props) {
             required
             placeholder="<h2>عقد بين مجموعة معمار و {{client_name}}</h2>..."
           />
-        </label>
+        )}
         <div style={{ fontSize: '12px', opacity: 0.7, background: '#F0F4F8', padding: '8px 10px', borderRadius: '8px' }}>
           حقول تلقائية جاهزة عند التوليد من مشروع: <code dir="ltr">{'{{client_name}}'}</code>، <code dir="ltr">{'{{project_name}}'}</code>، <code dir="ltr">{'{{project_code}}'}</code>، <code dir="ltr">{'{{date}}'}</code>. أي حقل آخر يُدخَل يدويًا.
         </div>
@@ -80,3 +92,10 @@ const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(
 const modal: CSSProperties = { padding: '24px', width: '100%', maxWidth: '640px', maxHeight: '92vh', overflow: 'auto' };
 const label: CSSProperties = { display: 'block', marginTop: '10px', fontSize: '14px' };
 const input: CSSProperties = { width: '100%', marginTop: '4px' };
+
+const modeBtn = (active: boolean): CSSProperties => ({
+  padding: '3px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
+  border: `1px solid ${active ? '#1B6CA8' : '#E4E8EF'}`,
+  background: active ? '#1B6CA8' : '#fff',
+  color: active ? '#fff' : '#5A6478',
+});

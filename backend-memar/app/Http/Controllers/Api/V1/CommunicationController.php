@@ -22,7 +22,7 @@ class CommunicationController extends ApiController
         $paginator = $this->communications->list(
             $request->string('search')->toString() ?: null,
             $request->string('channel')->toString() ?: null,
-            (int) ($request->integer('per_page') ?: 20),
+            $this->perPage($request, 20),
         );
 
         return $this->paginated($paginator, CommunicationResource::class);

@@ -13,6 +13,36 @@ export interface ReportSummary {
   projects: { total: number; active: number };
 }
 
+export type ReportPeriod = 'month' | 'quarter' | 'year';
+
+export const REPORT_PERIODS: { value: ReportPeriod; label: string }[] = [
+  { value: 'month', label: 'هذا الشهر' },
+  { value: 'quarter', label: 'آخر 3 أشهر' },
+  { value: 'year', label: 'هذا العام' },
+];
+
+export interface ReportAnalytics {
+  period: ReportPeriod;
+  from: string;
+  to: string;
+  totals: {
+    revenue: number;
+    expenses: number;
+    net: number;
+    margin_pct: number;
+    attendance_pct: number | null;
+  };
+  series: {
+    labels: string[];
+    revenue: number[];
+    expenses: number[];
+    attendance: (number | null)[];
+  };
+  projects_by_status: { status: string; count: number }[];
+  services: { name: string; value: number }[];
+}
+
 export const reportsApi = {
   summary: () => apiGet<ReportSummary>('/reports/summary'),
+  analytics: (period: ReportPeriod) => apiGet<ReportAnalytics>('/reports/analytics', { params: { period } }),
 };

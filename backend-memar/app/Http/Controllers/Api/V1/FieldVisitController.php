@@ -26,7 +26,7 @@ class FieldVisitController extends ApiController
             $request->string('search')->toString() ?: null,
             $request->string('status')->toString() ?: null,
             $request->integer('project_id') ?: null,
-            (int) ($request->integer('per_page') ?: 20),
+            $this->perPage($request, 20),
         );
 
         return $this->paginated($paginator, FieldVisitResource::class);

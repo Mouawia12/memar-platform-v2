@@ -27,7 +27,7 @@ class FileController extends ApiController
             $request->string('search')->toString() ?: null,
             $request->string('folder')->toString() ?: null,
             $request->integer('project_id') ?: null,
-            (int) ($request->integer('per_page') ?: 24),
+            $this->perPage($request, 24),
         );
 
         return $this->paginated($paginator, StoredFileResource::class);

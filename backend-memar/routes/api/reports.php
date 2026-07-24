@@ -11,4 +11,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/reports/summary', [ReportController::class, 'summary'])->middleware('permission:finance.view');
+    Route::get('/reports/analytics', [ReportController::class, 'analytics'])->middleware('permission:finance.view');
 });

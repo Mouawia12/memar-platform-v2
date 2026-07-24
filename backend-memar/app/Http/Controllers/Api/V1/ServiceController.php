@@ -22,7 +22,7 @@ class ServiceController extends ApiController
         $paginator = $this->services->list(
             $request->string('search')->toString() ?: null,
             $request->string('category')->toString() ?: null,
-            (int) ($request->integer('per_page') ?: 20),
+            $this->perPage($request, 20),
         );
 
         return $this->paginated($paginator, ServiceResource::class);

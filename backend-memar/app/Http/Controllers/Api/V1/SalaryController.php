@@ -22,7 +22,7 @@ class SalaryController extends ApiController
         $paginator = $this->payroll->list(
             $request->string('month')->toString() ?: null,
             $request->integer('employee_id') ?: null,
-            (int) ($request->integer('per_page') ?: 20),
+            $this->perPage($request, 20),
         );
 
         return $this->paginated($paginator, SalaryResource::class);

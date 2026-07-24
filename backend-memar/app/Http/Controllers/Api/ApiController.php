@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Support\ApiResponse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * الأساس لكل متحكمات الـAPI — يوفّر اختصارات الاستجابة الموحّدة.
@@ -38,5 +39,16 @@ abstract class ApiController extends Controller
     protected function paginated(LengthAwarePaginator $paginator, ?string $resourceClass = null): JsonResponse
     {
         return ApiResponse::paginated($paginator, $resourceClass);
+    }
+
+    /**
+     * حجم الصفحة المطلوب مقيّدًا بحدّ أقصى.
+     * الحدّ يسمح بتصدير قائمة كاملة دفعةً واحدة، ويمنع استنزاف الذاكرة بطلب ضخم.
+     */
+    protected function perPage(Request $request, int $default = 15, int $max = 500): int
+    {
+        $requested = $request->integer('per_page') ?: $default;
+
+        return max(1, min($requested, $max));
     }
 }

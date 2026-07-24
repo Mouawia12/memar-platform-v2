@@ -51,7 +51,7 @@ class AttendanceController extends ApiController
             $request->integer('user_id') ?: null,
             $request->string('from')->toString() ?: null,
             $request->string('to')->toString() ?: null,
-            (int) ($request->integer('per_page') ?: 30),
+            $this->perPage($request, 30),
         );
 
         return $this->paginated($paginator, AttendanceResource::class);

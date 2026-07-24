@@ -23,7 +23,7 @@ class ServiceRequestController extends ApiController
             $request->string('search')->toString() ?: null,
             $request->string('status')->toString() ?: null,
             $request->string('priority')->toString() ?: null,
-            (int) ($request->integer('per_page') ?: 20),
+            $this->perPage($request, 20),
         );
 
         return $this->paginated($paginator, ServiceRequestResource::class);

@@ -22,7 +22,7 @@ class ContactController extends ApiController
         $paginator = $this->contacts->list(
             $request->string('search')->toString() ?: null,
             $request->string('type')->toString() ?: null,
-            (int) ($request->integer('per_page') ?: 15),
+            $this->perPage($request, 15),
         );
 
         return $this->paginated($paginator, ContactResource::class);

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { invoicesApi } from '../api/invoicesApi';
 import { InvoiceFormModal } from '../components/InvoiceFormModal';
 import { InvoicesTable } from '../components/InvoicesTable';
 import { PaymentModal } from '../components/PaymentModal';
@@ -23,11 +25,36 @@ export function InvoicesPage() {
 
   const meta = data?.meta;
 
+  /** يجلب كل الفواتير المطابقة للفلاتر الحالية لتصديرها. */
+  const fetchAllInvoices = async () => {
+    const all = await invoicesApi.list({ search: search || undefined, status: status || undefined, per_page: 500 });
+
+    return all.data;
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>الفواتير والتحصيل</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ فاتورة جديدة</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <ExportCsvButton
+            filename="invoices"
+            fetchRows={fetchAllInvoices}
+            columns={[
+              { header: 'رقم الفاتورة', value: (r: Invoice) => r.number },
+              { header: 'العميل', value: (r: Invoice) => r.client?.name },
+              { header: 'المشروع', value: (r: Invoice) => r.project?.name },
+              { header: 'الإجمالي (د.ك)', value: (r: Invoice) => r.total_kwd },
+              { header: 'المدفوع (د.ك)', value: (r: Invoice) => r.paid_kwd },
+              { header: 'المتبقي (د.ك)', value: (r: Invoice) => r.balance_kwd },
+              { header: 'الحالة', value: (r: Invoice) => STATUS_LABELS[r.status] },
+              { header: 'تاريخ الإصدار', value: (r: Invoice) => r.issue_date },
+              { header: 'الاستحقاق', value: (r: Invoice) => r.due_date },
+              { header: 'متأخرة', value: (r: Invoice) => (r.is_overdue ? 'نعم' : 'لا') },
+            ]}
+          />
+          <button className="btn btn-primary" onClick={openCreate} type="button">+ فاتورة جديدة</button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: '16px' }}>

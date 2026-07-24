@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { projectsApi } from '../api/projectsApi';
 import { ProjectFormModal } from '../components/ProjectFormModal';
 import { ProjectsTable } from '../components/ProjectsTable';
 import { useDeleteProject, useProjects } from '../hooks/useProjects';
@@ -21,11 +23,34 @@ export function ProjectsPage() {
 
   const meta = data?.meta;
 
+  /** يجلب كل المشاريع المطابقة للفلاتر الحالية لتصديرها. */
+  const fetchAllProjects = async () => {
+    const all = await projectsApi.list({ search: search || undefined, status: status || undefined, per_page: 500 });
+
+    return all.data;
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>المشاريع</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ مشروع جديد</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <ExportCsvButton
+            filename="projects"
+            fetchRows={fetchAllProjects}
+            columns={[
+              { header: 'الكود', value: (r: Project) => r.code },
+              { header: 'المشروع', value: (r: Project) => r.name },
+              { header: 'العميل', value: (r: Project) => r.client?.name },
+              { header: 'مدير المشروع', value: (r: Project) => r.manager?.name },
+              { header: 'الحالة', value: (r: Project) => PROJECT_STATUS_LABELS[r.status] },
+              { header: 'الميزانية (د.ك)', value: (r: Project) => r.budget_kwd },
+              { header: 'البداية', value: (r: Project) => r.start_date },
+              { header: 'النهاية', value: (r: Project) => r.end_date },
+            ]}
+          />
+          <button className="btn btn-primary" onClick={openCreate} type="button">+ مشروع جديد</button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: '16px' }}>

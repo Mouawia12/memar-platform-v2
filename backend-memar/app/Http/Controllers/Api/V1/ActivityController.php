@@ -26,7 +26,7 @@ class ActivityController extends ApiController
             ->when($request->string('from')->toString(), fn ($q, string $d) => $q->whereDate('created_at', '>=', $d))
             ->when($request->string('to')->toString(), fn ($q, string $d) => $q->whereDate('created_at', '<=', $d))
             ->latest()
-            ->paginate((int) ($request->integer('per_page') ?: 25));
+            ->paginate($this->perPage($request, 25));
 
         return $this->paginated($paginator, ActivityResource::class);
     }

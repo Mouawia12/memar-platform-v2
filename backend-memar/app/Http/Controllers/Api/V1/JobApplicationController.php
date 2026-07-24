@@ -86,7 +86,7 @@ class JobApplicationController extends ApiController
             ->when($request->integer('job_opening_id'), fn ($q, int $j) => $q->where('job_opening_id', $j))
             ->with('jobOpening:id,title')
             ->latest()
-            ->paginate((int) ($request->integer('per_page') ?: 20));
+            ->paginate($this->perPage($request, 20));
 
         return $this->paginated($paginator, JobApplicationResource::class);
     }

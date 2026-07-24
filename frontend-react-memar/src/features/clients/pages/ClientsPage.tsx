@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { contactsApi } from '../api/contactsApi';
 import { ContactFormModal } from '../components/ContactFormModal';
 import { ContactsTable } from '../components/ContactsTable';
 import { useContacts, useDeleteContact } from '../hooks/useContacts';
@@ -21,11 +23,33 @@ export function ClientsPage() {
 
   const meta = data?.meta;
 
+  /** يجلب كل جهات الاتصال المطابقة للفلاتر الحالية لتصديرها. */
+  const fetchAllContacts = async () => {
+    const all = await contactsApi.list({ search: search || undefined, type: type || undefined, per_page: 500 });
+
+    return all.data;
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>سجل العملاء</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ عميل جديد</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <ExportCsvButton
+            filename="clients"
+            fetchRows={fetchAllContacts}
+            columns={[
+              { header: 'الاسم', value: (r: Contact) => r.full_name },
+              { header: 'النوع', value: (r: Contact) => CONTACT_TYPE_LABELS[r.type] },
+              { header: 'الهاتف', value: (r: Contact) => r.phone },
+              { header: 'البريد', value: (r: Contact) => r.email },
+              { header: 'الشركة', value: (r: Contact) => r.company },
+              { header: 'المسمّى', value: (r: Contact) => r.position },
+              { header: 'المسؤول', value: (r: Contact) => r.owner?.name },
+            ]}
+          />
+          <button className="btn btn-primary" onClick={openCreate} type="button">+ عميل جديد</button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: '16px' }}>

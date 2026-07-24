@@ -9,10 +9,23 @@ use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Salary;
+use App\Services\AnalyticsService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ReportController extends ApiController
 {
+    /** تحليلات مصوّرة: سلاسل شهرية وتوزيعات حسب المدة المختارة. */
+    public function analytics(Request $request, AnalyticsService $analytics): JsonResponse
+    {
+        $period = (string) $request->query('period', 'quarter');
+        if (! array_key_exists($period, AnalyticsService::PERIODS)) {
+            $period = 'quarter';
+        }
+
+        return $this->ok($analytics->build($period));
+    }
+
     /** ملخّص مالي مجمّع (للتقارير). */
     public function summary(): JsonResponse
     {

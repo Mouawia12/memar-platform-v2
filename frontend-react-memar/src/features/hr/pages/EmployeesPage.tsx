@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { employeesApi } from '../api/employeesApi';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
 import { EmployeesTable } from '../components/EmployeesTable';
 import { useDeleteEmployee, useEmployees } from '../hooks/useEmployees';
@@ -21,11 +23,33 @@ export function EmployeesPage() {
 
   const meta = data?.meta;
 
+  /** يجلب كل الموظفين المطابقين للفلاتر الحالية لتصديرهم. */
+  const fetchAllEmployees = async () => {
+    const all = await employeesApi.list({ search: search || undefined, status: status || undefined, per_page: 500 });
+
+    return all.data;
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>الموظفون</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ موظف جديد</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <ExportCsvButton
+            filename="employees"
+            fetchRows={fetchAllEmployees}
+            columns={[
+              { header: 'الاسم', value: (r: Employee) => r.full_name },
+              { header: 'المسمّى الوظيفي', value: (r: Employee) => r.job_title },
+              { header: 'القسم', value: (r: Employee) => r.department },
+              { header: 'تاريخ التعيين', value: (r: Employee) => r.hire_date },
+              { header: 'الراتب الأساسي (د.ك)', value: (r: Employee) => r.base_salary_kwd },
+              { header: 'الهاتف', value: (r: Employee) => r.phone },
+              { header: 'الحالة', value: (r: Employee) => STATUS_LABELS[r.status] },
+            ]}
+          />
+          <button className="btn btn-primary" onClick={openCreate} type="button">+ موظف جديد</button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: '16px' }}>

@@ -21,7 +21,7 @@ class UserController extends ApiController
     {
         $paginator = $this->users->list(
             $request->string('search')->toString() ?: null,
-            (int) ($request->integer('per_page') ?: 15),
+            $this->perPage($request, 15),
         );
 
         return $this->paginated($paginator, UserResource::class);

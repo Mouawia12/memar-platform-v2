@@ -29,5 +29,6 @@ export function MeetingRoom({ room, title, displayName, onClose }: Props) {
   );
 }
 
-const overlay: CSSProperties = { position: 'fixed', inset: 0, background: '#0f172a', zIndex: 100000, display: 'flex', flexDirection: 'column' };
+// أعلى من الشريط العلوي اللاصق (z-index 999999) حتى يغطّي الاجتماع كامل الشاشة بلا أن يبرز الشريط فوقه
+const overlay: CSSProperties = { position: 'fixed', inset: 0, background: '#0f172a', zIndex: 1_000_001, display: 'flex', flexDirection: 'column' };
 const bar: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', background: '#274A78', color: '#fff' };

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { NAV_SECTIONS } from './config/nav';
 import { LoginPage } from './features/auth/pages/LoginPage';
+import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage';
 import { HomePage } from './features/public/HomePage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { ClientsPage } from './features/clients/pages/ClientsPage';
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/jobs" element={<PublicCareersPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>

@@ -56,6 +56,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // أصل الواجهة (SPA) — تبنى عليه روابط الاستعادة والتفعيل المرسلة بالبريد
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3015'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

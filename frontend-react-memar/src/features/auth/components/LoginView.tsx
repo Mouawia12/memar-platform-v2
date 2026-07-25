@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../../lib/api';
 import { SHOW_DEMO_ACCOUNTS, type DemoAccount } from '../demoAccounts';
 import { useLogin } from '../hooks/useAuth';
 import { DemoAccountsPanel } from './DemoAccountsPanel';
+import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { RegisterForm } from './RegisterForm';
 
 interface Props {
@@ -27,7 +28,7 @@ const STATS = [
 /** شاشة تسجيل الدخول — عمودان (لوحة مزايا + نموذج) مطابقة للموقع القديم. */
 export function LoginView({ onClose }: Props) {
   const login = useLogin();
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState<'login' | 'register' | 'forgot'>('login');
   const [id, setId] = useState('');
   const [pass, setPass] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -99,7 +100,9 @@ export function LoginView({ onClose }: Props) {
 
           {login.isError && <div style={errMsg}>{apiErrorMessage(login.error, 'فشل تسجيل الدخول — تحقّق من البيانات')}</div>}
 
-          {tab === 'login' ? (
+          {tab === 'forgot' ? (
+            <ForgotPasswordForm onBack={() => setTab('login')} />
+          ) : tab === 'login' ? (
             <>
               <form onSubmit={submit}>
                 <div style={{ marginBottom: '13px' }}>
@@ -119,7 +122,7 @@ export function LoginView({ onClose }: Props) {
                 </div>
                 <div style={formOpts}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><input type="checkbox" /> تذكرني</label>
-                  <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('لإعادة تعيين كلمة المرور، تواصل مع إدارة النظام.'); }} style={{ color: '#1B6CA8', textDecoration: 'none' }}>نسيت كلمة المرور؟</a>
+                  <a href="#forgot" onClick={(e) => { e.preventDefault(); setTab('forgot'); }} style={{ color: '#1B6CA8', textDecoration: 'none' }}>نسيت كلمة المرور؟</a>
                 </div>
                 <button className="ml-btn" type="submit" disabled={login.isPending} style={btnPrimary}>{login.isPending ? 'جارٍ الدخول…' : '🚀 تسجيل الدخول'}</button>
 

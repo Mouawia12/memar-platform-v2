@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -25,6 +26,21 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+        $this->configurePasswordReset();
+    }
+
+    /**
+     * رابط استعادة كلمة المرور يشير إلى صفحة الواجهة (SPA) لا إلى مسار Laravel.
+     * FRONTEND_URL في .env يحدّد أصل الواجهة (مثال: https://memar.souftech.com).
+     */
+    private function configurePasswordReset(): void
+    {
+        ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
+            $base = rtrim((string) config('app.frontend_url'), '/');
+            $email = urlencode($notifiable->getEmailForPasswordReset());
+
+            return "{$base}/reset-password?token={$token}&email={$email}";
+        });
     }
 
     /**

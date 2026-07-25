@@ -1,5 +1,7 @@
-import { type CSSProperties, useMemo, useState } from 'react';
+import { type CSSProperties, type FormEvent, useMemo, useState } from 'react';
 
+import { apiErrorMessage } from '../../../lib/api';
+import { useRegister } from '../hooks/useAuth';
 import { PasswordStrength } from './PasswordStrength';
 
 type AccountType = 'client' | 'company';
@@ -29,11 +31,17 @@ const COMPANY_SUGGESTIONS = [
 /** نموذج التسجيل — عميل فرد أو شركة، بحقول مختلفة لكل نوع (مطابق للأصل). */
 export function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
   const [type, setType] = useState<AccountType>('client');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repRole, setRepRole] = useState('owner');
   const [customRole, setCustomRole] = useState('');
   const [company, setCompany] = useState('');
   const [companyTouched, setCompanyTouched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const register = useRegister();
 
   const suggestions = useMemo(() => {
     const q = company.trim();
@@ -41,10 +49,37 @@ export function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void 
     return COMPANY_SUGGESTIONS.filter((c) => c.includes(q)).slice(0, 5);
   }, [company, companyTouched]);
 
-  const notAvailable = () => alert('التسجيل الذاتي غير مُفعّل حاليًا — تواصل مع إدارة معمار لإنشاء حسابك.');
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (password.length < 8) {
+      setError('كلمة المرور يجب ألا تقل عن 8 أحرف وتضمّ حرفًا ورقمًا.');
+
+      return;
+    }
+
+    const position = type === 'company'
+      ? (repRole === 'other' ? customRole : REP_ROLES.find((r) => r.value === repRole)?.label)
+      : undefined;
+
+    register.mutate(
+      {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        password,
+        password_confirmation: password,
+        account_type: type,
+        company: type === 'company' ? company.trim() || undefined : undefined,
+        position: position || undefined,
+      },
+      { onError: (err) => setError(apiErrorMessage(err, 'تعذّر إنشاء الحساب — تحقّق من البيانات.')) },
+    );
+  };
 
   return (
-    <div>
+    <form onSubmit={submit}>
       {/* نوع الحساب */}
       <div style={{ marginTop: '10px' }}>
         <label style={lbl}>نوع الحساب</label>
@@ -56,9 +91,9 @@ export function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void 
 
       {type === 'client' ? (
         <>
-          <Field label="الاسم الكامل *"><input className="ml-input" style={input} placeholder="أدخل اسمك الكريم" /></Field>
-          <Field label="رقم الهاتف *"><input className="ml-input" style={input} placeholder="5XXXXXXXX" dir="ltr" /></Field>
-          <Field label="البريد الإلكتروني *"><input className="ml-input" style={input} type="email" placeholder="email@example.com" dir="ltr" /></Field>
+          <Field label="الاسم الكامل *"><input className="ml-input" style={input} placeholder="أدخل اسمك الكريم" value={name} onChange={(e) => setName(e.target.value)} required /></Field>
+          <Field label="رقم الهاتف *"><input className="ml-input" style={input} placeholder="5XXXXXXXX" dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} required /></Field>
+          <Field label="البريد الإلكتروني *"><input className="ml-input" style={input} type="email" placeholder="email@example.com" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
           <Field label="كلمة المرور *">
             <input className="ml-input" style={input} type="password" placeholder="8 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} />
             <PasswordStrength value={password} />
@@ -67,7 +102,7 @@ export function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void 
       ) : (
         <>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <Field label="اسم الممثل *" style={{ flex: 1 }}><input className="ml-input" style={input} placeholder="الاسم الكامل" /></Field>
+            <Field label="اسم الممثل *" style={{ flex: 1 }}><input className="ml-input" style={input} placeholder="الاسم الكامل" value={name} onChange={(e) => setName(e.target.value)} required /></Field>
             <Field label="الدور الوظيفي *" style={{ flex: 1 }}>
               {repRole === 'other' ? (
                 <div style={{ position: 'relative' }}>
@@ -102,8 +137,8 @@ export function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void 
             </div>
           </Field>
 
-          <Field label="رقم التواصل *"><input className="ml-input" style={input} placeholder="5XXXXXXXX" dir="ltr" /></Field>
-          <Field label="البريد الإلكتروني *"><input className="ml-input" style={input} type="email" placeholder="email@company.com" dir="ltr" /></Field>
+          <Field label="رقم التواصل *"><input className="ml-input" style={input} placeholder="5XXXXXXXX" dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} required /></Field>
+          <Field label="البريد الإلكتروني *"><input className="ml-input" style={input} type="email" placeholder="email@company.com" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
           <Field label="كلمة المرور *">
             <input className="ml-input" style={input} type="password" placeholder="8 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} />
             <PasswordStrength value={password} />
@@ -111,13 +146,17 @@ export function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void 
         </>
       )}
 
-      <button type="button" style={btnPrimary} onClick={notAvailable}>إنشاء الحساب ←</button>
+      {error && <p style={{ color: '#DC4A3D', fontSize: '12px', marginTop: '12px', marginBottom: 0, textAlign: 'center' }}>{error}</p>}
+
+      <button type="submit" style={{ ...btnPrimary, opacity: register.isPending ? 0.7 : 1 }} disabled={register.isPending}>
+        {register.isPending ? 'جارٍ إنشاء الحساب…' : 'إنشاء الحساب ←'}
+      </button>
 
       <p style={{ fontSize: '12px', color: '#5A6478', textAlign: 'center', marginTop: '12px' }}>
         لديك حساب؟{' '}
         <button type="button" onClick={onSwitchToLogin} style={linkBtn}>سجّل الدخول</button>
       </p>
-    </div>
+    </form>
   );
 }
 

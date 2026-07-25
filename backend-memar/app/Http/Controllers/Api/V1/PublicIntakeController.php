@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Contact;
 use App\Models\ServiceRequest;
+use App\Services\BookingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,33 @@ class PublicIntakeController extends ApiController
         });
 
         return $this->ok(null, 'تم استلام طلب الحجز — سنؤكد الموعد معك قريبًا.');
+    }
+
+    /** مواعيد الأسبوع المتاحة لحجز مناقشة السعر. */
+    public function bookingSlots(Request $request, BookingService $booking): JsonResponse
+    {
+        return $this->ok($booking->week($request->integer('week_offset')));
+    }
+
+    /** حجز موعد لمناقشة السعر → عميل محتمل + موعد في الجدول. */
+    public function book(Request $request, BookingService $booking): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'format' => ['required', 'in:office,video,voice,whatsapp'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'hour' => ['required', 'integer', 'min:0', 'max:23'],
+        ]);
+
+        try {
+            $result = $booking->book($data);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422);
+        }
+
+        return $this->ok($result, 'تم استلام طلب الحجز بنجاح.');
     }
 
     /** رسالة من نموذج «تواصل معنا» → طلب وارد. */

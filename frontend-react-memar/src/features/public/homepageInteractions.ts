@@ -4,6 +4,7 @@
  */
 
 import { apiPost } from '../../lib/api';
+import { createBookingCalendar } from './bookingCalendar';
 
 type Nav = (path: string) => void;
 
@@ -185,8 +186,17 @@ export function initHomepage(navigate: Nav, onAuthPopup?: () => void): () => voi
     alert(`شكراً ${name}!\nسيتواصل معك فريقنا على الرقم ${phone} لاستكمال إجراءات التعاقد.`);
   }
   function discussQuote() {
+    // بدل حجب النقاش بتسجيل الدخول (كما في القديم)، نفتح تقويم حجز حقيقيًا يلتقط العميل المحتمل
     $('panel3')?.classList.remove('active');
-    $('panel-auth-discuss')?.classList.add('active');
+    const panel = $('panel-book');
+    if (!panel) return;
+    panel.classList.add('active');
+    // التقويم يستبدل محتوى اللوحة كاملًا ويوفّر زرّ رجوعه الخاص
+    const calendar = createBookingCalendar(panel, {
+      getContact: () => ({ name: val('c-name'), phone: val('c-phone') }),
+      onBack: () => { panel.classList.remove('active'); $('panel3')?.classList.add('active'); },
+    });
+    calendar.mount();
   }
   function cancelDiscussAuth() {
     $('panel-auth-discuss')?.classList.remove('active');

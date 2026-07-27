@@ -7,11 +7,12 @@ interface Props {
   onEdit: (l: Lead) => void;
   onDelete: (l: Lead) => void;
   onMove: (l: Lead, stage: Stage) => void;
+  onAddTask?: (l: Lead) => void;
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
 
-export function LeadCard({ lead, onEdit, onDelete, onMove }: Props) {
+export function LeadCard({ lead, onEdit, onDelete, onMove, onAddTask }: Props) {
   const idx = STAGE_ORDER.indexOf(lead.stage);
   const prev = idx > 0 ? STAGE_ORDER[idx - 1] : null;
   const next = idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] : null;
@@ -29,6 +30,7 @@ export function LeadCard({ lead, onEdit, onDelete, onMove }: Props) {
       <div style={{ display: 'flex', gap: '4px', marginTop: '10px', alignItems: 'center' }}>
         <button className="btn btn-sm" type="button" disabled={!prev} onClick={() => prev && onMove(lead, prev)} title="للخلف">‹</button>
         <button className="btn btn-sm" type="button" disabled={!next} onClick={() => next && onMove(lead, next)} title="للأمام">›</button>
+        {onAddTask && <button className="btn btn-sm" type="button" title="إسناد مهمة" onClick={() => onAddTask(lead)} style={{ background: '#274A78', color: '#fff' }}>+ مهمة</button>}
         <span style={{ flex: 1 }} />
         <button className="btn btn-sm" type="button" onClick={() => onEdit(lead)}>تعديل</button>
         <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => onDelete(lead)}>حذف</button>

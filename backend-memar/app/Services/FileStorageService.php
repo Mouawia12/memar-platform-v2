@@ -56,6 +56,7 @@ class FileStorageService
             'folder' => $meta['folder'] ?? null,
             'project_id' => $meta['project_id'] ?? null,
             'contact_id' => $meta['contact_id'] ?? null,
+            'task_id' => $meta['task_id'] ?? null,
             'notes' => $meta['notes'] ?? null,
             'uploaded_by' => $userId,
         ])->load(['project:id,name', 'uploader:id,name']);

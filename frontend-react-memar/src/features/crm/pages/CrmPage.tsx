@@ -1,5 +1,7 @@
 import { type CSSProperties, useState } from 'react';
 
+import type { TaskFormData } from '../../tasks/types';
+import { TaskFormModal } from '../../tasks/components/TaskFormModal';
 import { CrmBoard } from '../components/CrmBoard';
 import { LeadFormModal } from '../components/LeadFormModal';
 import { useDeleteLead, useLeads, useMoveLead } from '../hooks/useCrm';
@@ -9,6 +11,7 @@ export function CrmPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
+  const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
 
   const { data, isLoading, isError } = useLeads({ search: search || undefined, per_page: 200 });
   const move = useMoveLead();
@@ -18,6 +21,15 @@ export function CrmPage() {
   const openEdit = (l: Lead) => { setEditing(l); setModalOpen(true); };
   const handleDelete = (l: Lead) => { if (confirm(`حذف "${l.full_name}"؟`)) del.mutate(l.id); };
   const handleMove = (l: Lead, stage: Stage) => move.mutate({ id: l.id, stage });
+
+  /** إسناد مهمة من صفقة — يفتح نموذج المهمة موجّهًا لمالك الفرصة (TASK-5). */
+  const handleAddTask = (l: Lead) => {
+    setTaskInitial({
+      title: `متابعة: ${l.full_name}`,
+      description: `مهمة متعلّقة بالفرصة «${l.full_name}»${l.company ? ` — ${l.company}` : ''}.`,
+      assignee_id: l.owner?.id ?? '',
+    });
+  };
 
   const leads = data?.data ?? [];
   const pipelineValue = leads.filter((l) => l.stage !== 'lost').reduce((s, l) => s + Number(l.deal_value_kwd), 0);
@@ -41,9 +53,10 @@ export function CrmPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={leads} onEdit={openEdit} onDelete={handleDelete} onMove={handleMove} />}
+      {data && <CrmBoard leads={leads} onEdit={openEdit} onDelete={handleDelete} onMove={handleMove} onAddTask={handleAddTask} />}
 
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
+      {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
     </div>
   );
 }

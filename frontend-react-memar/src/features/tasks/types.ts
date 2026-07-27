@@ -18,6 +18,32 @@ export interface Task {
   created_at: string | null;
 }
 
+export interface TaskComment {
+  id: number;
+  body: string;
+  user: TaskRef | null;
+  created_at: string | null;
+}
+
+export interface TaskFile {
+  id: number;
+  name: string;
+  original_name: string;
+  extension: string | null;
+  size: number;
+  created_at: string | null;
+}
+
+/** تفاصيل المهمة الكاملة (TASK-4). */
+export interface TaskDetail extends Task {
+  rating: 'positive' | 'negative' | null;
+  video_room: string | null;
+  creator: TaskRef | null;
+  participants: TaskRef[];
+  comments: TaskComment[];
+  files: TaskFile[];
+}
+
 export interface TaskFormData {
   title: string;
   description: string;

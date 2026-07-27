@@ -27,6 +27,8 @@ class StoreTaskRequest extends FormRequest
             'status' => ['required', Rule::in(['todo', 'in_progress', 'review', 'done'])],
             'priority' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])],
             'due_date' => ['nullable', 'date'],
+            'participant_ids' => ['nullable', 'array'],
+            'participant_ids.*' => ['integer', 'exists:users,id'],
         ];
     }
 }

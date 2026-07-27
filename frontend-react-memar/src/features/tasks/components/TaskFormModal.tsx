@@ -8,6 +8,8 @@ import { PRIORITY_LABELS, STATUS_LABELS, type Task, type TaskFormData, type Task
 
 interface Props {
   task: Task | null;
+  /** قيم ابتدائية عند الإنشاء (مثال: مهمة مُسندة من صفقة CRM). */
+  initial?: Partial<TaskFormData>;
   onClose: () => void;
 }
 
@@ -16,11 +18,11 @@ const empty: TaskFormData = {
   status: 'todo', priority: 'medium', due_date: '',
 };
 
-export function TaskFormModal({ task, onClose }: Props) {
+export function TaskFormModal({ task, initial, onClose }: Props) {
   const save = useSaveTask();
   const { data: projectsData } = useProjects({ per_page: 100 });
   const { data: usersData } = useUsers({ per_page: 100 });
-  const [form, setForm] = useState<TaskFormData>(empty);
+  const [form, setForm] = useState<TaskFormData>({ ...empty, ...initial });
 
   useEffect(() => {
     if (task) {
@@ -34,9 +36,9 @@ export function TaskFormModal({ task, onClose }: Props) {
         due_date: task.due_date ?? '',
       });
     } else {
-      setForm(empty);
+      setForm({ ...empty, ...initial });
     }
-  }, [task]);
+  }, [task, initial]);
 
   const set = <K extends keyof TaskFormData>(key: K, value: TaskFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 

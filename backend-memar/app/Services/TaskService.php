@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\StoredFile;
 use App\Models\Task;
+use App\Models\TaskComment;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 
 /**
- * منطق إدارة المهام (لوحة Kanban).
+ * منطق إدارة المهام (لوحة المتابعة + صفحة التفاصيل).
  */
 class TaskService
 {
+    public function __construct(private readonly FileStorageService $files) {}
+
     /**
      * قائمة المهام (للوحة Kanban — بدون تصفّح، مجمّعة على الواجهة).
      *
@@ -29,12 +35,69 @@ class TaskService
             ->get();
     }
 
+    /** تفاصيل مهمة كاملة (المشاركون، المحادثة، الملفات…). */
+    public function detail(Task $task): Task
+    {
+        return $task->load([
+            'project:id,name', 'assignee:id,name', 'creator:id,name',
+            'participants:id,name', 'comments.user:id,name', 'files',
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */
-    public function create(array $data): Task
+    public function create(array $data, ?int $creatorId = null): Task
     {
-        return Task::create($data)->load(['project', 'assignee']);
+        $participants = $data['participant_ids'] ?? null;
+        unset($data['participant_ids']);
+
+        $data['created_by'] = $creatorId;
+        $task = Task::create($data);
+
+        if (is_array($participants)) {
+            $task->participants()->sync($participants);
+        }
+
+        return $task->load(['project', 'assignee']);
+    }
+
+    /** إضافة رسالة لمحادثة المهمة. */
+    public function addComment(Task $task, string $body, ?int $userId): TaskComment
+    {
+        return $task->comments()->create(['user_id' => $userId, 'body' => $body])->load('user:id,name');
+    }
+
+    /**
+     * مزامنة المشاركين (المجموعة).
+     *
+     * @param  array<int, int>  $userIds
+     */
+    public function syncParticipants(Task $task, array $userIds): Task
+    {
+        $task->participants()->sync($userIds);
+
+        return $this->detail($task);
+    }
+
+    /** رفع ملف وربطه بالمهمة (وبمشروعها إن وُجد). */
+    public function attachFile(Task $task, UploadedFile $file, ?int $userId): StoredFile
+    {
+        return $this->files->store($file, [
+            'task_id' => $task->id,
+            'project_id' => $task->project_id,
+            'folder' => 'مهام',
+        ], $userId);
+    }
+
+    /** توليد غرفة فيديو للمهمة إن لم توجد، وإرجاع اسمها. */
+    public function ensureVideoRoom(Task $task): string
+    {
+        if (! $task->video_room) {
+            $task->update(['video_room' => 'memar-task-'.$task->id.'-'.Str::lower(Str::random(6))]);
+        }
+
+        return (string) $task->video_room;
     }
 
     /**

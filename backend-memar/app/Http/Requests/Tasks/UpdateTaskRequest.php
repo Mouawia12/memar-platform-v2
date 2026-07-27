@@ -27,6 +27,7 @@ class UpdateTaskRequest extends FormRequest
             'status' => ['sometimes', 'required', Rule::in(['todo', 'in_progress', 'review', 'done'])],
             'priority' => ['sometimes', 'required', Rule::in(['low', 'medium', 'high', 'urgent'])],
             'due_date' => ['nullable', 'date'],
+            'rating' => ['nullable', Rule::in(['positive', 'negative'])],
         ];
     }
 }

@@ -59,3 +59,47 @@ export function useDeleteTask() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+// ── صفحة التفاصيل (TASK-4) ──
+
+export function useTaskDetail(id: number | null) {
+  return useQuery({
+    queryKey: [...KEY, 'detail', id],
+    queryFn: () => tasksApi.detail(id as number),
+    enabled: id !== null,
+  });
+}
+
+/** يُبطل تفاصيل مهمة وقائمة اللوحة معًا بعد أي تعديل. */
+function useTaskInvalidate(id: number | null) {
+  const qc = useQueryClient();
+
+  return () => {
+    qc.invalidateQueries({ queryKey: [...KEY, 'detail', id] });
+    qc.invalidateQueries({ queryKey: KEY });
+  };
+}
+
+export function useAddComment(id: number) {
+  const invalidate = useTaskInvalidate(id);
+
+  return useMutation({ mutationFn: (body: string) => tasksApi.addComment(id, body), onSuccess: invalidate });
+}
+
+export function useSyncParticipants(id: number) {
+  const invalidate = useTaskInvalidate(id);
+
+  return useMutation({ mutationFn: (userIds: number[]) => tasksApi.syncParticipants(id, userIds), onSuccess: invalidate });
+}
+
+export function useUploadTaskFile(id: number) {
+  const invalidate = useTaskInvalidate(id);
+
+  return useMutation({ mutationFn: (file: File) => tasksApi.uploadFile(id, file), onSuccess: invalidate });
+}
+
+export function useRateTask(id: number) {
+  const invalidate = useTaskInvalidate(id);
+
+  return useMutation({ mutationFn: (rating: 'positive' | 'negative' | null) => tasksApi.update(id, { rating }), onSuccess: invalidate });
+}

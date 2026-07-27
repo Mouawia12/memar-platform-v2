@@ -35,6 +35,17 @@ class NotificationController extends ApiController
             }
         }
 
+        // مهام مُسندة إليّ (لكل مستخدم، حتى بلا صلاحية عرض كل المهام) — TASK-5
+        if ($user) {
+            $mine = Task::where('status', '!=', 'done')
+                ->where(fn ($q) => $q->where('assignee_id', $user->id)
+                    ->orWhereHas('participants', fn ($p) => $p->where('users.id', $user->id)))
+                ->count();
+            if ($mine > 0) {
+                $items[] = $this->item('📋', 'مهام مسندة إليك', "{$mine} مهمة بانتظارك", '/tasks', 'info', $mine);
+            }
+        }
+
         if ($user?->can('requests.view')) {
             $open = ServiceRequest::where('status', 'open')->count();
             if ($open > 0) {

@@ -28,6 +28,7 @@ class UpdateContactRequest extends FormRequest
             'type' => ['sometimes', 'required', Rule::in(['lead', 'client', 'contact'])],
             'status' => ['nullable', 'string', 'max:50'],
             'stage' => ['sometimes', 'required', Rule::in(['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'])],
+            'temperature' => ['nullable', Rule::in(['hot', 'warm', 'cold', 'normal'])],
             'deal_value_kwd' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ];

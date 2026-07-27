@@ -17,7 +17,7 @@ class Contact extends Model
 
     protected $fillable = [
         'full_name', 'email', 'phone', 'company', 'position',
-        'type', 'status', 'stage', 'deal_value_kwd', 'owner_id', 'notes',
+        'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
     ];
 
     /**
@@ -38,7 +38,7 @@ class Contact extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['full_name', 'email', 'phone', 'company', 'type', 'status'])
+            ->logOnly(['full_name', 'email', 'phone', 'company', 'type', 'status', 'stage', 'temperature', 'deal_value_kwd'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

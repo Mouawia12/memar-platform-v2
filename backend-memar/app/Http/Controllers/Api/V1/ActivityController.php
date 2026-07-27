@@ -22,6 +22,7 @@ class ActivityController extends ApiController
             ->with('causer')
             ->when($request->string('event')->toString(), fn ($q, string $e) => $q->where('event', $e))
             ->when($request->string('subject_type')->toString(), fn ($q, string $s) => $q->where('subject_type', 'App\\Models\\'.$s))
+            ->when($request->integer('subject_id'), fn ($q, int $id) => $q->where('subject_id', $id))
             ->when($request->integer('causer_id'), fn ($q, int $c) => $q->where('causer_id', $c))
             ->when($request->string('from')->toString(), fn ($q, string $d) => $q->whereDate('created_at', '>=', $d))
             ->when($request->string('to')->toString(), fn ($q, string $d) => $q->whereDate('created_at', '<=', $d))

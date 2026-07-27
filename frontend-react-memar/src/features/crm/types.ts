@@ -1,5 +1,6 @@
 export type Stage = 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
 export type ContactType = 'lead' | 'client' | 'contact';
+export type Temperature = 'hot' | 'warm' | 'cold' | 'normal';
 
 export interface Lead {
   id: number;
@@ -11,6 +12,7 @@ export interface Lead {
   type: ContactType;
   status: string;
   stage: Stage;
+  temperature: Temperature;
   deal_value_kwd: string;
   notes: string | null;
   owner: { id: number; name: string } | null;
@@ -25,9 +27,20 @@ export interface LeadFormData {
   position: string;
   type: ContactType;
   stage: Stage;
+  temperature: Temperature;
   deal_value_kwd: string;
   notes: string;
 }
+
+// حرارة الفرصة (طبق أصل PRIORITY_OPTS) — ساخنة/دافئة/باردة/عادية
+export const TEMPERATURE_ORDER: Temperature[] = ['hot', 'warm', 'cold', 'normal'];
+
+export const TEMPERATURE_META: Record<Temperature, { label: string; icon: string; color: string }> = {
+  hot: { label: 'ساخنة', icon: '🔥', color: '#DC2626' },
+  warm: { label: 'دافئة', icon: '🌤', color: '#D97706' },
+  cold: { label: 'باردة', icon: '❄️', color: '#0891B2' },
+  normal: { label: 'عادية', icon: '⚪', color: '#6B7280' },
+};
 
 export const STAGE_ORDER: Stage[] = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
 

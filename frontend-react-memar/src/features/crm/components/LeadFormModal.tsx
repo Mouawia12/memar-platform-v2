@@ -2,7 +2,7 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveLead } from '../hooks/useCrm';
-import { STAGE_LABELS, STAGE_ORDER, type ContactType, type Lead, type LeadFormData, type Stage } from '../types';
+import { STAGE_LABELS, STAGE_ORDER, TEMPERATURE_ORDER, TEMPERATURE_META, type ContactType, type Lead, type LeadFormData, type Stage, type Temperature } from '../types';
 
 interface Props {
   lead: Lead | null;
@@ -11,7 +11,7 @@ interface Props {
 
 const empty: LeadFormData = {
   full_name: '', email: '', phone: '', company: '', position: '',
-  type: 'lead', stage: 'new', deal_value_kwd: '', notes: '',
+  type: 'lead', stage: 'new', temperature: 'normal', deal_value_kwd: '', notes: '',
 };
 
 export function LeadFormModal({ lead, onClose }: Props) {
@@ -28,6 +28,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
         position: lead.position ?? '',
         type: lead.type,
         stage: lead.stage,
+        temperature: lead.temperature,
         deal_value_kwd: Number(lead.deal_value_kwd) ? String(lead.deal_value_kwd) : '',
         notes: lead.notes ?? '',
       });
@@ -67,6 +68,11 @@ export function LeadFormModal({ lead, onClose }: Props) {
           <label style={label}>المرحلة
             <select className="input" style={input} value={form.stage} onChange={(e) => set('stage', e.target.value as Stage)}>
               {STAGE_ORDER.map((s) => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
+            </select>
+          </label>
+          <label style={label}>حرارة الفرصة
+            <select className="input" style={input} value={form.temperature} onChange={(e) => set('temperature', e.target.value as Temperature)}>
+              {TEMPERATURE_ORDER.map((t) => <option key={t} value={t}>{TEMPERATURE_META[t].icon} {TEMPERATURE_META[t].label}</option>)}
             </select>
           </label>
           <label style={label}>قيمة الصفقة (د.ك)

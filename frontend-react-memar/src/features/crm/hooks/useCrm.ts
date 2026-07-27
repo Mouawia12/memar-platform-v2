@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryClient } from '../../../lib/queryClient';
 import { crmApi, type CrmQuery } from '../api/crmApi';
-import type { LeadFormData, Stage } from '../types';
+import type { LeadFormData, Stage, Temperature } from '../types';
 
 const KEY = ['crm-leads'];
 
@@ -31,6 +31,25 @@ export function useMoveLead() {
   return useMutation({
     mutationFn: ({ id, stage }: { id: number; stage: Stage }) => crmApi.moveStage(id, stage),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** تغيير حرارة الفرصة (CRM-2). */
+export function useSetTemperature() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, temperature }: { id: number; temperature: Temperature }) => crmApi.setTemperature(id, temperature),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** سجل تعديلات الصفقة (AUDIT-1). */
+export function useLeadHistory(id: number | null) {
+  return useQuery({
+    queryKey: ['lead-history', id],
+    queryFn: () => crmApi.history(id as number),
+    enabled: id !== null,
   });
 }
 

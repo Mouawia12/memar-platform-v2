@@ -1,103 +1,107 @@
-import { useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 
+import { useAuthStore } from '../../../store/auth';
 import { useProjects } from '../../projects/hooks/useProjects';
-import { TaskBoard } from '../components/TaskBoard';
+import { FollowUpBoard } from '../components/FollowUpBoard';
+import { TaskDetailModal } from '../components/TaskDetailModal';
 import { TaskFormModal } from '../components/TaskFormModal';
-import { useDeleteTask, useMoveTask, useTasks } from '../hooks/useTasks';
-import type { Task, TaskStatus } from '../types';
+import { useDeleteTask, useMoveTask, useTasks, useToggleTask } from '../hooks/useTasks';
+import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
 
-type TimeFilter = 'all' | 'today' | 'week' | 'month';
-
-const TIME_CHIPS: { key: TimeFilter; label: string }[] = [
-  { key: 'all', label: 'الكل' },
-  { key: 'today', label: 'اليوم' },
-  { key: 'week', label: 'هذا الأسبوع' },
-  { key: 'month', label: 'هذا الشهر' },
-];
-
-/** هل تقع مهمة ضمن النافذة الزمنية (حسب تاريخ الاستحقاق)؟ */
-function withinRange(due: string | null, filter: TimeFilter): boolean {
-  if (filter === 'all') return true;
-  if (!due) return false;
-  const days = { today: 0, week: 7, month: 30 }[filter];
-  const d = new Date(due);
-  const now = new Date();
-  const diff = Math.ceil((d.getTime() - now.setHours(0, 0, 0, 0)) / 86_400_000);
-  return diff >= 0 && diff <= days;
-}
-
+/**
+ * المهام والمتابعة — لوحة استحقاق بأربعة أعمدة (متأخرة/اليوم/قادمة/مكتملة)،
+ * طبق الأصل: سحب لتغيير الحالة، فلاتر فترة لكل عمود، ومؤشرات KPI.
+ */
 export function TasksPage() {
+  const roles = useAuthStore((s) => s.user?.roles);
+  const canDelete = !roles || roles.includes('super_admin'); // الحذف لمدير النظام فقط (طلب العميل)
+
   const [search, setSearch] = useState('');
   const [projectId, setProjectId] = useState<number | ''>('');
-  const [time, setTime] = useState<TimeFilter>('all');
-  const [modalOpen, setModalOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
+  const [detail, setDetail] = useState<Task | null>(null);
 
-  const { data: allTasks, isLoading, isError } = useTasks({
-    search: search || undefined,
-    project_id: projectId === '' ? undefined : projectId,
-  });
-  const tasks = allTasks?.filter((t) => withinRange(t.due_date, time));
+  const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
   const move = useMoveTask();
+  const toggle = useToggleTask();
   const del = useDeleteTask();
 
-  const openCreate = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (t: Task) => { setEditing(t); setModalOpen(true); };
+  const kpis = useMemo(() => {
+    const c = { overdue: 0, today: 0, upcoming: 0, done: 0 };
+    for (const t of tasks ?? []) c[taskColumn(t)]++;
+
+    return c;
+  }, [tasks]);
+
+  const openCreate = () => { setEditing(null); setFormOpen(true); };
   const handleDelete = (t: Task) => { if (confirm(`حذف مهمة "${t.title}"؟`)) del.mutate(t.id); };
-  const handleMove = (t: Task, status: TaskStatus) => move.mutate({ id: t.id, status });
+  const handleMove = (t: Task, payload: { due_date?: string; status?: TaskStatus }) => move.mutate({ id: t.id, payload });
+  const handleToggle = (t: Task) => toggle.mutate({ id: t.id, done: !isDone(t) });
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>المهام والمتابعة</h1>
+      <div style={pageHeader}>
+        <div>
+          <h1 style={{ margin: 0 }}>✅ المهام والمتابعة</h1>
+          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px' }}>اسحب للتغيير · اضغط للتفاصيل</div>
+        </div>
         <button className="btn btn-primary" onClick={openCreate} type="button">+ مهمة جديدة</button>
       </div>
 
+      {/* مؤشرات */}
+      <div className="kpi-grid" style={{ marginBottom: '14px' }}>
+        <Kpi icon="🔴" color="#DC2626" label="متأخرة" value={kpis.overdue} />
+        <Kpi icon="⏰" color="#D97706" label="اليوم" value={kpis.today} />
+        <Kpi icon="📅" color="#2563EB" label="قادمة" value={kpis.upcoming} />
+        <Kpi icon="✅" color="#059669" label="مكتملة" value={kpis.done} />
+      </div>
+
+      {/* فلاتر */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <input
-          className="input"
-          placeholder="بحث بعنوان المهمة…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: '220px' }}
-        />
+        <input className="input" placeholder="بحث بعنوان المهمة…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '220px' }} />
         <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : '')}>
           <option value="">كل المشاريع</option>
           {projectsData?.data.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </div>
 
-      {/* شرائح الفلترة الزمنية */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        {TIME_CHIPS.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            onClick={() => setTime(chip.key)}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '999px',
-              border: '1px solid',
-              borderColor: time === chip.key ? '#274A78' : '#e2e8f0',
-              background: time === chip.key ? '#274A78' : '#fff',
-              color: time === chip.key ? '#fff' : '#475569',
-              fontFamily: 'inherit',
-              fontSize: '13px',
-              cursor: 'pointer',
-              transition: 'all .15s ease',
-            }}
-          >
-            {chip.label}
-          </button>
-        ))}
-      </div>
-
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
-      {tasks && <TaskBoard tasks={tasks} onEdit={openEdit} onDelete={handleDelete} onMove={handleMove} />}
+      {tasks && (
+        <FollowUpBoard
+          tasks={tasks}
+          canDelete={canDelete}
+          onOpen={setDetail}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onMove={handleMove}
+        />
+      )}
 
-      {modalOpen && <TaskFormModal task={editing} onClose={() => setModalOpen(false)} />}
+      {formOpen && <TaskFormModal task={editing} onClose={() => setFormOpen(false)} />}
+      {detail && (
+        <TaskDetailModal
+          task={detail}
+          canDelete={canDelete}
+          onClose={() => setDetail(null)}
+          onEdit={(t) => { setEditing(t); setFormOpen(true); }}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   );
 }
+
+function Kpi({ icon, color, label, value }: { icon: string; color: string; label: string; value: number }) {
+  return (
+    <div className="kpi-card">
+      <div style={{ fontSize: '22px', fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '2px' }}>{icon} {label}</div>
+    </div>
+  );
+}
+
+const pageHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' };

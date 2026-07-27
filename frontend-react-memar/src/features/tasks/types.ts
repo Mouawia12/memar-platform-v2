@@ -45,8 +45,54 @@ export const PRIORITY_LABELS: Record<TaskPriority, string> = {
 };
 
 export const PRIORITY_COLORS: Record<TaskPriority, string> = {
-  low: '#6B7280',
-  medium: '#274A78',
-  high: '#D97706',
+  low: '#10B981',
+  medium: '#D97706',
+  high: '#DC2626',
   urgent: '#DC2626',
 };
+
+// ── لوحة المتابعة: أعمدة حسب حالة الاستحقاق (طبق أصل «المهام والمتابعة») ──
+export type FollowUpColumn = 'overdue' | 'today' | 'upcoming' | 'done';
+
+export const isDone = (t: Task): boolean => t.status === 'done';
+
+const todayStr = (): string => new Date().toISOString().slice(0, 10);
+
+/** العمود الذي تقع فيه المهمة: منتهية، أو متأخرة/اليوم/قادمة حسب تاريخ الاستحقاق. */
+export function taskColumn(t: Task): FollowUpColumn {
+  if (isDone(t)) return 'done';
+  if (!t.due_date) return 'upcoming'; // بلا موعد → ضمن القادمة
+  const due = t.due_date.slice(0, 10);
+  if (due < todayStr()) return 'overdue';
+  if (due === todayStr()) return 'today';
+
+  return 'upcoming';
+}
+
+/** فرق الأيام عن اليوم (سالب = تأخّر). */
+export function dueDiffDays(due: string | null): number | null {
+  if (!due) return null;
+  const d = new Date(due.slice(0, 10) + 'T00:00:00');
+  const now = new Date(todayStr() + 'T00:00:00');
+
+  return Math.round((d.getTime() - now.getTime()) / 86_400_000);
+}
+
+/** تسمية الاستحقاق: اليوم / بعد N يوم / أمس / تأخّر N يوم / مكتمل (طبق الأصل). */
+export function dueLabel(t: Task): string {
+  if (isDone(t)) return 'مكتمل';
+  const diff = dueDiffDays(t.due_date);
+  if (diff === null) return 'بلا موعد';
+  if (diff === 0) return 'اليوم';
+  if (diff > 0) return `بعد ${diff} يوم`;
+  if (diff === -1) return 'أمس';
+
+  return `تأخّر ${Math.abs(diff)} يوم`;
+}
+
+export const FOLLOWUP_COLUMNS: { key: FollowUpColumn; label: string; icon: string; color: string; border: string }[] = [
+  { key: 'overdue', label: 'متأخرة', icon: '🔴', color: '#DC2626', border: '#FECACA' },
+  { key: 'today', label: 'اليوم', icon: '⏰', color: '#D97706', border: '#FCD34D' },
+  { key: 'upcoming', label: 'قادمة', icon: '📅', color: '#2563EB', border: '#BFDBFE' },
+  { key: 'done', label: 'مكتملة', icon: '✅', color: '#059669', border: '#A7F3D0' },
+];

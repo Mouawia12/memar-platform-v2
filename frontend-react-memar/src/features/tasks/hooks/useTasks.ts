@@ -31,11 +31,24 @@ export function useSaveTask() {
   });
 }
 
-/** نقل المهمة بين أعمدة اللوحة (تغيير الحالة فقط). */
+/** نقل المهمة بين أعمدة المتابعة — يغيّر تاريخ الاستحقاق و/أو الإكمال (طبق الأصل). */
 export function useMoveTask() {
   const qc = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => tasksApi.update(id, { status }),
+    mutationFn: ({ id, payload }: { id: number; payload: { due_date?: string; status?: TaskStatus } }) =>
+      tasksApi.update(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** تبديل إكمال المهمة (مربع الاختيار على البطاقة). */
+export function useToggleTask() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, done }: { id: number; done: boolean }) =>
+      tasksApi.update(id, { status: done ? 'done' : 'todo' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }

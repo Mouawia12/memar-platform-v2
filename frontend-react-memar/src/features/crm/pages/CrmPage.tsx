@@ -24,8 +24,9 @@ export function CrmPage() {
   const handleDelete = (l: Lead) => { if (confirm(`حذف "${l.full_name}"؟`)) del.mutate(l.id); };
   const handleMove = (l: Lead, stage: Stage) => move.mutate({ id: l.id, stage });
 
-  /** إسناد مهمة من صفقة — يفتح نموذج المهمة موجّهًا لمالك الفرصة (TASK-5). */
+  /** إسناد مهمة من صفقة — يُغلق مودال التفاصيل ثم يفتح نموذج المهمة موجّهًا لمالك الفرصة (TASK-5). */
   const handleAddTask = (l: Lead) => {
+    setDetail(null); // منعًا لتراكب المودالين فوق بعض
     setTaskInitial({
       title: `متابعة: ${l.full_name}`,
       description: `مهمة متعلّقة بالفرصة «${l.full_name}»${l.company ? ` — ${l.company}` : ''}.`,

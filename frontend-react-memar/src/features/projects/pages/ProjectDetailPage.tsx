@@ -1,11 +1,21 @@
-import { type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { ProjectAssessmentPanel } from '../components/ProjectAssessmentPanel';
+import { ProjectContractTab, ProjectDocumentsTab } from '../components/ProjectDocumentsPanel';
 import { ProjectPaymentsPanel } from '../components/ProjectPaymentsPanel';
 import { ProjectStages } from '../components/ProjectStages';
 import { ProjectStatusControl } from '../components/ProjectStatusControl';
 import { useProjectOverview } from '../hooks/useProjectOverview';
+
+type Tab = 'overview' | 'stages' | 'payments' | 'documents' | 'contract';
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'overview', label: '📊 نظرة عامة' },
+  { key: 'stages', label: '🧭 المراحل' },
+  { key: 'payments', label: '💰 الدفعات' },
+  { key: 'documents', label: '📑 المستندات' },
+  { key: 'contract', label: '📜 العقد' },
+];
 
 const money = (v: number) => `${v.toLocaleString('ar', { maximumFractionDigits: 3 })} د.ك`;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
@@ -20,6 +30,7 @@ const EVENT_COLORS: Record<string, string> = {
 export function ProjectDetailPage() {
   const { id } = useParams();
   const projectId = Number(id);
+  const [tab, setTab] = useState<Tab>('overview');
   const { data, isLoading, isError } = useProjectOverview(projectId);
 
   if (isLoading) return <p>جارٍ التحميل…</p>;
@@ -34,7 +45,7 @@ export function ProjectDetailPage() {
       <Link to="/projects" style={backLink}>← كل المشاريع</Link>
 
       {/* رأس المشروع */}
-      <div className="card" style={{ padding: '20px', marginBottom: '18px' }}>
+      <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '22px' }}>{project.name}</h1>
@@ -54,53 +65,65 @@ export function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* التقييم الإداري (PROJ-4) — للطاقم فقط */}
-      <ProjectAssessmentPanel project={project} />
-
-      {/* مراحل المشروع (PROJ-1/PROJ-2) */}
-      <ProjectStages projectId={project.id} stages={stages} />
-
-      {/* الدفعات (PROJ-3) */}
-      <ProjectPaymentsPanel projectId={project.id} />
-
-      {/* مؤشرات */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-        <Stat icon="✅" label="المهام" value={stats.tasks_total} to="/tasks" />
-        <Stat icon="🧾" label="الفواتير" value={stats.invoices_total} to="/finance/invoices" />
-        <Stat icon="🚧" label="الزيارات" value={stats.visits} to="/field-visits" />
-        <Stat icon="📅" label="المواعيد" value={stats.appointments} to="/appointments" />
-        <Stat icon="📑" label="المستندات" value={stats.documents} to="/documents" />
-        <Stat icon="🗂️" label="الملفات" value={stats.files} to="/files" />
+      {/* شريط التبويبات (PROJ-3) */}
+      <div style={tabBar}>
+        {TABS.map((t) => (
+          <button key={t.key} type="button" onClick={() => setTab(t.key)} style={{ ...tabBtn, ...(tab === t.key ? tabOn : null) }}>
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* التايم‌لاين */}
-      <div className="card" style={{ padding: '20px' }}>
-        <h3 style={{ marginTop: 0, fontSize: '16px' }}>🕒 سجل أحداث المشروع</h3>
-        {timeline.length === 0 && <p style={{ opacity: 0.6, fontSize: '13px' }}>لا توجد أحداث مسجّلة بعد.</p>}
+      {tab === 'overview' && (
+        <>
+          {/* التقييم الإداري (PROJ-4) — للطاقم فقط */}
+          <ProjectAssessmentPanel project={project} />
 
-        <div style={{ position: 'relative', paddingInlineStart: '18px', marginTop: '14px' }}>
-          {timeline.length > 0 && <span style={line} />}
-          {timeline.map((e) => (
-            <div key={e.id} style={item}>
-              <span style={{ ...dot, background: EVENT_COLORS[e.event] ?? '#5A6478' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '13.5px', fontWeight: 700 }}>
-                  {e.event_label} — {e.subject_label}
-                  {e.title && <span style={{ fontWeight: 400, color: '#5A6478' }}> · {e.title}</span>}
-                </div>
-                {e.reason && (
-                  <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '3px', background: '#F5F3FF', border: '1px solid #E9D5FF', borderRadius: '6px', padding: '4px 8px', display: 'inline-block' }}>
-                    📝 السبب: {e.reason}
+          {/* مؤشرات */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <Stat icon="✅" label="المهام" value={stats.tasks_total} to="/tasks" />
+            <Stat icon="🧾" label="الفواتير" value={stats.invoices_total} to="/finance/invoices" />
+            <Stat icon="🚧" label="الزيارات" value={stats.visits} to="/field-visits" />
+            <Stat icon="📅" label="المواعيد" value={stats.appointments} to="/appointments" />
+            <Stat icon="📑" label="المستندات" value={stats.documents} to="/documents" />
+            <Stat icon="🗂️" label="الملفات" value={stats.files} to="/files" />
+          </div>
+
+          {/* التايم‌لاين */}
+          <div className="card" style={{ padding: '20px' }}>
+            <h3 style={{ marginTop: 0, fontSize: '16px' }}>🕒 سجل أحداث المشروع</h3>
+            {timeline.length === 0 && <p style={{ opacity: 0.6, fontSize: '13px' }}>لا توجد أحداث مسجّلة بعد.</p>}
+
+            <div style={{ position: 'relative', paddingInlineStart: '18px', marginTop: '14px' }}>
+              {timeline.length > 0 && <span style={line} />}
+              {timeline.map((e) => (
+                <div key={e.id} style={item}>
+                  <span style={{ ...dot, background: EVENT_COLORS[e.event] ?? '#5A6478' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 700 }}>
+                      {e.event_label} — {e.subject_label}
+                      {e.title && <span style={{ fontWeight: 400, color: '#5A6478' }}> · {e.title}</span>}
+                    </div>
+                    {e.reason && (
+                      <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '3px', background: '#F5F3FF', border: '1px solid #E9D5FF', borderRadius: '6px', padding: '4px 8px', display: 'inline-block' }}>
+                        📝 السبب: {e.reason}
+                      </div>
+                    )}
+                    <div style={{ fontSize: '11.5px', color: '#5A6478', marginTop: '2px' }}>
+                      {e.causer?.name ?? 'النظام'} · {fmt(e.created_at)}
+                    </div>
                   </div>
-                )}
-                <div style={{ fontSize: '11.5px', color: '#5A6478', marginTop: '2px' }}>
-                  {e.causer?.name ?? 'النظام'} · {fmt(e.created_at)}
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
+
+      {tab === 'stages' && <ProjectStages projectId={project.id} stages={stages} />}
+      {tab === 'payments' && <ProjectPaymentsPanel projectId={project.id} />}
+      {tab === 'documents' && <ProjectDocumentsTab projectId={project.id} />}
+      {tab === 'contract' && <ProjectContractTab projectId={project.id} />}
     </div>
   );
 }
@@ -128,6 +151,9 @@ function Stat({ icon, label, value, to }: { icon: string; label: string; value: 
   );
 }
 
+const tabBar: CSSProperties = { display: 'flex', gap: '4px', marginBottom: '16px', flexWrap: 'wrap', background: '#F0F4F8', padding: '4px', borderRadius: '10px' };
+const tabBtn: CSSProperties = { border: 'none', background: 'transparent', padding: '8px 16px', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, color: '#5A6478', whiteSpace: 'nowrap' };
+const tabOn: CSSProperties = { background: '#fff', color: '#274A78', fontWeight: 800, boxShadow: '0 1px 3px rgba(0,0,0,.1)' };
 const backLink: CSSProperties = { fontSize: '13px', color: '#1B6CA8', textDecoration: 'none', display: 'inline-block', marginBottom: '12px' };
 const badge: CSSProperties = { padding: '4px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, height: 'fit-content', whiteSpace: 'nowrap' };
 const line: CSSProperties = { position: 'absolute', insetInlineStart: '4px', top: '6px', bottom: '6px', width: '2px', background: '#E4E8EF' };

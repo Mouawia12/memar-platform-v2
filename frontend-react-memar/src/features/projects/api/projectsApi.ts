@@ -21,6 +21,8 @@ export const projectsApi = {
   changeStatus: (id: number, status: string, reason: string) => apiPatch<Project>(`/projects/${id}/status`, { status, reason }),
   /** دفعات المشروع: فواتيره + ملخّص (PROJ-3). */
   payments: (id: number) => apiGet<ProjectPayments>(`/projects/${id}/payments`),
+  /** مستندات المشروع وعقده (PROJ-3). */
+  documents: (id: number) => apiGet<ProjectDocuments>(`/projects/${id}/documents`),
   /** تسجيل دفعة على فاتورة (يعيد استخدام نظام الفواتير). */
   recordPayment: (invoiceId: number, payload: { amount_kwd: number; method: string; reference?: string; paid_at?: string }) =>
     apiPost(`/invoices/${invoiceId}/payments`, payload),
@@ -87,4 +89,39 @@ export interface ProjectInvoice {
 export interface ProjectPayments {
   summary: { invoiced_kwd: number; paid_kwd: number; remaining_kwd: number; count: number };
   invoices: ProjectInvoice[];
+}
+
+export type ContractStatus = 'draft' | 'signed' | 'active' | 'closed' | 'cancelled';
+
+export interface ProjectContract {
+  id: number;
+  number: string | null;
+  value_kwd: string | null;
+  status: ContractStatus;
+  start_date: string | null;
+  end_date: string | null;
+  notes: string | null;
+  client: { id: number; name: string } | null;
+  created_at: string | null;
+}
+
+export interface ProjectDocFile {
+  id: number;
+  name: string;
+  original_name: string | null;
+  extension: string | null;
+  size: number | null;
+  created_at: string | null;
+}
+
+export interface ProjectGeneratedDoc {
+  id: number;
+  title: string;
+  created_at: string | null;
+}
+
+export interface ProjectDocuments {
+  contracts: ProjectContract[];
+  documents: ProjectGeneratedDoc[];
+  files: ProjectDocFile[];
 }

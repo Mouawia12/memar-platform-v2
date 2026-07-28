@@ -9,11 +9,15 @@ use App\Http\Requests\Projects\ChangeStatusRequest;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateAssessmentRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
+use App\Http\Resources\ContractResource;
 use App\Http\Resources\InvoiceResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectStageResource;
+use App\Models\Contract;
+use App\Models\GeneratedDocument;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\StoredFile;
 use App\Services\ProjectOverviewService;
 use App\Services\ProjectService;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +64,40 @@ class ProjectController extends ApiController
         $project = $this->projects->update($project, $request->validated());
 
         return $this->ok(new ProjectResource($project), 'تم تحديث المشروع');
+    }
+
+    /** مستندات المشروع وعقده (PROJ-3): العقود + المستندات المولّدة + الملفات. */
+    public function documents(Project $project): JsonResponse
+    {
+        $contracts = Contract::where('project_id', $project->id)
+            ->with('client:id,full_name')
+            ->latest()
+            ->get();
+
+        $documents = GeneratedDocument::where('project_id', $project->id)
+            ->latest()
+            ->get(['id', 'title', 'created_at']);
+
+        $files = StoredFile::where('project_id', $project->id)
+            ->latest()
+            ->get(['id', 'name', 'original_name', 'extension', 'size', 'created_at']);
+
+        return $this->ok([
+            'contracts' => ContractResource::collection($contracts),
+            'documents' => $documents->map(fn (GeneratedDocument $d) => [
+                'id' => $d->id,
+                'title' => $d->title,
+                'created_at' => $d->created_at?->toIso8601String(),
+            ])->all(),
+            'files' => $files->map(fn (StoredFile $f) => [
+                'id' => $f->id,
+                'name' => $f->name,
+                'original_name' => $f->original_name,
+                'extension' => $f->extension,
+                'size' => $f->size,
+                'created_at' => $f->created_at?->toIso8601String(),
+            ])->all(),
+        ]);
     }
 
     /** دفعات المشروع (PROJ-3): فواتيره وملخّص المحصّل والمتبقّي. */

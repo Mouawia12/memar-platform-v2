@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { getPageTitle } from '../config/nav';
+import { getPageTitle, isClientOnly } from '../config/nav';
 import { GlobalSearch } from './topbar/GlobalSearch';
 import { NotificationsMenu } from './topbar/NotificationsMenu';
 import { QuickAddMenu } from './topbar/QuickAddMenu';
@@ -19,6 +19,9 @@ export function Topbar({ onToggleSidebar }: Props) {
   const logout = useLogout();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // العميل يرى شريطًا علويًا مبسّطًا (AUTH-1/2): بلا أدوات الطاقم، مع خروج واضح.
+  const clientOnly = isClientOnly(user?.roles);
+
   const today = new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -26,14 +29,14 @@ export function Topbar({ onToggleSidebar }: Props) {
       <button className="topbar-toggle icon-btn" type="button" onClick={onToggleSidebar} title="طيّ/فتح القائمة">☰</button>
       <span className="topbar-page-title">{getPageTitle(pathname)}</span>
 
-      <TopShortcuts />
+      {!clientOnly && <TopShortcuts />}
 
-      <GlobalSearch />
+      {!clientOnly && <GlobalSearch />}
 
       <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginInlineStart: 'auto' }}>
         <span className="topbar-date">{today}</span>
         <NotificationsMenu />
-        <QuickAddMenu />
+        {!clientOnly && <QuickAddMenu />}
 
         <div className="user-menu" tabIndex={0} onClick={() => setMenuOpen((o) => !o)} onBlur={() => setTimeout(() => setMenuOpen(false), 150)}>
           <div className="user-menu-btn">👤 {user?.name ?? 'مستخدم'} ▼</div>

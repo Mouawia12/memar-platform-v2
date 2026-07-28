@@ -15,6 +15,35 @@ export interface NavSection {
   items: NavItem[];
 }
 
+/** العناصر الوحيدة التي يراها العميل (AUTH-1): بوابته والمنتدى فقط — لا قوائم الطاقم. */
+const CLIENT_ONLY_NAV_KEYS = new Set(['client_portal', 'forum']);
+
+/** هل المستخدم عميل فقط (دوره «client» ولا دور طاقم آخر معه)؟ */
+export function isClientOnly(roles: string[] | undefined | null): boolean {
+  return !!roles && roles.length > 0 && roles.every((r) => r === 'client');
+}
+
+/**
+ * الأقسام والعناصر الظاهرة لمستخدم حسب صلاحياته ودوره (AUTH-1).
+ * العميل يرى بوابته فقط؛ بقية المستخدمين يرون ما يملكون صلاحيته (بلا صلاحية = للجميع).
+ */
+export function visibleNavSections(
+  sections: NavSection[],
+  ctx: { permissions?: string[] | null; roles?: string[] | null },
+): NavSection[] {
+  if (isClientOnly(ctx.roles)) {
+    return sections
+      .map((s) => ({ ...s, items: s.items.filter((i) => CLIENT_ONLY_NAV_KEYS.has(i.key)) }))
+      .filter((s) => s.items.length > 0);
+  }
+
+  const allow = (perm?: string) => !perm || !ctx.permissions || ctx.permissions.includes(perm);
+
+  return sections
+    .map((s) => ({ ...s, items: s.items.filter((i) => allow(i.perm)) }))
+    .filter((s) => s.items.length > 0);
+}
+
 /** عنوان الصفحة الحالي من المسار (للشريط العلوي). */
 export function getPageTitle(pathname: string): string {
   const items = NAV_SECTIONS.flatMap((s) => s.items);

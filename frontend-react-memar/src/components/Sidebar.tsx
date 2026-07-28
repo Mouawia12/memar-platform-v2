@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
-import { NAV_SECTIONS } from '../config/nav';
+import { NAV_SECTIONS, visibleNavSections } from '../config/nav';
 import { useAuthStore } from '../store/auth';
 
 interface Props {
@@ -18,15 +18,14 @@ export function Sidebar({ open, onNavigate }: Props) {
   const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
 
   const permissions = useAuthStore((s) => s.user?.permissions);
+  const roles = useAuthStore((s) => s.user?.roles);
 
-  // إظهار العناصر التي يملك المستخدم صلاحيتها فقط (بلا صلاحية = للجميع)،
-  // وإخفاء الأقسام التي تصبح فارغة — يمنع أخطاء 403 ويطابق قوائم الأصل حسب الدور.
-  const sections = useMemo(() => {
-    const allow = (perm?: string) => !perm || !permissions || permissions.includes(perm);
-    return NAV_SECTIONS
-      .map((s) => ({ ...s, items: s.items.filter((i) => allow(i.perm)) }))
-      .filter((s) => s.items.length > 0);
-  }, [permissions]);
+  // إظهار العناصر حسب الصلاحية والدور: العميل يرى بوابته فقط (AUTH-1)،
+  // وبقية المستخدمين يرون ما يملكون صلاحيته — ويُخفى القسم إذا فرغ.
+  const sections = useMemo(
+    () => visibleNavSections(NAV_SECTIONS, { permissions, roles }),
+    [permissions, roles],
+  );
 
   return (
     <aside className={`sidebar${open ? ' open' : ''}`} id="sidebar">

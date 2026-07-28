@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Projects\StoreProjectRequest;
+use App\Http\Requests\Projects\UpdateAssessmentRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectStageResource;
@@ -56,6 +57,14 @@ class ProjectController extends ApiController
         $project = $this->projects->update($project, $request->validated());
 
         return $this->ok(new ProjectResource($project), 'تم تحديث المشروع');
+    }
+
+    /** تقييم المشروع/العميل + VIP + ملاحظات داخلية سرية (PROJ-4). */
+    public function updateAssessment(UpdateAssessmentRequest $request, Project $project): JsonResponse
+    {
+        $project->fill($request->validated())->save();
+
+        return $this->ok(new ProjectResource($project->load(['client', 'manager'])), 'تم حفظ التقييم');
     }
 
     public function destroy(Project $project): JsonResponse

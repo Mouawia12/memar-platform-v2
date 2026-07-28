@@ -5,6 +5,14 @@ export interface ProjectRef {
   name: string;
 }
 
+export interface ProjectAssessment {
+  rating_profitability: number | null;
+  rating_ease: number | null;
+  rating_revisions: number | null;
+  client_rating_commitment: number | null;
+  client_rating_cooperation: number | null;
+}
+
 export interface Project {
   id: number;
   code: string | null;
@@ -16,7 +24,16 @@ export interface Project {
   description: string | null;
   client: ProjectRef | null;
   manager: ProjectRef | null;
+  is_vip: boolean;
+  /** يظهران للطاقم المخوّل فقط (projects.manage) — غير موجودين للعميل. */
+  assessment?: ProjectAssessment;
+  internal_notes?: string | null;
   created_at: string | null;
+}
+
+export interface AssessmentPayload extends Partial<ProjectAssessment> {
+  is_vip?: boolean;
+  internal_notes?: string | null;
 }
 
 export type StageStatus = 'pending' | 'active' | 'done';

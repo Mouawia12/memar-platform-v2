@@ -24,6 +24,9 @@ class Project extends Model
     protected $fillable = [
         'code', 'name', 'client_id', 'manager_id', 'status',
         'budget_kwd', 'start_date', 'end_date', 'description',
+        'rating_profitability', 'rating_ease', 'rating_revisions',
+        'client_rating_commitment', 'client_rating_cooperation',
+        'is_vip', 'internal_notes',
     ];
 
     /**
@@ -35,6 +38,12 @@ class Project extends Model
             'budget_kwd' => 'decimal:3',
             'start_date' => 'date',
             'end_date' => 'date',
+            'is_vip' => 'boolean',
+            'rating_profitability' => 'integer',
+            'rating_ease' => 'integer',
+            'rating_revisions' => 'integer',
+            'client_rating_commitment' => 'integer',
+            'client_rating_cooperation' => 'integer',
         ];
     }
 
@@ -57,7 +66,7 @@ class Project extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['code', 'name', 'status', 'budget_kwd', 'manager_id'])
+            ->logOnly(['code', 'name', 'status', 'budget_kwd', 'manager_id', 'is_vip'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

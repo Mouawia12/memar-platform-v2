@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
-import type { Project, ProjectStage, StageComment } from '../types';
+import type { AssessmentPayload, Project, ProjectStage, StageComment } from '../types';
 
 export interface ProjectsQuery {
   search?: string;
@@ -15,6 +15,8 @@ export const projectsApi = {
   remove: (id: number) => apiDelete<null>(`/projects/${id}`),
   /** نظرة شاملة: مؤشرات + تايم‌لاين + مراحل. */
   overview: (id: number) => apiGet<ProjectOverview>(`/projects/${id}/overview`),
+  /** تقييم المشروع/العميل + VIP + ملاحظات داخلية (PROJ-4). */
+  saveAssessment: (id: number, payload: AssessmentPayload) => apiPatch<Project>(`/projects/${id}/assessment`, payload),
 
   // مراحل المشروع (PROJ-1/PROJ-2)
   stages: (projectId: number) => apiGet<ProjectStage[]>(`/projects/${projectId}/stages`),

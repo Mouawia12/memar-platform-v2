@@ -27,6 +27,18 @@ class ProjectResource extends JsonResource
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
             'description' => $this->description,
+            'is_vip' => (bool) $this->is_vip,
+            // التقييمات والملاحظات الداخلية سرية — للطاقم المخوّل فقط، لا تصل العميل.
+            $this->mergeWhen((bool) $request->user()?->can('projects.manage'), fn (): array => [
+                'assessment' => [
+                    'rating_profitability' => $this->rating_profitability,
+                    'rating_ease' => $this->rating_ease,
+                    'rating_revisions' => $this->rating_revisions,
+                    'client_rating_commitment' => $this->client_rating_commitment,
+                    'client_rating_cooperation' => $this->client_rating_cooperation,
+                ],
+                'internal_notes' => $this->internal_notes,
+            ]),
             'client' => $this->whenLoaded('client', fn () => $this->client ? [
                 'id' => $this->client->id,
                 'name' => $this->client->full_name,

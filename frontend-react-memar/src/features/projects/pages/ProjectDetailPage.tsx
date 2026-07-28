@@ -1,6 +1,7 @@
 import { type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { ProjectAssessmentPanel } from '../components/ProjectAssessmentPanel';
 import { ProjectStages } from '../components/ProjectStages';
 import { useProjectOverview } from '../hooks/useProjectOverview';
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '../types';
@@ -40,9 +41,12 @@ export function ProjectDetailPage() {
               {project.code} · العميل: {project.client?.name ?? '—'} · مدير المشروع: {project.manager?.name ?? '—'}
             </div>
           </div>
-          <span style={{ ...badge, background: `${PROJECT_STATUS_COLORS[project.status]}1a`, color: PROJECT_STATUS_COLORS[project.status] }}>
-            {PROJECT_STATUS_LABELS[project.status]}
-          </span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {project.is_vip && <span style={{ ...badge, background: 'linear-gradient(135deg,#F59E0B,#D97706)', color: '#fff' }}>⭐ VIP</span>}
+            <span style={{ ...badge, background: `${PROJECT_STATUS_COLORS[project.status]}1a`, color: PROJECT_STATUS_COLORS[project.status] }}>
+              {PROJECT_STATUS_LABELS[project.status]}
+            </span>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px', marginTop: '18px' }}>
@@ -50,6 +54,9 @@ export function ProjectDetailPage() {
           <Bar label="التحصيل المالي" value={collected} caption={`${money(stats.paid_kwd)} من ${money(stats.invoiced_kwd)}`} color="#2D9B6F" />
         </div>
       </div>
+
+      {/* التقييم الإداري (PROJ-4) — للطاقم فقط */}
+      <ProjectAssessmentPanel project={project} />
 
       {/* مراحل المشروع (PROJ-1/PROJ-2) */}
       <ProjectStages projectId={project.id} stages={stages} />

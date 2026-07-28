@@ -16,6 +16,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/projects/{project}/overview', [ProjectController::class, 'overview'])->middleware('permission:projects.view');
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->middleware('permission:projects.view');
     Route::match(['put', 'patch'], '/projects/{project}', [ProjectController::class, 'update'])->middleware('permission:projects.manage');
+    Route::match(['put', 'patch'], '/projects/{project}/assessment', [ProjectController::class, 'updateAssessment'])->middleware('permission:projects.manage');
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->middleware('permission:projects.manage');
 
     // مراحل المشروع ومحادثاتها (PROJ-1/PROJ-2) — {stage} مقيّد بأن يخصّ {project}.

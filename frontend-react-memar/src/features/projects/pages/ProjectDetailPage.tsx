@@ -1,6 +1,7 @@
 import { type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { ProjectStages } from '../components/ProjectStages';
 import { useProjectOverview } from '../hooks/useProjectOverview';
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '../types';
 
@@ -22,7 +23,7 @@ export function ProjectDetailPage() {
   if (isLoading) return <p>جارٍ التحميل…</p>;
   if (isError || !data) return <p style={{ color: '#ef4444' }}>تعذّر تحميل المشروع.</p>;
 
-  const { project, stats, timeline } = data;
+  const { project, stages, stats, timeline } = data;
   const progress = stats.tasks_total > 0 ? Math.round((stats.tasks_done / stats.tasks_total) * 100) : 0;
   const collected = stats.invoiced_kwd > 0 ? Math.round((stats.paid_kwd / stats.invoiced_kwd) * 100) : 0;
 
@@ -49,6 +50,9 @@ export function ProjectDetailPage() {
           <Bar label="التحصيل المالي" value={collected} caption={`${money(stats.paid_kwd)} من ${money(stats.invoiced_kwd)}`} color="#2D9B6F" />
         </div>
       </div>
+
+      {/* مراحل المشروع (PROJ-1/PROJ-2) */}
+      <ProjectStages projectId={project.id} stages={stages} />
 
       {/* مؤشرات */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '18px' }}>

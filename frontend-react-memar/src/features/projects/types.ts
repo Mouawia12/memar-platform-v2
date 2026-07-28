@@ -19,6 +19,42 @@ export interface Project {
   created_at: string | null;
 }
 
+export type StageStatus = 'pending' | 'active' | 'done';
+
+export interface StageComment {
+  id: number;
+  body: string;
+  user: ProjectRef | null;
+  created_at: string | null;
+}
+
+export interface ProjectStage {
+  id: number;
+  project_id: number;
+  name: string;
+  status: StageStatus;
+  position: number;
+  expected_days: number | null;
+  actual_days: number | null;
+  started_at: string | null;
+  completed_at: string | null;
+  comments_count?: number;
+  comments?: StageComment[];
+  created_at: string | null;
+}
+
+export const STAGE_STATUS_LABELS: Record<StageStatus, string> = {
+  pending: 'منتظرة',
+  active: 'جارية',
+  done: 'منتهية',
+};
+
+export const STAGE_STATUS_COLORS: Record<StageStatus, string> = {
+  pending: '#94A3B8',
+  active: '#DC2626',
+  done: '#059669',
+};
+
 export interface ProjectFormData {
   name: string;
   client_id: number | '';

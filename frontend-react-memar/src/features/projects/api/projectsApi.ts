@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
-import type { Project } from '../types';
+import type { Project, ProjectStage, StageComment } from '../types';
 
 export interface ProjectsQuery {
   search?: string;
@@ -13,8 +13,22 @@ export const projectsApi = {
   create: (payload: Record<string, unknown>) => apiPost<Project>('/projects', payload),
   update: (id: number, payload: Record<string, unknown>) => apiPatch<Project>(`/projects/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/projects/${id}`),
-  /** نظرة شاملة: مؤشرات + تايم‌لاين. */
+  /** نظرة شاملة: مؤشرات + تايم‌لاين + مراحل. */
   overview: (id: number) => apiGet<ProjectOverview>(`/projects/${id}/overview`),
+
+  // مراحل المشروع (PROJ-1/PROJ-2)
+  stages: (projectId: number) => apiGet<ProjectStage[]>(`/projects/${projectId}/stages`),
+  stage: (projectId: number, stageId: number) => apiGet<ProjectStage>(`/projects/${projectId}/stages/${stageId}`),
+  seedStages: (projectId: number) => apiPost<ProjectStage[]>(`/projects/${projectId}/stages/seed-defaults`, {}),
+  addStage: (projectId: number, payload: { name: string; expected_days?: number | null }) =>
+    apiPost<ProjectStage>(`/projects/${projectId}/stages`, payload),
+  updateStage: (projectId: number, stageId: number, payload: { name?: string; expected_days?: number | null }) =>
+    apiPatch<ProjectStage>(`/projects/${projectId}/stages/${stageId}`, payload),
+  advanceStage: (projectId: number, stageId: number) =>
+    apiPost<ProjectStage>(`/projects/${projectId}/stages/${stageId}/advance`, {}),
+  removeStage: (projectId: number, stageId: number) => apiDelete<null>(`/projects/${projectId}/stages/${stageId}`),
+  addStageComment: (projectId: number, stageId: number, body: string) =>
+    apiPost<StageComment>(`/projects/${projectId}/stages/${stageId}/comments`, { body }),
 };
 
 export interface ProjectOverviewStats {
@@ -41,6 +55,7 @@ export interface TimelineEvent {
 
 export interface ProjectOverview {
   project: Project;
+  stages: ProjectStage[];
   stats: ProjectOverviewStats;
   timeline: TimelineEvent[];
 }

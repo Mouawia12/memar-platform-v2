@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
 use App\Http\Resources\ProjectResource;
+use App\Http\Resources\ProjectStageResource;
 use App\Models\Project;
 use App\Services\ProjectOverviewService;
 use App\Services\ProjectService;
@@ -46,6 +47,7 @@ class ProjectController extends ApiController
     {
         return $this->ok([
             'project' => new ProjectResource($project->load(['client:id,full_name', 'manager:id,name'])),
+            'stages' => ProjectStageResource::collection($project->stages()->withCount('comments')->get()),
         ] + $overview->build($project));
     }
 

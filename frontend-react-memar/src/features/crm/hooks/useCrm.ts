@@ -22,15 +22,22 @@ export function useSaveLead() {
   return useMutation({
     mutationFn: ({ id, data }: { id?: number; data: LeadFormData }) =>
       id ? crmApi.update(id, toPayload(data)) : crmApi.create(toPayload(data)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => invalidateCrm(qc),
   });
+}
+
+/** يُبطل قائمة الصفقات وسجلّ تعديلات أي صفقة معًا (لتحديث لحظي للسجل). */
+function invalidateCrm(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: KEY });
+  qc.invalidateQueries({ queryKey: ['lead-history'] });
 }
 
 export function useMoveLead() {
   const qc = useQueryClient();
+
   return useMutation({
     mutationFn: ({ id, stage }: { id: number; stage: Stage }) => crmApi.moveStage(id, stage),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => invalidateCrm(qc),
   });
 }
 
@@ -40,7 +47,7 @@ export function useSetTemperature() {
 
   return useMutation({
     mutationFn: ({ id, temperature }: { id: number; temperature: Temperature }) => crmApi.setTemperature(id, temperature),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => invalidateCrm(qc),
   });
 }
 

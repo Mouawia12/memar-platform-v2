@@ -13,20 +13,20 @@ export function CrmPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
-  const [detail, setDetail] = useState<Lead | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(null);
 
   const { data, isLoading, isError } = useLeads({ search: search || undefined, per_page: 200 });
   const move = useMoveLead();
   const del = useDeleteLead();
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (l: Lead) => { setDetail(null); setEditing(l); setModalOpen(true); };
+  const openEdit = (l: Lead) => { setDetailId(null); setEditing(l); setModalOpen(true); };
   const handleDelete = (l: Lead) => { if (confirm(`حذف "${l.full_name}"؟`)) del.mutate(l.id); };
   const handleMove = (l: Lead, stage: Stage) => move.mutate({ id: l.id, stage });
 
   /** إسناد مهمة من صفقة — يُغلق مودال التفاصيل ثم يفتح نموذج المهمة موجّهًا لمالك الفرصة (TASK-5). */
   const handleAddTask = (l: Lead) => {
-    setDetail(null); // منعًا لتراكب المودالين فوق بعض
+    setDetailId(null); // منعًا لتراكب المودالين فوق بعض
     setTaskInitial({
       title: `متابعة: ${l.full_name}`,
       description: `مهمة متعلّقة بالفرصة «${l.full_name}»${l.company ? ` — ${l.company}` : ''}.`,
@@ -35,6 +35,8 @@ export function CrmPage() {
   };
 
   const leads = data?.data ?? [];
+  // الصفقة المعروضة تُشتقّ من القائمة الحيّة — فتحديث المرحلة/الحرارة ينعكس فورًا
+  const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
   const wonCount = leads.filter((l) => l.stage === 'won').length;
   const expectedValue = leads.filter((l) => !['won', 'lost'].includes(l.stage)).reduce((s, l) => s + Number(l.deal_value_kwd), 0);
   const hotCount = leads.filter((l) => l.temperature === 'hot').length;
@@ -62,12 +64,12 @@ export function CrmPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={leads} onMove={handleMove} onOpen={setDetail} />}
+      {data && <CrmBoard leads={leads} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} />}
 
-      {detail && (
+      {detailLead && (
         <LeadDetailModal
-          lead={detail}
-          onClose={() => setDetail(null)}
+          lead={detailLead}
+          onClose={() => setDetailId(null)}
           onEdit={openEdit}
           onDelete={handleDelete}
           onMove={handleMove}

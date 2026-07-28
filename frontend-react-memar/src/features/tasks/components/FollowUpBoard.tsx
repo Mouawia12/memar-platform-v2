@@ -173,8 +173,9 @@ export function FollowUpBoard({ tasks, canDelete, onOpen, onToggle, onDelete, on
 }
 
 const boardScroll: CSSProperties = { overflowX: 'auto', width: '100%', paddingBottom: '4px' };
-const boardGrid: CSSProperties = { display: 'flex', flexWrap: 'nowrap', gap: '12px', minWidth: 'max-content' };
-const colWrap: CSSProperties = { background: '#F0F4F8', border: '1.5px solid', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '350px', width: '245px', flexShrink: 0 };
+// الأعمدة تنمو بالتساوي لتملأ العرض (flex:1) ولا تنكمش دون 220px — طبق أصل .kb-col
+const boardGrid: CSSProperties = { display: 'flex', gap: '14px', width: '100%', alignItems: 'flex-start' };
+const colWrap: CSSProperties = { background: '#F0F4F8', border: '1.5px solid', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '350px', flex: '1 0 220px', minWidth: '220px' };
 const colHead: CSSProperties = { padding: '10px 13px' };
 const colBody: CSSProperties = { flex: 1, padding: '10px', overflowY: 'auto', maxHeight: '62vh', transition: 'background .15s' };
 const colOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78', outlineOffset: '-4px' };

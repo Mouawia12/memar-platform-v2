@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
 import { projectsApi } from '../api/projectsApi';
@@ -15,7 +15,13 @@ export function ProjectsPage() {
   const [editing, setEditing] = useState<Project | null>(null);
 
   const { data, isLoading, isError } = useProjects({ search: search || undefined, status: status || undefined, page });
+  const allQuery = useProjects({ per_page: 500 });
   const del = useDeleteProject();
+
+  const all = allQuery.data?.data ?? [];
+  const count = (s: ProjectStatus) => all.filter((p) => p.status === s).length;
+  const totalBudget = all.reduce((sum, p) => sum + Number(p.budget_kwd ?? 0), 0);
+  const vipCount = all.filter((p) => p.is_vip).length;
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (p: Project) => { setEditing(p); setModalOpen(true); };
@@ -32,24 +38,40 @@ export function ProjectsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>المشاريع</h1>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <ExportCsvButton
-            filename="projects"
-            fetchRows={fetchAllProjects}
-            columns={[
-              { header: 'الكود', value: (r: Project) => r.code },
-              { header: 'المشروع', value: (r: Project) => r.name },
-              { header: 'العميل', value: (r: Project) => r.client?.name },
-              { header: 'مدير المشروع', value: (r: Project) => r.manager?.name },
-              { header: 'الحالة', value: (r: Project) => PROJECT_STATUS_LABELS[r.status] },
-              { header: 'الميزانية (د.ك)', value: (r: Project) => r.budget_kwd },
-              { header: 'البداية', value: (r: Project) => r.start_date },
-              { header: 'النهاية', value: (r: Project) => r.end_date },
-            ]}
-          />
-          <button className="btn btn-primary" onClick={openCreate} type="button">+ مشروع جديد</button>
+      {/* بانر المشاريع مع مؤشرات سريعة (PROJ-6) */}
+      <div style={banner}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '24px', color: '#fff' }}>🏗️ المشاريع</h1>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)', marginTop: '4px' }}>إدارة مشاريع المكتب الهندسي ومتابعة مراحلها وتحصيلها</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <ExportCsvButton
+              filename="projects"
+              fetchRows={fetchAllProjects}
+              columns={[
+                { header: 'الكود', value: (r: Project) => r.code },
+                { header: 'المشروع', value: (r: Project) => r.name },
+                { header: 'العميل', value: (r: Project) => r.client?.name },
+                { header: 'مدير المشروع', value: (r: Project) => r.manager?.name },
+                { header: 'الحالة', value: (r: Project) => PROJECT_STATUS_LABELS[r.status] },
+                { header: 'الميزانية (د.ك)', value: (r: Project) => r.budget_kwd },
+                { header: 'البداية', value: (r: Project) => r.start_date },
+                { header: 'النهاية', value: (r: Project) => r.end_date },
+              ]}
+            />
+            <button className="btn btn-primary" onClick={openCreate} type="button">+ مشروع جديد</button>
+          </div>
+        </div>
+
+        <div style={kpiRow}>
+          <Kpi label="إجمالي المشاريع" value={String(all.length)} />
+          <Kpi label="نشطة" value={String(count('active'))} accent="#6EE7B7" />
+          <Kpi label="قيد المراجعة" value={String(count('review'))} accent="#C4B5FD" />
+          <Kpi label="معلّقة" value={String(count('on_hold'))} accent="#FCD34D" />
+          <Kpi label="منجزة" value={String(count('done'))} accent="#93C5FD" />
+          <Kpi label="عملاء VIP" value={String(vipCount)} accent="#FDBA74" />
+          <Kpi label="إجمالي الميزانيات" value={`${totalBudget.toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`} />
         </div>
       </div>
 
@@ -87,3 +109,16 @@ export function ProjectsPage() {
     </div>
   );
 }
+
+function Kpi({ label, value, accent = '#fff' }: { label: string; value: string; accent?: string }) {
+  return (
+    <div style={kpiTile}>
+      <div style={{ fontSize: '19px', fontWeight: 800, color: accent }}>{value}</div>
+      <div style={{ fontSize: '11.5px', color: 'rgba(255,255,255,.75)', marginTop: '2px', whiteSpace: 'nowrap' }}>{label}</div>
+    </div>
+  );
+}
+
+const banner: CSSProperties = { background: 'linear-gradient(135deg,#274A78,#1B6CA8)', borderRadius: '14px', padding: '22px', marginBottom: '16px', boxShadow: '0 4px 16px rgba(39,74,120,.25)' };
+const kpiRow: CSSProperties = { display: 'flex', gap: '10px', marginTop: '18px', flexWrap: 'wrap' };
+const kpiTile: CSSProperties = { flex: '1 1 auto', minWidth: '110px', background: 'rgba(255,255,255,.1)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,.14)' };

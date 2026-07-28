@@ -1,4 +1,4 @@
-export type ProjectStatus = 'draft' | 'active' | 'on_hold' | 'done' | 'cancelled';
+export type ProjectStatus = 'draft' | 'active' | 'review' | 'on_hold' | 'done' | 'cancelled';
 
 export interface ProjectRef {
   id: number;
@@ -86,14 +86,16 @@ export interface ProjectFormData {
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   draft: 'مسودة',
   active: 'نشط',
+  review: 'مراجعة',
   on_hold: 'معلّق',
-  done: 'مكتمل',
+  done: 'منجز',
   cancelled: 'ملغى',
 };
 
 export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
   draft: '#6B7280',
   active: '#059669',
+  review: '#7C3AED',
   on_hold: '#D97706',
   done: '#274A78',
   cancelled: '#DC2626',

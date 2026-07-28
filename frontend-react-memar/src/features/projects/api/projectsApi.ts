@@ -17,6 +17,8 @@ export const projectsApi = {
   overview: (id: number) => apiGet<ProjectOverview>(`/projects/${id}/overview`),
   /** تقييم المشروع/العميل + VIP + ملاحظات داخلية (PROJ-4). */
   saveAssessment: (id: number, payload: AssessmentPayload) => apiPatch<Project>(`/projects/${id}/assessment`, payload),
+  /** تغيير حالة المشروع مع سبب (PROJ-5). */
+  changeStatus: (id: number, status: string, reason: string) => apiPatch<Project>(`/projects/${id}/status`, { status, reason }),
 
   // مراحل المشروع (PROJ-1/PROJ-2)
   stages: (projectId: number) => apiGet<ProjectStage[]>(`/projects/${projectId}/stages`),
@@ -51,6 +53,7 @@ export interface TimelineEvent {
   event_label: string;
   subject_label: string;
   title: string | null;
+  reason: string | null;
   causer: { id: number; name: string } | null;
   created_at: string | null;
 }

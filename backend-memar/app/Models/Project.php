@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -20,6 +21,9 @@ class Project extends Model
 
     use LogsActivity;
     use SoftDeletes;
+
+    /** سبب تغيير الحالة — عابر (لا يُخزَّن)، يُرفق بسجل التدقيق فقط (PROJ-5). */
+    public ?string $statusChangeReason = null;
 
     protected $fillable = [
         'code', 'name', 'client_id', 'manager_id', 'status',
@@ -69,5 +73,13 @@ class Project extends Model
             ->logOnly(['code', 'name', 'status', 'budget_kwd', 'manager_id', 'is_vip'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /** يُرفق سبب تغيير الحالة بسجل التدقيق عند وجوده (PROJ-5). */
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        if ($this->statusChangeReason !== null) {
+            $activity->properties = $activity->properties->put('reason', $this->statusChangeReason);
+        }
     }
 }

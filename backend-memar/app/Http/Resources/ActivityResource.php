@@ -83,6 +83,7 @@ class ActivityResource extends JsonResource
                 'name' => $this->causer->name ?? '—',
             ] : null,
             'changes' => $changes,
+            'reason' => $props['reason'] ?? null,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

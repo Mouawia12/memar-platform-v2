@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
+use App\Http\Requests\Projects\ChangeStatusRequest;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateAssessmentRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
@@ -57,6 +58,16 @@ class ProjectController extends ApiController
         $project = $this->projects->update($project, $request->validated());
 
         return $this->ok(new ProjectResource($project), 'تم تحديث المشروع');
+    }
+
+    /** تغيير حالة المشروع مع تسجيل السبب في سجل التدقيق (PROJ-5). */
+    public function changeStatus(ChangeStatusRequest $request, Project $project): JsonResponse
+    {
+        $project->statusChangeReason = $request->string('reason')->toString();
+        $project->status = $request->string('status')->toString();
+        $project->save();
+
+        return $this->ok(new ProjectResource($project->load(['client', 'manager'])), 'تم تغيير حالة المشروع');
     }
 
     /** تقييم المشروع/العميل + VIP + ملاحظات داخلية سرية (PROJ-4). */

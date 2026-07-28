@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 
 import { ProjectAssessmentPanel } from '../components/ProjectAssessmentPanel';
 import { ProjectStages } from '../components/ProjectStages';
+import { ProjectStatusControl } from '../components/ProjectStatusControl';
 import { useProjectOverview } from '../hooks/useProjectOverview';
-import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '../types';
 
 const money = (v: number) => `${v.toLocaleString('ar', { maximumFractionDigits: 3 })} د.ك`;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
@@ -43,9 +43,7 @@ export function ProjectDetailPage() {
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {project.is_vip && <span style={{ ...badge, background: 'linear-gradient(135deg,#F59E0B,#D97706)', color: '#fff' }}>⭐ VIP</span>}
-            <span style={{ ...badge, background: `${PROJECT_STATUS_COLORS[project.status]}1a`, color: PROJECT_STATUS_COLORS[project.status] }}>
-              {PROJECT_STATUS_LABELS[project.status]}
-            </span>
+            <ProjectStatusControl project={project} />
           </div>
         </div>
 
@@ -86,6 +84,11 @@ export function ProjectDetailPage() {
                   {e.event_label} — {e.subject_label}
                   {e.title && <span style={{ fontWeight: 400, color: '#5A6478' }}> · {e.title}</span>}
                 </div>
+                {e.reason && (
+                  <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '3px', background: '#F5F3FF', border: '1px solid #E9D5FF', borderRadius: '6px', padding: '4px 8px', display: 'inline-block' }}>
+                    📝 السبب: {e.reason}
+                  </div>
+                )}
                 <div style={{ fontSize: '11.5px', color: '#5A6478', marginTop: '2px' }}>
                   {e.causer?.name ?? 'النظام'} · {fmt(e.created_at)}
                 </div>

@@ -1,4 +1,5 @@
 import { type CSSProperties, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 import { STATUS_COLORS as CONTRACT_COLORS, STATUS_LABELS as CONTRACT_STATUS } from '../../contracts/types';
 import { printDocument } from '../../documents/print';
@@ -51,13 +52,13 @@ export function ClientPortalPage() {
         <Section title="🏗️ مشاريعي">
           {projects.length === 0 && <Empty text="لا توجد مشاريع بعد." />}
           {projects.map((p) => (
-            <div key={p.id} style={row}>
+            <Link key={p.id} to={`/client-portal/projects/${p.id}`} style={{ ...row, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{p.name}</div>
-                <div style={{ fontSize: '12px', color: '#5A6478', marginTop: '2px' }}>{p.code}</div>
+                <div style={{ fontSize: '12px', color: '#5A6478', marginTop: '2px' }}>{p.code} · اضغط لمتابعة التقدّم ←</div>
               </div>
               <span style={{ ...chip, background: `${PROJECT_STATUS_COLORS[p.status]}1a`, color: PROJECT_STATUS_COLORS[p.status] }}>{PROJECT_STATUS_LABELS[p.status]}</span>
-            </div>
+            </Link>
           ))}
         </Section>
 

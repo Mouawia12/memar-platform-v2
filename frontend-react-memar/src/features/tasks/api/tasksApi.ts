@@ -7,8 +7,21 @@ export interface TasksQuery {
   assignee_id?: number;
 }
 
+export interface EmployeeWorkload {
+  user: { id: number; name: string };
+  total: number;
+  todo: number;
+  in_progress: number;
+  review: number;
+  done: number;
+  open: number;
+  overdue: number;
+}
+
 export const tasksApi = {
   list: (params: TasksQuery) => apiGet<Task[]>('/tasks', { params }),
+  /** حِمل العمل لكل موظف (DASH-1). */
+  workload: () => apiGet<EmployeeWorkload[]>('/tasks/workload'),
   create: (payload: Record<string, unknown>) => apiPost<Task>('/tasks', payload),
   update: (id: number, payload: Record<string, unknown>) => apiPatch<Task>(`/tasks/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/tasks/${id}`),

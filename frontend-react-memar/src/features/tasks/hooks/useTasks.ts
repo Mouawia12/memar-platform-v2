@@ -13,6 +13,11 @@ export function useTasks(params: TasksQuery) {
   });
 }
 
+/** حِمل العمل لكل موظف (DASH-1). */
+export function useWorkload() {
+  return useQuery({ queryKey: [...KEY, 'workload'], queryFn: () => tasksApi.workload() });
+}
+
 function toPayload(data: TaskFormData): Record<string, unknown> {
   return {
     ...data,

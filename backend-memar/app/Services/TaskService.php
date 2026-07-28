@@ -35,6 +35,44 @@ class TaskService
             ->get();
     }
 
+    /**
+     * حِمل العمل لكل موظف (DASH-1): عدد مهامه حسب الحالة + المتأخرة.
+     * مرتّب تنازليًا حسب المهام المفتوحة (غير المنجزة) ثم الإجمالي.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function workload(): array
+    {
+        $today = now()->startOfDay();
+
+        return Task::query()
+            ->whereNotNull('assignee_id')
+            ->with('assignee:id,name')
+            ->get()
+            ->groupBy('assignee_id')
+            ->map(function (Collection $tasks) use ($today): array {
+                $first = $tasks->first();
+                $done = $tasks->where('status', 'done')->count();
+                $overdue = $tasks->filter(
+                    fn (Task $t): bool => $t->due_date !== null && $t->due_date->lt($today) && $t->status !== 'done',
+                )->count();
+
+                return [
+                    'user' => ['id' => $first->assignee_id, 'name' => $first->assignee?->name ?? '—'],
+                    'total' => $tasks->count(),
+                    'todo' => $tasks->where('status', 'todo')->count(),
+                    'in_progress' => $tasks->where('status', 'in_progress')->count(),
+                    'review' => $tasks->where('status', 'review')->count(),
+                    'done' => $done,
+                    'open' => $tasks->count() - $done,
+                    'overdue' => $overdue,
+                ];
+            })
+            ->sortByDesc(fn (array $r): array => [$r['open'], $r['total']])
+            ->values()
+            ->all();
+    }
+
     /** تفاصيل مهمة كاملة (المشاركون، المحادثة، الملفات…). */
     public function detail(Task $task): Task
     {

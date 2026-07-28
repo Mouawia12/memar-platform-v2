@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/tasks', [TaskController::class, 'index'])->middleware('permission:tasks.view');
+    Route::get('/tasks/workload', [TaskController::class, 'workload'])->middleware('permission:tasks.view');
     Route::post('/tasks', [TaskController::class, 'store'])->middleware('permission:tasks.manage');
     Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('permission:tasks.view');
     Route::match(['put', 'patch'], '/tasks/{task}', [TaskController::class, 'update'])->middleware('permission:tasks.manage');

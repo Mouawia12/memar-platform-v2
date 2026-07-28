@@ -9,6 +9,7 @@ import { useInvoices } from '../invoices/hooks/useInvoices';
 import { useProjects } from '../projects/hooks/useProjects';
 import { useTasks } from '../tasks/hooks/useTasks';
 import { KpiCard } from './components/KpiCard';
+import { WorkloadPanel } from './components/WorkloadPanel';
 
 const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const endOfToday = () => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); };
@@ -85,6 +86,11 @@ export function DashboardPage() {
         <KpiCard icon="✅" color="green" label="مشاريع مكتملة" value={completed} sub="تم التسليم النهائي" />
         <KpiCard icon="⚠️" color="red" label="تنبيهات معلقة" value={overdueInvoices} sub="تحتاج متابعة إدارية" />
         <KpiCard icon="👥" color="green" label="الحضور والدوام" value={employeesTotal} sub={<span style={{ color: '#2D9B6F' }}>إجمالي الموظفين</span>} />
+      </div>
+
+      {/* حِمل عمل الفريق (DASH-1) */}
+      <div style={{ marginBottom: '18px' }}>
+        <WorkloadPanel />
       </div>
 
       {/* جدول مواعيد اليوم */}

@@ -32,6 +32,12 @@ class TaskController extends ApiController
         return $this->ok(TaskResource::collection($tasks));
     }
 
+    /** حِمل العمل لكل موظف (DASH-1). */
+    public function workload(): JsonResponse
+    {
+        return $this->ok($this->tasks->workload());
+    }
+
     public function store(StoreTaskRequest $request): JsonResponse
     {
         $task = $this->tasks->create($request->validated(), $request->user()?->id);

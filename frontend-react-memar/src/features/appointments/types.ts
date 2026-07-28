@@ -1,5 +1,5 @@
 export type AppointmentType = 'meeting' | 'appointment';
-export type AppointmentStatus = 'scheduled' | 'done' | 'cancelled';
+export type AppointmentStatus = 'pending' | 'scheduled' | 'done' | 'cancelled';
 
 export interface Appointment {
   id: number;
@@ -35,12 +35,14 @@ export const TYPE_LABELS: Record<AppointmentType, string> = {
 };
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: 'مجدول',
+  pending: 'طلب منتظر',
+  scheduled: 'مؤكّد',
   done: 'منتهٍ',
   cancelled: 'ملغى',
 };
 
 export const STATUS_COLORS: Record<AppointmentStatus, string> = {
+  pending: '#D97706',
   scheduled: '#059669',
   done: '#6B7280',
   cancelled: '#DC2626',

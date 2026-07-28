@@ -131,7 +131,7 @@ class BookingService
             // حجز الساعة نفسها مرّتين متزامنتين ممنوع — قفل تشاؤمي على الفتحة
             $taken = Appointment::where('type', 'meeting')
                 ->whereBetween('start_at', [$slotStart, $slotStart->addHour()->subSecond()])
-                ->whereIn('status', ['scheduled', 'done'])
+                ->whereIn('status', ['pending', 'scheduled', 'done'])
                 ->lockForUpdate()
                 ->exists();
 
@@ -149,7 +149,7 @@ class BookingService
                 'end_at' => $slotStart->addHour(),
                 'location' => $format === 'office' ? 'مقر المكتب' : null,
                 'is_video' => in_array($format, ['video', 'voice'], true),
-                'status' => 'scheduled',
+                'status' => 'pending',
                 'notes' => trim(
                     'طريقة الاجتماع: '.(self::FORMAT_LABELS[$format] ?? $format)
                     ."\nالعميل: ".($data['name'] ?? '—').' — '.($data['phone'] ?? '—')
@@ -208,7 +208,7 @@ class BookingService
     {
         return Appointment::query()
             ->where('type', 'meeting')
-            ->whereIn('status', ['scheduled', 'done'])
+            ->whereIn('status', ['pending', 'scheduled', 'done'])
             ->whereBetween('start_at', [$from->startOfDay(), $to->endOfDay()])
             ->pluck('start_at')
             ->map(fn ($dt) => $this->slotKey($dt->toDateString(), (int) $dt->format('G')))

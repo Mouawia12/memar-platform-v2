@@ -27,7 +27,7 @@ class UpdateAppointmentRequest extends FormRequest
             'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
             'location' => ['nullable', 'string', 'max:255'],
             'is_video' => ['boolean'],
-            'status' => ['nullable', Rule::in(['scheduled', 'done', 'cancelled'])],
+            'status' => ['nullable', Rule::in(['pending', 'scheduled', 'done', 'cancelled'])],
             'notes' => ['nullable', 'string'],
         ];
     }

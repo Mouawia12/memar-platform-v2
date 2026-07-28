@@ -36,3 +36,13 @@ export function useDeleteAppointment() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+/** تأكيد طلب موعد منتظر → مؤكّد (APPT-3). */
+export function useConfirmAppointment() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => appointmentsApi.update(id, { status: 'scheduled' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}

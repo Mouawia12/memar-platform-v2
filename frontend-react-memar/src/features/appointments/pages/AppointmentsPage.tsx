@@ -3,7 +3,8 @@ import { useState, type CSSProperties } from 'react';
 import { AppointmentFormModal } from '../components/AppointmentFormModal';
 import { AppointmentsCalendar } from '../components/AppointmentsCalendar';
 import { AppointmentsTable } from '../components/AppointmentsTable';
-import { useAppointments, useDeleteAppointment } from '../hooks/useAppointments';
+import { AppointmentHistory, AppointmentSidebar } from '../components/AppointmentPanels';
+import { useAppointments, useConfirmAppointment, useDeleteAppointment } from '../hooks/useAppointments';
 import { STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentStatus, type AppointmentType } from '../types';
 
 type Mode = 'calendar' | 'list';
@@ -18,28 +19,29 @@ export function AppointmentsPage() {
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [initialStart, setInitialStart] = useState<string | undefined>(undefined);
 
-  // القائمة تُصفّح؛ التقويم يحتاج كل المواعيد ضمن المدى المرئي — نجلب دفعة كبيرة
   const listQuery = useAppointments({ search: search || undefined, type: type || undefined, status: status || undefined, page });
   const calQuery = useAppointments({ per_page: 500 });
+  const del = useDeleteAppointment();
+  const confirm_ = useConfirmAppointment();
 
   const openCreate = () => { setEditing(null); setInitialStart(undefined); setModalOpen(true); };
   const openEdit = (a: Appointment) => { setEditing(a); setInitialStart(undefined); setModalOpen(true); };
   const openDay = (dateStr: string) => { setEditing(null); setInitialStart(`${dateStr}T10:00`); setModalOpen(true); };
   const handleDelete = (a: Appointment) => { if (confirm(`حذف "${a.title}"؟`)) del.mutate(a.id); };
-  const del = useDeleteAppointment();
 
   const meta = listQuery.data?.meta;
+  const appts = calQuery.data?.data ?? [];
 
   return (
     <div>
       <div style={pageHeader}>
-        <h1 style={{ margin: 0 }}>المواعيد والاجتماعات</h1>
+        <h1 style={{ margin: 0 }}>لوحة المواعيد والطلبات</h1>
         <div style={{ display: 'flex', gap: '8px' }}>
           <div style={toggle}>
             <button type="button" onClick={() => setMode('calendar')} style={{ ...toggleBtn, ...(mode === 'calendar' ? toggleOn : null) }}>📅 تقويم</button>
             <button type="button" onClick={() => setMode('list')} style={{ ...toggleBtn, ...(mode === 'list' ? toggleOn : null) }}>📋 قائمة</button>
           </div>
-          <button className="btn btn-primary" onClick={openCreate} type="button">+ موعد جديد</button>
+          <button className="btn btn-primary" onClick={openCreate} type="button">+ طلب/موعد جديد</button>
         </div>
       </div>
 
@@ -47,11 +49,17 @@ export function AppointmentsPage() {
         <>
           {calQuery.isLoading && <p>جارٍ التحميل…</p>}
           {calQuery.data && (
-            <AppointmentsCalendar
-              appointments={calQuery.data.data}
-              onDayClick={openDay}
-              onEventClick={openEdit}
-            />
+            <>
+              <div style={layout}>
+                <div style={{ flex: '1 1 460px', minWidth: 0 }}>
+                  <AppointmentsCalendar appointments={appts} onDayClick={openDay} onEventClick={openEdit} />
+                </div>
+                <div style={{ flex: '1 1 300px', minWidth: '280px', maxWidth: '340px' }}>
+                  <AppointmentSidebar appointments={appts} onEdit={openEdit} onConfirm={(a) => confirm_.mutate(a.id)} />
+                </div>
+              </div>
+              <AppointmentHistory appointments={appts} onEdit={openEdit} onDelete={handleDelete} />
+            </>
           )}
         </>
       ) : (
@@ -88,6 +96,7 @@ export function AppointmentsPage() {
 }
 
 const pageHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' };
+const layout: CSSProperties = { display: 'flex', gap: '18px', alignItems: 'flex-start', flexWrap: 'wrap' };
 const toggle: CSSProperties = { display: 'flex', background: '#F0F4F8', padding: '3px', borderRadius: '8px', gap: '3px' };
 const toggleBtn: CSSProperties = { border: 'none', background: 'transparent', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', color: '#5A6478' };
 const toggleOn: CSSProperties = { background: '#fff', color: '#274A78', fontWeight: 700, boxShadow: '0 1px 3px rgba(0,0,0,.1)' };

@@ -2,6 +2,7 @@ import { type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { STATUS_COLORS as CONTRACT_COLORS, STATUS_LABELS as CONTRACT_STATUS } from '../../contracts/types';
+import { ClientAdsBanner } from '../components/ClientAdsBanner';
 import { printDocument } from '../../documents/print';
 import { STATUS_COLORS as INVOICE_COLORS, STATUS_LABELS as INVOICE_STATUS } from '../../invoices/types';
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '../../projects/types';
@@ -39,6 +40,9 @@ export function ClientPortalPage() {
         <h1 style={{ margin: 0 }}>أهلاً، {client?.name ?? 'عميلنا'} 🏛️</h1>
         <p style={{ opacity: 0.7, fontSize: '14px', marginTop: '4px' }}>تابع مشاريعك وفواتيرك ومستنداتك مع مجموعة معمار.</p>
       </div>
+
+      {/* بانر إعلاني (CLIENT-1) */}
+      <ClientAdsBanner />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '22px' }}>
         <Stat value={String(stats?.projects ?? 0)} label="🏗️ مشاريعي" color="#274A78" />

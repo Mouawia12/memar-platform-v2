@@ -10,6 +10,11 @@ export function useHeroSlides() {
   return useQuery({ queryKey: KEY, queryFn: () => heroApi.list() });
 }
 
+/** الشرائح الفعّالة (عامة) — للبوابات (CLIENT-1). */
+export function usePublicHeroSlides() {
+  return useQuery({ queryKey: ['hero-slides', 'public'], queryFn: () => heroApi.publicList() });
+}
+
 export function useSaveHeroSlide() {
   const qc = useQueryClient();
   return useMutation({

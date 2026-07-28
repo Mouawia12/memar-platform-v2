@@ -5,6 +5,7 @@ import { getPageTitle } from '../config/nav';
 import { GlobalSearch } from './topbar/GlobalSearch';
 import { NotificationsMenu } from './topbar/NotificationsMenu';
 import { QuickAddMenu } from './topbar/QuickAddMenu';
+import { TopShortcuts } from './topbar/TopShortcuts';
 import { useLogout } from '../features/auth/hooks/useAuth';
 import { useAuthStore } from '../store/auth';
 
@@ -22,8 +23,10 @@ export function Topbar({ onToggleSidebar }: Props) {
 
   return (
     <header className="topbar">
-      <button className="topbar-toggle icon-btn" type="button" onClick={onToggleSidebar}>☰</button>
+      <button className="topbar-toggle icon-btn" type="button" onClick={onToggleSidebar} title="طيّ/فتح القائمة">☰</button>
       <span className="topbar-page-title">{getPageTitle(pathname)}</span>
+
+      <TopShortcuts />
 
       <GlobalSearch />
 

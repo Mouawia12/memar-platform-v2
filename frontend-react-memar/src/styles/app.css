@@ -84,6 +84,39 @@ body {
   }
 }
 
+/* ── طيّ الشريط الجانبي على سطح المكتب + شريط الاختصارات العلوي (CRM-1) ── */
+@media (min-width: 901px) {
+  /* أظهر زر الطيّ على سطح المكتب أيضًا (الأصل يخفيه) */
+  .topbar-toggle {
+    display: inline-flex !important;
+  }
+  .app #sidebar.sidebar {
+    transition: transform 0.25s ease;
+  }
+  /* عند الطيّ: يختفي الشريط لليمين (RTL) ويتمدّد المحتوى لكامل العرض */
+  .app.sidebar-collapsed #sidebar.sidebar {
+    transform: translateX(100%);
+  }
+  .app.sidebar-collapsed .main {
+    margin-right: 0 !important;
+    max-width: 100vw !important;
+  }
+}
+
+/* شريط الاختصارات العلوي — يظهر على سطح المكتب فقط (المساحة الفارغة) */
+.top-shortcuts {
+  margin-inline: 10px;
+}
+.top-shortcuts .top-shortcuts,
+.top-shortcuts a:hover {
+  filter: brightness(0.97);
+}
+@media (max-width: 900px) {
+  .top-shortcuts {
+    display: none !important;
+  }
+}
+
 /* جداول ريسبونسيف — تمرير أفقي بدل كسر التخطيط */
 table {
   min-width: 520px;

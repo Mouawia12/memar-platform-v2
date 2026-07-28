@@ -1,72 +1,93 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import { AppointmentFormModal } from '../components/AppointmentFormModal';
+import { AppointmentsCalendar } from '../components/AppointmentsCalendar';
 import { AppointmentsTable } from '../components/AppointmentsTable';
 import { useAppointments, useDeleteAppointment } from '../hooks/useAppointments';
 import { STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentStatus, type AppointmentType } from '../types';
 
+type Mode = 'calendar' | 'list';
+
 export function AppointmentsPage() {
+  const [mode, setMode] = useState<Mode>('calendar');
   const [search, setSearch] = useState('');
   const [type, setType] = useState<'' | AppointmentType>('');
   const [status, setStatus] = useState<'' | AppointmentStatus>('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
+  const [initialStart, setInitialStart] = useState<string | undefined>(undefined);
 
-  const { data, isLoading, isError } = useAppointments({
-    search: search || undefined,
-    type: type || undefined,
-    status: status || undefined,
-    page,
-  });
+  // القائمة تُصفّح؛ التقويم يحتاج كل المواعيد ضمن المدى المرئي — نجلب دفعة كبيرة
+  const listQuery = useAppointments({ search: search || undefined, type: type || undefined, status: status || undefined, page });
+  const calQuery = useAppointments({ per_page: 500 });
+
+  const openCreate = () => { setEditing(null); setInitialStart(undefined); setModalOpen(true); };
+  const openEdit = (a: Appointment) => { setEditing(a); setInitialStart(undefined); setModalOpen(true); };
+  const openDay = (dateStr: string) => { setEditing(null); setInitialStart(`${dateStr}T10:00`); setModalOpen(true); };
+  const handleDelete = (a: Appointment) => { if (confirm(`حذف "${a.title}"؟`)) del.mutate(a.id); };
   const del = useDeleteAppointment();
 
-  const openCreate = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (a: Appointment) => { setEditing(a); setModalOpen(true); };
-  const handleDelete = (a: Appointment) => { if (confirm(`حذف "${a.title}"؟`)) del.mutate(a.id); };
-
-  const meta = data?.meta;
+  const meta = listQuery.data?.meta;
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={pageHeader}>
         <h1 style={{ margin: 0 }}>المواعيد والاجتماعات</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ موعد جديد</button>
-      </div>
-
-      <div className="card" style={{ padding: '16px' }}>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-          <input
-            className="input"
-            placeholder="بحث بالعنوان…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            style={{ flex: 1, minWidth: '200px' }}
-          />
-          <select className="input" value={type} onChange={(e) => { setType(e.target.value as '' | AppointmentType); setPage(1); }}>
-            <option value="">كل الأنواع</option>
-            {(Object.keys(TYPE_LABELS) as AppointmentType[]).map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
-          </select>
-          <select className="input" value={status} onChange={(e) => { setStatus(e.target.value as '' | AppointmentStatus); setPage(1); }}>
-            <option value="">كل الحالات</option>
-            {(Object.keys(STATUS_LABELS) as AppointmentStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-          </select>
-        </div>
-
-        {isLoading && <p>جارٍ التحميل…</p>}
-        {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المواعيد.</p>}
-        {data && <AppointmentsTable appointments={data.data} onEdit={openEdit} onDelete={handleDelete} />}
-
-        {meta && meta.last_page > 1 && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>
-            <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} type="button">السابق</button>
-            <span style={{ fontSize: '13px', opacity: 0.7 }}>صفحة {meta.current_page} من {meta.last_page} ({meta.total})</span>
-            <button className="btn btn-sm" disabled={page >= meta.last_page} onClick={() => setPage((p) => p + 1)} type="button">التالي</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={toggle}>
+            <button type="button" onClick={() => setMode('calendar')} style={{ ...toggleBtn, ...(mode === 'calendar' ? toggleOn : null) }}>📅 تقويم</button>
+            <button type="button" onClick={() => setMode('list')} style={{ ...toggleBtn, ...(mode === 'list' ? toggleOn : null) }}>📋 قائمة</button>
           </div>
-        )}
+          <button className="btn btn-primary" onClick={openCreate} type="button">+ موعد جديد</button>
+        </div>
       </div>
 
-      {modalOpen && <AppointmentFormModal appointment={editing} onClose={() => setModalOpen(false)} />}
+      {mode === 'calendar' ? (
+        <>
+          {calQuery.isLoading && <p>جارٍ التحميل…</p>}
+          {calQuery.data && (
+            <AppointmentsCalendar
+              appointments={calQuery.data.data}
+              onDayClick={openDay}
+              onEventClick={openEdit}
+            />
+          )}
+        </>
+      ) : (
+        <div className="card" style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+            <input className="input" placeholder="بحث بالعنوان…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ flex: 1, minWidth: '200px' }} />
+            <select className="input" value={type} onChange={(e) => { setType(e.target.value as '' | AppointmentType); setPage(1); }}>
+              <option value="">كل الأنواع</option>
+              {(Object.keys(TYPE_LABELS) as AppointmentType[]).map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+            </select>
+            <select className="input" value={status} onChange={(e) => { setStatus(e.target.value as '' | AppointmentStatus); setPage(1); }}>
+              <option value="">كل الحالات</option>
+              {(Object.keys(STATUS_LABELS) as AppointmentStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+            </select>
+          </div>
+
+          {listQuery.isLoading && <p>جارٍ التحميل…</p>}
+          {listQuery.isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المواعيد.</p>}
+          {listQuery.data && <AppointmentsTable appointments={listQuery.data.data} onEdit={openEdit} onDelete={handleDelete} />}
+
+          {meta && meta.last_page > 1 && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>
+              <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} type="button">السابق</button>
+              <span style={{ fontSize: '13px', opacity: 0.7 }}>صفحة {meta.current_page} من {meta.last_page} ({meta.total})</span>
+              <button className="btn btn-sm" disabled={page >= meta.last_page} onClick={() => setPage((p) => p + 1)} type="button">التالي</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {modalOpen && <AppointmentFormModal appointment={editing} initialStart={initialStart} onClose={() => setModalOpen(false)} />}
     </div>
   );
 }
+
+const pageHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' };
+const toggle: CSSProperties = { display: 'flex', background: '#F0F4F8', padding: '3px', borderRadius: '8px', gap: '3px' };
+const toggleBtn: CSSProperties = { border: 'none', background: 'transparent', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', color: '#5A6478' };
+const toggleOn: CSSProperties = { background: '#fff', color: '#274A78', fontWeight: 700, boxShadow: '0 1px 3px rgba(0,0,0,.1)' };

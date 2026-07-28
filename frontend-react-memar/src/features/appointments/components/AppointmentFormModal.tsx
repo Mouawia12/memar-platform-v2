@@ -7,6 +7,8 @@ import { STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentFormData,
 
 interface Props {
   appointment: Appointment | null;
+  /** تاريخ ابتدائي عند إنشاء موعد بالنقر على يوم في التقويم (YYYY-MM-DDTHH:mm). */
+  initialStart?: string;
   onClose: () => void;
 }
 
@@ -17,10 +19,10 @@ const empty: AppointmentFormData = {
 
 const toLocalInput = (iso: string | null) => (iso ? iso.slice(0, 16) : '');
 
-export function AppointmentFormModal({ appointment, onClose }: Props) {
+export function AppointmentFormModal({ appointment, initialStart, onClose }: Props) {
   const save = useSaveAppointment();
   const { data: projectsData } = useProjects({ per_page: 100 });
-  const [form, setForm] = useState<AppointmentFormData>(empty);
+  const [form, setForm] = useState<AppointmentFormData>({ ...empty, start_at: initialStart ?? '' });
 
   useEffect(() => {
     if (appointment) {
@@ -36,9 +38,9 @@ export function AppointmentFormModal({ appointment, onClose }: Props) {
         notes: appointment.notes ?? '',
       });
     } else {
-      setForm(empty);
+      setForm({ ...empty, start_at: initialStart ?? '' });
     }
-  }, [appointment]);
+  }, [appointment, initialStart]);
 
   const set = <K extends keyof AppointmentFormData>(key: K, value: AppointmentFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 

@@ -19,6 +19,11 @@ export const projectsApi = {
   saveAssessment: (id: number, payload: AssessmentPayload) => apiPatch<Project>(`/projects/${id}/assessment`, payload),
   /** تغيير حالة المشروع مع سبب (PROJ-5). */
   changeStatus: (id: number, status: string, reason: string) => apiPatch<Project>(`/projects/${id}/status`, { status, reason }),
+  /** دفعات المشروع: فواتيره + ملخّص (PROJ-3). */
+  payments: (id: number) => apiGet<ProjectPayments>(`/projects/${id}/payments`),
+  /** تسجيل دفعة على فاتورة (يعيد استخدام نظام الفواتير). */
+  recordPayment: (invoiceId: number, payload: { amount_kwd: number; method: string; reference?: string; paid_at?: string }) =>
+    apiPost(`/invoices/${invoiceId}/payments`, payload),
 
   // مراحل المشروع (PROJ-1/PROJ-2)
   stages: (projectId: number) => apiGet<ProjectStage[]>(`/projects/${projectId}/stages`),
@@ -63,4 +68,23 @@ export interface ProjectOverview {
   stages: ProjectStage[];
   stats: ProjectOverviewStats;
   timeline: TimelineEvent[];
+}
+
+export type InvoiceStatus = 'draft' | 'sent' | 'partial' | 'paid' | 'cancelled';
+
+export interface ProjectInvoice {
+  id: number;
+  number: string | null;
+  total_kwd: string;
+  paid_kwd: string;
+  balance_kwd: string;
+  status: InvoiceStatus;
+  issue_date: string | null;
+  due_date: string | null;
+  is_overdue: boolean;
+}
+
+export interface ProjectPayments {
+  summary: { invoiced_kwd: number; paid_kwd: number; remaining_kwd: number; count: number };
+  invoices: ProjectInvoice[];
 }

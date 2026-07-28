@@ -2,6 +2,7 @@ import { type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { ProjectAssessmentPanel } from '../components/ProjectAssessmentPanel';
+import { ProjectPaymentsPanel } from '../components/ProjectPaymentsPanel';
 import { ProjectStages } from '../components/ProjectStages';
 import { ProjectStatusControl } from '../components/ProjectStatusControl';
 import { useProjectOverview } from '../hooks/useProjectOverview';
@@ -58,6 +59,9 @@ export function ProjectDetailPage() {
 
       {/* مراحل المشروع (PROJ-1/PROJ-2) */}
       <ProjectStages projectId={project.id} stages={stages} />
+
+      {/* الدفعات (PROJ-3) */}
+      <ProjectPaymentsPanel projectId={project.id} />
 
       {/* مؤشرات */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '18px' }}>

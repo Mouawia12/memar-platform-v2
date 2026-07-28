@@ -14,6 +14,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('permission:projects.view');
     Route::post('/projects', [ProjectController::class, 'store'])->middleware('permission:projects.manage');
     Route::get('/projects/{project}/overview', [ProjectController::class, 'overview'])->middleware('permission:projects.view');
+    Route::get('/projects/{project}/payments', [ProjectController::class, 'payments'])->middleware('permission:projects.view');
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->middleware('permission:projects.view');
     Route::match(['put', 'patch'], '/projects/{project}', [ProjectController::class, 'update'])->middleware('permission:projects.manage');
     Route::match(['put', 'patch'], '/projects/{project}/assessment', [ProjectController::class, 'updateAssessment'])->middleware('permission:projects.manage');

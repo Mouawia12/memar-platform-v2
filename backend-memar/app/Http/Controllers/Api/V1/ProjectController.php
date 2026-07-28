@@ -9,8 +9,10 @@ use App\Http\Requests\Projects\ChangeStatusRequest;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateAssessmentRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
+use App\Http\Resources\InvoiceResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectStageResource;
+use App\Models\Invoice;
 use App\Models\Project;
 use App\Services\ProjectOverviewService;
 use App\Services\ProjectService;
@@ -58,6 +60,28 @@ class ProjectController extends ApiController
         $project = $this->projects->update($project, $request->validated());
 
         return $this->ok(new ProjectResource($project), 'تم تحديث المشروع');
+    }
+
+    /** دفعات المشروع (PROJ-3): فواتيره وملخّص المحصّل والمتبقّي. */
+    public function payments(Project $project): JsonResponse
+    {
+        $invoices = Invoice::where('project_id', $project->id)
+            ->with(['payments'])
+            ->latest()
+            ->get();
+
+        $invoiced = round((float) $invoices->sum('total_kwd'), 3);
+        $paid = round((float) $invoices->sum('paid_kwd'), 3);
+
+        return $this->ok([
+            'summary' => [
+                'invoiced_kwd' => $invoiced,
+                'paid_kwd' => $paid,
+                'remaining_kwd' => round($invoiced - $paid, 3),
+                'count' => $invoices->count(),
+            ],
+            'invoices' => InvoiceResource::collection($invoices),
+        ]);
     }
 
     /** تغيير حالة المشروع مع تسجيل السبب في سجل التدقيق (PROJ-5). */

@@ -1,63 +1,40 @@
 import type { CSSProperties } from 'react';
 
-import { STAGE_COLORS, STAGE_ORDER, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type Stage, type Temperature } from '../types';
+import { STAGE_COLORS, TEMPERATURE_META, type Lead } from '../types';
 
 interface Props {
   lead: Lead;
-  onEdit: (l: Lead) => void;
-  onDelete: (l: Lead) => void;
-  onMove: (l: Lead, stage: Stage) => void;
-  onAddTask?: (l: Lead) => void;
-  onHistory?: (l: Lead) => void;
-  onSetTemp?: (l: Lead, t: Temperature) => void;
+  onOpen: (l: Lead) => void;
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
+const AVATAR_COLORS = ['#6366f1', '#22c55e', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444'];
 
-export function LeadCard({ lead, onEdit, onDelete, onMove, onAddTask, onHistory, onSetTemp }: Props) {
-  const idx = STAGE_ORDER.indexOf(lead.stage);
-  const prev = idx > 0 ? STAGE_ORDER[idx - 1] : null;
-  const next = idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] : null;
+/** بطاقة فرصة — طبق أصل بطاقة CRM: صورة + اسم، وسم الجهة، القيمة + الحرارة. */
+export function LeadCard({ lead, onOpen }: Props) {
   const temp = TEMPERATURE_META[lead.temperature];
-
-  /** نقرة الحرارة تدور: ساخنة → دافئة → باردة → عادية (CRM-2). */
-  const cycleTemp = () => {
-    const i = TEMPERATURE_ORDER.indexOf(lead.temperature);
-    onSetTemp?.(lead, TEMPERATURE_ORDER[(i + 1) % TEMPERATURE_ORDER.length]);
-  };
+  const avatarColor = AVATAR_COLORS[lead.id % AVATAR_COLORS.length];
 
   return (
-    <div className="card" style={{ ...card, borderInlineStart: `4px solid ${STAGE_COLORS[lead.stage]}` }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
-        <b style={{ fontSize: '14px' }}>{lead.full_name}</b>
-        <button
-          type="button"
-          onClick={cycleTemp}
-          title={`الحرارة: ${temp.label} — اضغط للتغيير`}
-          style={{ ...tempBadge, background: `${temp.color}18`, color: temp.color, border: `1px solid ${temp.color}40` }}
-        >
-          {temp.icon} {temp.label}
-        </button>
+    <div className="card" style={{ ...card, borderInlineStart: `4px solid ${STAGE_COLORS[lead.stage]}` }} onClick={() => onOpen(lead)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ ...avatar, background: avatarColor }}>{lead.full_name.trim().charAt(0)}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <b style={{ fontSize: '13.5px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.full_name}</b>
+          {lead.company && <div style={{ fontSize: '11px', color: '#8A93A3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🏢 {lead.company}</div>}
+        </div>
       </div>
 
-      <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '6px', lineHeight: 1.7 }}>
-        {lead.company && <div>🏢 {lead.company}</div>}
-        {lead.phone && <div dir="ltr" style={{ textAlign: 'right' }}>📞 {lead.phone}</div>}
-        {Number(lead.deal_value_kwd) > 0 && <div style={{ color: '#059669', fontWeight: 700 }}>💰 {money(lead.deal_value_kwd)}</div>}
-      </div>
+      {lead.phone && <div dir="ltr" style={{ textAlign: 'right', fontSize: '11.5px', color: '#5A6478', marginTop: '8px' }}>📞 {lead.phone}</div>}
 
-      <div style={{ display: 'flex', gap: '4px', marginTop: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <button className="btn btn-sm" type="button" disabled={!prev} onClick={() => prev && onMove(lead, prev)} title="للخلف">‹</button>
-        <button className="btn btn-sm" type="button" disabled={!next} onClick={() => next && onMove(lead, next)} title="للأمام">›</button>
-        {onHistory && <button className="btn btn-sm" type="button" onClick={() => onHistory(lead)} title="سجل التعديلات">🕐</button>}
-        {onAddTask && <button className="btn btn-sm" type="button" title="إسناد مهمة" onClick={() => onAddTask(lead)} style={{ background: '#274A78', color: '#fff' }}>+ مهمة</button>}
-        <span style={{ flex: 1 }} />
-        <button className="btn btn-sm" type="button" onClick={() => onEdit(lead)}>تعديل</button>
-        <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => onDelete(lead)}>حذف</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
+        <span style={{ ...tempPill, background: `${temp.color}18`, color: temp.color }}>{temp.icon} {temp.label}</span>
+        {Number(lead.deal_value_kwd) > 0 && <b style={{ fontSize: '13px', color: '#059669' }}>{money(lead.deal_value_kwd)}</b>}
       </div>
     </div>
   );
 }
 
-const card: CSSProperties = { padding: '12px', marginBottom: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' };
-const tempBadge: CSSProperties = { fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', height: 'fit-content' };
+const card: CSSProperties = { padding: '12px', marginBottom: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', cursor: 'pointer' };
+const avatar: CSSProperties = { width: '34px', height: '34px', borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '15px', flexShrink: 0 };
+const tempPill: CSSProperties = { fontSize: '11px', fontWeight: 700, padding: '2px 9px', borderRadius: '999px' };

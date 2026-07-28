@@ -12,16 +12,12 @@ import {
 import { type CSSProperties, type ReactNode, useState } from 'react';
 
 import { LeadCard } from './LeadCard';
-import { STAGE_COLORS, STAGE_LABELS, STAGE_ORDER, type Lead, type Stage, type Temperature } from '../types';
+import { STAGE_COLORS, STAGE_LABELS, STAGE_ORDER, type Lead, type Stage } from '../types';
 
 interface Props {
   leads: Lead[];
-  onEdit: (l: Lead) => void;
-  onDelete: (l: Lead) => void;
   onMove: (l: Lead, stage: Stage) => void;
-  onAddTask: (l: Lead) => void;
-  onHistory: (l: Lead) => void;
-  onSetTemp: (l: Lead, t: Temperature) => void;
+  onOpen: (l: Lead) => void;
 }
 
 const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
@@ -49,7 +45,7 @@ function DraggableCard({ lead, children }: { lead: Lead; children: ReactNode }) 
   );
 }
 
-export function CrmBoard({ leads, onEdit, onDelete, onMove, onAddTask, onHistory, onSetTemp }: Props) {
+export function CrmBoard({ leads, onMove, onOpen }: Props) {
   const [active, setActive] = useState<Lead | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -77,7 +73,7 @@ export function CrmBoard({ leads, onEdit, onDelete, onMove, onAddTask, onHistory
               {colLeads.length === 0 && <p style={{ opacity: 0.4, fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>أفلت هنا</p>}
               {colLeads.map((lead) => (
                 <DraggableCard key={lead.id} lead={lead}>
-                  <LeadCard lead={lead} onEdit={onEdit} onDelete={onDelete} onMove={onMove} onAddTask={onAddTask} onHistory={onHistory} onSetTemp={onSetTemp} />
+                  <LeadCard lead={lead} onOpen={onOpen} />
                 </DraggableCard>
               ))}
             </DroppableColumn>
@@ -88,7 +84,7 @@ export function CrmBoard({ leads, onEdit, onDelete, onMove, onAddTask, onHistory
       <DragOverlay>
         {active ? (
           <div style={{ transform: 'rotate(2deg)', cursor: 'grabbing' }}>
-            <LeadCard lead={active} onEdit={() => {}} onDelete={() => {}} onMove={() => {}} />
+            <LeadCard lead={active} onOpen={() => {}} />
           </div>
         ) : null}
       </DragOverlay>

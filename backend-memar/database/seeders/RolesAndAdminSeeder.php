@@ -48,6 +48,9 @@ class RolesAndAdminSeeder extends Seeder
             'architect' => ['projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'crm.view'],
             'accountant' => ['finance.view', 'finance.manage', 'pricing.view'],
             'hr_manager' => ['hr.view', 'hr.manage'],
+            // أدوار فريق معمار كما ذكرها العميل (اجتماع 3) — قوالب مبدئية قابلة للتعديل من صفحة الصلاحيات
+            'sales' => ['crm.view', 'crm.manage', 'requests.view', 'requests.manage', 'appointments.view', 'appointments.manage', 'tasks.view'],
+            'secretary' => ['appointments.view', 'appointments.manage', 'requests.view', 'requests.manage', 'crm.view', 'tasks.view', 'documents.view'],
             'client' => [],
         ];
         foreach ($roles as $roleName => $rolePerms) {

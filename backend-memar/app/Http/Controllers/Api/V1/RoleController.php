@@ -18,9 +18,11 @@ class RoleController extends ApiController
     private const ROLE_LABELS = [
         'super_admin' => 'مدير عام',
         'manager' => 'مدير',
-        'architect' => 'مهندس معماري',
+        'architect' => 'مهندس / مصمم',
         'accountant' => 'محاسب',
         'hr_manager' => 'مدير موارد بشرية',
+        'sales' => 'مبيعات',
+        'secretary' => 'سكرتارية',
         'client' => 'عميل',
     ];
 

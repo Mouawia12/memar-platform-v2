@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { getPageTitle, isClientOnly } from '../config/nav';
@@ -18,9 +18,22 @@ export function Topbar({ onToggleSidebar }: Props) {
   const user = useAuthStore((s) => s.user);
   const logout = useLogout();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // العميل يرى شريطًا علويًا مبسّطًا (AUTH-1/2): بلا أدوات الطاقم، مع خروج واضح.
   const clientOnly = isClientOnly(user?.roles);
+
+  // إغلاق قائمة المستخدم عند النقر خارجها (بديل موثوق عن onBlur السابق الذي كان
+  // يمنع فتح القائمة/الخروج على بعض الحالات — إصلاح خلل تسجيل الخروج).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen]);
 
   const today = new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -38,10 +51,19 @@ export function Topbar({ onToggleSidebar }: Props) {
         <NotificationsMenu />
         {!clientOnly && <QuickAddMenu />}
 
-        <div className="user-menu" tabIndex={0} onClick={() => setMenuOpen((o) => !o)} onBlur={() => setTimeout(() => setMenuOpen(false), 150)}>
-          <div className="user-menu-btn">👤 {user?.name ?? 'مستخدم'} ▼</div>
+        <div className="user-menu" ref={menuRef}>
+          <button type="button" className="user-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-haspopup="menu" aria-expanded={menuOpen}>
+            👤 {user?.name ?? 'مستخدم'} ▼
+          </button>
           <div className={`user-menu-content${menuOpen ? ' show' : ''}`}>
-            <button type="button" onClick={() => logout.mutate()} style={{ color: 'var(--danger, #ef4444)' }}>🚪 تسجيل الخروج</button>
+            <button
+              type="button"
+              onClick={() => { setMenuOpen(false); logout.mutate(); }}
+              disabled={logout.isPending}
+              style={{ color: 'var(--danger, #ef4444)' }}
+            >
+              🚪 {logout.isPending ? 'جارٍ الخروج…' : 'تسجيل الخروج'}
+            </button>
           </div>
         </div>
       </div>

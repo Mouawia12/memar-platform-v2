@@ -21,6 +21,12 @@ export interface PortalData {
   calendar_appointments: Appointment[];
 }
 
+/** مساحة عمل موظف بعينه (DASH-2) — نفس بيانات البوابة + معلومات الموظف. */
+export interface TeamMemberWorkspace extends PortalData {
+  user: { id: number; name: string; email: string | null };
+}
+
 export const portalApi = {
   get: () => apiGet<PortalData>('/engineer-portal'),
+  teamMember: (userId: number) => apiGet<TeamMemberWorkspace>(`/team/${userId}/workspace`),
 };

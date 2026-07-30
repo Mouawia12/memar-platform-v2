@@ -18,6 +18,7 @@ import { CommunicationsPage } from './features/communications/pages/Communicatio
 import { CrmPage } from './features/crm/pages/CrmPage';
 import { ClientPortalPage } from './features/clientPortal/pages/ClientPortalPage';
 import { ClientProjectDetailPage } from './features/clientPortal/pages/ClientProjectDetailPage';
+import { TeamMemberPage } from './features/dashboard/pages/TeamMemberPage';
 import { EngineerPortalPage } from './features/engineerPortal/pages/EngineerPortalPage';
 import { FieldVisitsPage } from './features/fieldVisits/pages/FieldVisitsPage';
 import { FilesPage } from './features/files/pages/FilesPage';
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/engineer-portal" element={<EngineerPortalPage />} />
           <Route path="/client-portal" element={<ClientPortalPage />} />
           <Route path="/client-portal/projects/:id" element={<ClientProjectDetailPage />} />
+          <Route path="/team/:id" element={<TeamMemberPage />} />
           <Route path="/hr" element={<EmployeesPage />} />
           <Route path="/hr/attendance" element={<AttendancePage />} />
           <Route path="/hr/payroll" element={<PayrollPage />} />

@@ -11,4 +11,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/engineer-portal', [EngineerPortalController::class, 'index']);
+    // الإدارة تعاين مساحة عمل موظف بعينه (DASH-2)
+    Route::get('/team/{user}/workspace', [EngineerPortalController::class, 'employee'])->middleware('permission:tasks.view');
 });

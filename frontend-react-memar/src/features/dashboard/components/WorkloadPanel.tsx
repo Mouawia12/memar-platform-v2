@@ -28,12 +28,12 @@ export function WorkloadPanel() {
 
           return (
             <div key={w.user.id}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <Link to={`/team/${w.user.id}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', textDecoration: 'none', color: 'inherit' }} title="عرض مساحة عمل الموظف">
                 <span style={{ ...avatar, background: colorFor(w.user.id) }}>{w.user.name.charAt(0)}</span>
                 <span style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.user.name}</span>
                 <span style={{ fontSize: '12px', color: '#5A6478' }}>{w.open} مفتوحة / {w.total}</span>
                 {w.overdue > 0 && <span style={overduePill}>⏰ {w.overdue} متأخّرة</span>}
-              </div>
+              </Link>
               {/* شريط توزيع الحالات */}
               <div style={bar} title={`قيد التنفيذ ${w.in_progress} · مراجعة ${w.review} · بانتظار ${w.todo} · منجزة ${w.done}`}>
                 <span style={{ width: seg(w.in_progress), background: '#1B6CA8' }} />

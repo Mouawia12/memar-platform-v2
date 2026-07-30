@@ -13,6 +13,7 @@ use App\Models\Appointment;
 use App\Models\FieldVisit;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,11 +23,31 @@ use Illuminate\Http\Request;
  */
 class EngineerPortalController extends ApiController
 {
+    /** مساحة عمل المستخدم الحالي. */
     public function index(Request $request): JsonResponse
     {
-        $userId = $request->user()?->id;
+        return $this->ok($this->buildWorkspace((int) $request->user()->id));
+    }
 
-        // مهامي غير المنجزة
+    /**
+     * مساحة عمل موظف بعينه — للإدارة (DASH-2): «تدخل برحلة الموظف وترى ما يراه».
+     * مقصورة على من يملك tasks.view (كنقطة دخول لوحة حِمل العمل).
+     */
+    public function employee(User $user): JsonResponse
+    {
+        return $this->ok([
+            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
+        ] + $this->buildWorkspace($user->id));
+    }
+
+    /**
+     * يبني مساحة عمل مستخدم بمعرّفه (يُعاد استخدامها للمستخدم الحالي وللإدارة).
+     *
+     * @return array<string, mixed>
+     */
+    private function buildWorkspace(int $userId): array
+    {
+        // مهامه غير المنجزة
         $myTasks = Task::query()
             ->where('assignee_id', $userId)
             ->where('status', '!=', 'done')
@@ -75,7 +96,7 @@ class EngineerPortalController extends ApiController
             ->orderBy('start_at')
             ->get();
 
-        return $this->ok([
+        return [
             'stats' => [
                 'open_tasks' => Task::where('assignee_id', $userId)->where('status', '!=', 'done')->count(),
                 'overdue_tasks' => Task::where('assignee_id', $userId)
@@ -98,6 +119,6 @@ class EngineerPortalController extends ApiController
             'projects' => ProjectResource::collection($myProjects),
             'appointments' => AppointmentResource::collection($myAppointments),
             'calendar_appointments' => AppointmentResource::collection($calendarAppointments),
-        ]);
+        ];
     }
 }

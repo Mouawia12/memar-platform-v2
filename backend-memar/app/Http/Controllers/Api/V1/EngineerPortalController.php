@@ -56,7 +56,7 @@ class EngineerPortalController extends ApiController
             ->limit(10)
             ->get();
 
-        // مواعيدي القادمة
+        // مواعيدي القادمة (قائمة مختصرة)
         $myAppointments = Appointment::query()
             ->where('created_by', $userId)
             ->where('status', 'scheduled')
@@ -64,6 +64,15 @@ class EngineerPortalController extends ApiController
             ->with('project:id,name')
             ->orderBy('start_at')
             ->limit(8)
+            ->get();
+
+        // مواعيدي ضمن نافذة زمنية لعرض التقويم (اجتماع 3: كلندر للموظف)
+        $calendarAppointments = Appointment::query()
+            ->where('created_by', $userId)
+            ->where('status', '!=', 'cancelled')
+            ->whereBetween('start_at', [now()->subMonth()->startOfMonth(), now()->addMonths(3)->endOfMonth()])
+            ->with('project:id,name')
+            ->orderBy('start_at')
             ->get();
 
         return $this->ok([
@@ -88,6 +97,7 @@ class EngineerPortalController extends ApiController
             'visits' => FieldVisitResource::collection($myVisits),
             'projects' => ProjectResource::collection($myProjects),
             'appointments' => AppointmentResource::collection($myAppointments),
+            'calendar_appointments' => AppointmentResource::collection($calendarAppointments),
         ]);
     }
 }

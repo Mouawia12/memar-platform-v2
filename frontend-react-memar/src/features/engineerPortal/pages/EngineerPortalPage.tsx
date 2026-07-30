@@ -1,7 +1,8 @@
-import { type CSSProperties, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { type CSSProperties, type ReactNode, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../../store/auth';
+import { AppointmentsCalendar } from '../../appointments/components/AppointmentsCalendar';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_LABELS as TASK_STATUS_LABELS } from '../../tasks/types';
 import { STATUS_COLORS as VISIT_COLORS, STATUS_LABELS as VISIT_STATUS, TYPE_LABELS as VISIT_TYPES } from '../../fieldVisits/types';
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '../../projects/types';
@@ -14,12 +15,14 @@ const isOverdue = (due: string | null) => Boolean(due && new Date(due).setHours(
 /** بوابة المهندس — مساحة عمل شخصية: مهامي، زياراتي، مشاريعي، مواعيدي. */
 export function EngineerPortalPage() {
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const [showCalendar, setShowCalendar] = useState(true);
   const { data, isLoading, isError } = useEngineerPortal();
 
   if (isLoading) return <p>جارٍ التحميل…</p>;
   if (isError || !data) return <p style={{ color: '#ef4444' }}>تعذّر تحميل مساحة العمل.</p>;
 
-  const { stats, tasks, visits, projects, appointments } = data;
+  const { stats, tasks, visits, projects, appointments, calendar_appointments } = data;
 
   return (
     <div>
@@ -35,6 +38,26 @@ export function EngineerPortalPage() {
         <Stat value={stats.today_visits} label="📍 زيارات اليوم" color="#D97706" />
         <Stat value={stats.upcoming_visits} label="📅 زيارات قادمة" color="#2D9B6F" />
         <Stat value={stats.my_projects} label="🏗️ مشاريعي" color="#7B2D8B" />
+      </div>
+
+      {/* تقويم مواعيدي (اجتماع 3: كلندر للموظف — سنة/شهر/أسبوع/يوم) */}
+      <div className="card" style={{ padding: '16px', marginBottom: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showCalendar ? '12px' : 0, flexWrap: 'wrap', gap: '8px' }}>
+          <h3 style={{ margin: 0, fontSize: '15px' }}>📅 تقويم مواعيدي</h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Link to="/appointments" style={link}>الصفحة الكاملة ←</Link>
+            <button type="button" onClick={() => setShowCalendar((s) => !s)} style={{ border: '1px solid #e2e8f0', background: '#fff', borderRadius: '8px', padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: '#5A6478' }}>
+              {showCalendar ? 'إخفاء ▴' : 'إظهار ▾'}
+            </button>
+          </div>
+        </div>
+        {showCalendar && (
+          <AppointmentsCalendar
+            appointments={calendar_appointments}
+            onDayClick={() => navigate('/appointments')}
+            onEventClick={() => navigate('/appointments')}
+          />
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>

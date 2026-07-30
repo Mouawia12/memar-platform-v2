@@ -18,6 +18,7 @@ export interface PortalData {
   visits: FieldVisit[];
   projects: Project[];
   appointments: Appointment[];
+  calendar_appointments: Appointment[];
 }
 
 export const portalApi = {

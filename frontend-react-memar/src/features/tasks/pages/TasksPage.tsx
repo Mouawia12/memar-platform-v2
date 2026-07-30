@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 
-import { useAuthStore } from '../../../store/auth';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { FollowUpBoard } from '../components/FollowUpBoard';
 import { TaskDetailModal } from '../components/TaskDetailModal';
@@ -13,8 +13,7 @@ import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
  * طبق الأصل: سحب لتغيير الحالة، فلاتر فترة لكل عمود، ومؤشرات KPI.
  */
 export function TasksPage() {
-  const roles = useAuthStore((s) => s.user?.roles);
-  const canDelete = !roles || roles.includes('super_admin'); // الحذف لمدير النظام فقط (طلب العميل)
+  const canDelete = usePermission('tasks.delete'); // الحذف للإدارة فقط (طلب العميل — اجتماع 3)
 
   const [search, setSearch] = useState('');
   const [projectId, setProjectId] = useState<number | ''>('');
@@ -89,6 +88,7 @@ export function TasksPage() {
           onEdit={(t) => { setEditing(t); setFormOpen(true); }}
           onToggle={handleToggle}
           onDelete={handleDelete}
+          onSetNotExecuted={(t) => { move.mutate({ id: t.id, payload: { status: 'cancelled' } }); setDetail(null); }}
         />
       )}
     </div>

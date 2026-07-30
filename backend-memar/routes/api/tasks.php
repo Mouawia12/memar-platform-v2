@@ -15,7 +15,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/tasks', [TaskController::class, 'store'])->middleware('permission:tasks.manage');
     Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('permission:tasks.view');
     Route::match(['put', 'patch'], '/tasks/{task}', [TaskController::class, 'update'])->middleware('permission:tasks.manage');
-    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->middleware('permission:tasks.manage');
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->middleware('permission:tasks.delete');
 
     // صفحة التفاصيل: محادثة، مشاركون، ملفات، فيديو
     Route::post('/tasks/{task}/comments', [TaskController::class, 'addComment'])->middleware('permission:tasks.manage');

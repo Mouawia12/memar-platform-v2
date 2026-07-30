@@ -28,7 +28,7 @@ class RolesAndAdminSeeder extends Seeder
             'crm.view', 'crm.manage',
             'requests.view', 'requests.manage',
             'projects.view', 'projects.manage',
-            'tasks.view', 'tasks.manage',
+            'tasks.view', 'tasks.manage', 'tasks.delete',
             'appointments.view', 'appointments.manage',
             'documents.view', 'documents.manage',
             'contracts.view', 'contracts.manage',

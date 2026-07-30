@@ -15,13 +15,14 @@ interface Props {
   onEdit: (t: Task) => void;
   onToggle: (t: Task) => void;
   onDelete: (t: Task) => void;
+  onSetNotExecuted: (t: Task) => void;
 }
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const kb = (n: number) => (n < 1024 ? `${n}B` : n < 1_048_576 ? `${Math.round(n / 1024)}KB` : `${(n / 1_048_576).toFixed(1)}MB`);
 
 /** صفحة تفاصيل المهمة (TASK-4): محادثة، مشاركون، ملفات، مكالمة فيديو، حجز موعد، تقييم. */
-export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, onDelete }: Props) {
+export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, onDelete, onSetNotExecuted }: Props) {
   const userName = useAuthStore((s) => s.user?.name);
   const { data: detail, isLoading } = useTaskDetail(task.id);
   const { data: users } = useUsers({ per_page: 100 });
@@ -84,6 +85,9 @@ export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, on
           <button className="btn btn-sm" type="button" onClick={() => void startCall()} style={{ background: '#059669', color: '#fff' }}>📹 مكالمة فيديو</button>
           <button className="btn btn-sm" type="button" onClick={() => setBooking(true)}>📅 حجز موعد</button>
           <button className="btn btn-sm" type="button" onClick={() => onEdit(task)}>✏️ تعديل</button>
+          {task.status !== 'cancelled' && task.status !== 'done' && (
+            <button className="btn btn-sm" type="button" style={{ color: '#B45309' }} onClick={() => { onSetNotExecuted(task); }}>⊘ لم تُنفَّذ</button>
+          )}
           <span style={{ flex: 1 }} />
           {canDelete && <button className="btn btn-sm" type="button" style={{ color: '#DC2626' }} onClick={() => { onDelete(task); onClose(); }}>🗑 حذف</button>}
         </div>

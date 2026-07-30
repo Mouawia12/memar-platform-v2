@@ -1,4 +1,4 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
+export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface TaskRef {
@@ -61,6 +61,7 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   in_progress: 'قيد التنفيذ',
   review: 'مراجعة',
   done: 'مكتمل',
+  cancelled: 'لم تُنفَّذ',
 };
 
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {
@@ -81,12 +82,14 @@ export const PRIORITY_COLORS: Record<TaskPriority, string> = {
 export type FollowUpColumn = 'overdue' | 'today' | 'upcoming' | 'done';
 
 export const isDone = (t: Task): boolean => t.status === 'done';
+/** حالة نهائية (منجزة أو غير منفّذة) — تخرج من أعمدة العمل النشطة. */
+export const isTerminal = (t: Task): boolean => t.status === 'done' || t.status === 'cancelled';
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10);
 
 /** العمود الذي تقع فيه المهمة: منتهية، أو متأخرة/اليوم/قادمة حسب تاريخ الاستحقاق. */
 export function taskColumn(t: Task): FollowUpColumn {
-  if (isDone(t)) return 'done';
+  if (isTerminal(t)) return 'done';
   if (!t.due_date) return 'upcoming'; // بلا موعد → ضمن القادمة
   const due = t.due_date.slice(0, 10);
   if (due < todayStr()) return 'overdue';
@@ -106,6 +109,7 @@ export function dueDiffDays(due: string | null): number | null {
 
 /** تسمية الاستحقاق: اليوم / بعد N يوم / أمس / تأخّر N يوم / مكتمل (طبق الأصل). */
 export function dueLabel(t: Task): string {
+  if (t.status === 'cancelled') return 'لم تُنفَّذ';
   if (isDone(t)) return 'مكتمل';
   const diff = dueDiffDays(t.due_date);
   if (diff === null) return 'بلا موعد';

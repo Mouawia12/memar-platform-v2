@@ -13,9 +13,29 @@ interface Props {
  * الشريط الجانبي — يطابق بنية الـERP الأصلي (شعار + أقسام قابلة للطي).
  * الدرج على الموبايل عبر صنف `.sidebar.open` (آلية التصميم الأصلي).
  */
+const COLLAPSE_KEY = 'memar_nav_collapsed';
+
+function loadCollapsed(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? '{}') as Record<string, boolean>;
+  } catch {
+    return {};
+  }
+}
+
 export function Sidebar({ open, onNavigate }: Props) {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
+  // طيّ أقسام القائمة يبقى محفوظًا بين الجلسات (DASH-3: إخفاء/ترتيب عناصر القائمة).
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(loadCollapsed);
+  const toggle = (id: string) => setCollapsed((c) => {
+    const next = { ...c, [id]: !c[id] };
+    try {
+      localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+    } catch {
+      // تجاهل أخطاء التخزين المحلي
+    }
+
+    return next;
+  });
 
   const permissions = useAuthStore((s) => s.user?.permissions);
   const roles = useAuthStore((s) => s.user?.roles);

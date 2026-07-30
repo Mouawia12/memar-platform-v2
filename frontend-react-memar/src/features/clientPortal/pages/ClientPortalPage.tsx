@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { STATUS_COLORS as CONTRACT_COLORS, STATUS_LABELS as CONTRACT_STATUS } from '../../contracts/types';
 import { ClientAdsBanner } from '../components/ClientAdsBanner';
+import { ClientQuickActions } from '../components/ClientQuickActions';
 import { printDocument } from '../../documents/print';
 import { STATUS_COLORS as INVOICE_COLORS, STATUS_LABELS as INVOICE_STATUS } from '../../invoices/types';
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '../../projects/types';
@@ -36,9 +37,16 @@ export function ClientPortalPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: '18px' }}>
-        <h1 style={{ margin: 0 }}>أهلاً، {client?.name ?? 'عميلنا'} 🏛️</h1>
-        <p style={{ opacity: 0.7, fontSize: '14px', marginTop: '4px' }}>تابع مشاريعك وفواتيرك ومستنداتك مع مجموعة معمار.</p>
+      {/* ترويسة شخصية (CLIENT-2) — بأسلوب الصفحة الشخصية */}
+      <div className="card" style={{ padding: '18px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={avatar}>{(client?.name ?? 'ع').charAt(0)}</div>
+          <div style={{ flex: 1, minWidth: '180px' }}>
+            <h1 style={{ margin: 0, fontSize: '20px' }}>أهلاً، {client?.name ?? 'عميلنا'} 🏛️</h1>
+            <p style={{ opacity: 0.7, fontSize: '13px', marginTop: '3px' }}>تابع مشاريعك وفواتيرك ومستنداتك مع مجموعة معمار.</p>
+          </div>
+          <ClientQuickActions variant="inline" />
+        </div>
       </div>
 
       {/* بانر إعلاني (CLIENT-1) */}
@@ -54,7 +62,13 @@ export function ClientPortalPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
         <Section title="🏗️ مشاريعي">
-          {projects.length === 0 && <Empty text="لا توجد مشاريع بعد." />}
+          {projects.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '18px 8px' }}>
+              <div style={{ fontSize: '30px', marginBottom: '8px' }}>🏗️</div>
+              <p style={{ fontSize: '13.5px', color: '#5A6478', margin: '0 0 14px' }}>لا مشاريع بعد — لنبدأ مشروعك الأول مع معمار!</p>
+              <ClientQuickActions variant="primary" />
+            </div>
+          )}
           {projects.map((p) => (
             <Link key={p.id} to={`/client-portal/projects/${p.id}`} style={{ ...row, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -147,5 +161,6 @@ function Empty({ text }: { text: string }) {
   return <p style={{ opacity: 0.6, fontSize: '13px', padding: '10px 0' }}>{text}</p>;
 }
 
+const avatar: CSSProperties = { width: '54px', height: '54px', borderRadius: '50%', background: 'linear-gradient(135deg,#274A78,#1B6CA8)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800, flexShrink: 0 };
 const row: CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 0', borderBottom: '1px solid #F1F5F9' };
 const chip: CSSProperties = { padding: '2px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, whiteSpace: 'nowrap' };

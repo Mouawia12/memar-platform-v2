@@ -16,8 +16,10 @@ use App\Models\Contract;
 use App\Models\GeneratedDocument;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * بوابة العميل — يرى العميل بيانات سجلّه فقط (مشاريعه، فواتيره، عقوده، مستنداته، اجتماعاته).
@@ -136,5 +138,41 @@ class ClientPortalController extends ApiController
                 'invoices' => InvoiceResource::collection($invoices),
             ],
         ]);
+    }
+
+    /**
+     * طلب من العميل من بوابته (CLIENT-2): مشروع جديد / حجز اجتماع / استفسار.
+     * يُنشئ طلبًا واردًا (ServiceRequest) يظهر لدى الطاقم.
+     */
+    public function submitRequest(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $contact = $user?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $data = $request->validate([
+            'type' => ['required', Rule::in(['project', 'meeting', 'inquiry'])],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $map = [
+            'project' => ['title' => 'طلب مشروع جديد', 'type' => 'design'],
+            'meeting' => ['title' => 'طلب حجز اجتماع', 'type' => 'inquiry'],
+            'inquiry' => ['title' => 'استفسار', 'type' => 'inquiry'],
+        ];
+        $m = $map[$data['type']];
+
+        $req = ServiceRequest::create([
+            'title' => $m['title'].' — '.$contact->full_name,
+            'type' => $m['type'],
+            'client_name' => $contact->full_name,
+            'contact_phone' => $contact->phone,
+            'priority' => 'high',
+            'status' => 'open',
+            'description' => trim(($data['note'] ?? '')."\nمصدر الطلب: بوابة العميل"),
+            'requested_by' => $user->id,
+        ]);
+
+        return $this->created(['id' => $req->id], 'تم إرسال طلبك — سنتواصل معك قريبًا.');
     }
 }

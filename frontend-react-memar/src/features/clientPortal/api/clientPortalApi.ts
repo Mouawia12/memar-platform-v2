@@ -1,4 +1,4 @@
-import { apiGet } from '../../../lib/api';
+import { apiGet, apiPost } from '../../../lib/api';
 import type { Appointment } from '../../appointments/types';
 import type { Contract } from '../../contracts/types';
 import type { GeneratedDocument } from '../../documents/types';
@@ -44,7 +44,10 @@ export interface ClientProjectDetail {
   };
 }
 
+export type ClientRequestType = 'project' | 'meeting' | 'inquiry';
+
 export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
   project: (id: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`),
+  submitRequest: (type: ClientRequestType, note?: string) => apiPost<{ id: number }>('/client-portal/requests', { type, note }),
 };

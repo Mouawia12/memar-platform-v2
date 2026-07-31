@@ -123,7 +123,7 @@ export function Sidebar({ open, onNavigate }: Props) {
   );
 }
 
-const customizeBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '4px 12px 8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,.18)', background: 'rgba(255,255,255,.06)', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, textAlign: 'center' };
-const customizeOn: CSSProperties = { background: '#2D9B6F', borderColor: '#2D9B6F' };
-const editHint: CSSProperties = { margin: '0 12px 8px', fontSize: '10.5px', color: 'rgba(255,255,255,.6)', lineHeight: 1.6, textAlign: 'center' };
-const editRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer', color: '#fff', fontSize: '13px' };
+const customizeBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '4px 12px 8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F0F4F8', color: '#274A78', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, textAlign: 'center' };
+const customizeOn: CSSProperties = { background: '#2D9B6F', borderColor: '#2D9B6F', color: '#fff' };
+const editHint: CSSProperties = { margin: '0 12px 8px', fontSize: '10.5px', color: '#64748B', lineHeight: 1.6, textAlign: 'center' };
+const editRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer', color: '#334155', fontSize: '13px' };

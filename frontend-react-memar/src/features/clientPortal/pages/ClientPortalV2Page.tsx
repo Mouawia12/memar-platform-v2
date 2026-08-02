@@ -182,7 +182,7 @@ export function ClientPortalV2Page() {
 
           <nav className="sb-nav">
             <div className="nav-section-label">الرئيسية</div>
-            <div className={`nav-item${page === 'dashboard' ? ' active' : ''}`} onClick={() => go('dashboard')}><i className="fas fa-grid-2" /><span>نظرة عامة</span></div>
+            <div className={`nav-item${page === 'dashboard' ? ' active' : ''}`} onClick={() => go('dashboard')}><i className="fas fa-table-cells-large" /><span>نظرة عامة</span></div>
             <div className={`nav-item${page === 'notifications' ? ' active' : ''}`} onClick={() => go('notifications')}><i className="fas fa-bell" /><span>الإشعارات</span>{notifCount > 0 && <span className="nav-badge danger">{notifCount}</span>}</div>
 
             <div className="nav-section-label">المشاريع</div>

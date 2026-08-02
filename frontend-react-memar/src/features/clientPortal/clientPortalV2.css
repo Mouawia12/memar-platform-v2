@@ -193,6 +193,12 @@
   width: 20px;
   text-align: center;
   flex-shrink: 0;
+  /* أيقونات واضحة على خلفية الشريط البيضاء (كانت باهتة) */
+  color: #334155;
+}
+.mcp-root .nav-item:hover i,
+.mcp-root .nav-item.active i {
+  color: inherit;
 }
 .mcp-root .nav-badge {
   margin-right: auto;

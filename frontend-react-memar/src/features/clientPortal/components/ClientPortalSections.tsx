@@ -303,6 +303,7 @@ export function ForumSection({ onInquiry }: { onInquiry: (msg: string) => void }
 export function SettingsSection({ client }: { client: ClientInfo }) {
   const update = useUpdateClientProfile();
   const [name, setName] = useState(client.name ?? '');
+  const [kunya, setKunya] = useState(client.kunya ?? '');
   const [phone, setPhone] = useState(client.phone ?? '');
   const [company, setCompany] = useState(client.company ?? '');
   const [saved, setSaved] = useState(false);
@@ -311,7 +312,7 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
 
   const save = () => {
     if (name.trim().length < 2) return;
-    update.mutate({ full_name: name.trim(), phone: phone.trim() || null, company: company.trim() || null }, { onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2500); } });
+    update.mutate({ full_name: name.trim(), kunya: kunya.trim() || null, phone: phone.trim() || null, company: company.trim() || null }, { onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2500); } });
   };
 
   const toggles: { key: keyof typeof prefs; title: string; sub: string }[] = [
@@ -350,6 +351,7 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
           <div className="card-body">
             <div className="form-grid">
               <div className="form-group"><label className="form-label">الاسم الكامل</label><input className="form-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
+              <div className="form-group"><label className="form-label">الكنية</label><input className="form-input" value={kunya} onChange={(e) => setKunya(e.target.value)} placeholder="مثال: أبو عبدالله" /></div>
               <div className="form-group"><label className="form-label">رقم الجوال</label><input className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+965…" /></div>
               <div className="form-group"><label className="form-label">الشركة</label><input className="form-input" value={company} onChange={(e) => setCompany(e.target.value)} /></div>
               <div className="form-group"><label className="form-label">كود العضوية</label><input className="form-input" value={`MEM-${String(client.id).padStart(4, '0')}`} disabled /></div>

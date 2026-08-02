@@ -18,6 +18,7 @@ export interface ClientStats {
 export interface ClientInfo {
   id: number;
   name: string | null;
+  kunya: string | null;
   company: string | null;
   phone: string | null;
   since: string | null;
@@ -75,6 +76,7 @@ export interface ClientNotification {
 
 export interface ClientProfilePayload {
   full_name?: string;
+  kunya?: string | null;
   phone?: string | null;
   company?: string | null;
 }

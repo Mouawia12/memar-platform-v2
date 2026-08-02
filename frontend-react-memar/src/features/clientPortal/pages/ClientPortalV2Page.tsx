@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLogout } from '../../auth/hooks/useAuth';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
-import { useClientNotifications, useClientPortal, useSubmitClientRequest } from '../hooks/useClientPortal';
+import { useClientNotifications, useClientPortal, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
 type PageKey = 'dashboard' | 'requests' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
@@ -37,6 +37,9 @@ export function ClientPortalV2Page() {
   const logout = useLogout();
   const { data, isLoading, isError } = useClientPortal();
   const submitReq = useSubmitClientRequest();
+  const updateProfile = useUpdateClientProfile();
+  const [editingKunya, setEditingKunya] = useState(false);
+  const [kunyaDraft, setKunyaDraft] = useState('');
 
   const [slide, setSlide] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -132,6 +135,13 @@ export function ClientPortalV2Page() {
     else showToast('لتفعيل خصمك، شارك كودك مع صديق. يُطبَّق الخصم تلقائياً بعد فتح صديقك حساباً جديداً وتعاقده على مشروعه الأول.');
   };
   const doInquiry = (msg: string) => submitReq.mutate({ type: 'inquiry', note: msg });
+  // تعديل الكنية داخليًا (طبق الأصل: editClientTitle) — يُحفظ فعليًا في الباك اند.
+  const startEditKunya = () => { setKunyaDraft(client?.kunya ?? ''); setEditingKunya(true); };
+  const saveKunya = () => {
+    setEditingKunya(false);
+    const v = kunyaDraft.trim();
+    if (v !== (client?.kunya ?? '')) updateProfile.mutate({ kunya: v || null }, { onSuccess: () => showToast('تم حفظ الكنية ✓') });
+  };
   const go = (p: PageKey) => { setPage(p); setSidebarOpen(false); };
   const notifCount = notif?.count ?? unpaidCount;
 
@@ -156,7 +166,25 @@ export function ClientPortalV2Page() {
               </div>
               <div className="sb-client-info">
                 <strong className="sb-client-name">{clientName}</strong>
-                {client?.company && <div className="sb-client-title-editable"><span className="sb-client-title-text">{client.company}</span></div>}
+                {/* الكنية (منفصلة عن الاسم واسم الشركة) — قابلة للتعديل بالنقر */}
+                <div className="sb-client-title-editable" onClick={editingKunya ? undefined : startEditKunya} title="انقر لتعديل الكنية">
+                  {editingKunya ? (
+                    <input
+                      className="sb-client-title-input"
+                      dir="rtl"
+                      autoFocus
+                      value={kunyaDraft}
+                      onChange={(e) => setKunyaDraft(e.target.value)}
+                      onBlur={saveKunya}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveKunya(); if (e.key === 'Escape') setEditingKunya(false); }}
+                    />
+                  ) : (
+                    <>
+                      <span className="sb-client-title-text" style={client?.kunya ? undefined : { opacity: 0.6 }}>{client?.kunya || 'أضِف كنيتك'}</span>
+                      <i className="fas fa-pen-to-square sb-title-edit-icon" />
+                    </>
+                  )}
+                </div>
                 <span className="sb-client-member-code"><i className="fas fa-hashtag" /> {memberCode}</span>
                 <span className="sb-client-role"><i className="fas fa-crown" /> عميل مميز</span>
               </div>

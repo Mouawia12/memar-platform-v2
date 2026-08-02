@@ -86,6 +86,7 @@ class ClientPortalController extends ApiController
             'client' => [
                 'id' => $contactId,
                 'name' => $contact?->full_name,
+                'kunya' => $contact?->kunya,
                 'company' => $contact?->company,
                 'phone' => $contact?->phone,
                 'since' => $contact?->created_at?->format('Y'),
@@ -249,6 +250,7 @@ class ClientPortalController extends ApiController
 
         $data = $request->validate([
             'full_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'kunya' => ['nullable', 'string', 'max:100'],
             'phone' => ['nullable', 'string', 'max:30'],
             'company' => ['nullable', 'string', 'max:255'],
         ]);
@@ -258,6 +260,7 @@ class ClientPortalController extends ApiController
         return $this->ok([
             'id' => $contact->id,
             'name' => $contact->full_name,
+            'kunya' => $contact->kunya,
             'phone' => $contact->phone,
             'company' => $contact->company,
         ], 'تم حفظ بياناتك');

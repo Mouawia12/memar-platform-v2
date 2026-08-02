@@ -40,3 +40,17 @@ export function useDeleteProject() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+/**
+ * إعادة تسمية المشروع من أي صفحة (مهام، CRM، تفاصيل المشروع…).
+ * المشروع هو مصدر الحقيقة الوحيد للاسم، فأي تعديل يُكتب هنا وينعكس تلقائياً.
+ * اسم المشروع يظهر في صفحات كثيرة (مهام، فرص، فواتير، عقود، مواعيد، بوابة العميل…)
+ * لذا نُبطل كامل ذاكرة الاستعلام ليتحدّث الاسم أينما ظهر دون تعديل يدوي في كل مكان.
+ */
+export function useRenameProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) => projectsApi.update(id, { name }),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}

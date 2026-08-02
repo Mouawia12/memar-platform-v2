@@ -3,6 +3,7 @@ import { useRef, useState, type CSSProperties } from 'react';
 import { useAuthStore } from '../../../store/auth';
 import { AppointmentFormModal } from '../../appointments/components/AppointmentFormModal';
 import { MeetingRoom } from '../../appointments/components/MeetingRoom';
+import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
 import { useUsers } from '../../users/hooks/useUsers';
 import { tasksApi } from '../api/tasksApi';
 import { useAddComment, useRateTask, useSyncParticipants, useTaskDetail, useUploadTaskFile } from '../hooks/useTasks';
@@ -64,7 +65,9 @@ export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, on
             <h2 style={{ margin: 0, fontSize: '18px' }}>{task.title}</h2>
             <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '3px' }}>
               {detail?.creator && <>أنشأها {detail.creator.name} · </>}
-              {detail?.project && <>🏗️ {detail.project.name}</>}
+              {detail?.project && (
+                <ProjectNameInline projectId={detail.project.id} name={detail.project.name} code={detail.project.code} prefix="🏗️" />
+              )}
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="إغلاق" style={closeBtn}>×</button>

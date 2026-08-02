@@ -4,6 +4,8 @@ export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export interface TaskRef {
   id: number;
   name: string;
+  /** رقم المشروع — يُملأ لمرجع المشروع فقط (مصدره سجل المشاريع). */
+  code?: string | null;
 }
 
 export interface Task {

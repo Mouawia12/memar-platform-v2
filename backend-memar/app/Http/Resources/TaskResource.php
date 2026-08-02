@@ -25,8 +25,10 @@ class TaskResource extends JsonResource
             'status' => $this->status,
             'priority' => $this->priority,
             'due_date' => $this->due_date?->toDateString(),
+            // بيانات المشروع الموحّدة — الاسم والرقم مصدرهما سجل المشاريع (مصدر الحقيقة)
             'project' => $this->whenLoaded('project', fn () => $this->project ? [
                 'id' => $this->project->id,
+                'code' => $this->project->code,
                 'name' => $this->project->name,
             ] : null),
             'assignee' => $this->whenLoaded('assignee', fn () => $this->assignee ? [

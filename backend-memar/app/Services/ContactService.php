@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Contact;
+use App\Models\PipelineStage;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -12,6 +13,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class ContactService
 {
+    public function __construct(private readonly ProjectService $projects) {}
+
     public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
     {
         return Contact::query()
@@ -24,7 +27,7 @@ class ContactService
                 });
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
-            ->with('owner')
+            ->with(['owner', 'convertedProject'])
             ->latest()
             ->paginate($perPage);
     }
@@ -34,7 +37,10 @@ class ContactService
      */
     public function create(array $data): Contact
     {
-        return Contact::create($data)->load('owner');
+        $contact = Contact::create($data);
+        $this->maybeConvertToProject($contact);
+
+        return $contact->load('owner', 'convertedProject');
     }
 
     /**
@@ -43,12 +49,41 @@ class ContactService
     public function update(Contact $contact, array $data): Contact
     {
         $contact->update($data);
+        $this->maybeConvertToProject($contact);
 
-        return $contact->load('owner');
+        return $contact->load('owner', 'convertedProject');
     }
 
     public function delete(Contact $contact): void
     {
         $contact->delete();
+    }
+
+    /**
+     * يحوّل الفرصة لمشروع في سجل المشاريع عند وصولها لمرحلة «صفقة رابحة» — مرّة واحدة فقط.
+     */
+    private function maybeConvertToProject(Contact $contact): void
+    {
+        if ($contact->converted_project_id !== null) {
+            return; // سبق تحويلها — لا تكرار
+        }
+
+        $isWonStage = PipelineStage::where('key', $contact->stage)->value('is_won');
+        if (! $isWonStage) {
+            return;
+        }
+
+        $project = $this->projects->create([
+            'name' => $contact->project_name ?: ($contact->company
+                ? "مشروع {$contact->company}"
+                : "مشروع {$contact->full_name}"),
+            'client_id' => $contact->id,
+            'manager_id' => $contact->owner_id,
+            'status' => 'active',
+            'budget_kwd' => $contact->deal_value_kwd,
+            'description' => $contact->project_details,
+        ]);
+
+        $contact->forceFill(['converted_project_id' => $project->id])->saveQuietly();
     }
 }

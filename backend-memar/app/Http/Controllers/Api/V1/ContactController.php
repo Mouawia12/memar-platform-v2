@@ -40,7 +40,7 @@ class ContactController extends ApiController
 
     public function show(Contact $contact): JsonResponse
     {
-        return $this->ok(new ContactResource($contact->load('owner')));
+        return $this->ok(new ContactResource($contact->load('owner', 'convertedProject')));
     }
 
     public function update(UpdateContactRequest $request, Contact $contact): JsonResponse

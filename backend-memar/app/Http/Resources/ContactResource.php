@@ -31,6 +31,19 @@ class ContactResource extends JsonResource
             'temperature' => $this->temperature,
             'deal_value_kwd' => $this->deal_value_kwd,
             'notes' => $this->notes,
+            // الاسم المبدئي المُدخل في الفرصة (مسوّدة تُستخدم قبل التحويل فقط)
+            'project_name' => $this->project_name,
+            'project_details' => $this->project_details,
+            'converted_project_id' => $this->converted_project_id,
+            // الاسم الموحّد للعرض دائمًا — يتبع سجل المشاريع بعد التحويل (مصدر الحقيقة)
+            'effective_project_name' => $this->effective_project_name,
+            // المشروع المرتبط (حيّ من سجل المشاريع) — اسمه ورقمه مصدرهما المشروع
+            'project' => $this->whenLoaded('convertedProject', fn () => $this->convertedProject ? [
+                'id' => $this->convertedProject->id,
+                'code' => $this->convertedProject->code,
+                'name' => $this->convertedProject->name,
+                'status' => $this->convertedProject->status,
+            ] : null),
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? [
                 'id' => $this->owner->id,
                 'name' => $this->owner->name,

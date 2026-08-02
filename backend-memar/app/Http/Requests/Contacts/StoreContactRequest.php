@@ -27,10 +27,12 @@ class StoreContactRequest extends FormRequest
             'position' => ['nullable', 'string', 'max:255'],
             'type' => ['required', Rule::in(['lead', 'client', 'contact'])],
             'status' => ['nullable', 'string', 'max:50'],
-            'stage' => ['nullable', Rule::in(['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'])],
+            'stage' => ['nullable', 'string', Rule::exists('pipeline_stages', 'key')],
             'temperature' => ['nullable', Rule::in(['hot', 'warm', 'cold', 'normal'])],
             'deal_value_kwd' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
+            'project_name' => ['nullable', 'string', 'max:255'],
+            'project_details' => ['nullable', 'string'],
         ];
     }
 }

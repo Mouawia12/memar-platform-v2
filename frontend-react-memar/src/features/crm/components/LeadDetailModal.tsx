@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react';
 
+import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
 import { useLeadHistory, useSetTemperature } from '../hooks/useCrm';
-import { STAGE_COLORS, STAGE_LABELS, STAGE_ORDER, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type Stage, type Temperature } from '../types';
+import { STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Stage, type Temperature } from '../types';
 
 interface Props {
   lead: Lead;
+  stages: PipelineStage[];
   onClose: () => void;
   onEdit: (l: Lead) => void;
   onDelete: (l: Lead) => void;
@@ -19,21 +21,25 @@ const FIELD_LABELS: Record<string, string> = {
 const EVENT_COLOR: Record<string, string> = { created: '#2D9B6F', updated: '#1B6CA8', deleted: '#DC4A3D' };
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
-function pretty(field: string, value: unknown): string {
-  if (value === null || value === undefined || value === '') return '—';
-  const v = String(value);
-  if (field === 'stage') return STAGE_LABELS[v as Stage] ?? v;
-  if (field === 'temperature') return `${TEMPERATURE_META[v as Temperature]?.icon ?? ''} ${TEMPERATURE_META[v as Temperature]?.label ?? v}`;
-
-  return v;
-}
-
 /** تفاصيل ومسار الفرصة — طبق الأصل: مؤشرات + نقل المرحلة + سجل التعديلات. */
-export function LeadDetailModal({ lead, onClose, onEdit, onDelete, onMove, onAddTask }: Props) {
+export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
   const setTemp = useSetTemperature();
   const rows = data?.data ?? [];
   const temp = TEMPERATURE_META[lead.temperature];
+
+  const labelOf = (key: string) => stages.find((s) => s.key === key)?.label ?? STAGE_LABELS_FALLBACK[key] ?? key;
+  const colorOf = (key: string) => stages.find((s) => s.key === key)?.color ?? STAGE_COLOR_FALLBACK;
+
+  const pretty = (field: string, value: unknown): string => {
+    if (value === null || value === undefined || value === '') return '—';
+    const v = String(value);
+    if (field === 'stage') return labelOf(v);
+    if (field === 'temperature') return `${TEMPERATURE_META[v as Temperature]?.icon ?? ''} ${TEMPERATURE_META[v as Temperature]?.label ?? v}`;
+
+    return v;
+  };
+  const projectName = lead.effective_project_name ?? lead.project_name;
 
   return (
     <div style={overlay} onClick={onClose}>
@@ -53,7 +59,20 @@ export function LeadDetailModal({ lead, onClose, onEdit, onDelete, onMove, onAdd
             <Info label="الحرارة"><span style={{ color: temp.color, fontWeight: 700 }}>{temp.icon} {temp.label}</span></Info>
             <Info label="تاريخ الإضافة"><b>{lead.created_at ? lead.created_at.slice(0, 10) : '—'}</b></Info>
             <Info label="التصنيف"><b>{lead.company ?? '—'}</b></Info>
-            <Info label="المسار الحالي"><b style={{ color: STAGE_COLORS[lead.stage] }}>{STAGE_LABELS[lead.stage]}</b></Info>
+            <Info label="المسار الحالي"><b style={{ color: colorOf(lead.stage) }}>{labelOf(lead.stage)}</b></Info>
+            {projectName && (
+              <Info label="المشروع">
+                {lead.project ? (
+                  // مشروع فعلي في السجل — قابل لإعادة التسمية وينعكس في كل مكان
+                  <span style={{ color: '#274A78', fontWeight: 700 }}>
+                    <ProjectNameInline projectId={lead.project.id} name={lead.project.name} code={lead.project.code} prefix="🏗️" />
+                  </span>
+                ) : (
+                  // اسم مبدئي قبل التحويل — يُعدّل من نموذج الفرصة
+                  <b style={{ color: '#274A78' }}>🏗️ {projectName}</b>
+                )}
+              </Info>
+            )}
           </div>
         </div>
 
@@ -78,10 +97,10 @@ export function LeadDetailModal({ lead, onClose, onEdit, onDelete, onMove, onAdd
         <div style={section}>
           <div style={secTitle}>🔄 نقل العميل إلى مسار آخر</div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {STAGE_ORDER.map((s) => (
-              <button key={s} type="button" onClick={() => onMove(lead, s)}
-                style={{ ...chip, ...(lead.stage === s ? { background: `${STAGE_COLORS[s]}18`, color: STAGE_COLORS[s], borderColor: STAGE_COLORS[s] } : null) }}>
-                {STAGE_LABELS[s]}
+            {stages.map((s) => (
+              <button key={s.key} type="button" onClick={() => onMove(lead, s.key)}
+                style={{ ...chip, ...(lead.stage === s.key ? { background: `${s.color}18`, color: s.color, borderColor: s.color } : null) }}>
+                {s.label}
               </button>
             ))}
           </div>

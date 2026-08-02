@@ -2,7 +2,8 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveLead } from '../hooks/useCrm';
-import { STAGE_LABELS, STAGE_ORDER, TEMPERATURE_ORDER, TEMPERATURE_META, type ContactType, type Lead, type LeadFormData, type Stage, type Temperature } from '../types';
+import { usePipelineStages } from '../hooks/usePipelineStages';
+import { TEMPERATURE_ORDER, TEMPERATURE_META, type ContactType, type Lead, type LeadFormData, type Stage, type Temperature } from '../types';
 
 interface Props {
   lead: Lead | null;
@@ -12,10 +13,12 @@ interface Props {
 const empty: LeadFormData = {
   full_name: '', email: '', phone: '', company: '', position: '',
   type: 'lead', stage: 'new', temperature: 'normal', deal_value_kwd: '', notes: '',
+  project_name: '', project_details: '',
 };
 
 export function LeadFormModal({ lead, onClose }: Props) {
   const save = useSaveLead();
+  const { data: stages } = usePipelineStages();
   const [form, setForm] = useState<LeadFormData>(empty);
 
   useEffect(() => {
@@ -31,6 +34,8 @@ export function LeadFormModal({ lead, onClose }: Props) {
         temperature: lead.temperature,
         deal_value_kwd: Number(lead.deal_value_kwd) ? String(lead.deal_value_kwd) : '',
         notes: lead.notes ?? '',
+        project_name: lead.project_name ?? '',
+        project_details: lead.project_details ?? '',
       });
     } else {
       setForm(empty);
@@ -67,7 +72,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
           </label>
           <label style={label}>المرحلة
             <select className="input" style={input} value={form.stage} onChange={(e) => set('stage', e.target.value as Stage)}>
-              {STAGE_ORDER.map((s) => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
+              {(stages ?? []).map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
           </label>
           <label style={label}>حرارة الفرصة
@@ -79,6 +84,28 @@ export function LeadFormModal({ lead, onClose }: Props) {
             <input className="input" style={input} type="number" step="0.001" min="0" value={form.deal_value_kwd} onChange={(e) => set('deal_value_kwd', e.target.value)} />
           </label>
         </div>
+        {/* بيانات المشروع — تُنقل لسجل المشاريع عند الفوز بالصفقة */}
+        <div style={{ marginTop: '14px', borderTop: '1px solid #EEF2F7', paddingTop: '12px' }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#5A6478', marginBottom: '2px' }}>🏗️ بيانات المشروع</div>
+          {lead?.project ? (
+            <p style={{ fontSize: '12px', color: '#059669', margin: '4px 0 8px' }}>
+              مرتبطة بمشروع «{lead.project.name}» ({lead.project.code}) في سجل المشاريع — يُدار الاسم من هناك.
+            </p>
+          ) : (
+            <p style={{ fontSize: '11.5px', color: '#8A93A3', margin: '2px 0 8px' }}>
+              يُنشأ مشروع تلقائيًا في سجل المشاريع بهذه البيانات عند تحويل الفرصة لصفقة رابحة.
+            </p>
+          )}
+          <label style={label}>اسم المشروع
+            <input className="input" style={input} value={form.project_name} disabled={!!lead?.project}
+              onChange={(e) => set('project_name', e.target.value)} placeholder="مثال: فيلا العزب — تصميم داخلي" />
+          </label>
+          <label style={label}>بيانات / تفاصيل المشروع
+            <textarea className="input" style={{ ...input, minHeight: '50px' }} value={form.project_details}
+              onChange={(e) => set('project_details', e.target.value)} placeholder="الموقع، المساحة، نوع الخدمة…" />
+          </label>
+        </div>
+
         <label style={label}>التصنيف
           <select className="input" style={input} value={form.type} onChange={(e) => set('type', e.target.value as ContactType)}>
             <option value="lead">عميل محتمل</option>

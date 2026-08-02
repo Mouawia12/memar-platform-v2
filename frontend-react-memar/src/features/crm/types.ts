@@ -1,6 +1,19 @@
-export type Stage = 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
+// المرحلة = مفتاح ديناميكي يأتي من جدول pipeline_stages (قابل للتعديل والإضافة)
+export type Stage = string;
 export type ContactType = 'lead' | 'client' | 'contact';
 export type Temperature = 'hot' | 'warm' | 'cold' | 'normal';
+
+/** مرحلة (عمود) في لوحة الفرص — تُدار من الأدمن. */
+export interface PipelineStage {
+  id: number;
+  key: string;
+  label: string;
+  color: string;
+  position: number;
+  is_won: boolean;
+  is_lost: boolean;
+  is_protected: boolean;
+}
 
 export interface Lead {
   id: number;
@@ -15,6 +28,13 @@ export interface Lead {
   temperature: Temperature;
   deal_value_kwd: string;
   notes: string | null;
+  project_name: string | null;
+  project_details: string | null;
+  converted_project_id: number | null;
+  // الاسم الموحّد للمشروع (حيّ من سجل المشاريع بعد التحويل)
+  effective_project_name: string | null;
+  // المشروع المرتبط بعد التحويل (حيّ من سجل المشاريع)
+  project: { id: number; code: string; name: string; status: string } | null;
   owner: { id: number; name: string } | null;
   created_at: string | null;
 }
@@ -30,6 +50,8 @@ export interface LeadFormData {
   temperature: Temperature;
   deal_value_kwd: string;
   notes: string;
+  project_name: string;
+  project_details: string;
 }
 
 // حرارة الفرصة (طبق أصل PRIORITY_OPTS) — ساخنة/دافئة/باردة/عادية
@@ -42,22 +64,10 @@ export const TEMPERATURE_META: Record<Temperature, { label: string; icon: string
   normal: { label: 'عادية', icon: '⚪', color: '#6B7280' },
 };
 
-export const STAGE_ORDER: Stage[] = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
-
-export const STAGE_LABELS: Record<Stage, string> = {
-  new: 'عميل محتمل',
-  contacted: 'تم التواصل',
-  qualified: 'مؤهّل',
-  proposal: 'عرض سعر',
-  won: 'صفقة رابحة',
-  lost: 'خسارة',
+/** تسميات/ألوان احتياطية للمراحل القديمة في السجل (لو حُذفت المرحلة من اللوحة). */
+export const STAGE_LABELS_FALLBACK: Record<string, string> = {
+  new: 'عميل محتمل', contacted: 'تم التواصل', qualified: 'مؤهّل',
+  proposal: 'عرض سعر', won: 'صفقة رابحة', lost: 'خسارة',
 };
 
-export const STAGE_COLORS: Record<Stage, string> = {
-  new: '#6B7280',
-  contacted: '#0891B2',
-  qualified: '#274A78',
-  proposal: '#D97706',
-  won: '#059669',
-  lost: '#DC2626',
-};
+export const STAGE_COLOR_FALLBACK = '#6B7280';

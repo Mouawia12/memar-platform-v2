@@ -1,11 +1,14 @@
-import { type CSSProperties, useState } from 'react';
+import { type CSSProperties, useMemo, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
 import { CrmBoard } from '../components/CrmBoard';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
+import { StagesManagerModal } from '../components/StagesManagerModal';
 import { useDeleteLead, useLeads, useMoveLead } from '../hooks/useCrm';
+import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
 
 export function CrmPage() {
@@ -15,15 +18,30 @@ export function CrmPage() {
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [kpisOpen, setKpisOpen] = useState(false);
+  const [stagesOpen, setStagesOpen] = useState(false);
 
   const { data, isLoading, isError } = useLeads({ search: search || undefined, per_page: 200 });
+  const { data: stages } = usePipelineStages();
   const move = useMoveLead();
   const del = useDeleteLead();
+  const canManage = usePermission('crm.manage');
+
+  const stageList = useMemo(() => [...(stages ?? [])].sort((a, b) => a.position - b.position), [stages]);
+  const wonKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won).map((s) => s.key)), [stageList]);
+  const terminalKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won || s.is_lost).map((s) => s.key)), [stageList]);
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (l: Lead) => { setDetailId(null); setEditing(l); setModalOpen(true); };
   const handleDelete = (l: Lead) => { if (confirm(`حذف "${l.full_name}"؟`)) del.mutate(l.id); };
-  const handleMove = (l: Lead, stage: Stage) => move.mutate({ id: l.id, stage });
+
+  /** نقل الفرصة — عند الوصول لمرحلة «رابحة» نؤكّد قبل توليد مشروع في سجل المشاريع. */
+  const handleMove = (l: Lead, stage: Stage) => {
+    if (wonKeys.has(stage) && !l.converted_project_id) {
+      const name = l.project_name || l.company || l.full_name;
+      if (!confirm(`تحويل الفرصة «${l.full_name}» لصفقة رابحة؟\nسيُنشأ مشروع «${name}» تلقائيًا في سجل المشاريع.`)) return;
+    }
+    move.mutate({ id: l.id, stage });
+  };
 
   /** إسناد مهمة من صفقة — يُغلق مودال التفاصيل ثم يفتح نموذج المهمة موجّهًا لمالك الفرصة (TASK-5). */
   const handleAddTask = (l: Lead) => {
@@ -38,10 +56,10 @@ export function CrmPage() {
   const leads = data?.data ?? [];
   // الصفقة المعروضة تُشتقّ من القائمة الحيّة — فتحديث المرحلة/الحرارة ينعكس فورًا
   const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
-  const wonCount = leads.filter((l) => l.stage === 'won').length;
-  const expectedValue = leads.filter((l) => !['won', 'lost'].includes(l.stage)).reduce((s, l) => s + Number(l.deal_value_kwd), 0);
+  const wonCount = leads.filter((l) => wonKeys.has(l.stage)).length;
+  const expectedValue = leads.filter((l) => !terminalKeys.has(l.stage)).reduce((s, l) => s + Number(l.deal_value_kwd), 0);
   const hotCount = leads.filter((l) => l.temperature === 'hot').length;
-  const activeCount = leads.filter((l) => !['won', 'lost'].includes(l.stage)).length;
+  const activeCount = leads.filter((l) => !terminalKeys.has(l.stage)).length;
   const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
 
   return (
@@ -51,7 +69,10 @@ export function CrmPage() {
           <h1 style={{ margin: 0 }}>إدارة الفرص والمبيعات</h1>
           <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px', direction: 'ltr', textAlign: 'right' }}>Pipeline &amp; Deals CRM</div>
         </div>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ فرصة جديدة</button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {canManage && <button className="btn" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
+          <button className="btn btn-primary" onClick={openCreate} type="button">+ فرصة جديدة</button>
+        </div>
       </div>
 
       {/* المؤشرات قابلة للطي (اجتماع 3: تقصير الصفحة، تقليل التمرير) — مطوية افتراضيًا */}
@@ -79,11 +100,12 @@ export function CrmPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={leads} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} />}
+      {data && <CrmBoard leads={leads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} />}
 
       {detailLead && (
         <LeadDetailModal
           lead={detailLead}
+          stages={stageList}
           onClose={() => setDetailId(null)}
           onEdit={openEdit}
           onDelete={handleDelete}
@@ -92,6 +114,7 @@ export function CrmPage() {
         />
       )}
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
+      {stagesOpen && <StagesManagerModal stages={stageList} onClose={() => setStagesOpen(false)} />}
       {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
     </div>
   );

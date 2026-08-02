@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -25,6 +26,7 @@ class Contact extends Model
         'full_name', 'kunya', 'email', 'phone', 'company', 'position',
         'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
+        'referral_code', 'referral_shares',
     ];
 
     /** تفضيلات الإشعارات الافتراضية (الكل مفعّل) حين لا يوجد تخصيص محفوظ. */
@@ -58,6 +60,14 @@ class Contact extends Model
     public function convertedProject(): BelongsTo
     {
         return $this->belongsTo(Project::class, 'converted_project_id');
+    }
+
+    /**
+     * @return HasMany<Referral, $this>
+     */
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(Referral::class, 'referrer_contact_id');
     }
 
     /**

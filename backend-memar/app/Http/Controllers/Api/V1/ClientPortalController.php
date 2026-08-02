@@ -17,9 +17,11 @@ use App\Models\Contract;
 use App\Models\GeneratedDocument;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\Referral;
 use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -285,5 +287,64 @@ class ClientPortalController extends ApiController
         $contact->save();
 
         return $this->ok($data, 'تم حفظ تفضيلاتك');
+    }
+
+    /** برنامج الولاء — كود الإحالة الثابت + إحصاءات حقيقية + سجل الإحالات. */
+    public function loyalty(Request $request): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $this->ensureReferralCode($contact);
+
+        $referrals = $contact->referrals()->latest()->get();
+        $labels = ['pending' => 'بانتظار التعاقد', 'joined' => 'فتح حساب', 'contracted' => 'مكتمل'];
+
+        return $this->ok([
+            'code' => $contact->referral_code,
+            'stats' => [
+                'successful' => $referrals->where('status', 'contracted')->count(),
+                'gifts_sent' => $referrals->where('is_gift', true)->count(),
+                'shares' => (int) $contact->referral_shares,
+                'discount' => 10,
+            ],
+            'history' => $referrals->map(fn (Referral $r): array => [
+                'id' => $r->id,
+                'name' => $r->referred_name,
+                'status' => $r->status,
+                'status_label' => $labels[$r->status] ?? $r->status,
+                'is_gift' => $r->is_gift,
+            ])->all(),
+        ]);
+    }
+
+    /** تسجيل مشاركة الكود (زر المشاركة/النسخ) — عدّاد حقيقي. */
+    public function recordReferralShare(Request $request): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $this->ensureReferralCode($contact);
+        $contact->increment('referral_shares');
+
+        return $this->ok([
+            'code' => $contact->referral_code,
+            'shares' => (int) $contact->referral_shares,
+        ], 'تم تسجيل المشاركة');
+    }
+
+    /** يُولّد كود إحالة فريدًا ثابتًا للعميل مرة واحدة. */
+    private function ensureReferralCode(Contact $contact): void
+    {
+        if ($contact->referral_code) {
+            return;
+        }
+
+        do {
+            $code = 'MEMAR-'.strtoupper(Str::random(6));
+        } while (Contact::where('referral_code', $code)->exists());
+
+        $contact->referral_code = $code;
+        $contact->save();
     }
 }

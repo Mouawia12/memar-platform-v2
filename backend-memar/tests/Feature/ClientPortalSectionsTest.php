@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\Referral;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -102,5 +103,35 @@ class ClientPortalSectionsTest extends TestCase
 
         $this->patchJson('/api/v1/client-portal/preferences', ['email' => true])
             ->assertStatus(422);
+    }
+
+    public function test_loyalty_returns_stable_code_and_real_stats(): void
+    {
+        $contact = Contact::factory()->create(['referral_shares' => 4]);
+        $this->actingAsClient($contact);
+        Referral::factory()->for($contact, 'referrer')->contracted()->create();
+        Referral::factory()->for($contact, 'referrer')->create(['status' => 'pending', 'is_gift' => true]);
+
+        $res = $this->getJson('/api/v1/client-portal/loyalty');
+
+        $res->assertOk()
+            ->assertJsonPath('data.stats.successful', 1)
+            ->assertJsonPath('data.stats.gifts_sent', 1)
+            ->assertJsonPath('data.stats.shares', 4)
+            ->assertJsonCount(2, 'data.history');
+
+        $code = $res->json('data.code');
+        $this->assertNotEmpty($code);
+        // الكود ثابت: طلب ثانٍ يعيد نفس الكود
+        $this->assertSame($code, $this->getJson('/api/v1/client-portal/loyalty')->json('data.code'));
+    }
+
+    public function test_recording_share_increments_counter(): void
+    {
+        $contact = Contact::factory()->create(['referral_shares' => 0]);
+        $this->actingAsClient($contact);
+
+        $this->postJson('/api/v1/client-portal/loyalty/share')->assertOk()->assertJsonPath('data.shares', 1);
+        $this->assertSame(1, $contact->fresh()->referral_shares);
     }
 }

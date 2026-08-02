@@ -49,6 +49,21 @@ export function useUpdateClientPreferences() {
   });
 }
 
+/** برنامج الولاء — كود الإحالة + الإحصاءات + السجل. */
+export function useLoyalty() {
+  return useQuery({ queryKey: ['client-loyalty'], queryFn: () => clientPortalApi.loyalty() });
+}
+
+/** تسجيل مشاركة كود الإحالة (عدّاد حقيقي). */
+export function useRecordReferralShare() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => clientPortalApi.recordShare(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-loyalty'] }),
+  });
+}
+
 /** تفاصيل مشروع للعميل (CLIENT-4): مراحله وتقدّمه ودفعاته. */
 export function useClientProject(id: number) {
   return useQuery({

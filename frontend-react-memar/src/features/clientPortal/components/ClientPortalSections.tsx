@@ -143,8 +143,11 @@ export function MeetingsSection({ appts, onRequest }: { appts: Appointment[]; on
   );
 }
 
-/** برنامج الولاء — طبق الأصل: loyalty-page-grid (بطاقة رئيسية + كيف يعمل + إحصاءات + سجل). */
-export function LoyaltySection({ code, onCopy, onShare, onGift, onSelf }: { code: string; onCopy: () => void; onShare: () => void; onGift: () => void; onSelf: () => void }) {
+/** برنامج الولاء — طبق الأصل: loyalty-page-grid (بطاقة رئيسية + كيف يعمل + إحصاءات + سجل) بإحصاءات وسجل حقيقيين. */
+interface LoyaltyStats { successful: number; gifts_sent: number; shares: number; discount: number }
+interface LoyaltyHistoryItem { id: number; name: string | null; status: string; status_label: string; is_gift: boolean }
+
+export function LoyaltySection({ code, stats, history, onCopy, onShare, onGift, onSelf }: { code: string; stats: LoyaltyStats; history: LoyaltyHistoryItem[]; onCopy: () => void; onShare: () => void; onGift: () => void; onSelf: () => void }) {
   return (
     <>
       <div className="section-header">
@@ -188,17 +191,27 @@ export function LoyaltySection({ code, onCopy, onShare, onGift, onSelf }: { code
         <div className="loyalty-page-stats-card">
           <h4><i className="fas fa-chart-simple" /> إحصائياتك</h4>
           <div className="loyalty-page-stats-grid">
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">0</span><span className="loyalty-page-stat-label">إحالات ناجحة</span></div>
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">10%</span><span className="loyalty-page-stat-label">خصم متاح</span></div>
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">0</span><span className="loyalty-page-stat-label">هدايا مُرسلة</span></div>
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">0</span><span className="loyalty-page-stat-label">مرات المشاركة</span></div>
+            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.successful}</span><span className="loyalty-page-stat-label">إحالات ناجحة</span></div>
+            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.discount}%</span><span className="loyalty-page-stat-label">خصم متاح</span></div>
+            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.gifts_sent}</span><span className="loyalty-page-stat-label">هدايا مُرسلة</span></div>
+            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.shares}</span><span className="loyalty-page-stat-label">مرات المشاركة</span></div>
           </div>
         </div>
 
         <div className="loyalty-page-history-card">
           <h4><i className="fas fa-clock-rotate-left" /> سجل الإحالات</h4>
           <div className="loyalty-page-history">
-            <p style={{ color: '#64748B', padding: 8 }}>لا إحالات بعد — شارك كودك لتبدأ.</p>
+            {history.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا إحالات بعد — شارك كودك لتبدأ.</p>}
+            {history.map((h) => (
+              <div key={h.id} className="loyalty-history-item">
+                <div className="loyalty-history-avatar">{(h.name ?? '؟').trim().charAt(0)}</div>
+                <div className="loyalty-history-info">
+                  <strong>{h.name ?? 'صديق'}{h.is_gift ? ' 🎁' : ''}</strong>
+                  <span>{h.status === 'contracted' ? 'فتح حساب وتعاقد على مشروع' : h.status === 'joined' ? 'فتح حساب - بانتظار التعاقد' : 'دعوة مُرسلة'}</span>
+                </div>
+                <span className={`badge ${h.status === 'contracted' ? 'badge-green' : 'badge-orange'}`}>{h.status_label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

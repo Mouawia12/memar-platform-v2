@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLogout } from '../../auth/hooks/useAuth';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
-import { useClientNotifications, useClientPortal, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
+import { useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
 type PageKey = 'dashboard' | 'requests' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
@@ -49,6 +49,8 @@ export function ClientPortalV2Page() {
   const [heroPaused, setHeroPaused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { data: notif } = useClientNotifications();
+  const { data: loyalty } = useLoyalty();
+  const recordShare = useRecordReferralShare();
 
   const adCount = HERO_SLIDES.length;
   useEffect(() => {
@@ -86,7 +88,8 @@ export function ClientPortalV2Page() {
   const clientName = client?.name ?? 'عميلنا';
   const initial = clientName.trim().charAt(0) || 'ع';
   const memberCode = `MEM-${String(client?.id ?? 0).padStart(4, '0')}`;
-  const referralCode = `MEMAR-${(clientName.split(' ')[0] || 'CLIENT').toUpperCase()}`;
+  const referralCode = loyalty?.code ?? '…';
+  const loyaltyStats = loyalty?.stats ?? { successful: 0, gifts_sent: 0, shares: 0, discount: 10 };
 
   const doneCount = stats?.done_projects ?? projects.filter((p) => p.status === 'done').length;
   const activeProjects = stats?.active_projects ?? projects.filter((p) => p.status === 'active').length;
@@ -120,15 +123,20 @@ export function ClientPortalV2Page() {
 
   const doRequest = (type: 'project' | 'meeting') => submitReq.mutate({ type }, { onSuccess: () => showToast('تم إرسال طلبك — سنتواصل معك قريبًا ✓') });
   const copyCode = () => {
+    if (!loyalty?.code) return;
     navigator.clipboard?.writeText(referralCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+    recordShare.mutate();
     showToast(`تم نسخ كود الإحالة: ${referralCode} ✓`);
   };
   const shareReferral = () => {
+    if (!loyalty?.code) return;
     const shareText = `انضم لعملاء معمار واحصل على خصم 10% باستخدام كود الإحالة: ${referralCode}`;
     if (navigator.share) navigator.share({ title: 'اقترحنا لصديق - معمار', text: shareText }).catch(() => {});
-    else { navigator.clipboard?.writeText(shareText); showToast('تم نسخ رابط المشاركة ✓'); }
+    else navigator.clipboard?.writeText(shareText);
+    recordShare.mutate();
+    showToast('تم نسخ رابط المشاركة ✓');
   };
   const loyaltyAction = (type: 'gift' | 'self') => {
     if (type === 'gift') { navigator.clipboard?.writeText(referralCode); showToast('📋 تم نسخ رابط الإهداء'); setTimeout(() => showToast('لتفعيل الإهداء، شارك كودك مع صديقك. سيحصل على الخصم بعد فتح حساب جديد والتعاقد على مشروعه الأول.'), 1500); }
@@ -283,7 +291,7 @@ export function ClientPortalV2Page() {
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
               {page === 'chat' && <ChatSection onInquiry={doInquiry} />}
               {page === 'forum' && <ForumSection onInquiry={doInquiry} />}
-              {page === 'loyalty' && <LoyaltySection code={referralCode} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
+              {page === 'loyalty' && <LoyaltySection code={referralCode} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
               {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={(id) => navigate(`/client-portal/projects/${id}`)} onRequest={() => doRequest('project')} />}
               {page === 'settings' && client && <SettingsSection client={client} />}
               {page === 'dashboard' && (<>
@@ -342,9 +350,9 @@ export function ClientPortalV2Page() {
                       <button className="btn loyalty-featured-btn-use" onClick={() => loyaltyAction('self')}><i className="fas fa-percent" /> استخدم لنفسي</button>
                     </div>
                     <div className="loyalty-featured-stats">
-                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">0</span><span className="loyalty-featured-stat-txt">إحالات ناجحة</span></div>
-                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">10%</span><span className="loyalty-featured-stat-txt">خصم متاح</span></div>
-                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">0</span><span className="loyalty-featured-stat-txt">هدايا مُرسلة</span></div>
+                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">{loyaltyStats.successful}</span><span className="loyalty-featured-stat-txt">إحالات ناجحة</span></div>
+                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">{loyaltyStats.discount}%</span><span className="loyalty-featured-stat-txt">خصم متاح</span></div>
+                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">{loyaltyStats.gifts_sent}</span><span className="loyalty-featured-stat-txt">هدايا مُرسلة</span></div>
                     </div>
                   </div>
                 </div>

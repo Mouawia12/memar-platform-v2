@@ -392,34 +392,11 @@
   /* قاعدة max-width:100% العامة كانت تمنع البنر من التمدّد للعرض الكامل */
   max-width: none !important;
 }
-/* بنر كامل كموقع رسمي: الصورة تملأ البنر بالكامل مع تدرّج داكن ليظهر النص فوقها،
-   بدل صورة صغيرة داخل صندوق مع فراغ أزرق حولها. */
+/* املأ ارتفاع البنر: اجعل الشريحة تمتد كامل الارتفاع ووسّط محتواها عموديًا
+   حتى لا يبقى فراغ أزرق أسفل الصورة والنص (مع إبقاء صندوق الصورة الجانبي كالأصل). */
 .mcp-root .hero-ads-slider { display: flex; }
 .mcp-root .hero-ads-slider > .hero-ad-slide.active { flex: 1 1 100%; }
-.mcp-root .hero-ad-slide {
-  align-items: center;
-  justify-content: flex-start;
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  padding: 40px 48px !important;
-}
-/* تدرّج داكن أعلى الصورة (أغمق جهة النص يمينًا) لقراءة واضحة */
-.mcp-root .hero-ad-slide::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to left, rgba(9, 46, 78, 0.94) 0%, rgba(11, 58, 96, 0.60) 52%, rgba(13, 74, 122, 0.22) 100%);
-  z-index: 0;
-}
-.mcp-root .hero-ad-slide .hero-ad-content {
-  position: relative;
-  z-index: 1;
-  max-width: 620px;
-  margin-inline-start: auto;
-}
-/* لم نعد نستخدم صندوق الصورة الجانبي */
-.mcp-root .hero-ad-slide .hero-ad-visual { display: none !important; }
+.mcp-root .hero-ad-slide { align-items: center; }
 @media (max-width: 600px) {
   .mcp-root .hero-ads-fullwidth {
     margin: -16px -16px 16px -16px !important;

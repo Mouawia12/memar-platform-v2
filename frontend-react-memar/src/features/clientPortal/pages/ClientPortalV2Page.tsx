@@ -25,7 +25,7 @@ const ringColor = (p: number): string => (p >= 80 ? 'green' : p >= 50 ? '' : 'or
 const HERO_SLIDES = [
   { tag: 'عرض خاص', tagIcon: 'fa-bullhorn', title: 'خصم 20% على خدمات التصميم الداخلي', text: 'احصل على تصميم داخلي متكامل لمشروعك مع فريق معمار المتخصص.', cta: 'استفد الآن', img: '/portal-assets/hero-banner-engineering.png', toast: 'تم تسجيل اهتمامك بالعرض ✓' },
   { tag: 'جديد', tagIcon: 'fa-star', title: 'خدمة الإشراف الهندسي عن بُعد', text: 'تابع مشروعك أينما كنت مع تقارير يومية مصورة.', cta: 'اعرف المزيد', img: '/portal-assets/project-construction-progress.png', toast: 'تم تسجيل اهتمامك ✓' },
-  { tag: 'باقة مميزة', tagIcon: 'fa-gift', title: 'باقة التصميم المتكاملة للفلل', text: 'تصميم معماري + إنشائي + كهربائي + صحي بسعر موحد.', cta: 'تواصل معنا', img: '/portal-assets/memar-logo-mark.png', toast: 'تم تسجيل اهتمامك ✓' },
+  { tag: 'باقة مميزة', tagIcon: 'fa-gift', title: 'باقة التصميم المتكاملة للفلل', text: 'تصميم معماري + إنشائي + كهربائي + صحي بسعر موحد.', cta: 'تواصل معنا', img: '/portal-assets/team-meeting-architects.png', toast: 'تم تسجيل اهتمامك ✓' },
 ];
 
 /**
@@ -263,14 +263,13 @@ export function ClientPortalV2Page() {
               <div className="hero-ads-fullwidth" onMouseEnter={() => setHeroPaused(true)} onMouseLeave={() => setHeroPaused(false)}>
                 <div className="hero-ads-slider">
                   {HERO_SLIDES.map((s, i) => (
-                    <div key={i} className={`hero-ad-slide${i === slide ? ' active' : ''}`}>
+                    <div key={i} className={`hero-ad-slide${i === slide ? ' active' : ''}`} style={{ backgroundImage: `url(${s.img})` }}>
                       <div className="hero-ad-content">
                         <span className="hero-ad-tag"><i className={`fas ${s.tagIcon}`} /> {s.tag}</span>
                         <h2>{s.title}</h2>
                         <p>{s.text}</p>
                         <button className="btn hero-ad-btn" onClick={() => showToast(s.toast)}><i className="fas fa-arrow-left" /> {s.cta}</button>
                       </div>
-                      <div className="hero-ad-visual"><img src={s.img} alt={s.tag} /></div>
                     </div>
                   ))}
                 </div>

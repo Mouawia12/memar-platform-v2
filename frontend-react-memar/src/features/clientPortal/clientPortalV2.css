@@ -372,6 +372,29 @@
 .mcp-root .topbar-user-btn { color: #fff !important; }
 .mcp-root .topbar-icon-btn,
 .mcp-root .back-btn { width: 36px !important; height: 36px !important; }
+
+/* البنر ملء العرض بلا فراغات (يمين/يسار/أعلى) وأكبر.
+   السكين القديم يفرض .content padding:26px، وكان البنر يُدفع 64px للأسفل ليختبئ
+   تحت الشريط العلوي فيترك فراغًا علويًا. نجعله يلامس الشريط ويملأ العرض ويكبر. */
+.mcp-root .content { overflow-x: hidden; }
+.mcp-root .hero-ads-fullwidth {
+  margin: -26px -26px 24px -26px !important;
+  padding-top: 0 !important;
+  min-height: 360px !important;
+  /* قاعدة max-width:100% العامة كانت تمنع البنر من التمدّد للعرض الكامل */
+  max-width: none !important;
+}
+/* املأ ارتفاع البنر: اجعل الشريحة تمتد كامل الارتفاع ووسّط محتواها عموديًا
+   حتى لا يبقى فراغ أزرق أسفل الصورة والنص. */
+.mcp-root .hero-ads-slider { display: flex; }
+.mcp-root .hero-ads-slider > .hero-ad-slide.active { flex: 1 1 100%; }
+.mcp-root .hero-ad-slide { align-items: center; }
+@media (max-width: 600px) {
+  .mcp-root .hero-ads-fullwidth {
+    margin: -16px -16px 16px -16px !important;
+    min-height: 240px !important;
+  }
+}
 .mcp-root .topbar-notif-dot {
   position: absolute;
   top: 6px;

@@ -16,4 +16,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/client-portal/requests', [ClientPortalController::class, 'myRequests']);
     Route::get('/client-portal/notifications', [ClientPortalController::class, 'notifications']);
     Route::match(['put', 'patch'], '/client-portal/profile', [ClientPortalController::class, 'updateProfile']);
+    Route::match(['put', 'patch'], '/client-portal/preferences', [ClientPortalController::class, 'updatePreferences']);
 });

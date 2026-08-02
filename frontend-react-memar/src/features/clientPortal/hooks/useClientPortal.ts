@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { clientPortalApi, type ClientProfilePayload, type ClientRequestType } from '../api/clientPortalApi';
+import { clientPortalApi, type ClientProfilePayload, type ClientRequestType, type NotificationPrefs } from '../api/clientPortalApi';
 
 export function useClientPortal() {
   return useQuery({ queryKey: ['client-portal'], queryFn: () => clientPortalApi.get() });
@@ -35,6 +35,16 @@ export function useUpdateClientProfile() {
 
   return useMutation({
     mutationFn: (payload: ClientProfilePayload) => clientPortalApi.updateProfile(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-portal'] }),
+  });
+}
+
+/** حفظ تفضيلات الإشعارات (مفاتيح الإعدادات). */
+export function useUpdateClientPreferences() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (prefs: NotificationPrefs) => clientPortalApi.updatePreferences(prefs),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['client-portal'] }),
   });
 }

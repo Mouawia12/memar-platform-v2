@@ -79,4 +79,28 @@ class ClientPortalSectionsTest extends TestCase
 
         $this->patchJson('/api/v1/client-portal/profile', ['full_name' => 'x'])->assertForbidden();
     }
+
+    public function test_client_can_save_notification_preferences(): void
+    {
+        $contact = Contact::factory()->create();
+        $this->actingAsClient($contact);
+
+        $res = $this->patchJson('/api/v1/client-portal/preferences', [
+            'email' => true,
+            'sms' => false,
+            'meetings' => true,
+            'invoices' => false,
+        ]);
+
+        $res->assertOk()->assertJsonPath('data.sms', false)->assertJsonPath('data.invoices', false);
+        $this->assertSame(false, $contact->fresh()->notification_prefs['invoices']);
+    }
+
+    public function test_notification_preferences_require_booleans(): void
+    {
+        $this->actingAsClient();
+
+        $this->patchJson('/api/v1/client-portal/preferences', ['email' => true])
+            ->assertStatus(422);
+    }
 }

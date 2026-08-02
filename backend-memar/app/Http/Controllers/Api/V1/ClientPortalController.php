@@ -12,6 +12,7 @@ use App\Http\Resources\InvoiceResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectStageResource;
 use App\Models\Appointment;
+use App\Models\Contact;
 use App\Models\Contract;
 use App\Models\GeneratedDocument;
 use App\Models\Invoice;
@@ -90,6 +91,7 @@ class ClientPortalController extends ApiController
                 'company' => $contact?->company,
                 'phone' => $contact?->phone,
                 'since' => $contact?->created_at?->format('Y'),
+                'notification_prefs' => $contact?->notification_prefs ?? Contact::DEFAULT_NOTIFICATION_PREFS,
             ],
             'stats' => [
                 'projects' => $projects->count(),
@@ -264,5 +266,24 @@ class ClientPortalController extends ApiController
             'phone' => $contact->phone,
             'company' => $contact->company,
         ], 'تم حفظ بياناتك');
+    }
+
+    /** تفضيلات الإشعارات — حفظ مفاتيح (بريد/جوال/اجتماعات/فواتير) للعميل. */
+    public function updatePreferences(Request $request): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $data = $request->validate([
+            'email' => ['required', 'boolean'],
+            'sms' => ['required', 'boolean'],
+            'meetings' => ['required', 'boolean'],
+            'invoices' => ['required', 'boolean'],
+        ]);
+
+        $contact->notification_prefs = $data;
+        $contact->save();
+
+        return $this->ok($data, 'تم حفظ تفضيلاتك');
     }
 }

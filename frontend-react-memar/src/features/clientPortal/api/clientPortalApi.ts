@@ -15,6 +15,13 @@ export interface ClientStats {
   contracts: number;
 }
 
+export interface NotificationPrefs {
+  email: boolean;
+  sms: boolean;
+  meetings: boolean;
+  invoices: boolean;
+}
+
 export interface ClientInfo {
   id: number;
   name: string | null;
@@ -22,6 +29,7 @@ export interface ClientInfo {
   company: string | null;
   phone: string | null;
   since: string | null;
+  notification_prefs: NotificationPrefs;
 }
 
 export interface ClientPortalData {
@@ -88,4 +96,5 @@ export const clientPortalApi = {
   myRequests: () => apiGet<ClientRequestItem[]>('/client-portal/requests'),
   notifications: () => apiGet<{ count: number; items: ClientNotification[] }>('/client-portal/notifications'),
   updateProfile: (payload: ClientProfilePayload) => apiPatch<{ id: number; name: string; phone: string | null; company: string | null }>('/client-portal/profile', payload),
+  updatePreferences: (prefs: NotificationPrefs) => apiPatch<NotificationPrefs>('/client-portal/preferences', prefs),
 };

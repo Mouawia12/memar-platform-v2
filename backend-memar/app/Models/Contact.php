@@ -24,7 +24,15 @@ class Contact extends Model
     protected $fillable = [
         'full_name', 'kunya', 'email', 'phone', 'company', 'position',
         'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
-        'project_name', 'project_details', 'converted_project_id',
+        'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
+    ];
+
+    /** تفضيلات الإشعارات الافتراضية (الكل مفعّل) حين لا يوجد تخصيص محفوظ. */
+    public const DEFAULT_NOTIFICATION_PREFS = [
+        'email' => true,
+        'sms' => true,
+        'meetings' => true,
+        'invoices' => true,
     ];
 
     /**
@@ -34,6 +42,7 @@ class Contact extends Model
     {
         return [
             'deal_value_kwd' => 'decimal:3',
+            'notification_prefs' => 'array',
         ];
     }
 

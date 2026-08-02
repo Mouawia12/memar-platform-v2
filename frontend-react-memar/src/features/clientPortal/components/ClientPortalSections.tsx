@@ -3,7 +3,8 @@ import { useState } from 'react';
 import type { Appointment } from '../../appointments/types';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
 import type { ClientInfo } from '../api/clientPortalApi';
-import { useClientNotifications, useMyRequests, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
+import type { NotificationPrefs } from '../api/clientPortalApi';
+import { useClientNotifications, useMyRequests, useSubmitClientRequest, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
 
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
@@ -307,7 +308,8 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
   const [phone, setPhone] = useState(client.phone ?? '');
   const [company, setCompany] = useState(client.company ?? '');
   const [saved, setSaved] = useState(false);
-  const [prefs, setPrefs] = useState({ email: true, sms: true, meetings: true, invoices: true });
+  const savePrefs = useUpdateClientPreferences();
+  const [prefs, setPrefs] = useState<NotificationPrefs>(client.notification_prefs ?? { email: true, sms: true, meetings: true, invoices: true });
   const initial = (client.name ?? 'ع').trim().charAt(0) || 'ع';
 
   const save = () => {
@@ -315,7 +317,14 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
     update.mutate({ full_name: name.trim(), kunya: kunya.trim() || null, phone: phone.trim() || null, company: company.trim() || null }, { onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2500); } });
   };
 
-  const toggles: { key: keyof typeof prefs; title: string; sub: string }[] = [
+  // تبديل مفتاح يحفظ فورًا في الباك اند (تحديث متفائل).
+  const togglePref = (key: keyof NotificationPrefs) => {
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    savePrefs.mutate(next);
+  };
+
+  const toggles: { key: keyof NotificationPrefs; title: string; sub: string }[] = [
     { key: 'email', title: 'إشعارات البريد الإلكتروني', sub: 'استلام تحديثات المشروع عبر البريد' },
     { key: 'sms', title: 'إشعارات الجوال', sub: 'تنبيهات فورية على الجوال' },
     { key: 'meetings', title: 'تذكيرات الاجتماعات', sub: 'تذكير قبل الاجتماع بـ 30 دقيقة' },
@@ -364,14 +373,14 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
         </div>
 
         <div className="card">
-          <div className="card-header"><h3 className="card-title">تفضيلات الإشعارات</h3></div>
+          <div className="card-header"><h3 className="card-title">تفضيلات الإشعارات</h3>{savePrefs.isPending && <span style={{ fontSize: 12, color: 'var(--text-3)' }}>جارٍ الحفظ…</span>}{savePrefs.isSuccess && !savePrefs.isPending && <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>✓ حُفظ</span>}</div>
           <div className="card-body">
             <div className="settings-toggle-list">
               {toggles.map((t) => (
                 <div key={t.key} className="settings-toggle-item">
                   <div><strong>{t.title}</strong><p>{t.sub}</p></div>
                   <label className="toggle-switch">
-                    <input type="checkbox" checked={prefs[t.key]} onChange={() => setPrefs((p) => ({ ...p, [t.key]: !p[t.key] }))} />
+                    <input type="checkbox" checked={prefs[t.key]} onChange={() => togglePref(t.key)} />
                     <span className="toggle-slider" />
                   </label>
                 </div>

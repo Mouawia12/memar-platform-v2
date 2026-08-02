@@ -63,14 +63,9 @@ export function Sidebar({ open, onNavigate }: Props) {
     [permissions, roles],
   );
 
-  // في وضع التحرير تظهر كل العناصر (لإعادة تفعيل المخفيّة)؛ خارجه نُخفي غير المحدَّدة.
-  const sections = useMemo(() => {
-    if (editing) return permitted;
-
-    return permitted
-      .map((s) => ({ ...s, items: s.items.filter((i) => !hidden[i.key]) }))
-      .filter((s) => s.items.length > 0);
-  }, [permitted, hidden, editing]);
+  // الروابط غير المحدَّدة لا تُحذف بعد الآن؛ تبقى ظاهرة لكن معطّلة (باهتة وغير قابلة
+  // للضغط) حتى يُعيد المستخدم تحديدها من وضع التخصيص (DASH-3).
+  const sections = permitted;
 
   return (
     <aside className={`sidebar${open ? ' open' : ''}`} id="sidebar">
@@ -103,6 +98,18 @@ export function Sidebar({ open, onNavigate }: Props) {
                     <span className="nav-icon">{item.icon}</span>
                     <span className="lbl" style={{ opacity: hidden[item.key] ? 0.45 : 1 }}>{item.label}</span>
                   </label>
+                ) : hidden[item.key] ? (
+                  // رابط معطّل: ظاهر ليقرأه المستخدم لكن غير قابل للضغط حتى يُعيد تفعيله.
+                  <div
+                    key={item.key}
+                    className="nav-item nav-item-disabled"
+                    aria-disabled="true"
+                    title="رابط معطّل — فعِّله من ⚙️ تخصيص القائمة"
+                    style={disabledRow}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    <span className="lbl">{item.label}</span>
+                  </div>
                 ) : (
                   <NavLink
                     key={item.key}
@@ -127,3 +134,5 @@ const customizeBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px
 const customizeOn: CSSProperties = { background: '#2D9B6F', borderColor: '#2D9B6F', color: '#fff' };
 const editHint: CSSProperties = { margin: '0 12px 8px', fontSize: '10.5px', color: '#64748B', lineHeight: 1.6, textAlign: 'center' };
 const editRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer', color: '#334155', fontSize: '13px' };
+// رابط معطّل: باهت وبمؤشّر "ممنوع" مع إبقاء النص مقروءًا.
+const disabledRow: CSSProperties = { opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' };

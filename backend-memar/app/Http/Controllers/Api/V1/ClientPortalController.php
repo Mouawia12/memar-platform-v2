@@ -183,4 +183,83 @@ class ClientPortalController extends ApiController
 
         return $this->created(['id' => $req->id], 'تم إرسال طلبك — سنتواصل معك قريبًا.');
     }
+
+    /** طلباتي — قائمة طلبات العميل الواردة التي أرسلها من بوابته. */
+    public function myRequests(Request $request): JsonResponse
+    {
+        $labels = ['open' => 'قيد المراجعة', 'in_progress' => 'قيد التنفيذ', 'resolved' => 'تمّت المعالجة', 'closed' => 'مغلق'];
+
+        $requests = ServiceRequest::where('requested_by', $request->user()->id)
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn (ServiceRequest $r) => [
+                'id' => $r->id,
+                'title' => $r->title,
+                'status' => $r->status,
+                'status_label' => $labels[$r->status] ?? $r->status,
+                'description' => $r->description,
+                'created_at' => $r->created_at?->toIso8601String(),
+            ])->all();
+
+        return $this->ok($requests);
+    }
+
+    /** إشعارات العميل — بنود تحتاج انتباهه (فواتير مستحقّة، مواعيد قادمة، طلبات مفتوحة). */
+    public function notifications(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $contactId = $user?->contact_id;
+        $items = [];
+
+        if ($contactId) {
+            $unpaid = Invoice::where('client_id', $contactId)
+                ->get()
+                ->filter(fn (Invoice $i) => (float) $i->total_kwd - (float) $i->paid_kwd > 0);
+            foreach ($unpaid as $inv) {
+                $bal = round((float) $inv->total_kwd - (float) $inv->paid_kwd, 3);
+                $items[] = ['icon' => 'fa-file-invoice', 'kind' => 'warning', 'title' => 'فاتورة بانتظار السداد', 'text' => ($inv->number ?? '#'.$inv->id).' — '.number_format($bal, 0).' د.ك', 'at' => $inv->due_date?->toDateString()];
+            }
+
+            $projectIds = Project::where('client_id', $contactId)->pluck('id');
+            $next = Appointment::whereIn('project_id', $projectIds)
+                ->where('status', 'scheduled')
+                ->where('start_at', '>=', now())
+                ->orderBy('start_at')
+                ->limit(5)
+                ->get();
+            foreach ($next as $a) {
+                $items[] = ['icon' => 'fa-calendar-check', 'kind' => 'info', 'title' => 'موعد قادم', 'text' => $a->title, 'at' => $a->start_at?->toIso8601String()];
+            }
+        }
+
+        $openReqs = ServiceRequest::where('requested_by', $user->id)->where('status', 'open')->count();
+        if ($openReqs > 0) {
+            $items[] = ['icon' => 'fa-clipboard-list', 'kind' => 'info', 'title' => 'طلبات قيد المراجعة', 'text' => "{$openReqs} طلب بانتظار ردّ فريقنا", 'at' => null];
+        }
+
+        return $this->ok(['count' => count($items), 'items' => $items]);
+    }
+
+    /** إعدادات العميل — تحديث بياناته الشخصية (الاسم، الهاتف، الشركة). */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $data = $request->validate([
+            'full_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'company' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $contact->fill($data)->save();
+
+        return $this->ok([
+            'id' => $contact->id,
+            'name' => $contact->full_name,
+            'phone' => $contact->phone,
+            'company' => $contact->company,
+        ], 'تم حفظ بياناتك');
+    }
 }

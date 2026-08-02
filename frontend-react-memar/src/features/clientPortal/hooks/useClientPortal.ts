@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { clientPortalApi, type ClientRequestType } from '../api/clientPortalApi';
+import { clientPortalApi, type ClientProfilePayload, type ClientRequestType } from '../api/clientPortalApi';
 
 export function useClientPortal() {
   return useQuery({ queryKey: ['client-portal'], queryFn: () => clientPortalApi.get() });
@@ -8,8 +8,34 @@ export function useClientPortal() {
 
 /** إرسال طلب من العميل: مشروع/اجتماع/استفسار (CLIENT-2). */
 export function useSubmitClientRequest() {
+  const qc = useQueryClient();
+
   return useMutation({
     mutationFn: ({ type, note }: { type: ClientRequestType; note?: string }) => clientPortalApi.submitRequest(type, note),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client-requests'] });
+      qc.invalidateQueries({ queryKey: ['client-notifications'] });
+    },
+  });
+}
+
+/** طلباتي — قائمة طلبات العميل. */
+export function useMyRequests() {
+  return useQuery({ queryKey: ['client-requests'], queryFn: () => clientPortalApi.myRequests() });
+}
+
+/** إشعارات العميل. */
+export function useClientNotifications() {
+  return useQuery({ queryKey: ['client-notifications'], queryFn: () => clientPortalApi.notifications() });
+}
+
+/** تحديث بيانات العميل (الإعدادات). */
+export function useUpdateClientProfile() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ClientProfilePayload) => clientPortalApi.updateProfile(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-portal'] }),
   });
 }
 

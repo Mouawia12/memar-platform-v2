@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '../../../lib/api';
+import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import type { Appointment } from '../../appointments/types';
 import type { Contract } from '../../contracts/types';
 import type { GeneratedDocument } from '../../documents/types';
@@ -56,8 +56,34 @@ export interface ClientProjectDetail {
 
 export type ClientRequestType = 'project' | 'meeting' | 'inquiry';
 
+export interface ClientRequestItem {
+  id: number;
+  title: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status_label: string;
+  description: string | null;
+  created_at: string | null;
+}
+
+export interface ClientNotification {
+  icon: string;
+  kind: 'info' | 'warning';
+  title: string;
+  text: string;
+  at: string | null;
+}
+
+export interface ClientProfilePayload {
+  full_name?: string;
+  phone?: string | null;
+  company?: string | null;
+}
+
 export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
   project: (id: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`),
   submitRequest: (type: ClientRequestType, note?: string) => apiPost<{ id: number }>('/client-portal/requests', { type, note }),
+  myRequests: () => apiGet<ClientRequestItem[]>('/client-portal/requests'),
+  notifications: () => apiGet<{ count: number; items: ClientNotification[] }>('/client-portal/notifications'),
+  updateProfile: (payload: ClientProfilePayload) => apiPatch<{ id: number; name: string; phone: string | null; company: string | null }>('/client-portal/profile', payload),
 };

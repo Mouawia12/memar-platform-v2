@@ -4,8 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useLogout } from '../../auth/hooks/useAuth';
 import { usePublicHeroSlides } from '../../hero/hooks/useHero';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
-import { useClientPortal, useSubmitClientRequest } from '../hooks/useClientPortal';
+import { ChatSection, CompanySection, ForumSection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
+import { useClientNotifications, useClientPortal, useSubmitClientRequest } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
+
+type PageKey = 'dashboard' | 'requests' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
+const PAGE_TITLES: Record<PageKey, string> = {
+  dashboard: 'نظرة عامة', requests: 'طلباتي', notifications: 'الإشعارات', meetings: 'الاجتماعات',
+  chat: 'المحادثات', forum: 'المنتدى', loyalty: 'اقترحنا لصديق', company: 'صفحة الشركة', settings: 'الإعدادات',
+};
 
 const money = (v: number | string) => `${Number(v).toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`;
 const dayOf = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric' }) : '—');
@@ -30,6 +37,8 @@ export function ClientPortalV2Page() {
   const [slide, setSlide] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [page, setPage] = useState<PageKey>('dashboard');
+  const { data: notif } = useClientNotifications();
 
   const adCount = slides?.length ?? 0;
   useEffect(() => {
@@ -83,6 +92,8 @@ export function ClientPortalV2Page() {
 
   const doRequest = (type: 'project' | 'meeting') => submitReq.mutate({ type });
   const copyCode = () => { navigator.clipboard?.writeText(referralCode); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const go = (p: PageKey) => { setPage(p); setSidebarOpen(false); };
+  const notifCount = notif?.count ?? unpaidCount;
 
   return (
     <div className="mcp-root">
@@ -131,8 +142,8 @@ export function ClientPortalV2Page() {
 
           <nav className="sb-nav">
             <div className="nav-section-label">الرئيسية</div>
-            <div className="nav-item active"><i className="fas fa-grid-2" /><span>نظرة عامة</span></div>
-            <div className="nav-item"><i className="fas fa-bell" /><span>الإشعارات</span>{unpaidCount > 0 && <span className="nav-badge danger">{unpaidCount}</span>}</div>
+            <div className={`nav-item${page === 'dashboard' ? ' active' : ''}`} onClick={() => go('dashboard')}><i className="fas fa-grid-2" /><span>نظرة عامة</span></div>
+            <div className={`nav-item${page === 'notifications' ? ' active' : ''}`} onClick={() => go('notifications')}><i className="fas fa-bell" /><span>الإشعارات</span>{notifCount > 0 && <span className="nav-badge danger">{notifCount}</span>}</div>
 
             <div className="nav-section-label">المشاريع</div>
             <div className="nav-sub-items">
@@ -146,19 +157,22 @@ export function ClientPortalV2Page() {
             </div>
 
             <div className="nav-section-label">الطلبات</div>
-            <div className="nav-item" onClick={() => doRequest('project')}><i className="fas fa-clipboard-list" /><span>طلباتي</span></div>
+            <div className={`nav-item${page === 'requests' ? ' active' : ''}`} onClick={() => go('requests')}><i className="fas fa-clipboard-list" /><span>طلباتي</span></div>
             <div className="nav-item" onClick={() => doRequest('project')}><i className="fas fa-plus-circle" /><span>طلب جديد</span></div>
 
             <div className="nav-section-label">التواصل</div>
-            <div className="nav-item"><i className="fas fa-video" /><span>الاجتماعات</span>{appts.length > 0 && <span className="nav-badge">{appts.length}</span>}</div>
-            <div className="nav-item"><i className="fas fa-comments" /><span>المحادثات</span></div>
-            <div className="nav-item"><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>
+            <div className={`nav-item${page === 'meetings' ? ' active' : ''}`} onClick={() => go('meetings')}><i className="fas fa-video" /><span>الاجتماعات</span>{appts.length > 0 && <span className="nav-badge">{appts.length}</span>}</div>
+            <div className={`nav-item${page === 'chat' ? ' active' : ''}`} onClick={() => go('chat')}><i className="fas fa-comments" /><span>المحادثات</span></div>
+            <div className={`nav-item${page === 'forum' ? ' active' : ''}`} onClick={() => go('forum')}><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>
 
             <div className="nav-section-label sb-loyalty-section-label">اقترحنا لصديق</div>
-            <div className="nav-item nav-item-loyalty"><i className="fas fa-handshake-angle" /><span>اقترحنا لصديق</span><span className="nav-badge" style={{ background: '#EAB244', color: '#7a5a00' }}>10%</span></div>
+            <div className={`nav-item nav-item-loyalty${page === 'loyalty' ? ' active' : ''}`} onClick={() => go('loyalty')}><i className="fas fa-handshake-angle" /><span>اقترحنا لصديق</span><span className="nav-badge" style={{ background: '#EAB244', color: '#7a5a00' }}>10%</span></div>
+
+            <div className="nav-section-label">الشركة</div>
+            <div className={`nav-item${page === 'company' ? ' active' : ''}`} onClick={() => go('company')}><i className="fas fa-building-columns" /><span>صفحة الشركة</span></div>
 
             <div className="nav-section-label">أخرى</div>
-            <div className="nav-item"><i className="fas fa-gear" /><span>الإعدادات</span></div>
+            <div className={`nav-item${page === 'settings' ? ' active' : ''}`} onClick={() => go('settings')}><i className="fas fa-gear" /><span>الإعدادات</span></div>
           </nav>
 
           <div className="sb-user">
@@ -174,7 +188,10 @@ export function ClientPortalV2Page() {
         <main className="main">
           <header className="topbar">
             <button className="topbar-menu-btn" onClick={() => setSidebarOpen((o) => !o)}><i className="fas fa-bars" /></button>
-            <div className="topbar-breadcrumb"><span className="topbar-page-title">نظرة عامة</span></div>
+            <div className="topbar-breadcrumb">
+              {page !== 'dashboard' && <button className="back-btn" onClick={() => go('dashboard')} title="رجوع"><i className="fas fa-arrow-right" /></button>}
+              <span className="topbar-page-title">{PAGE_TITLES[page]}</span>
+            </div>
             <div className="topbar-actions">
               <span className="topbar-date">{today}</span>
               <button className="topbar-icon-btn" title="الإشعارات"><i className="fas fa-bell" />{unpaidCount > 0 && <span className="topbar-notif-dot" />}</button>
@@ -187,6 +204,14 @@ export function ClientPortalV2Page() {
 
           <div className="content">
             <div className="page active">
+              {page === 'requests' && <RequestsSection />}
+              {page === 'notifications' && <NotificationsSection />}
+              {page === 'meetings' && <MeetingsSection appts={appts} />}
+              {page === 'chat' && <ChatSection />}
+              {page === 'forum' && <ForumSection />}
+              {page === 'company' && client && <CompanySection client={client} />}
+              {page === 'settings' && client && <SettingsSection client={client} />}
+              {(page === 'dashboard' || page === 'loyalty') && (<>
               {/* كاروسيل الإعلانات — بصورة جانبية كالأصل */}
               {adCount > 0 && (
                 <div className="hero-ads-fullwidth">
@@ -325,6 +350,7 @@ export function ClientPortalV2Page() {
                 </div>
               </div>
 
+              </>)}
               {submitReq.isSuccess && <div style={{ position: 'fixed', bottom: 24, insetInlineStart: 24, background: '#059669', color: '#fff', padding: '12px 18px', borderRadius: 10, fontWeight: 700, zIndex: 500 }}>✓ تم إرسال طلبك — سنتواصل معك قريبًا.</div>}
             </div>
           </div>

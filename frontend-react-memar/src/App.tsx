@@ -16,7 +16,7 @@ import { CareersPage } from './features/careers/pages/CareersPage';
 import { PublicCareersPage } from './features/careers/pages/PublicCareersPage';
 import { CommunicationsPage } from './features/communications/pages/CommunicationsPage';
 import { CrmPage } from './features/crm/pages/CrmPage';
-import { ClientPortalPage } from './features/clientPortal/pages/ClientPortalPage';
+import { ClientPortalV2Page } from './features/clientPortal/pages/ClientPortalV2Page';
 import { ClientProjectDetailPage } from './features/clientPortal/pages/ClientProjectDetailPage';
 import { TeamMemberPage } from './features/dashboard/pages/TeamMemberPage';
 import { EngineerPortalPage } from './features/engineerPortal/pages/EngineerPortalPage';
@@ -57,6 +57,8 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
+        {/* بوابة العميل — بواجهتها الكاملة الخاصة (طبق أصل تصميم atoms)، خارج قالب لوحة التحكم */}
+        <Route path="/client-portal" element={<ClientPortalV2Page />} />
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/user-logs" element={<UsersPage />} />
@@ -78,7 +80,6 @@ export default function App() {
           <Route path="/files" element={<FilesPage />} />
           <Route path="/field-visits" element={<FieldVisitsPage />} />
           <Route path="/engineer-portal" element={<EngineerPortalPage />} />
-          <Route path="/client-portal" element={<ClientPortalPage />} />
           <Route path="/client-portal/projects/:id" element={<ClientProjectDetailPage />} />
           <Route path="/team/:id" element={<TeamMemberPage />} />
           <Route path="/hr" element={<EmployeesPage />} />

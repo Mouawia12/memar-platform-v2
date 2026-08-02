@@ -8,14 +8,24 @@ import type { Project, ProjectStage, ProjectStatus } from '../../projects/types'
 export interface ClientStats {
   projects: number;
   active_projects: number;
+  done_projects: number;
   invoices: number;
+  unpaid_invoices: number;
   total_due: number;
   contracts: number;
 }
 
+export interface ClientInfo {
+  id: number;
+  name: string | null;
+  company: string | null;
+  phone: string | null;
+  since: string | null;
+}
+
 export interface ClientPortalData {
   linked: boolean;
-  client: { id: number; name: string | null } | null;
+  client: ClientInfo | null;
   stats: ClientStats | null;
   projects: Project[];
   invoices: Invoice[];

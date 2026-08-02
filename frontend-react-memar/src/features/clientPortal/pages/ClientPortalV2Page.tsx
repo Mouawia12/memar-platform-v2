@@ -12,14 +12,13 @@ const dayOf = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('a
 const monthOf = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { month: 'long' }) : '');
 const timeOf = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' }) : '');
 
-/** نسبة تقدّم تقريبية حسب الحالة (لا يوفّر ملخّص العميل نسبة دقيقة). */
 const progressOf = (s: ProjectStatus): number => ({ draft: 10, active: 60, review: 85, on_hold: 40, done: 100, cancelled: 0 }[s] ?? 30);
 const ringColor = (p: number): string => (p >= 80 ? 'green' : p >= 50 ? '' : 'orange');
+const HERO_IMG = '/portal-assets/memar-logo-mark.png';
 
 /**
- * بوابة العميل — طبق الأصل من تصميم atoms («تحسين صفحة العميل»):
- * قائمة جانبية ببطاقة ملف العميل، ترويسة، كاروسيل إعلانات، مؤشرات، برنامج ولاء،
- * وشبكة (مشاريع نشطة/آخر التحديثات/اجتماعات قادمة/إجراءات سريعة) — موصولة ببياناتك الحقيقية.
+ * بوابة العميل — طبق الأصل من تصميم atoms («تحسين صفحة العميل») بكامل عناصره،
+ * موصولة ببياناتك الحقيقية (اسم العميل، شركته، مشاريعه، مواعيده، فواتيره، الإعلانات).
  */
 export function ClientPortalV2Page() {
   const navigate = useNavigate();
@@ -45,25 +44,26 @@ export function ClientPortalV2Page() {
   const projects = data?.projects ?? [];
   const appts = data?.appointments ?? [];
   const invoices = data?.invoices ?? [];
-  const clientName = data?.client?.name ?? 'عميلنا';
+  const stats = data?.stats;
+  const client = data?.client;
+  const clientName = client?.name ?? 'عميلنا';
   const initial = clientName.trim().charAt(0) || 'ع';
-  const memberCode = `MEM-${String(data?.client?.id ?? 0).padStart(4, '0')}`;
+  const memberCode = `MEM-${String(client?.id ?? 0).padStart(4, '0')}`;
   const referralCode = `MEMAR-${(clientName.split(' ')[0] || 'CLIENT').toUpperCase()}`;
 
-  const doneCount = projects.filter((p) => p.status === 'done').length;
-  const activeProjects = projects.filter((p) => p.status === 'active').length;
+  const doneCount = stats?.done_projects ?? projects.filter((p) => p.status === 'done').length;
+  const activeProjects = stats?.active_projects ?? projects.filter((p) => p.status === 'active').length;
   const completionPct = projects.length > 0 ? Math.round((doneCount / projects.length) * 100) : 0;
-  const unpaid = invoices.filter((i) => Number(i.balance_kwd) > 0);
+  const unpaidCount = stats?.unpaid_invoices ?? invoices.filter((i) => Number(i.balance_kwd) > 0).length;
 
-  // آخر التحديثات — مشتقّة من بياناتك الحقيقية (فواتير غير مسدّدة + مواعيد قادمة).
   const activity = useMemo(() => {
     const items: { dot: string; text: string; time: string }[] = [];
-    unpaid.slice(0, 2).forEach((i) => items.push({ dot: 'orange', text: `فاتورة ${i.number ?? '#' + i.id} بانتظار السداد — ${money(i.balance_kwd)}`, time: 'مستحقة' }));
-    appts.slice(0, 2).forEach((a) => items.push({ dot: 'purple', text: `اجتماع: ${a.title}`, time: monthOf(a.start_at) + ' ' + dayOf(a.start_at) }));
+    invoices.filter((i) => Number(i.balance_kwd) > 0).slice(0, 2).forEach((i) => items.push({ dot: 'orange', text: `فاتورة ${i.number ?? '#' + i.id} بانتظار السداد — ${money(i.balance_kwd)}`, time: 'مستحقة' }));
+    appts.slice(0, 2).forEach((a) => items.push({ dot: 'purple', text: `اجتماع: ${a.title}`, time: `${monthOf(a.start_at)} ${dayOf(a.start_at)}` }));
     projects.slice(0, 2).forEach((p) => items.push({ dot: 'blue', text: `مشروع ${p.name} — ${PROJECT_STATUS_LABELS[p.status]}`, time: '' }));
 
     return items.slice(0, 5);
-  }, [unpaid, appts, projects]);
+  }, [invoices, appts, projects]);
 
   if (isLoading) return <div className="mcp-root" style={{ padding: 40 }}>جارٍ التحميل…</div>;
   if (isError || !data) return <div className="mcp-root" style={{ padding: 40, color: '#ef4444' }}>تعذّر تحميل بوابة العميل.</div>;
@@ -81,9 +81,8 @@ export function ClientPortalV2Page() {
     );
   }
 
-  const currentAd = adCount > 0 ? slides![Math.min(slide, adCount - 1)] : null;
-
   const doRequest = (type: 'project' | 'meeting') => submitReq.mutate({ type });
+  const copyCode = () => { navigator.clipboard?.writeText(referralCode); setCopied(true); setTimeout(() => setCopied(false), 1500); };
 
   return (
     <div className="mcp-root">
@@ -97,7 +96,7 @@ export function ClientPortalV2Page() {
             <div className="sb-brand-text"><h1>مجموعة معمار</h1><span>للاستشارات الهندسية</span></div>
           </div>
 
-          {/* بطاقة ملف العميل */}
+          {/* بطاقة ملف العميل الكاملة */}
           <div className="sb-client-profile">
             <div className="sb-profile-header">
               <div className="sb-client-avatar">
@@ -106,11 +105,13 @@ export function ClientPortalV2Page() {
               </div>
               <div className="sb-client-info">
                 <strong className="sb-client-name">{clientName}</strong>
+                {client?.company && <div className="sb-client-title-editable"><span className="sb-client-title-text">{client.company}</span></div>}
                 <span className="sb-client-member-code"><i className="fas fa-hashtag" /> {memberCode}</span>
-                <span className="sb-client-role"><i className="fas fa-crown" /> عميل</span>
+                <span className="sb-client-role"><i className="fas fa-crown" /> عميل مميز</span>
               </div>
             </div>
             <div className="sb-profile-details">
+              {client?.company && <a href="#" className="sb-client-company" onClick={(e) => e.preventDefault()}><i className="fas fa-building-columns" /> {client.company}</a>}
               <div className="sb-profile-stats-new" style={{ cursor: 'default' }}>
                 <div className="sb-stat-main"><span className="sb-stat-main-value">{projects.length}</span><span className="sb-stat-main-label">مشاريع</span></div>
                 <div className="sb-stat-breakdown">
@@ -120,6 +121,7 @@ export function ClientPortalV2Page() {
               </div>
               <div className="sb-profile-tags">
                 <span className="sb-tag sb-tag-gold"><i className="fas fa-star" /> عميل مميز</span>
+                {client?.since && <span className="sb-tag sb-tag-blue"><i className="fas fa-calendar-check" /> منذ {client.since}</span>}
               </div>
               <button className="btn sb-new-request-btn" onClick={() => doRequest('project')} disabled={submitReq.isPending}>
                 <i className="fas fa-diagram-project" /> اطلب مشروع جديد
@@ -130,6 +132,7 @@ export function ClientPortalV2Page() {
           <nav className="sb-nav">
             <div className="nav-section-label">الرئيسية</div>
             <div className="nav-item active"><i className="fas fa-grid-2" /><span>نظرة عامة</span></div>
+            <div className="nav-item"><i className="fas fa-bell" /><span>الإشعارات</span>{unpaidCount > 0 && <span className="nav-badge danger">{unpaidCount}</span>}</div>
 
             <div className="nav-section-label">المشاريع</div>
             <div className="nav-sub-items">
@@ -142,8 +145,20 @@ export function ClientPortalV2Page() {
               ))}
             </div>
 
+            <div className="nav-section-label">الطلبات</div>
+            <div className="nav-item" onClick={() => doRequest('project')}><i className="fas fa-clipboard-list" /><span>طلباتي</span></div>
+            <div className="nav-item" onClick={() => doRequest('project')}><i className="fas fa-plus-circle" /><span>طلب جديد</span></div>
+
             <div className="nav-section-label">التواصل</div>
             <div className="nav-item"><i className="fas fa-video" /><span>الاجتماعات</span>{appts.length > 0 && <span className="nav-badge">{appts.length}</span>}</div>
+            <div className="nav-item"><i className="fas fa-comments" /><span>المحادثات</span></div>
+            <div className="nav-item"><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>
+
+            <div className="nav-section-label sb-loyalty-section-label">اقترحنا لصديق</div>
+            <div className="nav-item nav-item-loyalty"><i className="fas fa-handshake-angle" /><span>اقترحنا لصديق</span><span className="nav-badge" style={{ background: '#EAB244', color: '#7a5a00' }}>10%</span></div>
+
+            <div className="nav-section-label">أخرى</div>
+            <div className="nav-item"><i className="fas fa-gear" /><span>الإعدادات</span></div>
           </nav>
 
           <div className="sb-user">
@@ -162,28 +177,33 @@ export function ClientPortalV2Page() {
             <div className="topbar-breadcrumb"><span className="topbar-page-title">نظرة عامة</span></div>
             <div className="topbar-actions">
               <span className="topbar-date">{today}</span>
+              <button className="topbar-icon-btn" title="الإشعارات"><i className="fas fa-bell" />{unpaidCount > 0 && <span className="topbar-notif-dot" />}</button>
+              <button className="topbar-icon-btn" title="البحث"><i className="fas fa-magnifying-glass" /></button>
               <div className="topbar-user-menu">
-                <button className="topbar-user-btn"><div className="topbar-user-avatar">{initial}</div><span>{clientName.split(' ')[0]}</span></button>
+                <button className="topbar-user-btn"><div className="topbar-user-avatar">{initial}</div><span>{clientName.split(' ')[0]}</span><i className="fas fa-chevron-down" /></button>
               </div>
             </div>
           </header>
 
           <div className="content">
             <div className="page active">
-              {/* كاروسيل الإعلانات */}
-              {currentAd && (
+              {/* كاروسيل الإعلانات — بصورة جانبية كالأصل */}
+              {adCount > 0 && (
                 <div className="hero-ads-fullwidth">
                   <div className="hero-ads-slider">
-                    <div className="hero-ad-slide active" style={{ background: currentAd.bg_gradient }}>
-                      <div className="hero-ad-content">
-                        <span className="hero-ad-tag"><i className="fas fa-bullhorn" /> عرض</span>
-                        <h2>{currentAd.title}</h2>
-                        {currentAd.subtitle && <p>{currentAd.subtitle}</p>}
-                        {currentAd.cta_label && currentAd.cta_url && (
-                          <a className="btn hero-ad-btn" href={currentAd.cta_url} target={/^https?:/.test(currentAd.cta_url) ? '_blank' : undefined} rel="noreferrer"><i className="fas fa-arrow-left" /> {currentAd.cta_label}</a>
-                        )}
+                    {slides!.map((s, i) => (
+                      <div key={s.id} className={`hero-ad-slide${i === slide ? ' active' : ''}`} style={{ background: s.bg_gradient, display: i === slide ? 'flex' : 'none' }}>
+                        <div className="hero-ad-content">
+                          <span className="hero-ad-tag"><i className="fas fa-bullhorn" /> عرض</span>
+                          <h2>{s.title}</h2>
+                          {s.subtitle && <p>{s.subtitle}</p>}
+                          {s.cta_label && s.cta_url && (
+                            <a className="btn hero-ad-btn" href={s.cta_url} target={/^https?:/.test(s.cta_url) ? '_blank' : undefined} rel="noreferrer"><i className="fas fa-arrow-left" /> {s.cta_label}</a>
+                          )}
+                        </div>
+                        <div className="hero-ad-visual"><img src={HERO_IMG} alt="معمار" /></div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                   {adCount > 1 && (
                     <div className="hero-ads-controls">
@@ -197,15 +217,15 @@ export function ClientPortalV2Page() {
                 </div>
               )}
 
-              {/* المؤشرات */}
+              {/* المؤشرات — بشارات الاتجاه كالأصل */}
               <div className="kpi-grid">
-                <Kpi icon="fa-diagram-project" cls="blue" value={String(activeProjects)} label="مشاريع نشطة" />
-                <Kpi icon="fa-check-circle" cls="green" value={`${completionPct}%`} label="نسبة الإنجاز" />
-                <Kpi icon="fa-file-invoice" cls="orange" value={String(unpaid.length)} label="فواتير معلقة" />
-                <Kpi icon="fa-calendar-check" cls="purple" value={String(appts.length)} label="اجتماع قادم" />
+                <Kpi icon="fa-diagram-project" cls="blue" value={String(activeProjects)} label="مشاريع نشطة" trend={{ cls: 'up', icon: 'fa-arrow-up', txt: `${activeProjects}` }} />
+                <Kpi icon="fa-check-circle" cls="green" value={`${completionPct}%`} label="نسبة الإنجاز" trend={{ cls: 'up', icon: 'fa-arrow-up', txt: `${completionPct}%` }} />
+                <Kpi icon="fa-file-invoice" cls="orange" value={String(unpaidCount)} label="فواتير معلقة" trend={{ cls: 'neutral', icon: 'fa-minus', txt: `${unpaidCount}` }} />
+                <Kpi icon="fa-calendar-check" cls="purple" value={String(appts.length)} label="اجتماع قادم" trend={{ cls: 'neutral', icon: 'fa-clock', txt: appts.length ? 'قريبًا' : '—' }} />
               </div>
 
-              {/* برنامج الولاء */}
+              {/* برنامج الولاء — كامل بثلاثة أزرار وإحصائيات كالأصل */}
               <div className="loyalty-section-featured">
                 <div className="loyalty-featured-card">
                   <div className="loyalty-featured-bg" />
@@ -219,12 +239,18 @@ export function ClientPortalV2Page() {
                       <div className="loyalty-featured-code-label">كود العضوية</div>
                       <div className="loyalty-featured-code-value">
                         <span>{referralCode}</span>
-                        <button className="loyalty-featured-copy-btn" title="نسخ الكود" onClick={() => { navigator.clipboard?.writeText(referralCode); setCopied(true); setTimeout(() => setCopied(false), 1500); }}><i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`} /></button>
+                        <button className="loyalty-featured-copy-btn" title="نسخ الكود" onClick={copyCode}><i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`} /></button>
                       </div>
                     </div>
                     <div className="loyalty-featured-actions">
-                      <button className="btn loyalty-featured-btn-share" onClick={() => { navigator.clipboard?.writeText(referralCode); setCopied(true); setTimeout(() => setCopied(false), 1500); }}><i className="fas fa-share-nodes" /> مشاركة الكود</button>
-                      <button className="btn loyalty-featured-btn-use" onClick={() => doRequest('meeting')}><i className="fas fa-calendar" /> اطلب اجتماعاً</button>
+                      <button className="btn loyalty-featured-btn-share" onClick={copyCode}><i className="fas fa-share-nodes" /> مشاركة الكود</button>
+                      <button className="btn loyalty-featured-btn-gift" onClick={copyCode}><i className="fas fa-gift" /> أهدِ لصديق</button>
+                      <button className="btn loyalty-featured-btn-use" onClick={() => doRequest('project')}><i className="fas fa-percent" /> استخدم لنفسي</button>
+                    </div>
+                    <div className="loyalty-featured-stats">
+                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">0</span><span className="loyalty-featured-stat-txt">إحالات ناجحة</span></div>
+                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">10%</span><span className="loyalty-featured-stat-txt">خصم متاح</span></div>
+                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">0</span><span className="loyalty-featured-stat-txt">هدايا مُرسلة</span></div>
                     </div>
                   </div>
                 </div>
@@ -232,7 +258,6 @@ export function ClientPortalV2Page() {
 
               {/* الشبكة */}
               <div className="dashboard-grid">
-                {/* المشاريع النشطة */}
                 <div className="card projects-overview">
                   <div className="card-header"><h3 className="card-title">مشاريعي</h3></div>
                   <div className="card-body">
@@ -258,7 +283,6 @@ export function ClientPortalV2Page() {
                   </div>
                 </div>
 
-                {/* آخر التحديثات */}
                 <div className="card recent-activity">
                   <div className="card-header"><h3 className="card-title">آخر التحديثات</h3></div>
                   <div className="card-body">
@@ -274,7 +298,6 @@ export function ClientPortalV2Page() {
                   </div>
                 </div>
 
-                {/* الاجتماعات القادمة */}
                 <div className="card upcoming-meetings">
                   <div className="card-header"><h3 className="card-title">الاجتماعات القادمة</h3></div>
                   <div className="card-body">
@@ -289,7 +312,6 @@ export function ClientPortalV2Page() {
                   </div>
                 </div>
 
-                {/* إجراءات سريعة */}
                 <div className="card quick-actions">
                   <div className="card-header"><h3 className="card-title">إجراءات سريعة</h3></div>
                   <div className="card-body">
@@ -312,11 +334,12 @@ export function ClientPortalV2Page() {
   );
 }
 
-function Kpi({ icon, cls, value, label }: { icon: string; cls: string; value: string; label: string }) {
+function Kpi({ icon, cls, value, label, trend }: { icon: string; cls: string; value: string; label: string; trend: { cls: string; icon: string; txt: string } }) {
   return (
     <div className="kpi-card">
       <div className={`kpi-icon ${cls}`}><i className={`fas ${icon}`} /></div>
       <div className="kpi-content"><span className="kpi-value">{value}</span><span className="kpi-label">{label}</span></div>
+      <div className={`kpi-trend ${trend.cls}`}><i className={`fas ${trend.icon}`} /> {trend.txt}</div>
     </div>
   );
 }

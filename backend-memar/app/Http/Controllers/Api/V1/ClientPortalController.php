@@ -78,16 +78,24 @@ class ClientPortalController extends ApiController
 
         $totalDue = (float) $invoices->sum(fn (Invoice $i) => (float) $i->total_kwd - (float) $i->paid_kwd);
 
+        $contact = $request->user()?->contact;
+        $doneProjects = $projects->where('status', 'done')->count();
+
         return $this->ok([
             'linked' => true,
             'client' => [
                 'id' => $contactId,
-                'name' => $request->user()?->contact?->full_name,
+                'name' => $contact?->full_name,
+                'company' => $contact?->company,
+                'phone' => $contact?->phone,
+                'since' => $contact?->created_at?->format('Y'),
             ],
             'stats' => [
                 'projects' => $projects->count(),
                 'active_projects' => $projects->where('status', 'active')->count(),
+                'done_projects' => $doneProjects,
                 'invoices' => $invoices->count(),
+                'unpaid_invoices' => $invoices->filter(fn (Invoice $i) => (float) $i->total_kwd - (float) $i->paid_kwd > 0)->count(),
                 'total_due' => round($totalDue, 3),
                 'contracts' => $contracts->count(),
             ],

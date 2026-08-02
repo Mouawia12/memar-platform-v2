@@ -359,7 +359,13 @@
   border-bottom: none !important;
 }
 .mcp-root .topbar-page-title { color: #fff !important; font-size: 16px !important; }
-.mcp-root .topbar-date { color: rgba(255, 255, 255, 0.85) !important; }
+/* حبّة التاريخ: السكين القديم يعطيها خلفية فاتحة (#EEF2F9) فيختفي نصّها الأبيض.
+   نجعلها حبّة شفّافة بيضاء لتظهر بوضوح على الشريط الأزرق. */
+.mcp-root .topbar-date {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
 .mcp-root .topbar-icon-btn,
 .mcp-root .topbar-menu-btn,
 .mcp-root .back-btn,

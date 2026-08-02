@@ -15,6 +15,9 @@ use App\Models\Appointment;
 use App\Models\ClientMessage;
 use App\Models\Contact;
 use App\Models\Contract;
+use App\Models\ForumCategory;
+use App\Models\ForumReply;
+use App\Models\ForumTopic;
 use App\Models\GeneratedDocument;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -394,5 +397,64 @@ class ClientPortalController extends ApiController
             'body' => $message->body,
             'at' => $message->created_at?->toIso8601String(),
         ], 'تم الإرسال');
+    }
+
+    /** المنتدى — أسئلة العميل (مواضيعه) وردود طاقم معمار عليها. */
+    public function forum(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user?->contact_id !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $topics = ForumTopic::where('user_id', $user->id)
+            ->with(['replies' => fn ($q) => $q->with('user:id,name')->oldest()])
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(function (ForumTopic $t) use ($user): array {
+                $replies = $t->replies->map(fn (ForumReply $r): array => [
+                    'id' => $r->id,
+                    'from_staff' => $r->user_id !== $user->id,
+                    'author' => $r->user_id !== $user->id ? ($r->user?->name ?? 'فريق معمار') : $user->name,
+                    'body' => $r->body,
+                    'at' => $r->created_at?->toIso8601String(),
+                ])->all();
+                $answered = collect($replies)->contains('from_staff', true);
+
+                return [
+                    'id' => $t->id,
+                    'title' => $t->title,
+                    'body' => $t->body,
+                    'status' => $answered ? 'answered' : 'open',
+                    'status_label' => $answered ? 'تمت الإجابة' : 'سؤال',
+                    'created_at' => $t->created_at?->toIso8601String(),
+                    'replies' => $replies,
+                ];
+            })->all();
+
+        return $this->ok($topics);
+    }
+
+    /** نشر سؤال جديد في المنتدى من العميل. */
+    public function createForumThread(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user?->contact_id !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'body' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $categoryId = ForumCategory::query()->orderBy('order')->value('id')
+            ?? ForumCategory::create(['name' => 'عام', 'slug' => 'general', 'order' => 1])->id;
+
+        $topic = ForumTopic::create([
+            'category_id' => $categoryId,
+            'user_id' => $user->id,
+            'title' => $data['title'],
+            'body' => ($data['body'] ?? '') ?: $data['title'],
+        ]);
+
+        return $this->created(['id' => $topic->id], 'تم نشر سؤالك');
     }
 }

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Appointment } from '../../appointments/types';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
 import type { ClientInfo, NotificationPrefs } from '../api/clientPortalApi';
-import { useClientMessages, useClientNotifications, useMyRequests, useSendClientMessage, useSubmitClientRequest, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
+import { useClientMessages, useClientNotifications, useCreateForumThread, useForumThreads, useMyRequests, useSendClientMessage, useSubmitClientRequest, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
 
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
@@ -272,45 +272,87 @@ export function ChatSection() {
   );
 }
 
-/** المنتدى — طبق الأصل: forum-threads + صندوق ردّ (يُنشئ استفسارًا واردًا). */
-export function ForumSection({ onInquiry }: { onInquiry: (msg: string) => void }) {
-  const [text, setText] = useState('');
+/** المنتدى — طبق الأصل: forum-threads حقيقية (أسئلة العميل وردود الطاقم) + نشر سؤال. */
+export function ForumSection() {
+  const { data: threads, isLoading } = useForumThreads();
+  const create = useCreateForumThread();
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
   const [sent, setSent] = useState(false);
 
-  const send = () => {
-    const t = text.trim();
-    if (t.length < 2) return;
-    onInquiry(t);
-    setText('');
-    setSent(true);
-    setTimeout(() => setSent(false), 3000);
+  const submit = () => {
+    const t = title.trim();
+    if (t.length < 2 || create.isPending) return;
+    create.mutate({ title: t, body: body.trim() }, { onSuccess: () => { setTitle(''); setBody(''); setSent(true); setTimeout(() => setSent(false), 3000); } });
   };
+
+  const initialOf = (name: string | null) => (name ?? 'أنا').trim().charAt(0) || 'أ';
 
   return (
     <>
       <div className="section-header">
         <div>
           <h2 className="section-title">المنتدى</h2>
-          <p className="section-subtitle">أسئلة العملاء وإجابات فريق عمل مجموعة معمار</p>
+          <p className="section-subtitle">أسئلتك وإجابات فريق عمل مجموعة معمار</p>
         </div>
       </div>
+
       <div className="forum-threads">
-        <div className="forum-thread" style={{ textAlign: 'center' }}>
-          <div style={{ padding: 24, color: '#64748B' }}>
-            <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
-            <p>لا مواضيع بعد — اطرح سؤالك أدناه وسيجيبك فريق معمار.</p>
+        {isLoading && <p style={{ color: '#64748B', padding: 8 }}>جارٍ التحميل…</p>}
+        {threads && threads.length === 0 && (
+          <div className="forum-thread" style={{ textAlign: 'center' }}>
+            <div style={{ padding: 24, color: '#64748B' }}>
+              <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
+              <p>لا أسئلة بعد — اطرح سؤالك أدناه وسيجيبك فريق معمار.</p>
+            </div>
           </div>
-        </div>
+        )}
+        {threads?.map((th) => (
+          <div key={th.id} className="forum-thread">
+            <div className="forum-thread-header">
+              <div className="forum-thread-avatar">{initialOf(null)}</div>
+              <div className="forum-thread-meta">
+                <strong>سؤالي</strong>
+                <span className="forum-thread-date">{fmtDate(th.created_at)}</span>
+              </div>
+              <span className={`forum-thread-tag ${th.status === 'answered' ? 'tag-answered' : 'tag-question'}`}>{th.status_label}</span>
+            </div>
+            <h4 className="forum-thread-title">{th.title}</h4>
+            {th.body && th.body !== th.title && <p className="forum-thread-body">{th.body}</p>}
+            <div className="forum-thread-footer">
+              <span className="forum-replies-count"><i className="fas fa-comments" /> {th.replies.length} {th.replies.length === 1 ? 'رد' : 'ردود'}</span>
+            </div>
+            {th.replies.length > 0 && (
+              <div className="forum-replies">
+                {th.replies.map((r) => (
+                  <div key={r.id} className="forum-reply">
+                    <div className="forum-reply-header">
+                      <div className={`forum-reply-avatar${r.from_staff ? ' staff' : ''}`}>{initialOf(r.author)}</div>
+                      <div className="forum-reply-meta">
+                        <strong>{r.author ?? (r.from_staff ? 'فريق معمار' : 'أنا')}</strong>
+                        {r.from_staff && <span className="forum-staff-badge"><i className="fas fa-shield-halved" /> فريق معمار</span>}
+                        <span className="forum-reply-date">{fmtDate(r.at)}</span>
+                      </div>
+                    </div>
+                    <p className="forum-reply-body">{r.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
+
       <div className="forum-new-reply-box">
-        <div className="forum-reply-input-header"><span><i className="fas fa-pen" /> اكتب سؤالك</span></div>
-        <textarea className="forum-reply-textarea" placeholder="اكتب سؤالك هنا..." value={text} onChange={(e) => setText(e.target.value)} />
+        <div className="forum-reply-input-header"><span><i className="fas fa-pen" /> اطرح سؤالاً جديدًا</span></div>
+        <input className="form-input" style={{ marginBottom: 10 }} placeholder="عنوان السؤال…" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <textarea className="forum-reply-textarea" placeholder="تفاصيل السؤال (اختياري)…" value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="forum-reply-input-actions">
           <div />
-          <button className="btn btn-primary" onClick={send}><i className="fas fa-paper-plane" /> إرسال</button>
+          <button className="btn btn-primary" onClick={submit} disabled={create.isPending || title.trim().length < 2}><i className="fas fa-paper-plane" /> نشر السؤال</button>
         </div>
       </div>
-      {sent && <p style={{ color: 'var(--success)', fontWeight: 700, marginTop: 10 }}>✓ أُرسل سؤالك — سيجيبك الفريق قريباً.</p>}
+      {sent && <p style={{ color: 'var(--success)', fontWeight: 700, marginTop: 10 }}>✓ نُشر سؤالك — سيجيبك الفريق قريباً.</p>}
     </>
   );
 }

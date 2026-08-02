@@ -7,6 +7,8 @@ namespace Tests\Feature;
 use App\Models\Appointment;
 use App\Models\ClientMessage;
 use App\Models\Contact;
+use App\Models\ForumReply;
+use App\Models\ForumTopic;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Referral;
@@ -157,5 +159,37 @@ class ClientPortalSectionsTest extends TestCase
         $this->actingAsClient();
 
         $this->postJson('/api/v1/client-portal/messages', ['body' => ''])->assertStatus(422);
+    }
+
+    public function test_forum_lists_only_own_threads_with_staff_replies(): void
+    {
+        $user = $this->actingAsClient();
+        $topic = ForumTopic::create(['category_id' => 1, 'user_id' => $user->id, 'title' => 'كم يستغرق التصميم؟', 'body' => 'تفاصيل']);
+        $staff = User::factory()->create();
+        ForumReply::create(['topic_id' => $topic->id, 'user_id' => $staff->id, 'body' => 'من ٤ إلى ٦ أسابيع']);
+        ForumTopic::create(['category_id' => 1, 'user_id' => User::factory()->create()->id, 'title' => 'سؤال عميل آخر', 'body' => 'خاص']);
+
+        $res = $this->getJson('/api/v1/client-portal/forum');
+
+        $res->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'answered')
+            ->assertJsonPath('data.0.replies.0.from_staff', true);
+    }
+
+    public function test_client_can_post_forum_question(): void
+    {
+        $user = $this->actingAsClient();
+
+        $this->postJson('/api/v1/client-portal/forum', ['title' => 'هل يمكن تعديل المخطط؟'])
+            ->assertStatus(201);
+
+        $this->assertDatabaseHas('forum_topics', ['user_id' => $user->id, 'title' => 'هل يمكن تعديل المخطط؟']);
+    }
+
+    public function test_forum_question_requires_title(): void
+    {
+        $this->actingAsClient();
+
+        $this->postJson('/api/v1/client-portal/forum', ['body' => 'بلا عنوان'])->assertStatus(422);
     }
 }

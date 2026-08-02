@@ -21,4 +21,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/client-portal/loyalty/share', [ClientPortalController::class, 'recordReferralShare']);
     Route::get('/client-portal/messages', [ClientPortalController::class, 'messages']);
     Route::post('/client-portal/messages', [ClientPortalController::class, 'sendMessage']);
+    Route::get('/client-portal/forum', [ClientPortalController::class, 'forum']);
+    Route::post('/client-portal/forum', [ClientPortalController::class, 'createForumThread']);
 });

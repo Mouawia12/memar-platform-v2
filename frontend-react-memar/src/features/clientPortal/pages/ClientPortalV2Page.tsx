@@ -142,7 +142,6 @@ export function ClientPortalV2Page() {
     if (type === 'gift') { navigator.clipboard?.writeText(referralCode); showToast('📋 تم نسخ رابط الإهداء'); setTimeout(() => showToast('لتفعيل الإهداء، شارك كودك مع صديقك. سيحصل على الخصم بعد فتح حساب جديد والتعاقد على مشروعه الأول.'), 1500); }
     else showToast('لتفعيل خصمك، شارك كودك مع صديق. يُطبَّق الخصم تلقائياً بعد فتح صديقك حساباً جديداً وتعاقده على مشروعه الأول.');
   };
-  const doInquiry = (msg: string) => submitReq.mutate({ type: 'inquiry', note: msg });
   // تعديل الكنية داخليًا (طبق الأصل: editClientTitle) — يُحفظ فعليًا في الباك اند.
   const startEditKunya = () => { setKunyaDraft(client?.kunya ?? ''); setEditingKunya(true); };
   const saveKunya = () => {
@@ -290,7 +289,7 @@ export function ClientPortalV2Page() {
               {page === 'notifications' && <NotificationsSection />}
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
               {page === 'chat' && <ChatSection />}
-              {page === 'forum' && <ForumSection onInquiry={doInquiry} />}
+              {page === 'forum' && <ForumSection />}
               {page === 'loyalty' && <LoyaltySection code={referralCode} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
               {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={(id) => navigate(`/client-portal/projects/${id}`)} onRequest={() => doRequest('project')} />}
               {page === 'settings' && client && <SettingsSection client={client} />}

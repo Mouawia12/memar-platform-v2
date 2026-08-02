@@ -79,6 +79,21 @@ export function useSendClientMessage() {
   });
 }
 
+/** المنتدى — مواضيع العميل وردود الطاقم. */
+export function useForumThreads() {
+  return useQuery({ queryKey: ['client-forum'], queryFn: () => clientPortalApi.forum() });
+}
+
+/** نشر سؤال جديد في المنتدى. */
+export function useCreateForumThread() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ title, body }: { title: string; body: string }) => clientPortalApi.createThread(title, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-forum'] }),
+  });
+}
+
 /** تفاصيل مشروع للعميل (CLIENT-4): مراحله وتقدّمه ودفعاته. */
 export function useClientProject(id: number) {
   return useQuery({

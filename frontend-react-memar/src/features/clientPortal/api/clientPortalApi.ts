@@ -102,12 +102,32 @@ export interface ClientMessage {
   at: string | null;
 }
 
+export interface ForumReply {
+  id: number;
+  from_staff: boolean;
+  author: string | null;
+  body: string;
+  at: string | null;
+}
+
+export interface ForumThread {
+  id: number;
+  title: string;
+  body: string | null;
+  status: 'open' | 'answered';
+  status_label: string;
+  created_at: string | null;
+  replies: ForumReply[];
+}
+
 export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
   loyalty: () => apiGet<LoyaltyData>('/client-portal/loyalty'),
   recordShare: () => apiPost<{ code: string; shares: number }>('/client-portal/loyalty/share', {}),
   messages: () => apiGet<ClientMessage[]>('/client-portal/messages'),
   sendMessage: (body: string) => apiPost<ClientMessage>('/client-portal/messages', { body }),
+  forum: () => apiGet<ForumThread[]>('/client-portal/forum'),
+  createThread: (title: string, body: string) => apiPost<{ id: number }>('/client-portal/forum', { title, body }),
   project: (id: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`),
   submitRequest: (type: ClientRequestType, note?: string) => apiPost<{ id: number }>('/client-portal/requests', { type, note }),
   myRequests: () => apiGet<ClientRequestItem[]>('/client-portal/requests'),

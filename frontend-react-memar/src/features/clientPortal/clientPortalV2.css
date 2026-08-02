@@ -347,6 +347,25 @@
   transition: var(--transition);
 }
 .mcp-root .topbar-icon-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* استرجاع شريط علوي البوابة من سكينات الـERP القديمة (mimar-skin/premium)
+   التي تفرض topbar أبيض بـ!important فتختفي أيقوناته البيضاء. نعيده أزرق كالتصميم. */
+.mcp-root .topbar {
+  background: linear-gradient(135deg, #0D4A7A 0%, #1B6CA8 100%) !important;
+  height: var(--topbar-h) !important;
+  min-height: var(--topbar-h) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none !important;
+}
+.mcp-root .topbar-page-title { color: #fff !important; font-size: 16px !important; }
+.mcp-root .topbar-date { color: rgba(255, 255, 255, 0.85) !important; }
+.mcp-root .topbar-icon-btn,
+.mcp-root .topbar-menu-btn,
+.mcp-root .back-btn,
+.mcp-root .topbar-user-btn { color: #fff !important; }
+.mcp-root .topbar-icon-btn,
+.mcp-root .back-btn { width: 36px !important; height: 36px !important; }
 .mcp-root .topbar-notif-dot {
   position: absolute;
   top: 6px;

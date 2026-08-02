@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useLogout } from '../../auth/hooks/useAuth';
-import { usePublicHeroSlides } from '../../hero/hooks/useHero';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
 import { ChatSection, CompanySection, ForumSection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
 import { useClientNotifications, useClientPortal, useSubmitClientRequest } from '../hooks/useClientPortal';
@@ -21,7 +20,13 @@ const timeOf = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString('
 
 const progressOf = (s: ProjectStatus): number => ({ draft: 10, active: 60, review: 85, on_hold: 40, done: 100, cancelled: 0 }[s] ?? 30);
 const ringColor = (p: number): string => (p >= 80 ? 'green' : p >= 50 ? '' : 'orange');
-const HERO_IMG = '/portal-assets/memar-logo-mark.png';
+
+/** شرائح الإعلانات الثابتة — طبق الأصل من تصميم atoms (٣ شرائح بصورها ونصوصها وأزرارها). */
+const HERO_SLIDES = [
+  { tag: 'عرض خاص', tagIcon: 'fa-bullhorn', title: 'خصم 20% على خدمات التصميم الداخلي', text: 'احصل على تصميم داخلي متكامل لمشروعك مع فريق معمار المتخصص.', cta: 'استفد الآن', img: '/portal-assets/hero-banner-engineering.png', toast: 'تم تسجيل اهتمامك بالعرض ✓' },
+  { tag: 'جديد', tagIcon: 'fa-star', title: 'خدمة الإشراف الهندسي عن بُعد', text: 'تابع مشروعك أينما كنت مع تقارير يومية مصورة.', cta: 'اعرف المزيد', img: '/portal-assets/project-construction-progress.png', toast: 'تم تسجيل اهتمامك ✓' },
+  { tag: 'باقة مميزة', tagIcon: 'fa-gift', title: 'باقة التصميم المتكاملة للفلل', text: 'تصميم معماري + إنشائي + كهربائي + صحي بسعر موحد.', cta: 'تواصل معنا', img: '/portal-assets/memar-logo-mark.png', toast: 'تم تسجيل اهتمامك ✓' },
+];
 
 /**
  * بوابة العميل — طبق الأصل من تصميم atoms («تحسين صفحة العميل») بكامل عناصره،
@@ -31,22 +36,42 @@ export function ClientPortalV2Page() {
   const navigate = useNavigate();
   const logout = useLogout();
   const { data, isLoading, isError } = useClientPortal();
-  const { data: slides } = usePublicHeroSlides();
   const submitReq = useSubmitClientRequest();
 
   const [slide, setSlide] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [page, setPage] = useState<PageKey>('dashboard');
+  const [toast, setToast] = useState<string | null>(null);
+  const [heroPaused, setHeroPaused] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { data: notif } = useClientNotifications();
 
-  const adCount = slides?.length ?? 0;
+  const adCount = HERO_SLIDES.length;
   useEffect(() => {
-    if (adCount <= 1) return;
-    const t = setInterval(() => setSlide((s) => (s + 1) % adCount), 6000);
+    if (adCount <= 1 || heroPaused) return;
+    const t = setInterval(() => setSlide((s) => (s + 1) % adCount), 5000);
 
     return () => clearInterval(t);
-  }, [adCount]);
+  }, [adCount, heroPaused]);
+
+  // إغلاق قائمة المستخدم عند النقر خارجها (طبق الأصل).
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.topbar-user-menu')) setUserMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [userMenuOpen]);
+
+  // إشعار عائم (طبق الأصل: showToast) — يظهر ٣ ثوانٍ.
+  const showToast = (msg: string) => {
+    setToast(msg);
+    window.clearTimeout((showToast as unknown as { _t?: number })._t);
+    (showToast as unknown as { _t?: number })._t = window.setTimeout(() => setToast(null), 3000);
+  };
 
   const today = new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -90,8 +115,22 @@ export function ClientPortalV2Page() {
     );
   }
 
-  const doRequest = (type: 'project' | 'meeting') => submitReq.mutate({ type });
-  const copyCode = () => { navigator.clipboard?.writeText(referralCode); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const doRequest = (type: 'project' | 'meeting') => submitReq.mutate({ type }, { onSuccess: () => showToast('تم إرسال طلبك — سنتواصل معك قريبًا ✓') });
+  const copyCode = () => {
+    navigator.clipboard?.writeText(referralCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+    showToast(`تم نسخ كود الإحالة: ${referralCode} ✓`);
+  };
+  const shareReferral = () => {
+    const shareText = `انضم لعملاء معمار واحصل على خصم 10% باستخدام كود الإحالة: ${referralCode}`;
+    if (navigator.share) navigator.share({ title: 'اقترحنا لصديق - معمار', text: shareText }).catch(() => {});
+    else { navigator.clipboard?.writeText(shareText); showToast('تم نسخ رابط المشاركة ✓'); }
+  };
+  const loyaltyAction = (type: 'gift' | 'self') => {
+    if (type === 'gift') { navigator.clipboard?.writeText(referralCode); showToast('📋 تم نسخ رابط الإهداء'); setTimeout(() => showToast('لتفعيل الإهداء، شارك كودك مع صديقك. سيحصل على الخصم بعد فتح حساب جديد والتعاقد على مشروعه الأول.'), 1500); }
+    else showToast('لتفعيل خصمك، شارك كودك مع صديق. يُطبَّق الخصم تلقائياً بعد فتح صديقك حساباً جديداً وتعاقده على مشروعه الأول.');
+  };
   const go = (p: PageKey) => { setPage(p); setSidebarOpen(false); };
   const notifCount = notif?.count ?? unpaidCount;
 
@@ -194,10 +233,16 @@ export function ClientPortalV2Page() {
             </div>
             <div className="topbar-actions">
               <span className="topbar-date">{today}</span>
-              <button className="topbar-icon-btn" title="الإشعارات"><i className="fas fa-bell" />{unpaidCount > 0 && <span className="topbar-notif-dot" />}</button>
+              <button className="topbar-icon-btn" title="الإشعارات" onClick={() => go('notifications')}><i className="fas fa-bell" />{notifCount > 0 && <span className="topbar-notif-dot" />}</button>
               <button className="topbar-icon-btn" title="البحث"><i className="fas fa-magnifying-glass" /></button>
               <div className="topbar-user-menu">
-                <button className="topbar-user-btn"><div className="topbar-user-avatar">{initial}</div><span>{clientName.split(' ')[0]}</span><i className="fas fa-chevron-down" /></button>
+                <button className="topbar-user-btn" onClick={() => setUserMenuOpen((o) => !o)}><div className="topbar-user-avatar">{initial}</div><span>{clientName.split(' ')[0]}</span><i className="fas fa-chevron-down" /></button>
+                <div className={`topbar-user-dropdown${userMenuOpen ? '' : ' hidden'}`}>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); go('settings'); }}><i className="fas fa-user" /> الملف الشخصي</a>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); go('settings'); }}><i className="fas fa-gear" /> الإعدادات</a>
+                  <hr />
+                  <a href="#" className="danger" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); logout.mutate(); }}><i className="fas fa-arrow-right-from-bracket" /> تسجيل خروج</a>
+                </div>
               </div>
             </div>
           </header>
@@ -212,35 +257,29 @@ export function ClientPortalV2Page() {
               {page === 'company' && client && <CompanySection client={client} />}
               {page === 'settings' && client && <SettingsSection client={client} />}
               {(page === 'dashboard' || page === 'loyalty') && (<>
-              {/* كاروسيل الإعلانات — بصورة جانبية كالأصل */}
-              {adCount > 0 && (
-                <div className="hero-ads-fullwidth">
-                  <div className="hero-ads-slider">
-                    {slides!.map((s, i) => (
-                      <div key={s.id} className={`hero-ad-slide${i === slide ? ' active' : ''}`} style={{ background: s.bg_gradient, display: i === slide ? 'flex' : 'none' }}>
-                        <div className="hero-ad-content">
-                          <span className="hero-ad-tag"><i className="fas fa-bullhorn" /> عرض</span>
-                          <h2>{s.title}</h2>
-                          {s.subtitle && <p>{s.subtitle}</p>}
-                          {s.cta_label && s.cta_url && (
-                            <a className="btn hero-ad-btn" href={s.cta_url} target={/^https?:/.test(s.cta_url) ? '_blank' : undefined} rel="noreferrer"><i className="fas fa-arrow-left" /> {s.cta_label}</a>
-                          )}
-                        </div>
-                        <div className="hero-ad-visual"><img src={HERO_IMG} alt="معمار" /></div>
+              {/* كاروسيل الإعلانات — طبق الأصل: ٣ شرائح بصورها ونصوصها، خلفية زرقاء، تشغيل تلقائي ٥ث مع إيقاف عند التمرير */}
+              <div className="hero-ads-fullwidth" onMouseEnter={() => setHeroPaused(true)} onMouseLeave={() => setHeroPaused(false)}>
+                <div className="hero-ads-slider">
+                  {HERO_SLIDES.map((s, i) => (
+                    <div key={i} className={`hero-ad-slide${i === slide ? ' active' : ''}`}>
+                      <div className="hero-ad-content">
+                        <span className="hero-ad-tag"><i className={`fas ${s.tagIcon}`} /> {s.tag}</span>
+                        <h2>{s.title}</h2>
+                        <p>{s.text}</p>
+                        <button className="btn hero-ad-btn" onClick={() => showToast(s.toast)}><i className="fas fa-arrow-left" /> {s.cta}</button>
                       </div>
-                    ))}
-                  </div>
-                  {adCount > 1 && (
-                    <div className="hero-ads-controls">
-                      <button className="hero-ad-nav-btn" onClick={() => setSlide((s) => (s - 1 + adCount) % adCount)}><i className="fas fa-chevron-right" /></button>
-                      <div className="hero-ads-dots">
-                        {slides!.map((s, i) => <span key={s.id} className={`hero-dot${i === slide ? ' active' : ''}`} onClick={() => setSlide(i)} />)}
-                      </div>
-                      <button className="hero-ad-nav-btn" onClick={() => setSlide((s) => (s + 1) % adCount)}><i className="fas fa-chevron-left" /></button>
+                      <div className="hero-ad-visual"><img src={s.img} alt={s.tag} /></div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
+                <div className="hero-ads-controls">
+                  <button className="hero-ad-nav-btn" onClick={() => setSlide((s) => (s - 1 + adCount) % adCount)}><i className="fas fa-chevron-right" /></button>
+                  <div className="hero-ads-dots">
+                    {HERO_SLIDES.map((_, i) => <span key={i} className={`hero-dot${i === slide ? ' active' : ''}`} onClick={() => setSlide(i)} />)}
+                  </div>
+                  <button className="hero-ad-nav-btn" onClick={() => setSlide((s) => (s + 1) % adCount)}><i className="fas fa-chevron-left" /></button>
+                </div>
+              </div>
 
               {/* المؤشرات — بشارات الاتجاه كالأصل */}
               <div className="kpi-grid">
@@ -268,9 +307,9 @@ export function ClientPortalV2Page() {
                       </div>
                     </div>
                     <div className="loyalty-featured-actions">
-                      <button className="btn loyalty-featured-btn-share" onClick={copyCode}><i className="fas fa-share-nodes" /> مشاركة الكود</button>
-                      <button className="btn loyalty-featured-btn-gift" onClick={copyCode}><i className="fas fa-gift" /> أهدِ لصديق</button>
-                      <button className="btn loyalty-featured-btn-use" onClick={() => doRequest('project')}><i className="fas fa-percent" /> استخدم لنفسي</button>
+                      <button className="btn loyalty-featured-btn-share" onClick={shareReferral}><i className="fas fa-share-nodes" /> مشاركة الكود</button>
+                      <button className="btn loyalty-featured-btn-gift" onClick={() => loyaltyAction('gift')}><i className="fas fa-gift" /> أهدِ لصديق</button>
+                      <button className="btn loyalty-featured-btn-use" onClick={() => loyaltyAction('self')}><i className="fas fa-percent" /> استخدم لنفسي</button>
                     </div>
                     <div className="loyalty-featured-stats">
                       <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">0</span><span className="loyalty-featured-stat-txt">إحالات ناجحة</span></div>
@@ -284,16 +323,17 @@ export function ClientPortalV2Page() {
               {/* الشبكة */}
               <div className="dashboard-grid">
                 <div className="card projects-overview">
-                  <div className="card-header"><h3 className="card-title">مشاريعي</h3></div>
+                  <div className="card-header"><h3 className="card-title">المشاريع النشطة</h3>{projects.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => projects[0] && navigate(`/client-portal/projects/${projects[0].id}`)}>عرض الكل</button>}</div>
                   <div className="card-body">
                     <div className="project-list">
                       {projects.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا مشاريع بعد.</p>}
-                      {projects.map((p) => {
+                      {projects.map((p, idx) => {
                         const prog = progressOf(p.status);
+                        const iconCls = ['', 'orange', 'green'][idx % 3];
 
                         return (
                           <div key={p.id} className="project-item" onClick={() => navigate(`/client-portal/projects/${p.id}`)}>
-                            <div className="project-item-icon"><i className="fas fa-building" /></div>
+                            <div className={`project-item-icon ${iconCls}`}><i className="fas fa-building" /></div>
                             <div className="project-item-info"><h4>{p.name}</h4><span className="project-item-stage">{PROJECT_STATUS_LABELS[p.status]}</span></div>
                             <div className="project-item-progress">
                               <div className="progress-ring">
@@ -309,7 +349,7 @@ export function ClientPortalV2Page() {
                 </div>
 
                 <div className="card recent-activity">
-                  <div className="card-header"><h3 className="card-title">آخر التحديثات</h3></div>
+                  <div className="card-header"><h3 className="card-title">آخر التحديثات</h3><button className="btn btn-ghost btn-sm" onClick={() => go('notifications')}>عرض الكل</button></div>
                   <div className="card-body">
                     <div className="activity-list">
                       {activity.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا تحديثات.</p>}
@@ -324,7 +364,7 @@ export function ClientPortalV2Page() {
                 </div>
 
                 <div className="card upcoming-meetings">
-                  <div className="card-header"><h3 className="card-title">الاجتماعات القادمة</h3></div>
+                  <div className="card-header"><h3 className="card-title">الاجتماعات القادمة</h3><button className="btn btn-ghost btn-sm" onClick={() => go('meetings')}>عرض الكل</button></div>
                   <div className="card-body">
                     {appts.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا اجتماعات قادمة.</p>}
                     {appts.map((a) => (
@@ -341,21 +381,23 @@ export function ClientPortalV2Page() {
                   <div className="card-header"><h3 className="card-title">إجراءات سريعة</h3></div>
                   <div className="card-body">
                     <div className="quick-actions-grid">
-                      <button className="quick-action-btn" onClick={() => doRequest('project')}><i className="fas fa-diagram-project" /><span>طلب مشروع</span></button>
-                      <button className="quick-action-btn" onClick={() => doRequest('meeting')}><i className="fas fa-calendar-plus" /><span>طلب اجتماع</span></button>
-                      <button className="quick-action-btn" onClick={() => projects[0] && navigate(`/client-portal/projects/${projects[0].id}`)}><i className="fas fa-money-bill-wave" /><span>الدفعات</span></button>
-                      <button className="quick-action-btn" onClick={() => doRequest('meeting')}><i className="fas fa-headset" /><span>دعم</span></button>
+                      <button className="quick-action-btn" onClick={() => (projects[0] ? navigate(`/client-portal/projects/${projects[0].id}`) : showToast('لا مشاريع بعد لرفع مستنداتها'))}><i className="fas fa-cloud-arrow-up" /><span>رفع مستند</span></button>
+                      <button className="quick-action-btn" onClick={() => (projects[0] ? navigate(`/client-portal/projects/${projects[0].id}`) : showToast('لا فواتير مستحقة'))}><i className="fas fa-money-bill-wave" /><span>سداد فاتورة</span></button>
+                      <button className="quick-action-btn" onClick={() => doRequest('meeting')}><i className="fas fa-calendar-plus" /><span>حجز اجتماع</span></button>
+                      <button className="quick-action-btn" onClick={() => go('chat')}><i className="fas fa-headset" /><span>دعم فني</span></button>
                     </div>
                   </div>
                 </div>
               </div>
 
               </>)}
-              {submitReq.isSuccess && <div style={{ position: 'fixed', bottom: 24, insetInlineStart: 24, background: '#059669', color: '#fff', padding: '12px 18px', borderRadius: 10, fontWeight: 700, zIndex: 500 }}>✓ تم إرسال طلبك — سنتواصل معك قريبًا.</div>}
             </div>
           </div>
         </main>
       </div>
+
+      {/* إشعار عائم — طبق الأصل (.toast.show) */}
+      <div className={`toast${toast ? ' show' : ''}`}>{toast}</div>
     </div>
   );
 }

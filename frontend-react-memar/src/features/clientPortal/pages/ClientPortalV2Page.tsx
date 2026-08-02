@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useLogout } from '../../auth/hooks/useAuth';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
-import { ChatSection, CompanySection, ForumSection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
+import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
 import { useClientNotifications, useClientPortal, useSubmitClientRequest } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
@@ -131,6 +131,7 @@ export function ClientPortalV2Page() {
     if (type === 'gift') { navigator.clipboard?.writeText(referralCode); showToast('📋 تم نسخ رابط الإهداء'); setTimeout(() => showToast('لتفعيل الإهداء، شارك كودك مع صديقك. سيحصل على الخصم بعد فتح حساب جديد والتعاقد على مشروعه الأول.'), 1500); }
     else showToast('لتفعيل خصمك، شارك كودك مع صديق. يُطبَّق الخصم تلقائياً بعد فتح صديقك حساباً جديداً وتعاقده على مشروعه الأول.');
   };
+  const doInquiry = (msg: string) => submitReq.mutate({ type: 'inquiry', note: msg });
   const go = (p: PageKey) => { setPage(p); setSidebarOpen(false); };
   const notifCount = notif?.count ?? unpaidCount;
 
@@ -251,12 +252,13 @@ export function ClientPortalV2Page() {
             <div className="page active">
               {page === 'requests' && <RequestsSection />}
               {page === 'notifications' && <NotificationsSection />}
-              {page === 'meetings' && <MeetingsSection appts={appts} />}
-              {page === 'chat' && <ChatSection />}
-              {page === 'forum' && <ForumSection />}
-              {page === 'company' && client && <CompanySection client={client} />}
+              {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
+              {page === 'chat' && <ChatSection onInquiry={doInquiry} />}
+              {page === 'forum' && <ForumSection onInquiry={doInquiry} />}
+              {page === 'loyalty' && <LoyaltySection code={referralCode} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
+              {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={(id) => navigate(`/client-portal/projects/${id}`)} onRequest={() => doRequest('project')} />}
               {page === 'settings' && client && <SettingsSection client={client} />}
-              {(page === 'dashboard' || page === 'loyalty') && (<>
+              {page === 'dashboard' && (<>
               {/* كاروسيل الإعلانات — طبق الأصل: ٣ شرائح بصورها ونصوصها، خلفية زرقاء، تشغيل تلقائي ٥ث مع إيقاف عند التمرير */}
               <div className="hero-ads-fullwidth" onMouseEnter={() => setHeroPaused(true)} onMouseLeave={() => setHeroPaused(false)}>
                 <div className="hero-ads-slider">

@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from '../../../lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import type { Appointment } from '../../appointments/types';
 import type { Contract } from '../../contracts/types';
 import type { GeneratedDocument } from '../../documents/types';
@@ -120,6 +120,13 @@ export interface ForumThread {
   replies: ForumReply[];
 }
 
+export interface TeamMember {
+  id: number;
+  name: string;
+  role: string;
+  member_code: string | null;
+}
+
 export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
   loyalty: () => apiGet<LoyaltyData>('/client-portal/loyalty'),
@@ -128,6 +135,9 @@ export const clientPortalApi = {
   sendMessage: (body: string) => apiPost<ClientMessage>('/client-portal/messages', { body }),
   forum: () => apiGet<ForumThread[]>('/client-portal/forum'),
   createThread: (title: string, body: string) => apiPost<{ id: number }>('/client-portal/forum', { title, body }),
+  team: () => apiGet<TeamMember[]>('/client-portal/team'),
+  addTeamMember: (name: string, role: string) => apiPost<TeamMember>('/client-portal/team', { name, role }),
+  removeTeamMember: (id: number) => apiDelete<{ id: number }>(`/client-portal/team/${id}`),
   project: (id: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`),
   submitRequest: (type: ClientRequestType, note?: string) => apiPost<{ id: number }>('/client-portal/requests', { type, note }),
   myRequests: () => apiGet<ClientRequestItem[]>('/client-portal/requests'),

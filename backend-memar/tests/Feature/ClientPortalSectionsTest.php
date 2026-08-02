@@ -13,6 +13,7 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Referral;
 use App\Models\ServiceRequest;
+use App\Models\TeamMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -191,5 +192,30 @@ class ClientPortalSectionsTest extends TestCase
         $this->actingAsClient();
 
         $this->postJson('/api/v1/client-portal/forum', ['body' => 'بلا عنوان'])->assertStatus(422);
+    }
+
+    public function test_client_manages_own_team_members(): void
+    {
+        $contact = Contact::factory()->create();
+        $this->actingAsClient($contact);
+        TeamMember::factory()->for(Contact::factory())->create(); // عضو لعميل آخر
+
+        $this->postJson('/api/v1/client-portal/team', ['name' => 'محمد العمري', 'role' => 'مدير مشاريع'])
+            ->assertStatus(201)->assertJsonPath('data.name', 'محمد العمري');
+
+        $res = $this->getJson('/api/v1/client-portal/team')->assertOk()->assertJsonCount(1, 'data');
+        $memberId = $res->json('data.0.id');
+
+        $this->deleteJson("/api/v1/client-portal/team/{$memberId}")->assertOk();
+        $this->assertDatabaseMissing('team_members', ['id' => $memberId]);
+    }
+
+    public function test_cannot_remove_another_clients_team_member(): void
+    {
+        $this->actingAsClient();
+        $other = TeamMember::factory()->for(Contact::factory())->create();
+
+        $this->deleteJson("/api/v1/client-portal/team/{$other->id}")->assertForbidden();
+        $this->assertDatabaseHas('team_members', ['id' => $other->id]);
     }
 }

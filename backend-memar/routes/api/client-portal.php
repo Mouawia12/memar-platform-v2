@@ -23,4 +23,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/client-portal/messages', [ClientPortalController::class, 'sendMessage']);
     Route::get('/client-portal/forum', [ClientPortalController::class, 'forum']);
     Route::post('/client-portal/forum', [ClientPortalController::class, 'createForumThread']);
+    Route::get('/client-portal/team', [ClientPortalController::class, 'teamMembers']);
+    Route::post('/client-portal/team', [ClientPortalController::class, 'addTeamMember']);
+    Route::delete('/client-portal/team/{member}', [ClientPortalController::class, 'removeTeamMember']);
 });

@@ -23,6 +23,7 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Referral;
 use App\Models\ServiceRequest;
+use App\Models\TeamMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -456,5 +457,59 @@ class ClientPortalController extends ApiController
         ]);
 
         return $this->created(['id' => $topic->id], 'تم نشر سؤالك');
+    }
+
+    /** أعضاء فريق شركة العميل. */
+    public function teamMembers(Request $request): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $members = TeamMember::where('contact_id', $contact->id)->latest()->get()
+            ->map(fn (TeamMember $m): array => [
+                'id' => $m->id,
+                'name' => $m->name,
+                'role' => $m->role,
+                'member_code' => $m->member_code,
+            ])->all();
+
+        return $this->ok($members);
+    }
+
+    /** إضافة عضو لفريق شركة العميل. */
+    public function addTeamMember(Request $request): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'role' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $member = TeamMember::create([
+            'contact_id' => $contact->id,
+            'name' => $data['name'],
+            'role' => $data['role'] ?: 'مشارك',
+            'member_code' => 'MEM-'.strtoupper(Str::random(6)),
+        ]);
+
+        return $this->created([
+            'id' => $member->id,
+            'name' => $member->name,
+            'role' => $member->role,
+            'member_code' => $member->member_code,
+        ], 'تمت إضافة العضو');
+    }
+
+    /** إزالة عضو من فريق شركة العميل (يخصّه هو فقط). */
+    public function removeTeamMember(Request $request, TeamMember $member): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null && $member->contact_id === $contact->id, 403, 'لا صلاحية لك.');
+
+        $member->delete();
+
+        return $this->ok(['id' => $member->id], 'تمت إزالة العضو');
     }
 }

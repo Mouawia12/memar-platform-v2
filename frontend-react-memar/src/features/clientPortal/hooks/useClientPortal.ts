@@ -94,6 +94,31 @@ export function useCreateForumThread() {
   });
 }
 
+/** أعضاء فريق شركة العميل. */
+export function useTeamMembers() {
+  return useQuery({ queryKey: ['client-team'], queryFn: () => clientPortalApi.team() });
+}
+
+/** إضافة عضو للفريق. */
+export function useAddTeamMember() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ name, role }: { name: string; role: string }) => clientPortalApi.addTeamMember(name, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-team'] }),
+  });
+}
+
+/** إزالة عضو من الفريق. */
+export function useRemoveTeamMember() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => clientPortalApi.removeTeamMember(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-team'] }),
+  });
+}
+
 /** تفاصيل مشروع للعميل (CLIENT-4): مراحله وتقدّمه ودفعاته. */
 export function useClientProject(id: number) {
   return useQuery({

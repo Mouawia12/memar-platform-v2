@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Appointment } from '../../appointments/types';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
 import type { ClientInfo, NotificationPrefs } from '../api/clientPortalApi';
-import { useClientMessages, useClientNotifications, useCreateForumThread, useForumThreads, useMyRequests, useSendClientMessage, useSubmitClientRequest, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
+import { useAddTeamMember, useClientMessages, useClientNotifications, useCreateForumThread, useForumThreads, useMyRequests, useRemoveTeamMember, useSendClientMessage, useSubmitClientRequest, useTeamMembers, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
 
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
@@ -453,9 +453,22 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
 /** صفحة الشركة — طبق الأصل: hero + info-grid + team-grid + projects-grid (بفلاتر) من بياناتك. */
 export function CompanySection({ client, projects, onProject, onRequest }: { client: ClientInfo; projects: Project[]; onProject: (id: number) => void; onRequest: () => void }) {
   const [filter, setFilter] = useState<'all' | 'active' | 'done'>('all');
+  const { data: team } = useTeamMembers();
+  const addMember = useAddTeamMember();
+  const removeMember = useRemoveTeamMember();
+  const [adding, setAdding] = useState(false);
+  const [memberName, setMemberName] = useState('');
+  const [memberRole, setMemberRole] = useState('');
   const activeCount = projects.filter((p) => p.status === 'active' || p.status === 'review').length;
   const doneCount = projects.filter((p) => p.status === 'done').length;
   const initial = (client.name ?? 'ع').trim().charAt(0) || 'ع';
+  const teamCount = 1 + (team?.length ?? 0);
+
+  const saveMember = () => {
+    const n = memberName.trim();
+    if (n.length < 2 || addMember.isPending) return;
+    addMember.mutate({ name: n, role: memberRole.trim() }, { onSuccess: () => { setMemberName(''); setMemberRole(''); setAdding(false); } });
+  };
 
   const progressOf = (s: ProjectStatus): number => ({ draft: 10, active: 60, review: 85, on_hold: 40, done: 100, cancelled: 0 }[s] ?? 30);
   const badgeOf = (s: ProjectStatus): string => (s === 'done' ? 'badge-gray' : s === 'review' ? 'badge-green' : s === 'on_hold' ? 'badge-orange' : 'badge-blue');
@@ -492,8 +505,22 @@ export function CompanySection({ client, projects, onProject, onRequest }: { cli
       <div className="company-section">
         <div className="company-section-header">
           <h3><i className="fas fa-users" /> أعضاء الفريق المسجلين</h3>
-          <div className="company-section-header-actions"><span className="badge badge-purple">1 عضو</span></div>
+          <div className="company-section-header-actions">
+            <span className="badge badge-purple">{teamCount} {teamCount === 1 ? 'عضو' : 'أعضاء'}</span>
+            <button className="btn btn-primary btn-sm" onClick={() => setAdding((a) => !a)}><i className="fas fa-user-plus" /> إضافة عضو</button>
+          </div>
         </div>
+
+        {adding && (
+          <div className="card" style={{ marginBottom: 14 }}>
+            <div className="card-body" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div className="form-group" style={{ flex: 1, minWidth: 180, margin: 0 }}><label className="form-label">اسم العضو</label><input className="form-input" value={memberName} onChange={(e) => setMemberName(e.target.value)} placeholder="مثال: محمد العمري" /></div>
+              <div className="form-group" style={{ flex: 1, minWidth: 160, margin: 0 }}><label className="form-label">الدور</label><input className="form-input" value={memberRole} onChange={(e) => setMemberRole(e.target.value)} placeholder="مثال: مدير مشاريع" /></div>
+              <button className="btn btn-primary" disabled={addMember.isPending || memberName.trim().length < 2} onClick={saveMember}>{addMember.isPending ? 'جارٍ…' : 'إضافة'}</button>
+            </div>
+          </div>
+        )}
+
         <div className="company-team-grid">
           <div className="company-team-card owner">
             <div className="team-member-avatar owner">
@@ -505,6 +532,17 @@ export function CompanySection({ client, projects, onProject, onRequest }: { cli
             <span>مالك الحساب</span>
             <span className="team-projects-count">{projects.length} مشاريع</span>
           </div>
+          {team?.map((m) => (
+            <div key={m.id} className="company-team-card">
+              <div className="team-member-avatar">
+                <div className="team-avatar-placeholder">{(m.name ?? '؟').trim().charAt(0)}</div>
+              </div>
+              <strong>{m.name}</strong>
+              {m.member_code && <span className="team-member-code"><i className="fas fa-fingerprint" /> {m.member_code}</span>}
+              <span>{m.role}</span>
+              <button className="btn btn-ghost btn-sm btn-danger-ghost" style={{ marginTop: 6 }} onClick={() => { if (window.confirm(`إزالة «${m.name}» من الفريق؟`)) removeMember.mutate(m.id); }}><i className="fas fa-user-minus" /> إزالة</button>
+            </div>
+          ))}
         </div>
       </div>
 

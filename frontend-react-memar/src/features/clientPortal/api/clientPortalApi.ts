@@ -95,10 +95,19 @@ export interface LoyaltyData {
   history: { id: number; name: string | null; status: 'pending' | 'joined' | 'contracted'; status_label: string; is_gift: boolean }[];
 }
 
+export interface ClientMessage {
+  id: number;
+  from_staff: boolean;
+  body: string;
+  at: string | null;
+}
+
 export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
   loyalty: () => apiGet<LoyaltyData>('/client-portal/loyalty'),
   recordShare: () => apiPost<{ code: string; shares: number }>('/client-portal/loyalty/share', {}),
+  messages: () => apiGet<ClientMessage[]>('/client-portal/messages'),
+  sendMessage: (body: string) => apiPost<ClientMessage>('/client-portal/messages', { body }),
   project: (id: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`),
   submitRequest: (type: ClientRequestType, note?: string) => apiPost<{ id: number }>('/client-portal/requests', { type, note }),
   myRequests: () => apiGet<ClientRequestItem[]>('/client-portal/requests'),

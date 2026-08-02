@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { Appointment } from '../../appointments/types';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
-import type { ClientInfo } from '../api/clientPortalApi';
-import type { NotificationPrefs } from '../api/clientPortalApi';
-import { useClientNotifications, useMyRequests, useSubmitClientRequest, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
+import type { ClientInfo, NotificationPrefs } from '../api/clientPortalApi';
+import { useClientMessages, useClientNotifications, useMyRequests, useSendClientMessage, useSubmitClientRequest, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
 
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
@@ -219,21 +218,22 @@ export function LoyaltySection({ code, stats, history, onCopy, onShare, onGift, 
   );
 }
 
-/** التواصل — طبق الأصل: chat-layout بلوحتين، مع إرسال حقيقي (يُنشئ استفسارًا واردًا) وردّ تلقائي. */
-export function ChatSection({ onInquiry }: { onInquiry: (msg: string) => void }) {
-  const [msgs, setMsgs] = useState<{ dir: 'in' | 'out'; text: string; time: string }[]>([
-    { dir: 'in', text: 'مرحباً بك في الدعم الفني لمعمار 👋 كيف يمكننا مساعدتك؟', time: timeOf(new Date().toISOString()) },
-  ]);
+/** التواصل — طبق الأصل: chat-layout بلوحتين، رسائل حقيقية محفوظة (ردود الطاقم من لوحة الـERP). */
+export function ChatSection() {
+  const { data: messages, isLoading } = useClientMessages();
+  const sendMsg = useSendClientMessage();
   const [text, setText] = useState('');
+  const areaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (areaRef.current) areaRef.current.scrollTop = areaRef.current.scrollHeight;
+  }, [messages]);
 
   const send = () => {
     const t = text.trim();
-    if (!t) return;
-    const now = timeOf(new Date().toISOString());
-    setMsgs((m) => [...m, { dir: 'out', text: t, time: now }]);
+    if (!t || sendMsg.isPending) return;
     setText('');
-    onInquiry(t);
-    setTimeout(() => setMsgs((m) => [...m, { dir: 'in', text: 'شكراً لرسالتك، سيتواصل معك فريقنا قريباً.', time: timeOf(new Date().toISOString()) }]), 1200);
+    sendMsg.mutate(t);
   };
 
   return (
@@ -243,7 +243,7 @@ export function ChatSection({ onInquiry }: { onInquiry: (msg: string) => void })
         <div className="chat-contacts-list">
           <div className="chat-contact active">
             <div className="chat-contact-avatar green">دعم</div>
-            <div className="chat-contact-info"><strong>الدعم الفني</strong><p>كيف يمكنني مساعدتك؟</p></div>
+            <div className="chat-contact-info"><strong>فريق معمار</strong><p>الدعم والاستفسارات</p></div>
           </div>
         </div>
       </div>
@@ -251,19 +251,21 @@ export function ChatSection({ onInquiry }: { onInquiry: (msg: string) => void })
         <div className="chat-main-header">
           <div className="chat-main-user">
             <div className="chat-contact-avatar green">دعم</div>
-            <div><strong>الدعم الفني</strong><span className="chat-online-status">متصل الآن</span></div>
+            <div><strong>فريق معمار</strong><span className="chat-online-status">نردّ خلال ساعات العمل</span></div>
           </div>
         </div>
-        <div className="chat-messages-area">
-          {msgs.map((m, i) => (
-            <div key={i} className={`chat-msg ${m.dir === 'out' ? 'outgoing' : 'incoming'}`}>
-              <div className="chat-msg-bubble"><p>{m.text}</p><span className="chat-msg-time">{m.time}</span></div>
+        <div className="chat-messages-area" ref={areaRef}>
+          {isLoading && <p style={{ color: '#64748B', padding: 8 }}>جارٍ التحميل…</p>}
+          {messages && messages.length === 0 && <p style={{ color: '#64748B', padding: 8, textAlign: 'center' }}>ابدأ المحادثة — اكتب رسالتك وسيردّ عليك فريق معمار.</p>}
+          {messages?.map((m) => (
+            <div key={m.id} className={`chat-msg ${m.from_staff ? 'incoming' : 'outgoing'}`}>
+              <div className="chat-msg-bubble"><p>{m.body}</p><span className="chat-msg-time">{timeOf(m.at)}</span></div>
             </div>
           ))}
         </div>
         <div className="chat-input-area">
           <input type="text" className="chat-input-field" placeholder="اكتب رسالتك هنا..." value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); send(); } }} />
-          <button className="chat-send-btn" onClick={send}><i className="fas fa-paper-plane" /></button>
+          <button className="chat-send-btn" onClick={send} disabled={sendMsg.isPending}><i className="fas fa-paper-plane" /></button>
         </div>
       </div>
     </div>

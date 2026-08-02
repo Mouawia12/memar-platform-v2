@@ -64,6 +64,21 @@ export function useRecordReferralShare() {
   });
 }
 
+/** المحادثات — سلسلة رسائل العميل (تحديث دوري كل 15 ث لالتقاط ردود الطاقم). */
+export function useClientMessages() {
+  return useQuery({ queryKey: ['client-messages'], queryFn: () => clientPortalApi.messages(), refetchInterval: 15000 });
+}
+
+/** إرسال رسالة من العميل. */
+export function useSendClientMessage() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: string) => clientPortalApi.sendMessage(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-messages'] }),
+  });
+}
+
 /** تفاصيل مشروع للعميل (CLIENT-4): مراحله وتقدّمه ودفعاته. */
 export function useClientProject(id: number) {
   return useQuery({

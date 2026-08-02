@@ -12,6 +12,7 @@ use App\Http\Resources\InvoiceResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectStageResource;
 use App\Models\Appointment;
+use App\Models\ClientMessage;
 use App\Models\Contact;
 use App\Models\Contract;
 use App\Models\GeneratedDocument;
@@ -346,5 +347,52 @@ class ClientPortalController extends ApiController
 
         $contact->referral_code = $code;
         $contact->save();
+    }
+
+    /** المحادثات — سلسلة رسائل العميل مع طاقم معمار. */
+    public function messages(Request $request): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        // اعتبار رسائل الطاقم مقروءة عند فتح المحادثة.
+        ClientMessage::where('contact_id', $contact->id)->where('from_staff', true)->whereNull('read_at')->update(['read_at' => now()]);
+
+        $messages = ClientMessage::where('contact_id', $contact->id)
+            ->orderBy('created_at')
+            ->limit(200)
+            ->get()
+            ->map(fn (ClientMessage $m): array => [
+                'id' => $m->id,
+                'from_staff' => $m->from_staff,
+                'body' => $m->body,
+                'at' => $m->created_at?->toIso8601String(),
+            ])->all();
+
+        return $this->ok($messages);
+    }
+
+    /** إرسال رسالة من العميل في محادثته. */
+    public function sendMessage(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $contact = $user?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $data = $request->validate(['body' => ['required', 'string', 'max:2000']]);
+
+        $message = ClientMessage::create([
+            'contact_id' => $contact->id,
+            'from_staff' => false,
+            'body' => $data['body'],
+            'sender_user_id' => $user->id,
+        ]);
+
+        return $this->created([
+            'id' => $message->id,
+            'from_staff' => false,
+            'body' => $message->body,
+            'at' => $message->created_at?->toIso8601String(),
+        ], 'تم الإرسال');
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Appointment;
+use App\Models\ClientMessage;
 use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -109,7 +110,7 @@ class ClientPortalSectionsTest extends TestCase
     {
         $contact = Contact::factory()->create(['referral_shares' => 4]);
         $this->actingAsClient($contact);
-        Referral::factory()->for($contact, 'referrer')->contracted()->create();
+        Referral::factory()->for($contact, 'referrer')->contracted()->create(['is_gift' => false]);
         Referral::factory()->for($contact, 'referrer')->create(['status' => 'pending', 'is_gift' => true]);
 
         $res = $this->getJson('/api/v1/client-portal/loyalty');
@@ -133,5 +134,28 @@ class ClientPortalSectionsTest extends TestCase
 
         $this->postJson('/api/v1/client-portal/loyalty/share')->assertOk()->assertJsonPath('data.shares', 1);
         $this->assertSame(1, $contact->fresh()->referral_shares);
+    }
+
+    public function test_client_sees_own_thread_and_can_send(): void
+    {
+        $contact = Contact::factory()->create();
+        $this->actingAsClient($contact);
+        ClientMessage::factory()->for($contact)->fromStaff()->create(['body' => 'أهلاً بك']);
+        ClientMessage::factory()->for(Contact::factory())->create(['body' => 'رسالة عميل آخر']);
+
+        $this->getJson('/api/v1/client-portal/messages')->assertOk()->assertJsonCount(1, 'data');
+
+        $this->postJson('/api/v1/client-portal/messages', ['body' => 'لدي سؤال'])
+            ->assertStatus(201)->assertJsonPath('data.from_staff', false);
+
+        $this->assertDatabaseHas('client_messages', ['contact_id' => $contact->id, 'body' => 'لدي سؤال', 'from_staff' => false]);
+        $this->getJson('/api/v1/client-portal/messages')->assertJsonCount(2, 'data');
+    }
+
+    public function test_sending_empty_message_is_rejected(): void
+    {
+        $this->actingAsClient();
+
+        $this->postJson('/api/v1/client-portal/messages', ['body' => ''])->assertStatus(422);
     }
 }

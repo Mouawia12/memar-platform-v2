@@ -19,4 +19,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::match(['put', 'patch'], '/client-portal/preferences', [ClientPortalController::class, 'updatePreferences']);
     Route::get('/client-portal/loyalty', [ClientPortalController::class, 'loyalty']);
     Route::post('/client-portal/loyalty/share', [ClientPortalController::class, 'recordReferralShare']);
+    Route::get('/client-portal/messages', [ClientPortalController::class, 'messages']);
+    Route::post('/client-portal/messages', [ClientPortalController::class, 'sendMessage']);
 });

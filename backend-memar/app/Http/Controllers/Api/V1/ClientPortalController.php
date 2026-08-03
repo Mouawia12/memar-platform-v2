@@ -209,7 +209,53 @@ class ClientPortalController extends ApiController
             'requested_by' => $user->id,
         ]);
 
+        // طلب مشروع جديد يظهر أيضًا لدى المبيعات كفرصة في لوحة CRM (اجتماع 2026-08-03، بند 2).
+        if ($data['type'] === 'project') {
+            $this->spawnNewProjectOpportunity($contact, $data);
+        }
+
         return $this->created(['id' => $req->id], 'تم إرسال طلبك — سنتواصل معك قريبًا.');
+    }
+
+    /**
+     * يُنشئ فرصة CRM (عميل محتمل بمرحلة «جديد») لطلب مشروع جديد وارد من عميل قائم في بوابته،
+     * لتظهر لدى المبيعات في اللوحة إلى جانب «الطلبات». لا يعدّل سجل العميل الأصلي.
+     * مانع تكرار: لا يُنشئ فرصة ثانية مفتوحة بنفس الهاتف واسم المشروع في مرحلة «جديد».
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function spawnNewProjectOpportunity(Contact $client, array $data): ?Contact
+    {
+        $projectName = trim((string) ($data['project_name'] ?? '')) ?: null;
+
+        $duplicate = Contact::query()
+            ->where('type', 'lead')
+            ->where('stage', 'new')
+            ->where('phone', $client->phone)
+            ->where('project_name', $projectName)
+            ->exists();
+
+        if ($duplicate) {
+            return null;
+        }
+
+        return Contact::create([
+            'full_name' => $client->full_name,
+            'kunya' => $client->kunya,
+            'phone' => $client->phone,
+            'email' => $client->email,
+            'company' => $client->company,
+            'position' => $client->position,
+            'type' => 'lead',
+            'status' => 'active',
+            'stage' => 'new',
+            'temperature' => 'warm', // عميل قائم متفاعل — فرصة دافئة
+            'project_name' => $projectName,
+            'project_details' => $this->composeRequestDescription($data),
+            'owner_id' => $client->owner_id,
+            'notes' => 'طلب مشروع جديد من عميل قائم عبر البوابة'
+                .($client->account_number ? ' — رقم الحساب '.$client->account_number : ''),
+        ]);
     }
 
     /** الامتدادات المسموحة لمرفقات الطلب (صك ملكية، كروكي، صور الموقع، مخططات). */

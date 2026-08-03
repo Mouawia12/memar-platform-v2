@@ -58,13 +58,66 @@ class ClientPortalRequestTest extends TestCase
         $res->assertCreated();
 
         // العنوان يحمل اسم المشروع، والوصف يجمع كل الحقول ليقرأها الطاقم.
-        $req = \App\Models\ServiceRequest::latest('id')->first();
+        $req = ServiceRequest::latest('id')->first();
         $this->assertNotNull($req);
         $this->assertSame('طلب مشروع جديد — فيلا سكنية - حي الرقة', $req->title);
         $this->assertStringContainsString('نوع المشروع: فيلا سكنية', (string) $req->description);
         $this->assertStringContainsString('المساحة التقريبية (م²): 500', (string) $req->description);
         $this->assertStringContainsString('الخدمات المطلوبة: تصميم معماري، إشراف هندسي', (string) $req->description);
         $this->assertStringContainsString('مصدر الطلب: بوابة العميل', (string) $req->description);
+    }
+
+    public function test_project_request_spawns_a_crm_lead_opportunity(): void
+    {
+        $owner = User::factory()->create();
+        $contact = Contact::factory()->create([
+            'full_name' => 'خالد الفهد', 'phone' => '+96599991111',
+            'company' => 'مجموعة الفهد', 'position' => 'مالك الشركة',
+            'type' => 'client', 'owner_id' => $owner->id,
+        ]);
+        $user = User::factory()->create(['contact_id' => $contact->id]);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/client-portal/requests', [
+            'type' => 'project',
+            'project_name' => 'برج مكتبي - المرقاب',
+            'project_type' => 'برج تجاري',
+        ])->assertCreated();
+
+        // فرصة CRM جديدة (عميل محتمل بمرحلة «جديد») ظهرت للمبيعات — منفصلة عن سجل العميل الأصلي.
+        $this->assertDatabaseHas('contacts', [
+            'full_name' => 'خالد الفهد',
+            'type' => 'lead',
+            'stage' => 'new',
+            'project_name' => 'برج مكتبي - المرقاب',
+            'owner_id' => $owner->id,
+        ]);
+        // العميل الأصلي لم يتغيّر نوعه.
+        $this->assertDatabaseHas('contacts', ['id' => $contact->id, 'type' => 'client']);
+    }
+
+    public function test_duplicate_project_request_does_not_spawn_a_second_lead(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '+96599992222', 'type' => 'client']);
+        $user = User::factory()->create(['contact_id' => $contact->id]);
+        Sanctum::actingAs($user);
+
+        $payload = ['type' => 'project', 'project_name' => 'فيلا - الدسمة'];
+        $this->postJson('/api/v1/client-portal/requests', $payload)->assertCreated();
+        $this->postJson('/api/v1/client-portal/requests', $payload)->assertCreated();
+
+        $this->assertSame(1, Contact::where('type', 'lead')->where('stage', 'new')
+            ->where('project_name', 'فيلا - الدسمة')->count());
+    }
+
+    public function test_meeting_request_does_not_spawn_a_crm_lead(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '+96599993333', 'type' => 'client']);
+        Sanctum::actingAs(User::factory()->create(['contact_id' => $contact->id]));
+
+        $this->postJson('/api/v1/client-portal/requests', ['type' => 'meeting'])->assertCreated();
+
+        $this->assertSame(0, Contact::where('type', 'lead')->count());
     }
 
     public function test_client_can_attach_a_file_to_their_request(): void

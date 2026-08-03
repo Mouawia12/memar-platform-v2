@@ -5,15 +5,15 @@ import { useLogout } from '../../auth/hooks/useAuth';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
 import { clientAccountCode } from '../api/clientPortalApi';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
-import { NewProjectRequestModal } from '../components/NewProjectRequestModal';
+import { NewProjectRequestSection } from '../components/NewProjectRequestSection';
 import { NewRequestSection } from '../components/NewRequestSection';
 import { AccountQrModal } from '../components/AccountQrModal';
 import { useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
-type PageKey = 'dashboard' | 'requests' | 'new-request' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
+type PageKey = 'dashboard' | 'requests' | 'new-request' | 'new-project-request' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
 const PAGE_TITLES: Record<PageKey, string> = {
-  dashboard: 'نظرة عامة', requests: 'طلباتي', 'new-request': 'طلب جديد', notifications: 'الإشعارات', meetings: 'الاجتماعات',
+  dashboard: 'نظرة عامة', requests: 'طلباتي', 'new-request': 'طلب جديد', 'new-project-request': 'طلب مشروع جديد', notifications: 'الإشعارات', meetings: 'الاجتماعات',
   chat: 'المحادثات', forum: 'المنتدى', loyalty: 'اقترحنا لصديق', company: 'صفحة الشركة', settings: 'الإعدادات',
 };
 
@@ -52,7 +52,6 @@ export function ClientPortalV2Page() {
   const [toast, setToast] = useState<string | null>(null);
   const [heroPaused, setHeroPaused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [projectRequestOpen, setProjectRequestOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const { data: notif } = useClientNotifications();
   const { data: loyalty } = useLoyalty();
@@ -128,8 +127,8 @@ export function ClientPortalV2Page() {
   }
 
   const doRequest = (type: 'project' | 'meeting') => {
-    // طلب المشروع الجديد يفتح نموذجًا لتعبئة البيانات؛ طلب الاجتماع يُرسل مباشرة.
-    if (type === 'project') { setProjectRequestOpen(true); return; }
+    // طلب المشروع الجديد ينتقل لصفحة كاملة لتعبئة البيانات (طبق الأصل)؛ طلب الاجتماع يُرسل مباشرة.
+    if (type === 'project') { go('new-project-request'); return; }
     submitReq.mutate({ type }, { onSuccess: () => showToast('تم إرسال طلبك — سنتواصل معك قريبًا ✓') });
   };
   const copyCode = () => {
@@ -307,6 +306,7 @@ export function ClientPortalV2Page() {
             <div className="page active">
               {page === 'requests' && <RequestsSection onNew={() => go('new-request')} />}
               {page === 'new-request' && <NewRequestSection projects={projects.map((p) => ({ id: p.id, name: p.name }))} onBack={() => go('requests')} />}
+              {page === 'new-project-request' && <NewProjectRequestSection onBack={() => go('dashboard')} />}
               {page === 'notifications' && <NotificationsSection />}
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
               {page === 'chat' && <ChatSection />}
@@ -455,7 +455,6 @@ export function ClientPortalV2Page() {
       </div>
 
       {/* نموذج طلب مشروع جديد */}
-      {projectRequestOpen && <NewProjectRequestModal onClose={() => setProjectRequestOpen(false)} />}
       {qrOpen && client && <AccountQrModal accountNumber={memberCode} clientName={clientName} onClose={() => setQrOpen(false)} />}
 
       {/* إشعار عائم — طبق الأصل (.toast.show) */}

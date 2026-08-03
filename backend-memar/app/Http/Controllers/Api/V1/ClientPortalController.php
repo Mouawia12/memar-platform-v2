@@ -24,6 +24,7 @@ use App\Models\Project;
 use App\Models\Referral;
 use App\Models\ServiceRequest;
 use App\Models\TeamMember;
+use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -95,9 +96,13 @@ class ClientPortalController extends ApiController
                 'id' => $contactId,
                 'name' => $contact?->full_name,
                 'kunya' => $contact?->kunya,
+                // المسمّى الوظيفي للشخص (مالك الشركة/مدير تنفيذي/مهندس…) — يُعرض بدل «عميل مميز» في البطاقة (طلب أيمن، اجتماع 4)
+                'position' => $contact?->position,
                 'company' => $contact?->company,
                 'phone' => $contact?->phone,
                 'since' => $contact?->created_at?->format('Y'),
+                // رقم الحساب الشخصي الثابت MEE-YYYY-NNN (اجتماع 2026-08-03)
+                'account_number' => $contact?->ensureAccountNumber(),
                 'notification_prefs' => $contact?->notification_prefs ?? Contact::DEFAULT_NOTIFICATION_PREFS,
             ],
             'stats' => [
@@ -171,6 +176,15 @@ class ClientPortalController extends ApiController
         $data = $request->validate([
             'type' => ['required', Rule::in(['project', 'meeting', 'inquiry'])],
             'note' => ['nullable', 'string', 'max:2000'],
+            // تفاصيل طلب المشروع الجديد (اختيارية — تُملأ من نموذج «طلب مشروع جديد»)
+            'project_name' => ['nullable', 'string', 'max:200'],
+            'project_type' => ['nullable', 'string', 'max:100'],
+            'location' => ['nullable', 'string', 'max:200'],
+            'area_sqm' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'budget_range' => ['nullable', 'string', 'max:100'],
+            'start_date' => ['nullable', 'date'],
+            'services' => ['nullable', 'array', 'max:20'],
+            'services.*' => ['string', 'max:60'],
         ]);
 
         $map = [
@@ -180,18 +194,92 @@ class ClientPortalController extends ApiController
         ];
         $m = $map[$data['type']];
 
+        // عنوان يحمل اسم المشروع إن وُجد — ليظهر واضحًا في «الطلبات» ولدى المبيعات.
+        $projectName = trim((string) ($data['project_name'] ?? ''));
+        $title = $m['title'].' — '.($projectName !== '' ? $projectName : $contact->full_name);
+
         $req = ServiceRequest::create([
-            'title' => $m['title'].' — '.$contact->full_name,
+            'title' => $title,
             'type' => $m['type'],
             'client_name' => $contact->full_name,
             'contact_phone' => $contact->phone,
             'priority' => 'high',
             'status' => 'open',
-            'description' => trim(($data['note'] ?? '')."\nمصدر الطلب: بوابة العميل"),
+            'description' => $this->composeRequestDescription($data),
             'requested_by' => $user->id,
         ]);
 
         return $this->created(['id' => $req->id], 'تم إرسال طلبك — سنتواصل معك قريبًا.');
+    }
+
+    /** الامتدادات المسموحة لمرفقات الطلب (صك ملكية، كروكي، صور الموقع، مخططات). */
+    private const ATTACHMENT_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'dwg', 'dxf'];
+
+    /**
+     * رفع مرفق لطلب العميل (صك ملكية/كروكي/صور) — مقصور على طلبات العميل نفسه.
+     * حد أقصى 25MB لكل ملف، وامتدادات آمنة فقط.
+     */
+    public function uploadRequestAttachment(Request $request, ServiceRequest $serviceRequest, FileStorageService $files): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($serviceRequest->requested_by === $user?->id, 403, 'لا صلاحية لك على هذا الطلب.');
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:25600'], // 25MB بالكيلوبايت
+        ]);
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        abort_if(in_array($ext, FileStorageService::BLOCKED_EXTENSIONS, true), 422, 'نوع الملف غير مسموح.');
+        abort_unless(in_array($ext, self::ATTACHMENT_EXTENSIONS, true), 422, 'الصيغ المدعومة: PDF, JPG, PNG, DWG.');
+
+        $stored = $files->store($file, [
+            'folder' => 'طلبات العملاء',
+            'service_request_id' => $serviceRequest->id,
+            'contact_id' => $user->contact_id,
+        ], $user->id);
+
+        return $this->created([
+            'id' => $stored->id,
+            'original_name' => $stored->original_name,
+            'size' => $stored->size,
+        ], 'تم رفع المرفق.');
+    }
+
+    /**
+     * يصوغ وصفًا منظّمًا للطلب من حقول نموذج «طلب مشروع جديد» — ليقرأه الطاقم في «الطلبات».
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function composeRequestDescription(array $data): string
+    {
+        $lines = [];
+        $add = function (string $label, ?string $value) use (&$lines): void {
+            $value = trim((string) $value);
+            if ($value !== '') {
+                $lines[] = "{$label}: {$value}";
+            }
+        };
+
+        $add('نوع المشروع', $data['project_type'] ?? null);
+        $add('الموقع', $data['location'] ?? null);
+        $add('المساحة التقريبية (م²)', isset($data['area_sqm']) ? (string) $data['area_sqm'] : null);
+        $add('الميزانية التقديرية', $data['budget_range'] ?? null);
+        $add('الموعد المتوقع للبدء', $data['start_date'] ?? null);
+
+        $services = array_values(array_filter((array) ($data['services'] ?? []), fn ($s) => trim((string) $s) !== ''));
+        if ($services !== []) {
+            $lines[] = 'الخدمات المطلوبة: '.implode('، ', $services);
+        }
+
+        $note = trim((string) ($data['note'] ?? ''));
+        if ($note !== '') {
+            $lines[] = 'ملاحظات إضافية: '.$note;
+        }
+
+        $lines[] = 'مصدر الطلب: بوابة العميل';
+
+        return implode("\n", $lines);
     }
 
     /** طلباتي — قائمة طلبات العميل الواردة التي أرسلها من بوابته. */
@@ -200,6 +288,7 @@ class ClientPortalController extends ApiController
         $labels = ['open' => 'قيد المراجعة', 'in_progress' => 'قيد التنفيذ', 'resolved' => 'تمّت المعالجة', 'closed' => 'مغلق'];
 
         $requests = ServiceRequest::where('requested_by', $request->user()->id)
+            ->with('files')
             ->latest()
             ->limit(50)
             ->get()
@@ -209,6 +298,11 @@ class ClientPortalController extends ApiController
                 'status' => $r->status,
                 'status_label' => $labels[$r->status] ?? $r->status,
                 'description' => $r->description,
+                'attachments' => $r->files->map(fn ($f) => [
+                    'id' => $f->id,
+                    'original_name' => $f->original_name,
+                    'size' => $f->size,
+                ])->all(),
                 'created_at' => $r->created_at?->toIso8601String(),
             ])->all();
 
@@ -345,9 +439,19 @@ class ClientPortalController extends ApiController
             return;
         }
 
-        do {
-            $code = 'MEMAR-'.strtoupper(Str::random(6));
-        } while (Contact::where('referral_code', $code)->exists());
+        // الصيغة المطلوبة (اجتماع 2026-08-03): MEMAR-<الاسم><السنة> مثل MEMAR-AHMED2024،
+        // مع تمييز رقمي عند تكرار الاسم في نفس السنة. الرقم الشخصي ثابت لا يتغيّر.
+        $first = (string) Str::of($contact->full_name)->trim()->explode(' ')->first();
+        $slug = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', Str::ascii($first)));
+        $base = $slug !== '' ? $slug : strtoupper(Str::random(4));
+        $year = now()->year;
+
+        $code = "MEMAR-{$base}{$year}";
+        $i = 1;
+        while (Contact::where('referral_code', $code)->exists()) {
+            $code = "MEMAR-{$base}{$year}-{$i}";
+            $i++;
+        }
 
         $contact->referral_code = $code;
         $contact->save();

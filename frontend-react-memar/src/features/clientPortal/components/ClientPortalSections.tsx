@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Appointment } from '../../appointments/types';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
-import type { ClientInfo, NotificationPrefs } from '../api/clientPortalApi';
-import { useAddTeamMember, useClientMessages, useClientNotifications, useCreateForumThread, useForumThreads, useMyRequests, useRemoveTeamMember, useSendClientMessage, useSubmitClientRequest, useTeamMembers, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
+import { clientAccountCode, type ClientInfo, type NotificationPrefs } from '../api/clientPortalApi';
+import { useAddTeamMember, useClientMessages, useClientNotifications, useCreateForumThread, useForumThreads, useMyRequests, useRemoveTeamMember, useSendClientMessage, useTeamMembers, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
 
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
@@ -20,9 +20,8 @@ const REQ_STATUS: Record<string, { cls: string; icon: string }> = {
   closed: { cls: 'status-completed', icon: 'fa-check' },
 };
 
-export function RequestsSection() {
+export function RequestsSection({ onNew }: { onNew?: () => void }) {
   const { data, isLoading } = useMyRequests();
-  const submit = useSubmitClientRequest();
 
   return (
     <>
@@ -31,7 +30,7 @@ export function RequestsSection() {
           <h2 className="section-title">طلباتي</h2>
           <p className="section-subtitle">إدارة طلبات التعديل والإضافات على مشاريعك</p>
         </div>
-        <button className="btn btn-primary" disabled={submit.isPending} onClick={() => submit.mutate({ type: 'project' })}><i className="fas fa-plus" /> طلب جديد</button>
+        <button className="btn btn-primary" onClick={() => onNew?.()}><i className="fas fa-plus" /> طلب جديد</button>
       </div>
       <div className="requests-list">
         {isLoading && <p style={{ color: '#64748B', padding: 8 }}>جارٍ التحميل…</p>}
@@ -46,9 +45,12 @@ export function RequestsSection() {
                 <span className={`request-status-badge ${st.cls}`}><i className={`fas ${st.icon}`} /> {r.status_label}</span>
               </div>
               <h4 className="request-item-title">{r.title}</h4>
-              {r.description && <p className="request-item-desc">{r.description}</p>}
+              {r.description && <p className="request-item-desc" style={{ whiteSpace: 'pre-line' }}>{r.description}</p>}
               <div className="request-item-meta">
                 <span><i className="fas fa-calendar" /> {fmtDate(r.created_at)}</span>
+                {r.attachments && r.attachments.length > 0 && (
+                  <span><i className="fas fa-paperclip" /> {r.attachments.length} مرفق</span>
+                )}
               </div>
             </div>
           );
@@ -287,13 +289,26 @@ export function ForumSection() {
   };
 
   const initialOf = (name: string | null) => (name ?? 'أنا').trim().charAt(0) || 'أ';
+  const totalThreads = threads?.length ?? 0;
+  const answeredThreads = threads?.filter((t) => t.status === 'answered').length ?? 0;
 
   return (
     <>
-      <div className="section-header">
-        <div>
-          <h2 className="section-title">المنتدى</h2>
-          <p className="section-subtitle">أسئلتك وإجابات فريق عمل مجموعة معمار</p>
+      {/* هيرو المنتدى — بنفس نمط هيرو صفحة الشركة (مساحة للإعلانات لاحقًا) */}
+      <div className="company-hero hero-type-individual">
+        <div className="company-hero-bg" />
+        <div className="company-hero-layout">
+          <div className="company-hero-content">
+            <div className="company-logo"><i className="fas fa-users-rectangle" /></div>
+            <div className="company-hero-info">
+              <h2>منتدى معمار</h2>
+              <p>اطرح أسئلتك واطّلع على إجابات وخبرات فريق مجموعة معمار</p>
+              <div className="company-hero-stats">
+                <div className="company-stat"><span className="company-stat-value">{totalThreads}</span><span className="company-stat-label">سؤال</span></div>
+                <div className="company-stat"><span className="company-stat-value">{answeredThreads}</span><span className="company-stat-label">مُجاب عنه</span></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -420,7 +435,7 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
               <div className="form-group"><label className="form-label">الكنية</label><input className="form-input" value={kunya} onChange={(e) => setKunya(e.target.value)} placeholder="مثال: أبو عبدالله" /></div>
               <div className="form-group"><label className="form-label">رقم الجوال</label><input className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+965…" /></div>
               <div className="form-group"><label className="form-label">الشركة</label><input className="form-input" value={company} onChange={(e) => setCompany(e.target.value)} /></div>
-              <div className="form-group"><label className="form-label">كود العضوية</label><input className="form-input" value={`MEM-${String(client.id).padStart(4, '0')}`} disabled /></div>
+              <div className="form-group"><label className="form-label">كود العضوية</label><input className="form-input" value={clientAccountCode(client)} disabled /></div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
               <button className="btn btn-primary" disabled={update.isPending} onClick={save}>{update.isPending ? 'جارٍ الحفظ…' : 'حفظ التغييرات'}</button>
@@ -498,7 +513,7 @@ export function CompanySection({ client, projects, onProject, onRequest }: { cli
       <div className="company-info-grid">
         <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-user-tie" /></div><div className="company-info-detail"><span className="company-info-label">المالك</span><strong>{client.name}</strong></div></div>
         {client.phone && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-phone" /></div><div className="company-info-detail"><span className="company-info-label">التواصل</span><strong>{client.phone}</strong></div></div>}
-        <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-hashtag" /></div><div className="company-info-detail"><span className="company-info-label">كود العضوية</span><strong>MEM-{String(client.id).padStart(4, '0')}</strong></div></div>
+        <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-hashtag" /></div><div className="company-info-detail"><span className="company-info-label">كود العضوية</span><strong>{clientAccountCode(client)}</strong></div></div>
         {client.since && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-calendar" /></div><div className="company-info-detail"><span className="company-info-label">عميل منذ</span><strong>{client.since}</strong></div></div>}
       </div>
 
@@ -528,7 +543,7 @@ export function CompanySection({ client, projects, onProject, onRequest }: { cli
               <span className="team-role-badge owner"><i className="fas fa-crown" /></span>
             </div>
             <strong>{client.name}</strong>
-            <span className="team-member-code"><i className="fas fa-fingerprint" /> MEM-{String(client.id).padStart(4, '0')}</span>
+            <span className="team-member-code"><i className="fas fa-fingerprint" /> {clientAccountCode(client)}</span>
             <span>مالك الحساب</span>
             <span className="team-projects-count">{projects.length} مشاريع</span>
           </div>

@@ -17,7 +17,7 @@ class StoredFile extends Model
 
     protected $fillable = [
         'name', 'original_name', 'path', 'disk', 'mime', 'extension',
-        'size', 'folder', 'project_id', 'contact_id', 'task_id', 'notes', 'uploaded_by',
+        'size', 'folder', 'project_id', 'contact_id', 'task_id', 'service_request_id', 'notes', 'uploaded_by',
     ];
 
     /**

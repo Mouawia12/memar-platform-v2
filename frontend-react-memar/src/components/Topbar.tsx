@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { getPageTitle, isClientOnly } from '../config/nav';
 import { GlobalSearch } from './topbar/GlobalSearch';
@@ -15,6 +15,7 @@ interface Props {
 
 export function Topbar({ onToggleSidebar }: Props) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useLogout();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -56,6 +57,10 @@ export function Topbar({ onToggleSidebar }: Props) {
             👤 {user?.name ?? 'مستخدم'} ▼
           </button>
           <div className={`user-menu-content${menuOpen ? ' show' : ''}`}>
+            {/* أول عنصر: العودة لصفحة الموقع الرئيسي العامة التي سجّل الدخول منها (اجتماع 2026-08-03) */}
+            <button type="button" onClick={() => { setMenuOpen(false); navigate('/'); }}>
+              🌐 صفحة الموقع الرئيسي
+            </button>
             <button
               type="button"
               onClick={() => { setMenuOpen(false); logout.mutate(); }}

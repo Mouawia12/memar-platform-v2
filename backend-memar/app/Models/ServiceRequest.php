@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -23,6 +24,12 @@ class ServiceRequest extends Model
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /** المرفقات المرفوعة مع الطلب (صك ملكية، كروكي، صور الموقع…). */
+    public function files(): HasMany
+    {
+        return $this->hasMany(StoredFile::class, 'service_request_id')->latest();
     }
 
     public function getActivitylogOptions(): LogOptions

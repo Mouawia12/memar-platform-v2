@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 
 import { useLogout } from '../../auth/hooks/useAuth';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
+import { clientAccountCode } from '../api/clientPortalApi';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
+import { NewProjectRequestModal } from '../components/NewProjectRequestModal';
 import { useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
@@ -48,6 +50,7 @@ export function ClientPortalV2Page() {
   const [toast, setToast] = useState<string | null>(null);
   const [heroPaused, setHeroPaused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [projectRequestOpen, setProjectRequestOpen] = useState(false);
   const { data: notif } = useClientNotifications();
   const { data: loyalty } = useLoyalty();
   const recordShare = useRecordReferralShare();
@@ -87,7 +90,7 @@ export function ClientPortalV2Page() {
   const client = data?.client;
   const clientName = client?.name ?? 'عميلنا';
   const initial = clientName.trim().charAt(0) || 'ع';
-  const memberCode = `MEM-${String(client?.id ?? 0).padStart(4, '0')}`;
+  const memberCode = client ? clientAccountCode(client) : '…';
   const referralCode = loyalty?.code ?? '…';
   const loyaltyStats = loyalty?.stats ?? { successful: 0, gifts_sent: 0, shares: 0, discount: 10 };
 
@@ -121,7 +124,11 @@ export function ClientPortalV2Page() {
     );
   }
 
-  const doRequest = (type: 'project' | 'meeting') => submitReq.mutate({ type }, { onSuccess: () => showToast('تم إرسال طلبك — سنتواصل معك قريبًا ✓') });
+  const doRequest = (type: 'project' | 'meeting') => {
+    // طلب المشروع الجديد يفتح نموذجًا لتعبئة البيانات؛ طلب الاجتماع يُرسل مباشرة.
+    if (type === 'project') { setProjectRequestOpen(true); return; }
+    submitReq.mutate({ type }, { onSuccess: () => showToast('تم إرسال طلبك — سنتواصل معك قريبًا ✓') });
+  };
   const copyCode = () => {
     if (!loyalty?.code) return;
     navigator.clipboard?.writeText(referralCode);
@@ -165,7 +172,8 @@ export function ClientPortalV2Page() {
           </div>
 
           {/* بطاقة ملف العميل الكاملة */}
-          <div className="sb-client-profile">
+          {/* النقر على البطاقة/اسم العميل يعيد لصفحة «نظرة عامة» (طبق الأصل) */}
+          <div className="sb-client-profile" style={{ cursor: 'pointer' }} onClick={() => go('dashboard')} title="العودة لصفحتي">
             <div className="sb-profile-header">
               <div className="sb-client-avatar">
                 <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--primary-gradient)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800 }}>{initial}</div>
@@ -174,7 +182,7 @@ export function ClientPortalV2Page() {
               <div className="sb-client-info">
                 <strong className="sb-client-name">{clientName}</strong>
                 {/* الكنية (منفصلة عن الاسم واسم الشركة) — قابلة للتعديل بالنقر */}
-                <div className="sb-client-title-editable" onClick={editingKunya ? undefined : startEditKunya} title="انقر لتعديل الكنية">
+                <div className="sb-client-title-editable" onClick={(e) => { e.stopPropagation(); if (!editingKunya) startEditKunya(); }} title="انقر لتعديل الكنية">
                   {editingKunya ? (
                     <input
                       className="sb-client-title-input"
@@ -193,12 +201,13 @@ export function ClientPortalV2Page() {
                   )}
                 </div>
                 <span className="sb-client-member-code"><i className="fas fa-hashtag" /> {memberCode}</span>
-                <span className="sb-client-role"><i className="fas fa-crown" /> عميل مميز</span>
+                {/* المسمّى الوظيفي للشخص (مالك الشركة/مدير تنفيذي/مهندس…) بدل «عميل مميز» — الشركة نفسها هي العميل المميز */}
+                <span className="sb-client-role"><i className="fas fa-id-badge" /> {(client as { position?: string } | undefined)?.position || 'ممثّل الشركة'}</span>
               </div>
             </div>
             <div className="sb-profile-details">
-              {client?.company && <a href="#" className="sb-client-company" onClick={(e) => e.preventDefault()}><i className="fas fa-building-columns" /> {client.company}</a>}
-              <div className="sb-profile-stats-new" style={{ cursor: 'default' }}>
+              {client?.company && <a href="#" className="sb-client-company" onClick={(e) => { e.preventDefault(); e.stopPropagation(); go('company'); }}><i className="fas fa-building-columns" /> {client.company}</a>}
+              <div className="sb-profile-stats-new" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); go('company'); }} title="عرض مشاريع الشركة">
                 <div className="sb-stat-main"><span className="sb-stat-main-value">{projects.length}</span><span className="sb-stat-main-label">مشاريع</span></div>
                 <div className="sb-stat-breakdown">
                   <div className="sb-stat-row"><span className="sb-stat-dot active" /><span className="sb-stat-row-value">{activeProjects}</span><span className="sb-stat-row-label">نشطة</span></div>
@@ -209,7 +218,7 @@ export function ClientPortalV2Page() {
                 <span className="sb-tag sb-tag-gold"><i className="fas fa-star" /> عميل مميز</span>
                 {client?.since && <span className="sb-tag sb-tag-blue"><i className="fas fa-calendar-check" /> منذ {client.since}</span>}
               </div>
-              <button className="btn sb-new-request-btn" onClick={() => doRequest('project')} disabled={submitReq.isPending}>
+              <button className="btn sb-new-request-btn" onClick={(e) => { e.stopPropagation(); doRequest('project'); }} disabled={submitReq.isPending}>
                 <i className="fas fa-diagram-project" /> اطلب مشروع جديد
               </button>
             </div>
@@ -274,7 +283,8 @@ export function ClientPortalV2Page() {
               <div className="topbar-user-menu">
                 <button className="topbar-user-btn" onClick={() => setUserMenuOpen((o) => !o)}><div className="topbar-user-avatar">{initial}</div><span>{clientName.split(' ')[0]}</span><i className="fas fa-chevron-down" /></button>
                 <div className={`topbar-user-dropdown${userMenuOpen ? '' : ' hidden'}`}>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); go('settings'); }}><i className="fas fa-user" /> الملف الشخصي</a>
+                  {/* «صفحة الموقع الرئيسي» بدل «الملف الشخصي» (طلب أيمن، اجتماع 4): تعيد للموقع العام الذي سجّل منه الدخول */}
+                  <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); navigate('/'); }}><i className="fas fa-house" /> صفحة الموقع الرئيسي</a>
                   <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); go('settings'); }}><i className="fas fa-gear" /> الإعدادات</a>
                   <hr />
                   <a href="#" className="danger" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); logout.mutate(); }}><i className="fas fa-arrow-right-from-bracket" /> تسجيل خروج</a>
@@ -285,7 +295,7 @@ export function ClientPortalV2Page() {
 
           <div className="content">
             <div className="page active">
-              {page === 'requests' && <RequestsSection />}
+              {page === 'requests' && <RequestsSection onNew={() => setProjectRequestOpen(true)} />}
               {page === 'notifications' && <NotificationsSection />}
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
               {page === 'chat' && <ChatSection />}
@@ -432,6 +442,9 @@ export function ClientPortalV2Page() {
           </div>
         </main>
       </div>
+
+      {/* نموذج طلب مشروع جديد */}
+      {projectRequestOpen && <NewProjectRequestModal onClose={() => setProjectRequestOpen(false)} />}
 
       {/* إشعار عائم — طبق الأصل (.toast.show) */}
       <div className={`toast${toast ? ' show' : ''}`}>{toast}</div>

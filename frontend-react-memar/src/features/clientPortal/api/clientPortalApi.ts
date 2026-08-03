@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
+import { api, apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import type { Appointment } from '../../appointments/types';
 import type { Contract } from '../../contracts/types';
 import type { GeneratedDocument } from '../../documents/types';
@@ -28,9 +28,33 @@ export interface ClientInfo {
   kunya: string | null;
   company: string | null;
   phone: string | null;
+  /** المنصب/الصفة داخل الشركة (مثل: مالك الشركة، مدير تنفيذي، مهندس). */
+  position?: string | null;
+  /** رقم الحساب الشخصي الثابت المخزَّن في الباك اند (MEE-YYYY-NNN) — المصدر الرسمي. */
+  account_number?: string | null;
   since: string | null;
+  /** رابط الصورة الشخصية إن رفعها العميل. */
+  avatar_url?: string | null;
   notification_prefs: NotificationPrefs;
 }
+
+/**
+ * كود العضوية/الحساب الشخصي — الصيغة التي طلبها العميل: MEE (اختصار معمار) + سنة التسجيل + رقم تسلسلي.
+ * ثابت لكل عميل (بخلاف كود الخصم المتغيّر). مثال: MEE-24-018.
+ */
+export const memarMemberCode = (id: number, since?: string | null): string => {
+  const m = since ? String(since).match(/\d{4}/) : null;
+  const yr = m ? m[0].slice(2) : '25';
+
+  return `MEE-${yr}-${String(id).padStart(3, '0')}`;
+};
+
+/**
+ * رقم الحساب المعروض للعميل — المصدر الرسمي هو `account_number` المخزَّن في الباك اند؛
+ * وإن غاب (بيانات قديمة) نرجع للصيغة المحسوبة. يوحّد العرض في كل الصفحات (اجتماع 2026-08-03).
+ */
+export const clientAccountCode = (c: { id: number; since?: string | null; account_number?: string | null }): string =>
+  c.account_number || memarMemberCode(c.id, c.since);
 
 export interface ClientPortalData {
   linked: boolean;
@@ -65,12 +89,32 @@ export interface ClientProjectDetail {
 
 export type ClientRequestType = 'project' | 'meeting' | 'inquiry';
 
+/** حمولة طلب من بوابة العميل — الحقول التفصيلية تُملأ في «طلب مشروع جديد». */
+export interface ClientRequestPayload {
+  type: ClientRequestType;
+  note?: string;
+  project_name?: string;
+  project_type?: string;
+  location?: string;
+  area_sqm?: number | null;
+  budget_range?: string;
+  start_date?: string;
+  services?: string[];
+}
+
+export interface ClientRequestAttachment {
+  id: number;
+  original_name: string;
+  size: number;
+}
+
 export interface ClientRequestItem {
   id: number;
   title: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   status_label: string;
   description: string | null;
+  attachments?: ClientRequestAttachment[];
   created_at: string | null;
 }
 
@@ -139,7 +183,13 @@ export const clientPortalApi = {
   addTeamMember: (name: string, role: string) => apiPost<TeamMember>('/client-portal/team', { name, role }),
   removeTeamMember: (id: number) => apiDelete<{ id: number }>(`/client-portal/team/${id}`),
   project: (id: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`),
-  submitRequest: (type: ClientRequestType, note?: string) => apiPost<{ id: number }>('/client-portal/requests', { type, note }),
+  submitRequest: (payload: ClientRequestPayload) => apiPost<{ id: number }>('/client-portal/requests', payload),
+  uploadRequestAttachment: (requestId: number, file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    return api.post(`/client-portal/requests/${requestId}/attachments`, fd).then((r) => r.data.data as ClientRequestAttachment);
+  },
   myRequests: () => apiGet<ClientRequestItem[]>('/client-portal/requests'),
   notifications: () => apiGet<{ count: number; items: ClientNotification[] }>('/client-portal/notifications'),
   updateProfile: (payload: ClientProfilePayload) => apiPatch<{ id: number; name: string; phone: string | null; company: string | null }>('/client-portal/profile', payload),

@@ -58,7 +58,8 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
           <div style={grid}>
             <Info label="الحرارة"><span style={{ color: temp.color, fontWeight: 700 }}>{temp.icon} {temp.label}</span></Info>
             <Info label="تاريخ الإضافة"><b>{lead.created_at ? lead.created_at.slice(0, 10) : '—'}</b></Info>
-            <Info label="التصنيف"><b>{lead.company ?? '—'}</b></Info>
+            <Info label="المنصب"><b>{lead.position ? `💼 ${lead.position}` : '—'}</b></Info>
+            <Info label="الشركة"><b>{lead.company ? `🏢 ${lead.company}` : '—'}</b></Info>
             <Info label="المسار الحالي"><b style={{ color: colorOf(lead.stage) }}>{labelOf(lead.stage)}</b></Info>
             {projectName && (
               <Info label="المشروع">

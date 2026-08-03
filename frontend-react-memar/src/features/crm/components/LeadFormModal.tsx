@@ -68,7 +68,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
             <input className="input" style={input} value={form.company} onChange={(e) => set('company', e.target.value)} />
           </label>
           <label style={label}>المنصب
-            <input className="input" style={input} value={form.position} onChange={(e) => set('position', e.target.value)} />
+            <input className="input" style={input} value={form.position} onChange={(e) => set('position', e.target.value)} placeholder="مثال: مالك الشركة، مدير تنفيذي، مهندس" />
           </label>
           <label style={label}>المرحلة
             <select className="input" style={input} value={form.stage} onChange={(e) => set('stage', e.target.value as Stage)}>

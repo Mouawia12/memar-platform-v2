@@ -2939,24 +2939,25 @@
   transition: var(--transition);
   border: none !important;
 }
+/* أزرار الولاء موحّدة على اللون البرتقالي للبراند (طلب أيمن، اجتماع 4): بدل مزيج الأزرق/البنفسجي/الأحمر */
 .mcp-root .loyalty-featured-btn-share {
-  background: rgba(30, 102, 155, 0.08) !important;
-  color: #1E669B !important;
-  border: 1px solid rgba(30, 102, 155, 0.2) !important;
+  background: rgba(232, 145, 42, 0.10) !important;
+  color: #B8690F !important;
+  border: 1px solid rgba(232, 145, 42, 0.30) !important;
 }
-.mcp-root .loyalty-featured-btn-share:hover { background: rgba(30, 102, 155, 0.15) !important; }
+.mcp-root .loyalty-featured-btn-share:hover { background: rgba(232, 145, 42, 0.18) !important; }
 .mcp-root .loyalty-featured-btn-gift {
   background: #fff !important;
-  color: #7C3A9B !important;
-  border: 1.5px solid #7C3A9B !important;
+  color: #B8690F !important;
+  border: 1.5px solid #E8912A !important;
 }
-.mcp-root .loyalty-featured-btn-gift:hover { background: rgba(124, 58, 155, 0.06) !important; }
+.mcp-root .loyalty-featured-btn-gift:hover { background: rgba(232, 145, 42, 0.08) !important; }
 .mcp-root .loyalty-featured-btn-use {
-  background: #1E669B !important;
+  background: #E8912A !important;
   color: #fff !important;
-  border: 1px solid #1a5a88 !important;
+  border: 1px solid #D07E1C !important;
 }
-.mcp-root .loyalty-featured-btn-use:hover { background: #1a5a88 !important; }
+.mcp-root .loyalty-featured-btn-use:hover { background: #D07E1C !important; }
 .mcp-root .loyalty-featured-stats {
   display: flex;
   gap: 10px;
@@ -3185,16 +3186,17 @@
   color: #555;
   line-height: 1.7;
 }
+/* صندوق كود الإحالة برتقالي متقطّع مطابقةً لمرجع Atoms (اجتماع 2026-08-03) — بدل الأزرق */
 .mcp-root .loyalty-page-code-section {
-  background: #F0F7FB;
-  border: 2px dashed #1E669B;
+  background: #FDF6E9;
+  border: 2px dashed #E8A838;
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 20px;
 }
 .mcp-root .loyalty-page-code-label {
   font-size: 11px;
-  color: #1E669B;
+  color: #B7791F;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -3209,7 +3211,7 @@
 .mcp-root .loyalty-page-code-text {
   font-size: 20px;
   font-weight: 900;
-  color: #1E669B;
+  color: #B7791F;
   letter-spacing: 2px;
   font-family: monospace;
 }

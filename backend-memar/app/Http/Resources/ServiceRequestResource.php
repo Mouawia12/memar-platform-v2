@@ -31,6 +31,11 @@ class ServiceRequestResource extends JsonResource
                 'id' => $this->requester->id,
                 'name' => $this->requester->name,
             ] : null),
+            'attachments' => $this->whenLoaded('files', fn () => $this->files->map(fn ($f) => [
+                'id' => $f->id,
+                'original_name' => $f->original_name,
+                'size' => $f->size,
+            ])->all()),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

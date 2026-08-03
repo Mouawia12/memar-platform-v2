@@ -22,7 +22,10 @@ export function ClientProjectDetailPage() {
 
   return (
     <div>
-      <Link to="/client-portal" style={backLink}>← بوابتي</Link>
+      {/* زر عودة بارز وثابت أعلى الصفحة — يمنع «حبس» العميل داخل صفحة المشروع (طلب أيمن، اجتماع 4) */}
+      <div style={backBar}>
+        <Link to="/client-portal" style={backBtn}><i className="fas fa-arrow-right" /> الرجوع إلى بوابة العميل</Link>
+      </div>
 
       {/* الترويسة */}
       <div style={banner}>
@@ -36,6 +39,11 @@ export function ClientProjectDetailPage() {
           <span style={{ ...chip, background: 'rgba(255,255,255,.16)', color: '#fff', border: '1px solid rgba(255,255,255,.25)' }}>
             {PROJECT_STATUS_LABELS[project.status]}
           </span>
+        </div>
+        {/* تواريخ المشروع — كما في تصميم صفحة العميل المرجعي */}
+        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '12px', fontSize: '12.5px', color: 'rgba(255,255,255,.85)' }}>
+          <span>🚩 البداية: {fmtDate(project.start_date)}</span>
+          <span>🏁 التسليم المتوقع: {fmtDate(project.end_date)}</span>
         </div>
         <div style={{ marginTop: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#fff', marginBottom: '6px' }}>
@@ -117,7 +125,8 @@ function Empty({ text }: { text: string }) {
   return <p style={{ opacity: 0.6, fontSize: '13px', padding: '8px 0' }}>{text}</p>;
 }
 
-const backLink: CSSProperties = { fontSize: '13px', color: '#1B6CA8', textDecoration: 'none', display: 'inline-block', marginBottom: '12px' };
+const backBar: CSSProperties = { position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(#F5F7FB 70%, rgba(245,247,251,0))', padding: '8px 0 12px', marginBottom: '4px' };
+const backBtn: CSSProperties = { fontSize: '14px', fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg,#274A78,#1B6CA8)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 20px', borderRadius: '10px', boxShadow: '0 4px 14px rgba(39,74,120,.28)' };
 const banner: CSSProperties = { background: 'linear-gradient(135deg,#274A78,#1B6CA8)', borderRadius: '14px', padding: '22px', marginBottom: '16px', boxShadow: '0 4px 16px rgba(39,74,120,.25)' };
 const chip: CSSProperties = { padding: '3px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' };
 const line: CSSProperties = { position: 'absolute', insetInlineStart: '5px', top: '8px', bottom: '8px', width: '2px', background: '#E4E8EF' };

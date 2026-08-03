@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { clientPortalApi, type ClientProfilePayload, type ClientRequestType, type NotificationPrefs } from '../api/clientPortalApi';
+import { clientPortalApi, type ClientProfilePayload, type ClientRequestPayload, type NotificationPrefs } from '../api/clientPortalApi';
 
 export function useClientPortal() {
   return useQuery({ queryKey: ['client-portal'], queryFn: () => clientPortalApi.get() });
@@ -11,7 +11,7 @@ export function useSubmitClientRequest() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ type, note }: { type: ClientRequestType; note?: string }) => clientPortalApi.submitRequest(type, note),
+    mutationFn: (payload: ClientRequestPayload) => clientPortalApi.submitRequest(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['client-requests'] });
       qc.invalidateQueries({ queryKey: ['client-notifications'] });

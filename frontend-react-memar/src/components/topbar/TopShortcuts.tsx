@@ -4,10 +4,12 @@ import { NavLink } from 'react-router-dom';
 import { NAV_SECTIONS, type NavItem } from '../../config/nav';
 import { useAuthStore } from '../../store/auth';
 
-const STORAGE_KEY = 'memar_top_shortcuts';
+// v2: بعد اجتماع 2026-08-03 غيّرنا الافتراضي (أيمن طلب إزالة «المهام» و«CRM» من الأعلى)؛
+// رفع رقم النسخة يتجاهل الاختيار القديم المحفوظ محليًا فيظهر الافتراضي الجديد للجميع.
+const STORAGE_KEY = 'memar_top_shortcuts_v2';
 
-/** الاختصارات الافتراضية فوق (أمثلة أيمن: المهام، CRM، المواعيد، التواصل، العملاء، المشاريع، الخدمات). */
-const DEFAULT_KEYS = ['tasks', 'crm', 'appointments', 'whatsapp', 'clients', 'projects', 'services'];
+/** الاختصارات الافتراضية فوق — طلب أيمن (اجتماع 4): «المواعيد» و«التواصل» فقط، والباقي في القائمة الجانبية. */
+const DEFAULT_KEYS = ['appointments', 'whatsapp'];
 
 function loadKeys(): string[] {
   try {
@@ -87,6 +89,7 @@ export function TopShortcuts() {
                 <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#274A78' }}>تخصيص اختصارات الأعلى</span>
                 <button type="button" onClick={reset} style={resetBtn} title="استعادة الافتراضي">استعادة الافتراضي</button>
               </div>
+              <p style={panelHint}>اختصارات الشريط العلوي هي روابط سريعة لصفحاتك الأكثر استخدامًا. أضِف أو أزِل أو رتّب ما يظهر هنا.</p>
               <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
                 {/* المختارة — قابلة لإعادة الترتيب والإزالة */}
                 <div style={groupLabel}>الظاهرة الآن ({selected.length})</div>
@@ -128,6 +131,7 @@ const gear: CSSProperties = { display: 'grid', placeItems: 'center', width: '32p
 const backdrop: CSSProperties = { position: 'fixed', inset: 0, zIndex: 290 };
 const panel: CSSProperties = { position: 'absolute', top: 'calc(100% + 8px)', insetInlineEnd: 0, width: '280px', maxWidth: 'none', boxSizing: 'border-box', background: '#fff', border: '1px solid #E4E8EF', borderRadius: '12px', boxShadow: '0 12px 32px rgba(0,0,0,.14)', zIndex: 300, padding: '10px' };
 const panelHead: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' };
+const panelHint: CSSProperties = { fontSize: '11px', lineHeight: 1.6, color: '#7A869A', margin: '0 2px 8px', background: '#F8FAFC', border: '1px solid #EEF2F7', borderRadius: '7px', padding: '6px 8px' };
 const resetBtn: CSSProperties = { border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#5A6478', borderRadius: '7px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' };
 const groupLabel: CSSProperties = { fontSize: '11px', fontWeight: 800, color: '#94A3B8', margin: '10px 4px 4px' };
 const emptyHint: CSSProperties = { fontSize: '12px', color: '#94A3B8', padding: '4px 6px' };

@@ -176,7 +176,11 @@ export function ClientPortalV2Page() {
           <div className="sb-client-profile" style={{ cursor: 'pointer' }} onClick={() => go('dashboard')} title="العودة لصفحتي">
             <div className="sb-profile-header">
               <div className="sb-client-avatar">
-                <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--primary-gradient)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800 }}>{initial}</div>
+                {client?.avatar_url ? (
+                  <img src={client.avatar_url} alt={clientName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--primary-gradient)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800 }}>{initial}</div>
+                )}
                 <span className="sb-client-status online" />
               </div>
               <div className="sb-client-info">
@@ -260,7 +264,7 @@ export function ClientPortalV2Page() {
           </nav>
 
           <div className="sb-user">
-            <div className="sb-avatar"><span>{initial}</span></div>
+            <div className="sb-avatar">{client?.avatar_url ? <img src={client.avatar_url} alt={clientName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <span>{initial}</span>}</div>
             <div className="sb-user-info"><strong>{clientName}</strong><span>عميل مميز</span></div>
             <button className="sb-logout" title="تسجيل خروج" onClick={() => logout.mutate()}><i className="fas fa-arrow-right-from-bracket" /></button>
           </div>
@@ -281,7 +285,7 @@ export function ClientPortalV2Page() {
               <button className="topbar-icon-btn" title="الإشعارات" onClick={() => go('notifications')}><i className="fas fa-bell" />{notifCount > 0 && <span className="topbar-notif-dot" />}</button>
               <button className="topbar-icon-btn" title="البحث"><i className="fas fa-magnifying-glass" /></button>
               <div className="topbar-user-menu">
-                <button className="topbar-user-btn" onClick={() => setUserMenuOpen((o) => !o)}><div className="topbar-user-avatar">{initial}</div><span>{clientName.split(' ')[0]}</span><i className="fas fa-chevron-down" /></button>
+                <button className="topbar-user-btn" onClick={() => setUserMenuOpen((o) => !o)}><div className="topbar-user-avatar">{client?.avatar_url ? <img src={client.avatar_url} alt={clientName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : initial}</div><span>{clientName.split(' ')[0]}</span><i className="fas fa-chevron-down" /></button>
                 <div className={`topbar-user-dropdown${userMenuOpen ? '' : ' hidden'}`}>
                   {/* «صفحة الموقع الرئيسي» بدل «الملف الشخصي» (طلب أيمن، اجتماع 4): تعيد للموقع العام الذي سجّل منه الدخول */}
                   <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); navigate('/'); }}><i className="fas fa-house" /> صفحة الموقع الرئيسي</a>

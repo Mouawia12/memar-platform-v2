@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Appointment } from '../../appointments/types';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
 import { clientAccountCode, type ClientInfo, type NotificationPrefs } from '../api/clientPortalApi';
-import { useAddTeamMember, useClientMessages, useClientNotifications, useCreateForumThread, useForumThreads, useMyRequests, useRemoveTeamMember, useSendClientMessage, useTeamMembers, useUpdateClientPreferences, useUpdateClientProfile } from '../hooks/useClientPortal';
+import { useAddTeamMember, useClientMessages, useClientNotifications, useCreateForumThread, useDeleteAvatar, useForumThreads, useMyRequests, useRemoveTeamMember, useSendClientMessage, useTeamMembers, useUpdateClientPreferences, useUpdateClientProfile, useUploadAvatar } from '../hooks/useClientPortal';
 
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
@@ -384,6 +384,21 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
   const [prefs, setPrefs] = useState<NotificationPrefs>(client.notification_prefs ?? { email: true, sms: true, meetings: true, invoices: true });
   const initial = (client.name ?? 'ع').trim().charAt(0) || 'ع';
 
+  // الصورة الشخصية: رفع/تغيير/حذف (اجتماع 2026-08-03، بند 10)
+  const uploadAvatar = useUploadAvatar();
+  const deleteAvatar = useDeleteAvatar();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [avatarErr, setAvatarErr] = useState('');
+  const pickAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // يسمح بإعادة اختيار نفس الملف
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { setAvatarErr('الصيغ المدعومة: JPG, PNG, WEBP.'); return; }
+    if (file.size > 3 * 1024 * 1024) { setAvatarErr('الحد الأقصى 3 ميجابايت.'); return; }
+    setAvatarErr('');
+    uploadAvatar.mutate(file);
+  };
+
   const save = () => {
     if (name.trim().length < 2) return;
     update.mutate({ full_name: name.trim(), kunya: kunya.trim() || null, phone: phone.trim() || null, company: company.trim() || null }, { onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2500); } });
@@ -417,11 +432,26 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
           <div className="card-body">
             <div className="settings-avatar-section">
               <div className="settings-avatar-preview">
-                <div style={{ width: '100%', height: '100%', borderRadius: 'inherit', background: 'var(--primary-gradient)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 800 }}>{initial}</div>
+                {client.avatar_url ? (
+                  <img src={client.avatar_url} alt={client.name ?? 'الصورة الشخصية'} style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', borderRadius: 'inherit', background: 'var(--primary-gradient)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 800 }}>{initial}</div>
+                )}
               </div>
               <div className="settings-avatar-info">
                 <h4>{client.name}</h4>
-                <p>يُدار الحساب من إدارة معمار — للتعديل تواصل مع فريقنا.</p>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={pickAvatar} />
+                <div className="settings-avatar-actions">
+                  <button className="btn btn-primary btn-sm" onClick={() => fileRef.current?.click()} disabled={uploadAvatar.isPending}>
+                    <i className="fas fa-camera" /> {uploadAvatar.isPending ? 'جارٍ الرفع…' : client.avatar_url ? 'تغيير الصورة' : 'رفع صورة'}
+                  </button>
+                  {client.avatar_url && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => deleteAvatar.mutate()} disabled={deleteAvatar.isPending}>
+                      <i className="fas fa-trash-can" /> حذف
+                    </button>
+                  )}
+                </div>
+                {avatarErr ? <p className="settings-avatar-hint danger">{avatarErr}</p> : <p className="settings-avatar-hint">JPG أو PNG أو WEBP — يفضّل مربّعة (مثل 400×400)، بحد أقصى 3 ميجابايت.</p>}
               </div>
             </div>
           </div>

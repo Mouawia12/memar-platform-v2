@@ -1976,6 +1976,8 @@
   display: flex;
   gap: 8px;
 }
+.mcp-root .settings-avatar-hint { font-size: 11.5px; color: var(--text-3); margin-top: 8px; }
+.mcp-root .settings-avatar-hint.danger { color: var(--danger); }
 .mcp-root .sb-client-profile {
   padding: 0;
   border-bottom: 1px solid var(--divider);

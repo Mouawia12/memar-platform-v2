@@ -17,6 +17,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/client-portal/requests', [ClientPortalController::class, 'myRequests']);
     Route::get('/client-portal/notifications', [ClientPortalController::class, 'notifications']);
     Route::match(['put', 'patch'], '/client-portal/profile', [ClientPortalController::class, 'updateProfile']);
+    Route::post('/client-portal/profile/avatar', [ClientPortalController::class, 'uploadAvatar']);
+    Route::delete('/client-portal/profile/avatar', [ClientPortalController::class, 'deleteAvatar']);
     Route::match(['put', 'patch'], '/client-portal/preferences', [ClientPortalController::class, 'updatePreferences']);
     Route::get('/client-portal/loyalty', [ClientPortalController::class, 'loyalty']);
     Route::post('/client-portal/loyalty/share', [ClientPortalController::class, 'recordReferralShare']);

@@ -190,6 +190,13 @@ export const clientPortalApi = {
 
     return api.post(`/client-portal/requests/${requestId}/attachments`, fd).then((r) => r.data.data as ClientRequestAttachment);
   },
+  uploadAvatar: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    return api.post('/client-portal/profile/avatar', fd).then((r) => r.data.data as { avatar_url: string });
+  },
+  deleteAvatar: () => apiDelete<null>('/client-portal/profile/avatar'),
   myRequests: () => apiGet<ClientRequestItem[]>('/client-portal/requests'),
   notifications: () => apiGet<{ count: number; items: ClientNotification[] }>('/client-portal/notifications'),
   updateProfile: (payload: ClientProfilePayload) => apiPatch<{ id: number; name: string; phone: string | null; company: string | null }>('/client-portal/profile', payload),

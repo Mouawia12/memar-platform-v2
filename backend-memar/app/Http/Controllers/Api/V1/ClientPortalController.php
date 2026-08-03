@@ -27,6 +27,7 @@ use App\Models\TeamMember;
 use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -103,6 +104,8 @@ class ClientPortalController extends ApiController
                 'since' => $contact?->created_at?->format('Y'),
                 // رقم الحساب الشخصي الثابت MEE-YYYY-NNN (اجتماع 2026-08-03)
                 'account_number' => $contact?->ensureAccountNumber(),
+                // الصورة الشخصية كـ data URI (اجتماع 2026-08-03، بند 10) — null إن لم تُرفع بعد
+                'avatar_url' => $contact ? $this->avatarDataUri($contact) : null,
                 'notification_prefs' => $contact?->notification_prefs ?? Contact::DEFAULT_NOTIFICATION_PREFS,
             ],
             'stats' => [
@@ -290,6 +293,75 @@ class ClientPortalController extends ApiController
             'original_name' => $stored->original_name,
             'size' => $stored->size,
         ], 'تم رفع المرفق.');
+    }
+
+    /** الصيغ المسموحة للصورة الشخصية. */
+    private const AVATAR_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+    /**
+     * رفع/تغيير الصورة الشخصية للعميل (اجتماع 2026-08-03، بند 10).
+     * صور فقط، حد أقصى 3MB. تُحذف الصورة القديمة عند الاستبدال.
+     */
+    public function uploadAvatar(Request $request, FileStorageService $files): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $request->validate([
+            'file' => ['required', 'file', 'image', 'max:3072'], // 3MB
+        ]);
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        abort_unless(in_array($ext, self::AVATAR_EXTENSIONS, true), 422, 'الصيغ المدعومة: JPG, PNG, WEBP.');
+
+        $old = $contact->avatarFile; // نحذفها بعد نجاح الحفظ
+
+        $stored = $files->store($file, [
+            'folder' => 'صور العملاء',
+            'contact_id' => $contact->id,
+        ], $request->user()->id);
+
+        $contact->avatar_file_id = $stored->id;
+        $contact->save();
+
+        if ($old) {
+            $files->delete($old);
+        }
+
+        return $this->created(['avatar_url' => $this->avatarDataUri($contact->refresh())], 'تم تحديث صورتك الشخصية.');
+    }
+
+    /** حذف الصورة الشخصية للعميل. */
+    public function deleteAvatar(Request $request, FileStorageService $files): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $avatar = $contact->avatarFile;
+        if ($avatar) {
+            $contact->avatar_file_id = null;
+            $contact->save();
+            $files->delete($avatar);
+        }
+
+        return $this->ok(null, 'تم حذف صورتك الشخصية.');
+    }
+
+    /**
+     * يبني data URI للصورة الشخصية من الملف المخزّن على القرص الخاص،
+     * ليعرضه المتصفّح مباشرةً في <img> دون نقطة تنزيل محميّة إضافية.
+     */
+    private function avatarDataUri(Contact $contact): ?string
+    {
+        $file = $contact->avatarFile;
+        if (! $file || ! Storage::disk($file->disk)->exists($file->path)) {
+            return null;
+        }
+
+        $mime = $file->mime ?: 'image/jpeg';
+
+        return 'data:'.$mime.';base64,'.base64_encode(Storage::disk($file->disk)->get($file->path));
     }
 
     /**

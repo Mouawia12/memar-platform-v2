@@ -39,6 +39,26 @@ export function useUpdateClientProfile() {
   });
 }
 
+/** رفع/تغيير الصورة الشخصية (اجتماع 2026-08-03، بند 10). */
+export function useUploadAvatar() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => clientPortalApi.uploadAvatar(file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-portal'] }),
+  });
+}
+
+/** حذف الصورة الشخصية. */
+export function useDeleteAvatar() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => clientPortalApi.deleteAvatar(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-portal'] }),
+  });
+}
+
 /** حفظ تفضيلات الإشعارات (مفاتيح الإعدادات). */
 export function useUpdateClientPreferences() {
   const qc = useQueryClient();

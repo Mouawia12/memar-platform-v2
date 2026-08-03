@@ -26,8 +26,18 @@ class Contact extends Model
         'full_name', 'kunya', 'email', 'phone', 'company', 'position',
         'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
-        'referral_code', 'referral_shares', 'account_number',
+        'referral_code', 'referral_shares', 'account_number', 'avatar_file_id',
     ];
+
+    /**
+     * الصورة الشخصية للعميل — ملف مخزّن على القرص الخاص (اجتماع 2026-08-03، بند 10).
+     *
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function avatarFile(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'avatar_file_id');
+    }
 
     /**
      * يضمن وجود رقم حساب شخصي ثابت بصيغة MEE-<السنة>-<تسلسل> (اجتماع 2026-08-03).

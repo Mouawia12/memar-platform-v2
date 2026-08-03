@@ -1032,6 +1032,22 @@
 .mcp-root .chat-contact-avatar.blue { background: var(--primary); }
 .mcp-root .chat-contact-avatar.purple { background: var(--accent); }
 .mcp-root .chat-contact-avatar.green { background: var(--success); }
+.mcp-root .chat-contact-avatar.gold { background: var(--warning); }
+/* ═══ محادثات متعددة الخيوط (بند 8) ═══ */
+.mcp-root .chat-new-btn { width: 30px; height: 30px; border-radius: 8px; border: none; background: var(--primary-50); color: var(--primary); cursor: pointer; font-size: 13px; }
+.mcp-root .chat-new-btn:hover { background: var(--primary); color: #fff; }
+.mcp-root .chat-unread-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
+.mcp-root .chat-icon-btn { border: none; background: transparent; color: var(--text-3); cursor: pointer; font-size: 12px; padding: 2px; }
+.mcp-root .chat-icon-btn:hover { color: var(--primary); }
+.mcp-root .chat-rename-input { font-size: 14px; font-weight: 700; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; width: 180px; }
+.mcp-root .chat-add-member-btn { border: 1px solid var(--border); background: #fff; color: var(--text-2); border-radius: 8px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.mcp-root .chat-add-member-btn:hover { border-color: var(--primary); color: var(--primary); }
+.mcp-root .chat-participants-bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--divider); background: var(--bg); }
+.mcp-root .chat-participant-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-2); background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
+.mcp-root .chat-participant-remove { border: none; background: transparent; color: var(--text-4); cursor: pointer; font-size: 10px; padding: 0; }
+.mcp-root .chat-participant-remove:hover { color: var(--danger); }
+.mcp-root .chat-add-member-form { display: flex; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--divider); }
+.mcp-root .chat-add-member-form .chat-input-field { flex: 1; }
 .mcp-root .chat-contact-info { flex: 1; min-width: 0; }
 .mcp-root .chat-contact-info strong { display: block; font-size: 13px; font-weight: 700; color: var(--text); }
 .mcp-root .chat-contact-info p { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }

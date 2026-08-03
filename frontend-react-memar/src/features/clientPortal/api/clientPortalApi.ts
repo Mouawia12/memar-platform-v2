@@ -148,6 +148,23 @@ export interface ClientMessage {
   at: string | null;
 }
 
+export interface ChatParticipant {
+  id: number;
+  name: string;
+  role: string | null;
+}
+
+export interface ChatThread {
+  id: number;
+  title: string;
+  kind: 'team' | 'support' | 'custom';
+  can_rename: boolean;
+  unread_count: number;
+  last_message: string | null;
+  last_at: string | null;
+  participants: ChatParticipant[];
+}
+
 export interface ForumReply {
   id: number;
   from_staff: boolean;
@@ -179,6 +196,14 @@ export const clientPortalApi = {
   recordShare: () => apiPost<{ code: string; shares: number }>('/client-portal/loyalty/share', {}),
   messages: () => apiGet<ClientMessage[]>('/client-portal/messages'),
   sendMessage: (body: string) => apiPost<ClientMessage>('/client-portal/messages', { body }),
+  // محادثات متعددة الخيوط (بند 8)
+  chatThreads: () => apiGet<ChatThread[]>('/client-portal/chat/threads'),
+  createChatThread: (title: string) => apiPost<{ id: number; title: string; kind: string }>('/client-portal/chat/threads', { title }),
+  renameChatThread: (id: number, title: string) => apiPatch<{ id: number; title: string }>(`/client-portal/chat/threads/${id}`, { title }),
+  threadMessages: (id: number) => apiGet<ClientMessage[]>(`/client-portal/chat/threads/${id}/messages`),
+  sendThreadMessage: (id: number, body: string) => apiPost<ClientMessage>(`/client-portal/chat/threads/${id}/messages`, { body }),
+  addThreadParticipant: (id: number, name: string, role: string) => apiPost<ChatParticipant>(`/client-portal/chat/threads/${id}/participants`, { name, role }),
+  removeThreadParticipant: (id: number, participantId: number) => apiDelete<null>(`/client-portal/chat/threads/${id}/participants/${participantId}`),
   forum: () => apiGet<ForumThread[]>('/client-portal/forum'),
   createThread: (title: string, body: string) => apiPost<{ id: number }>('/client-portal/forum', { title, body }),
   team: () => apiGet<TeamMember[]>('/client-portal/team'),

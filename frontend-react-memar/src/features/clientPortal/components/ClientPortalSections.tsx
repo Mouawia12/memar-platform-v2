@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Appointment } from '../../appointments/types';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
 import { clientAccountCode, type ClientInfo, type NotificationPrefs } from '../api/clientPortalApi';
-import { useAddTeamMember, useClientMessages, useClientNotifications, useCreateForumThread, useDeleteAvatar, useForumThreads, useMyRequests, useRemoveTeamMember, useSendClientMessage, useTeamMembers, useUpdateClientPreferences, useUpdateClientProfile, useUploadAvatar } from '../hooks/useClientPortal';
+import { useAddTeamMember, useAddThreadParticipant, useChatThreads, useClientNotifications, useCreateChatThread, useCreateForumThread, useDeleteAvatar, useForumThreads, useMyRequests, useRemoveTeamMember, useRemoveThreadParticipant, useRenameChatThread, useSendThreadMessage, useTeamMembers, useThreadMessages, useUpdateClientPreferences, useUpdateClientProfile, useUploadAvatar } from '../hooks/useClientPortal';
+import type { ChatThread } from '../api/clientPortalApi';
 
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
@@ -221,10 +222,32 @@ export function LoyaltySection({ code, stats, history, onCopy, onShare, onGift, 
 }
 
 /** التواصل — طبق الأصل: chat-layout بلوحتين، رسائل حقيقية محفوظة (ردود الطاقم من لوحة الـERP). */
+const THREAD_ICON: Record<ChatThread['kind'], { icon: string; cls: string; label: string }> = {
+  team: { icon: 'fa-users', cls: 'green', label: 'فريق معمار' },
+  support: { icon: 'fa-headset', cls: 'blue', label: 'الدعم الفني' },
+  custom: { icon: 'fa-comment-dots', cls: 'gold', label: 'محادثة' },
+};
+
+/** المحادثات (بند 8): خيوط متعددة (فريق + دعم فني + مخصّصة) مع إعادة تسمية وإضافة أعضاء. */
 export function ChatSection() {
-  const { data: messages, isLoading } = useClientMessages();
-  const sendMsg = useSendClientMessage();
+  const { data: threads, isLoading: threadsLoading } = useChatThreads();
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const active = threads?.find((t) => t.id === activeId) ?? threads?.[0] ?? null;
+  const activeThreadId = active?.id ?? null;
+
+  const { data: messages, isLoading } = useThreadMessages(activeThreadId);
+  const sendMsg = useSendThreadMessage(activeThreadId ?? 0);
+  const createThread = useCreateChatThread();
+  const renameThread = useRenameChatThread();
+  const addParticipant = useAddThreadParticipant();
+  const removeParticipant = useRemoveThreadParticipant();
+
   const [text, setText] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [addingMember, setAddingMember] = useState(false);
+  const [memberName, setMemberName] = useState('');
+  const [memberRole, setMemberRole] = useState('');
   const areaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -233,29 +256,93 @@ export function ChatSection() {
 
   const send = () => {
     const t = text.trim();
-    if (!t || sendMsg.isPending) return;
+    if (!t || !activeThreadId || sendMsg.isPending) return;
     setText('');
     sendMsg.mutate(t);
   };
 
+  const startNewChat = () => {
+    const title = window.prompt('اسم المحادثة الجديدة:')?.trim();
+    if (title) createThread.mutate(title, { onSuccess: (r) => setActiveId(r.id) });
+  };
+
+  const saveRename = () => {
+    const t = renameDraft.trim();
+    if (t && active) renameThread.mutate({ id: active.id, title: t });
+    setRenaming(false);
+  };
+
+  const saveMember = () => {
+    const name = memberName.trim();
+    if (name && active) addParticipant.mutate({ id: active.id, name, role: memberRole.trim() });
+    setMemberName(''); setMemberRole(''); setAddingMember(false);
+  };
+
+  const meta = active ? THREAD_ICON[active.kind] : THREAD_ICON.team;
+
   return (
     <div className="chat-layout">
       <div className="chat-sidebar-panel">
-        <div className="chat-sidebar-header"><h3>المحادثات</h3></div>
+        <div className="chat-sidebar-header">
+          <h3>المحادثات</h3>
+          <button className="chat-new-btn" onClick={startNewChat} title="محادثة جديدة"><i className="fas fa-plus" /></button>
+        </div>
         <div className="chat-contacts-list">
-          <div className="chat-contact active">
-            <div className="chat-contact-avatar green">دعم</div>
-            <div className="chat-contact-info"><strong>فريق معمار</strong><p>الدعم والاستفسارات</p></div>
-          </div>
+          {threadsLoading && <p style={{ color: '#64748B', padding: 8 }}>جارٍ التحميل…</p>}
+          {threads?.map((t) => {
+            const m = THREAD_ICON[t.kind];
+
+            return (
+              <div key={t.id} className={`chat-contact${t.id === activeThreadId ? ' active' : ''}`} onClick={() => setActiveId(t.id)}>
+                <div className={`chat-contact-avatar ${m.cls}`}><i className={`fas ${m.icon}`} /></div>
+                <div className="chat-contact-info">
+                  <strong>{t.title}</strong>
+                  <p>{t.last_message ?? (t.kind === 'support' ? 'مساعدة تقنية' : 'ابدأ المحادثة')}</p>
+                </div>
+                {t.unread_count > 0 && <span className="chat-unread-badge">{t.unread_count}</span>}
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="chat-main-panel">
         <div className="chat-main-header">
           <div className="chat-main-user">
-            <div className="chat-contact-avatar green">دعم</div>
-            <div><strong>فريق معمار</strong><span className="chat-online-status">نردّ خلال ساعات العمل</span></div>
+            <div className={`chat-contact-avatar ${meta.cls}`}><i className={`fas ${meta.icon}`} /></div>
+            <div style={{ minWidth: 0 }}>
+              {renaming ? (
+                <input className="chat-rename-input" autoFocus dir="rtl" value={renameDraft} onChange={(e) => setRenameDraft(e.target.value)} onBlur={saveRename} onKeyDown={(e) => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') setRenaming(false); }} />
+              ) : (
+                <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  {active?.title ?? 'فريق معمار'}
+                  {active?.can_rename && <button className="chat-icon-btn" title="إعادة تسمية" onClick={() => { setRenameDraft(active.title); setRenaming(true); }}><i className="fas fa-pen-to-square" /></button>}
+                </strong>
+              )}
+              <span className="chat-online-status">{active?.kind === 'support' ? 'الدعم الفني — نردّ بأسرع وقت' : 'نردّ خلال ساعات العمل'}</span>
+            </div>
           </div>
+          <button className="chat-add-member-btn" onClick={() => setAddingMember((v) => !v)} title="إضافة عضو"><i className="fas fa-user-plus" /> إضافة عضو</button>
         </div>
+
+        {(active?.participants.length ?? 0) > 0 && (
+          <div className="chat-participants-bar">
+            {active?.participants.map((p) => (
+              <span key={p.id} className="chat-participant-chip">
+                <i className="fas fa-user" /> {p.name}{p.role ? ` · ${p.role}` : ''}
+                <button className="chat-participant-remove" title="إزالة" onClick={() => active && removeParticipant.mutate({ id: active.id, participantId: p.id })}><i className="fas fa-xmark" /></button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {addingMember && (
+          <div className="chat-add-member-form">
+            <input className="chat-input-field" placeholder="اسم العضو/الموظف" value={memberName} onChange={(e) => setMemberName(e.target.value)} />
+            <input className="chat-input-field" placeholder="الدور (اختياري)" value={memberRole} onChange={(e) => setMemberRole(e.target.value)} />
+            <button className="chat-send-btn" onClick={saveMember} disabled={addParticipant.isPending}><i className="fas fa-check" /></button>
+          </div>
+        )}
+
         <div className="chat-messages-area" ref={areaRef}>
           {isLoading && <p style={{ color: '#64748B', padding: 8 }}>جارٍ التحميل…</p>}
           {messages && messages.length === 0 && <p style={{ color: '#64748B', padding: 8, textAlign: 'center' }}>ابدأ المحادثة — اكتب رسالتك وسيردّ عليك فريق معمار.</p>}

@@ -24,6 +24,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/client-portal/loyalty/share', [ClientPortalController::class, 'recordReferralShare']);
     Route::get('/client-portal/messages', [ClientPortalController::class, 'messages']);
     Route::post('/client-portal/messages', [ClientPortalController::class, 'sendMessage']);
+    // محادثات متعددة الخيوط: الفريق + الدعم الفني + مخصّصة، مع مشاركين (بند 8)
+    Route::get('/client-portal/chat/threads', [ClientPortalController::class, 'chatThreads']);
+    Route::post('/client-portal/chat/threads', [ClientPortalController::class, 'createChatThread']);
+    Route::match(['put', 'patch'], '/client-portal/chat/threads/{chatThread}', [ClientPortalController::class, 'renameChatThread']);
+    Route::get('/client-portal/chat/threads/{chatThread}/messages', [ClientPortalController::class, 'threadMessages']);
+    Route::post('/client-portal/chat/threads/{chatThread}/messages', [ClientPortalController::class, 'sendThreadMessage']);
+    Route::post('/client-portal/chat/threads/{chatThread}/participants', [ClientPortalController::class, 'addThreadParticipant']);
+    Route::delete('/client-portal/chat/threads/{chatThread}/participants/{participant}', [ClientPortalController::class, 'removeThreadParticipant']);
     Route::get('/client-portal/forum', [ClientPortalController::class, 'forum']);
     Route::post('/client-portal/forum', [ClientPortalController::class, 'createForumThread']);
     Route::get('/client-portal/team', [ClientPortalController::class, 'teamMembers']);

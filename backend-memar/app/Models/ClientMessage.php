@@ -18,7 +18,7 @@ class ClientMessage extends Model
     use HasFactory;
 
     protected $fillable = [
-        'contact_id', 'from_staff', 'body', 'sender_user_id', 'read_at',
+        'contact_id', 'chat_thread_id', 'from_staff', 'body', 'sender_user_id', 'read_at',
     ];
 
     /**

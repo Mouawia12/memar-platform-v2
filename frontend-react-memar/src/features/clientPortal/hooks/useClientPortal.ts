@@ -99,6 +99,74 @@ export function useSendClientMessage() {
   });
 }
 
+/** خيوط محادثات العميل (فريق + دعم فني + مخصّصة) — بند 8. */
+export function useChatThreads() {
+  return useQuery({ queryKey: ['client-chat-threads'], queryFn: () => clientPortalApi.chatThreads(), refetchInterval: 20000 });
+}
+
+/** رسائل خيط محدّد (تحديث دوري لالتقاط ردود الطاقم). */
+export function useThreadMessages(threadId: number | null) {
+  return useQuery({
+    queryKey: ['client-chat-thread', threadId],
+    queryFn: () => clientPortalApi.threadMessages(threadId as number),
+    enabled: threadId !== null,
+    refetchInterval: 15000,
+  });
+}
+
+/** إرسال رسالة في خيط. */
+export function useSendThreadMessage(threadId: number) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: string) => clientPortalApi.sendThreadMessage(threadId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client-chat-thread', threadId] });
+      qc.invalidateQueries({ queryKey: ['client-chat-threads'] });
+    },
+  });
+}
+
+/** إنشاء محادثة جديدة. */
+export function useCreateChatThread() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (title: string) => clientPortalApi.createChatThread(title),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-chat-threads'] }),
+  });
+}
+
+/** إعادة تسمية محادثة (زر ✏️). */
+export function useRenameChatThread() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, title }: { id: number; title: string }) => clientPortalApi.renameChatThread(id, title),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-chat-threads'] }),
+  });
+}
+
+/** إضافة مشارك للمحادثة. */
+export function useAddThreadParticipant() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, name, role }: { id: number; name: string; role: string }) => clientPortalApi.addThreadParticipant(id, name, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-chat-threads'] }),
+  });
+}
+
+/** إزالة مشارك من المحادثة. */
+export function useRemoveThreadParticipant() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, participantId }: { id: number; participantId: number }) => clientPortalApi.removeThreadParticipant(id, participantId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-chat-threads'] }),
+  });
+}
+
 /** المنتدى — مواضيع العميل وردود الطاقم. */
 export function useForumThreads() {
   return useQuery({ queryKey: ['client-forum'], queryFn: () => clientPortalApi.forum() });

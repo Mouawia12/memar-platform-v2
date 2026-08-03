@@ -12,6 +12,8 @@ use App\Http\Resources\InvoiceResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectStageResource;
 use App\Models\Appointment;
+use App\Models\ChatThread;
+use App\Models\ChatThreadParticipant;
 use App\Models\ClientMessage;
 use App\Models\Contact;
 use App\Models\Contract;
@@ -677,6 +679,158 @@ class ClientPortalController extends ApiController
             'body' => $message->body,
             'at' => $message->created_at?->toIso8601String(),
         ], 'تم الإرسال');
+    }
+
+    // ═══ محادثات متعددة الخيوط (اجتماع 2026-08-03، بند 8) ═══
+
+    /** يضمن وجود محادثتَي الفريق والدعم الفني، ويربط الرسائل القديمة بلا خيط بمحادثة الفريق. */
+    private function ensureDefaultThreads(Contact $contact): void
+    {
+        if (ChatThread::where('contact_id', $contact->id)->exists()) {
+            return;
+        }
+
+        $team = ChatThread::create(['contact_id' => $contact->id, 'title' => 'فريق معمار', 'kind' => 'team']);
+        ChatThread::create(['contact_id' => $contact->id, 'title' => 'الدعم الفني', 'kind' => 'support']);
+
+        // ربط أي رسائل سابقة (قبل الخيوط) بمحادثة الفريق حتى لا تضيع.
+        ClientMessage::where('contact_id', $contact->id)->whereNull('chat_thread_id')->update(['chat_thread_id' => $team->id]);
+    }
+
+    private function contactOrFail(Request $request): Contact
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        return $contact;
+    }
+
+    private function authorizeThread(Contact $contact, ChatThread $thread): void
+    {
+        abort_unless($thread->contact_id === $contact->id, 403, 'لا صلاحية لك على هذه المحادثة.');
+    }
+
+    /** قائمة خيوط محادثات العميل مع آخر رسالة وعدد غير المقروء والمشاركين. */
+    public function chatThreads(Request $request): JsonResponse
+    {
+        $contact = $this->contactOrFail($request);
+        $this->ensureDefaultThreads($contact);
+
+        $threads = ChatThread::where('contact_id', $contact->id)
+            ->with(['participants', 'messages' => fn ($q) => $q->latest()->limit(1)])
+            ->withCount(['messages as unread_count' => fn ($q) => $q->where('from_staff', true)->whereNull('read_at')])
+            ->orderByRaw("kind = 'team' desc") // الفريق أولًا
+            ->latest('updated_at')
+            ->get()
+            ->map(fn (ChatThread $t): array => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'kind' => $t->kind,
+                'can_rename' => $t->kind === 'custom',
+                'unread_count' => $t->unread_count,
+                'last_message' => $t->messages->first()?->body,
+                'last_at' => $t->messages->first()?->created_at?->toIso8601String(),
+                'participants' => $t->participants->map(fn (ChatThreadParticipant $p): array => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'role' => $p->role,
+                ])->all(),
+            ])->all();
+
+        return $this->ok($threads);
+    }
+
+    /** إنشاء محادثة جديدة (بند 8: بدء محادثة جديدة). */
+    public function createChatThread(Request $request): JsonResponse
+    {
+        $contact = $this->contactOrFail($request);
+        $data = $request->validate(['title' => ['required', 'string', 'max:120']]);
+
+        $thread = ChatThread::create(['contact_id' => $contact->id, 'title' => $data['title'], 'kind' => 'custom']);
+
+        return $this->created(['id' => $thread->id, 'title' => $thread->title, 'kind' => $thread->kind], 'تم إنشاء المحادثة');
+    }
+
+    /** إعادة تسمية محادثة (بند 8: زر ✏️) — للمحادثات المخصّصة فقط. */
+    public function renameChatThread(Request $request, ChatThread $chatThread): JsonResponse
+    {
+        $contact = $this->contactOrFail($request);
+        $this->authorizeThread($contact, $chatThread);
+        abort_if($chatThread->kind !== 'custom', 422, 'لا يمكن إعادة تسمية محادثة الفريق أو الدعم الفني.');
+
+        $data = $request->validate(['title' => ['required', 'string', 'max:120']]);
+        $chatThread->update(['title' => $data['title']]);
+
+        return $this->ok(['id' => $chatThread->id, 'title' => $chatThread->title], 'تم تغيير اسم المحادثة');
+    }
+
+    /** رسائل خيط محدّد (مع اعتبار رسائل الطاقم مقروءة). */
+    public function threadMessages(Request $request, ChatThread $chatThread): JsonResponse
+    {
+        $contact = $this->contactOrFail($request);
+        $this->authorizeThread($contact, $chatThread);
+
+        $chatThread->messages()->where('from_staff', true)->whereNull('read_at')->update(['read_at' => now()]);
+
+        $messages = $chatThread->messages()->orderBy('created_at')->limit(200)->get()
+            ->map(fn (ClientMessage $m): array => [
+                'id' => $m->id,
+                'from_staff' => $m->from_staff,
+                'body' => $m->body,
+                'at' => $m->created_at?->toIso8601String(),
+            ])->all();
+
+        return $this->ok($messages);
+    }
+
+    /** إرسال رسالة داخل خيط محدّد. */
+    public function sendThreadMessage(Request $request, ChatThread $chatThread): JsonResponse
+    {
+        $contact = $this->contactOrFail($request);
+        $this->authorizeThread($contact, $chatThread);
+        $data = $request->validate(['body' => ['required', 'string', 'max:2000']]);
+
+        $message = $chatThread->messages()->create([
+            'contact_id' => $contact->id,
+            'from_staff' => false,
+            'body' => $data['body'],
+            'sender_user_id' => $request->user()->id,
+        ]);
+        $chatThread->touch(); // لترتيب المحادثات بالأحدث
+
+        return $this->created([
+            'id' => $message->id,
+            'from_staff' => false,
+            'body' => $message->body,
+            'at' => $message->created_at?->toIso8601String(),
+        ], 'تم الإرسال');
+    }
+
+    /** إضافة مشارك (موظف/عضو) للمحادثة (بند 8: إضافة أعضاء). */
+    public function addThreadParticipant(Request $request, ChatThread $chatThread): JsonResponse
+    {
+        $contact = $this->contactOrFail($request);
+        $this->authorizeThread($contact, $chatThread);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'role' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        $participant = $chatThread->participants()->create(['name' => $data['name'], 'role' => $data['role'] ?? null]);
+
+        return $this->created(['id' => $participant->id, 'name' => $participant->name, 'role' => $participant->role], 'تمت إضافة العضو للمحادثة');
+    }
+
+    /** إزالة مشارك من المحادثة. */
+    public function removeThreadParticipant(Request $request, ChatThread $chatThread, ChatThreadParticipant $participant): JsonResponse
+    {
+        $contact = $this->contactOrFail($request);
+        $this->authorizeThread($contact, $chatThread);
+        abort_unless($participant->chat_thread_id === $chatThread->id, 404, 'المشارك غير موجود في هذه المحادثة.');
+
+        $participant->delete();
+
+        return $this->ok(null, 'تمت إزالة العضو');
     }
 
     /** المنتدى — أسئلة العميل (مواضيعه) وردود طاقم معمار عليها. */

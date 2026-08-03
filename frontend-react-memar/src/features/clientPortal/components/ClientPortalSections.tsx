@@ -664,7 +664,8 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
       <div className="company-info-grid">
         <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-user-tie" /></div><div className="company-info-detail"><span className="company-info-label">المالك</span><strong>{client.name}</strong></div></div>
         {client.phone && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-phone" /></div><div className="company-info-detail"><span className="company-info-label">التواصل</span><strong>{client.phone}</strong></div></div>}
-        <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-hashtag" /></div><div className="company-info-detail"><span className="company-info-label">كود العضوية</span><strong>{clientAccountCode(client)}</strong></div></div>
+        {/* المقر الرئيسي — مطابق لتصميم Atoms؛ يظهر إن كان مُسجَّلاً للشركة */}
+        {client.head_office && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-map-marker-alt" /></div><div className="company-info-detail"><span className="company-info-label">المقر الرئيسي</span><strong>{client.head_office}</strong></div></div>}
         {client.since && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-calendar" /></div><div className="company-info-detail"><span className="company-info-label">عميل منذ</span><strong>{client.since}</strong></div></div>}
       </div>
 
@@ -729,7 +730,8 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
         <div className="company-projects-grid">
           {shown.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا مشاريع في هذا التصنيف.</p>}
           {shown.map((p) => {
-            const prog = progressOf(p.status);
+            // نسبة التقدّم المعروضة: القيمة المخزّنة إن وُجدت (لعرض دقيق يطابق التصميم)، وإلا تُشتق من الحالة.
+            const prog = p.progress ?? progressOf(p.status);
 
             return (
               <div key={p.id} className="company-project-card clickable" onClick={() => onProject(p.id)} title="انقر لدخول المشروع">

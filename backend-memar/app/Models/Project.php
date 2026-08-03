@@ -26,7 +26,7 @@ class Project extends Model
     public ?string $statusChangeReason = null;
 
     protected $fillable = [
-        'code', 'name', 'client_id', 'manager_id', 'status',
+        'code', 'name', 'client_id', 'manager_id', 'status', 'progress',
         'budget_kwd', 'start_date', 'end_date', 'description',
         'rating_profitability', 'rating_ease', 'rating_revisions',
         'client_rating_commitment', 'client_rating_cooperation',

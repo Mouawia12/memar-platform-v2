@@ -23,7 +23,7 @@ class Contact extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'full_name', 'kunya', 'email', 'phone', 'company', 'position',
+        'full_name', 'kunya', 'email', 'phone', 'company', 'head_office', 'position',
         'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
         'referral_code', 'referral_shares', 'account_number', 'avatar_file_id',

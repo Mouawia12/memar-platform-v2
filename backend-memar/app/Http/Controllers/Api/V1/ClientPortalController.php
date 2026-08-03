@@ -102,6 +102,8 @@ class ClientPortalController extends ApiController
                 // المسمّى الوظيفي للشخص (مالك الشركة/مدير تنفيذي/مهندس…) — يُعرض بدل «عميل مميز» في البطاقة (طلب أيمن، اجتماع 4)
                 'position' => $contact?->position,
                 'company' => $contact?->company,
+                // المقر الرئيسي للشركة (يظهر في بطاقات صفحة الشركة — مطابقة Atoms)
+                'head_office' => $contact?->head_office,
                 'phone' => $contact?->phone,
                 'since' => $contact?->created_at?->format('Y'),
                 // رقم الحساب الشخصي الثابت MEE-YYYY-NNN (اجتماع 2026-08-03)
@@ -139,7 +141,8 @@ class ClientPortalController extends ApiController
         // المراحل بلا محادثة (لا نُحمّل comments) — العميل يرى التقدّم فقط.
         $stages = $project->stages()->get();
         $doneStages = $stages->where('status', 'done')->count();
-        $stageProgress = $stages->count() > 0 ? (int) round($doneStages / $stages->count() * 100) : 0;
+        // النسبة المعروضة: القيمة المخزّنة إن وُجدت (عرض دقيق)، وإلا تُحسب من المراحل.
+        $stageProgress = $project->progress ?? ($stages->count() > 0 ? (int) round($doneStages / $stages->count() * 100) : 0);
 
         $invoices = Invoice::where('project_id', $project->id)->with('project:id,name')->latest()->get();
         $invoiced = round((float) $invoices->sum('total_kwd'), 3);

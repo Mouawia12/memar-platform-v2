@@ -18,6 +18,8 @@ export interface Project {
   code: string | null;
   name: string;
   status: ProjectStatus;
+  /** نسبة تقدّم معروضة اختيارية (0-100)؛ إن غابت تُشتق من الحالة. */
+  progress?: number | null;
   budget_kwd: string | null;
   start_date: string | null;
   end_date: string | null;

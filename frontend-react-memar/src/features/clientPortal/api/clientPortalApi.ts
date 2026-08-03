@@ -27,6 +27,8 @@ export interface ClientInfo {
   name: string | null;
   kunya: string | null;
   company: string | null;
+  /** المقر الرئيسي للشركة (يظهر في بطاقات صفحة الشركة). */
+  head_office?: string | null;
   phone: string | null;
   /** المنصب/الصفة داخل الشركة (مثل: مالك الشركة، مدير تنفيذي، مهندس). */
   position?: string | null;

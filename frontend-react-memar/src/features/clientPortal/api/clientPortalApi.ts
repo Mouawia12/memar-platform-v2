@@ -76,6 +76,7 @@ export interface ClientProjectDetail {
     id: number;
     code: string | null;
     name: string;
+    description: string | null;
     status: ProjectStatus;
     start_date: string | null;
     end_date: string | null;

@@ -630,12 +630,17 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
     if (s === 'draft' || s === 'on_hold') return { label: 'قيد الدراسة', badge: 'badge-orange', fill: 'orange' };
     return { label: 'نشط', badge: 'badge-blue', fill: '' };
   };
-  // الأحرف الأولى الثنائية (اسم العائلة أولاً) مطل تصميم Atoms: «أحمد المنصور» → «أ.م».
+  // الأحرف الأولى الثنائية (اسم العائلة أولاً) مثل تصميم Atoms: «محمد العمري» → «م.ع».
+  // نُجرّد أداة التعريف «ال» من الحرف الأوّل لتطابق أحرف Atoms (العمري → ع، الحربي → ح).
+  const firstLetter = (word: string): string => {
+    const stripped = word.replace(/^ال/, '');
+    return (stripped || word).charAt(0);
+  };
   const initials2 = (name: string): string => {
     const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return 'ع';
     if (parts.length === 1) return parts[0].charAt(0);
-    return `${parts[0].charAt(0)}.${parts[parts.length - 1].charAt(0)}`;
+    return `${firstLetter(parts[0])}.${firstLetter(parts[parts.length - 1])}`;
   };
   // الأحدث أولاً (مطابق لترتيب Atoms)
   const sorted = [...projects].sort((a, b) => new Date(b.start_date ?? 0).getTime() - new Date(a.start_date ?? 0).getTime());

@@ -1,195 +1,311 @@
 import { type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import '../clientPortalV2.css';
 import { STATUS_COLORS as INVOICE_COLORS, STATUS_LABELS as INVOICE_STATUS } from '../../invoices/types';
-import { PROJECT_STATUS_LABELS, STAGE_STATUS_COLORS, STAGE_STATUS_LABELS } from '../../projects/types';
+import { PROJECT_STATUS_LABELS, type StageStatus } from '../../projects/types';
 import { useClientProject } from '../hooks/useClientPortal';
 
 const money = (v: string | number) => `${Number(v).toLocaleString('ar', { maximumFractionDigits: 3 })} د.ك`;
-const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—');
+const fmtDate = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
 
-/** صفحة مشروع العميل (CLIENT-4) — عرض للقراءة فقط: مراحل + تقدّم + دفعات، بلا أي بيانات داخلية. */
+/** محيط دائرة نصف قطرها 54 (طبق الأصل من Atoms) — 2·π·54. */
+const CIRC = 339.292;
+
+/** حالة المرحلة → صنف Atoms (completed/active/upcoming) + أيقونة العلامة. */
+const STAGE_UI: Record<StageStatus, { cls: string; icon: string }> = {
+  done: { cls: 'completed', icon: 'fa-check' },
+  active: { cls: 'active', icon: 'fa-pencil-ruler' },
+  pending: { cls: 'upcoming', icon: 'fa-hourglass-half' },
+};
+
+/** أوّل حرف مُجرَّد من أداة التعريف «ال» (العمري → ع) — لمطابقة أحرف Atoms (م.ع، ف.ح). */
+const firstLetter = (word: string): string => {
+  const stripped = word.replace(/^ال/, '');
+  return (stripped || word).charAt(0);
+};
+/** أوّل حرف من الاسم الأوّل + الأخير (م.ع) — نفس نمط أفاتار صفحة الشركة. */
+const initials2 = (name: string): string => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '؟';
+  if (parts.length === 1) return parts[0].slice(0, 2);
+  return `${firstLetter(parts[0])}.${firstLetter(parts[parts.length - 1])}`;
+};
+
+/**
+ * صفحة مشروع العميل (CLIENT-4) — طبق الأصل من تصميم Atoms (project-hub):
+ * هيرو بحلقة تقدّم دائرية + مسار المراحل + المشاركون + سجل التعديلات + المدفوعات.
+ * عرض للقراءة فقط بلا أي بيانات داخلية. تُحفَظ استثناءات أيمن المقصودة:
+ * زر عودة بارز، طايمر العمل (بند 11)، عملة الدينار الكويتي، بيانات backend الحقيقية.
+ */
 export function ClientProjectDetailPage() {
   const { id } = useParams();
   const projectId = Number(id);
   const { data, isLoading, isError } = useClientProject(projectId);
 
-  if (isLoading) return <p>جارٍ التحميل…</p>;
-  if (isError || !data) return <p style={{ color: '#ef4444' }}>تعذّر تحميل المشروع أو لا صلاحية لك عليه.</p>;
+  if (isLoading) return <div className="mcp-root" style={{ padding: 40 }}>جارٍ التحميل…</div>;
+  if (isError || !data)
+    return (
+      <div className="mcp-root" style={{ padding: 40, color: '#ef4444' }}>
+        تعذّر تحميل المشروع أو لا صلاحية لك عليه.
+      </div>
+    );
 
   const { project, stages, payments, team, change_log: changeLog } = data;
-  const collected = payments.invoiced_kwd > 0 ? Math.round((payments.paid_kwd / payments.invoiced_kwd) * 100) : 0;
+  const pct = Math.max(0, Math.min(100, project.stage_progress));
+  const offset = CIRC - (CIRC * pct) / 100;
 
-  // طايمر العمل الجاري: عدد الأيام منذ البداية والمتبقّي للتسليم المتوقّع (بند 11)
-  const daysSince = (iso: string | null) => (iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : null);
-  const daysUntil = (iso: string | null) => (iso ? Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000) : null);
+  // طايمر العمل الجاري: أيام منذ البداية والمتبقّي للتسليم المتوقّع (بند 11 — استثناء مقصود)
+  const daysSince = (iso: string | null) =>
+    iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : null;
+  const daysUntil = (iso: string | null) =>
+    iso ? Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000) : null;
   const elapsed = daysSince(project.start_date);
   const remaining = daysUntil(project.end_date);
 
   return (
-    <div>
-      {/* زر عودة بارز وثابت أعلى الصفحة — يمنع «حبس» العميل داخل صفحة المشروع (طلب أيمن، اجتماع 4) */}
-      <div style={backBar}>
-        <Link to="/client-portal" style={backBtn}><i className="fas fa-arrow-right" /> الرجوع إلى بوابة العميل</Link>
+    <div className="mcp-root" style={page}>
+      {/* زر عودة بارز وثابت — يمنع «حبس» العميل داخل صفحة المشروع (طلب أيمن، اجتماع 4) */}
+      <div style={{ marginBottom: 16 }}>
+        <Link to="/client-portal" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+          <i className="fas fa-arrow-right" /> الرجوع إلى بوابة العميل
+        </Link>
       </div>
 
-      {/* الترويسة */}
-      <div style={banner}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '22px', color: '#fff' }}>{project.name}</h1>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)', marginTop: '4px' }}>
-              {project.code} · مدير المشروع: {project.manager ?? '—'}
+      {/* ═══ الهيرو — طبق الأصل: وسم الحالة + الاسم + الوصف + الميتا + حلقة التقدّم ═══ */}
+      <div className="project-hero">
+        <div className="project-hero-content">
+          <span className="project-hero-tag">{PROJECT_STATUS_LABELS[project.status]}</span>
+          <h2>{project.name}</h2>
+          {project.description && <p>{project.description}</p>}
+          <div className="project-hero-meta">
+            <div className="meta-item">
+              <i className="fas fa-calendar-alt" />
+              <span>بداية: {fmtDate(project.start_date)}</span>
             </div>
-          </div>
-          <span style={{ ...chip, background: 'rgba(255,255,255,.16)', color: '#fff', border: '1px solid rgba(255,255,255,.25)' }}>
-            {PROJECT_STATUS_LABELS[project.status]}
-          </span>
-        </div>
-        {/* تواريخ المشروع — كما في تصميم صفحة العميل المرجعي */}
-        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '12px', fontSize: '12.5px', color: 'rgba(255,255,255,.85)' }}>
-          <span>🚩 البداية: {fmtDate(project.start_date)}</span>
-          <span>🏁 التسليم المتوقع: {fmtDate(project.end_date)}</span>
-          <span>👷 المهندس المسؤول: {project.manager ?? '—'}</span>
-        </div>
-        {/* طايمر العمل الجاري: أيام العمل والمتبقّي للتسليم (بند 11) */}
-        {project.status === 'active' && (elapsed !== null || remaining !== null) && (
-          <div style={timerRow}>
-            {elapsed !== null && <span style={timerPill}><i className="fas fa-stopwatch" /> يوم العمل {elapsed}</span>}
-            {remaining !== null && (
-              <span style={{ ...timerPill, background: remaining < 0 ? 'rgba(220,74,61,.28)' : 'rgba(110,231,183,.22)' }}>
-                <i className="fas fa-hourglass-half" /> {remaining < 0 ? `تأخّر ${Math.abs(remaining)} يوم` : `${remaining} يوم للتسليم`}
-              </span>
+            <div className="meta-item">
+              <i className="fas fa-flag-checkered" />
+              <span>التسليم المتوقع: {fmtDate(project.end_date)}</span>
+            </div>
+            {project.manager && (
+              <div className="meta-item">
+                <i className="fas fa-user-tie" />
+                <span>{project.manager}</span>
+              </div>
+            )}
+            {project.code && (
+              <div className="meta-item">
+                <i className="fas fa-hashtag" />
+                <span>{project.code}</span>
+              </div>
             )}
           </div>
-        )}
-        <div style={{ marginTop: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#fff', marginBottom: '6px' }}>
-            <span>تقدّم المراحل</span><b>{project.stage_progress}%</b>
-          </div>
-          <div style={{ height: '10px', background: 'rgba(255,255,255,.2)', borderRadius: '6px', overflow: 'hidden' }}>
-            <div style={{ width: `${project.stage_progress}%`, height: '100%', background: '#6EE7B7', borderRadius: '6px', transition: 'width .3s' }} />
+          {/* طايمر العمل: يوم العمل + المتبقّي للتسليم (بند 11 — استثناء مقصود) */}
+          {project.status === 'active' && (elapsed !== null || remaining !== null) && (
+            <div style={timerRow}>
+              {elapsed !== null && (
+                <span style={timerPill}>
+                  <i className="fas fa-stopwatch" /> يوم العمل {elapsed}
+                </span>
+              )}
+              {remaining !== null && (
+                <span style={{ ...timerPill, background: remaining < 0 ? 'rgba(220,74,61,.28)' : 'rgba(110,231,183,.22)' }}>
+                  <i className="fas fa-hourglass-half" />{' '}
+                  {remaining < 0 ? `تأخّر ${Math.abs(remaining)} يوم` : `${remaining} يوم للتسليم`}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="project-hero-progress">
+          <div className="hero-progress-circle">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" className="progress-bg" />
+              <circle cx="60" cy="60" r="54" className="progress-fg" strokeDasharray={CIRC} strokeDashoffset={offset} />
+            </svg>
+            <div className="hero-progress-text">
+              <span className="hero-progress-value">{pct}%</span>
+              <span className="hero-progress-label">مكتمل</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* المراحل */}
-      <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
-        <h3 style={{ marginTop: 0, fontSize: '16px' }}>🧭 مراحل المشروع</h3>
-        {stages.length === 0 ? <Empty text="لم تُحدَّد مراحل هذا المشروع بعد." /> : (
-          <div style={{ position: 'relative', paddingInlineStart: '20px', marginTop: '10px' }}>
-            <span style={line} />
-            {stages.map((s) => (
-              <div key={s.id} style={stageItem}>
-                <span style={{ ...stageDot, background: STAGE_STATUS_COLORS[s.status], boxShadow: s.status === 'active' ? `0 0 0 4px ${STAGE_STATUS_COLORS.active}33` : '0 0 0 2px #E4E8EF' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13.5px', fontWeight: 700 }}>{s.name}</div>
-                  <div style={{ fontSize: '11.5px', color: '#8A93A3', marginTop: '2px' }}>
-                    <span style={{ color: STAGE_STATUS_COLORS[s.status], fontWeight: 700 }}>{STAGE_STATUS_LABELS[s.status]}</span>
-                    {s.status === 'done' && s.completed_at && ` · اكتملت ${fmtDate(s.completed_at)}`}
-                    {s.status === 'active' && s.started_at && ` · بدأت ${fmtDate(s.started_at)}`}
+      {/* ═══ مراحل المشروع — مسار زمني طبق الأصل ═══ */}
+      <div className="stages-section">
+        <h3 className="section-title">مراحل المشروع</h3>
+        {stages.length === 0 ? (
+          <p style={{ color: 'var(--text-4)', fontSize: 13 }}>لم تُحدَّد مراحل هذا المشروع بعد.</p>
+        ) : (
+          <div className="stages-timeline">
+            <div className="stage-connector" />
+            {stages.map((s) => {
+              const ui = STAGE_UI[s.status];
+              const stageDate =
+                s.status === 'done'
+                  ? s.completed_at
+                    ? `اكتملت ${fmtDate(s.completed_at)}`
+                    : ''
+                  : s.status === 'active'
+                    ? s.started_at
+                      ? `بدأت ${fmtDate(s.started_at)}`
+                      : ''
+                    : s.expected_days != null
+                      ? `${s.expected_days} يوم متوقّع`
+                      : '';
+              return (
+                <div key={s.id} className={`stage-item ${ui.cls}`}>
+                  <div className="stage-marker">
+                    <i className={`fas ${ui.icon}`} />
+                  </div>
+                  <div className="stage-content">
+                    <h4>{s.name}</h4>
+                    {stageDate && <span className="stage-date">{stageDate}</span>}
+                    {s.status === 'active' && <span className="badge badge-blue">جارية</span>}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* التيم الماسك للمشروع (بند 11) */}
-      {team.length > 0 && (
-        <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
-          <h3 style={{ marginTop: 0, fontSize: '16px' }}>👥 الفريق المسؤول عن المشروع</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
-            {team.map((m, i) => (
-              <div key={i} style={teamRow}>
-                <span style={{ ...teamAvatar, background: m.is_lead ? 'linear-gradient(135deg,#274A78,#1B6CA8)' : '#E4E8EF', color: m.is_lead ? '#fff' : '#5A6478' }}>{m.name.trim().charAt(0)}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13.5px', fontWeight: 700 }}>{m.name}</div>
-                  <div style={{ fontSize: '11.5px', color: '#8A93A3' }}>{m.role}</div>
+      {/* ═══ المشاركون في المشروع — للقراءة فقط (بلا إضافة/إزالة) ═══ */}
+      {(team.length > 0 || changeLog.length > 0) && (
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header">
+            <h3 className="card-title">
+              <i className="fas fa-users-gear" /> المشاركون في المشروع
+            </h3>
+          </div>
+          <div className="card-body">
+            {team.length > 0 && (
+            <div className="team-mgmt-list">
+              {team.map((m, i) => (
+                <div key={i} className="team-mgmt-item">
+                  <div className="team-mgmt-avatar">
+                    <div className="team-mgmt-placeholder">{initials2(m.name)}</div>
+                  </div>
+                  <div className="team-mgmt-info">
+                    <strong>{m.name}</strong>
+                    <span>{m.role}</span>
+                  </div>
+                  {m.is_lead ? (
+                    <span className="team-mgmt-role owner-badge">
+                      <i className="fas fa-crown" /> القائد
+                    </span>
+                  ) : (
+                    <span className="team-mgmt-role">مشارك</span>
+                  )}
                 </div>
-                {m.is_lead && <span style={{ ...chip, background: '#1B6CA81a', color: '#1B6CA8' }}><i className="fas fa-crown" /> القائد</span>}
+              ))}
+            </div>
+            )}
+
+            {/* سجل التعديلات — من سِجِل نشاط المشروع الحقيقي (بند 11) */}
+            {changeLog.length > 0 && (
+              <div className="team-changes-log">
+                <h4>
+                  <i className="fas fa-clock-rotate-left" /> سجل التعديلات
+                </h4>
+                <div className="changes-log-list">
+                  {changeLog.map((c, i) => (
+                    <div key={i} className="change-log-item">
+                      <span className="change-log-dot blue" />
+                      <div className="change-log-content">
+                        <p>{c.text}</p>
+                        <span>{fmtDate(c.at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
 
-      {/* سجل التعديلات (بند 11) */}
-      {changeLog.length > 0 && (
-        <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
-          <h3 style={{ marginTop: 0, fontSize: '16px' }}>🕘 سجل التعديلات</h3>
-          <div style={{ position: 'relative', paddingInlineStart: '20px', marginTop: '10px' }}>
-            <span style={line} />
-            {changeLog.map((c, i) => (
-              <div key={i} style={stageItem}>
-                <span style={{ ...stageDot, background: '#1B6CA8', boxShadow: '0 0 0 2px #E4E8EF' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.text}</div>
-                  <div style={{ fontSize: '11px', color: '#8A93A3', marginTop: '2px' }}>{fmtDate(c.at)}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* ═══ مدفوعات المشروع — بطاقات ملخّص + الفواتير (بالدينار الكويتي) ═══ */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div className="card-header">
+          <h3 className="card-title">
+            <i className="fas fa-money-bill-wave" /> مدفوعات المشروع
+          </h3>
         </div>
-      )}
-
-      {/* الدفعات */}
-      <div className="card" style={{ padding: '20px' }}>
-        <h3 style={{ marginTop: 0, fontSize: '16px' }}>💰 دفعاتي</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginTop: '6px' }}>
-          <Tile label="إجمالي الفواتير" value={money(payments.invoiced_kwd)} color="#274A78" />
-          <Tile label="المدفوع" value={money(payments.paid_kwd)} color="#059669" />
-          <Tile label="المتبقّي عليّ" value={money(payments.remaining_kwd)} color={payments.remaining_kwd > 0 ? '#DC4A3D' : '#059669'} />
-          <Tile label="نسبة السداد" value={`${collected}%`} color="#1B6CA8" />
-        </div>
-
-        <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {payments.invoices.length === 0 && <Empty text="لا توجد فواتير بعد." />}
-          {payments.invoices.map((i) => (
-            <div key={i.id} style={invRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '13.5px', fontWeight: 700 }}>{i.number ?? `فاتورة #${i.id}`}
-                  <span style={{ ...chip, background: `${INVOICE_COLORS[i.status]}1a`, color: INVOICE_COLORS[i.status], marginInlineStart: '8px' }}>{INVOICE_STATUS[i.status]}</span>
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#8A93A3', marginTop: '3px' }}>
-                  {money(i.paid_kwd)} من {money(i.total_kwd)}{i.due_date && ` · استحقاق ${fmtDate(i.due_date)}`}
-                </div>
+        <div className="card-body">
+          <div className="payment-summary-grid" style={{ marginBottom: 16 }}>
+            <div className="payment-summary-card">
+              <div className="payment-summary-icon blue">
+                <i className="fas fa-wallet" />
               </div>
-              <div style={{ textAlign: 'left', minWidth: '104px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 800, color: Number(i.balance_kwd) > 0 ? '#DC4A3D' : '#059669' }}>{money(i.balance_kwd)}</div>
-                <div style={{ fontSize: '10.5px', color: '#8A93A3' }}>المتبقّي</div>
+              <div className="payment-summary-info">
+                <span className="payment-summary-value">{money(payments.invoiced_kwd)}</span>
+                <span className="payment-summary-label">إجمالي الفواتير</span>
               </div>
             </div>
-          ))}
+            <div className="payment-summary-card">
+              <div className="payment-summary-icon green">
+                <i className="fas fa-check-double" />
+              </div>
+              <div className="payment-summary-info">
+                <span className="payment-summary-value">{money(payments.paid_kwd)}</span>
+                <span className="payment-summary-label">المدفوع</span>
+              </div>
+            </div>
+            <div className="payment-summary-card">
+              <div className="payment-summary-icon orange">
+                <i className="fas fa-hourglass-half" />
+              </div>
+              <div className="payment-summary-info">
+                <span className="payment-summary-value">{money(payments.remaining_kwd)}</span>
+                <span className="payment-summary-label">المتبقّي</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="invoices-list">
+            {payments.invoices.length === 0 && (
+              <p style={{ color: 'var(--text-4)', fontSize: 13, padding: '8px 0' }}>لا توجد فواتير بعد.</p>
+            )}
+            {payments.invoices.map((inv) => (
+              <div key={inv.id} className="invoice-item">
+                <div className="invoice-info">
+                  <div className="invoice-number">#{inv.number ?? inv.id}</div>
+                  <h4>
+                    مدفوع {money(inv.paid_kwd)} من {money(inv.total_kwd)}
+                  </h4>
+                  {inv.due_date && <span className="invoice-date">تاريخ الاستحقاق: {fmtDate(inv.due_date)}</span>}
+                </div>
+                <div className="invoice-amount">
+                  <span className="amount">{money(inv.balance_kwd)}</span>
+                  <span
+                    className="badge"
+                    style={{ background: `${INVOICE_COLORS[inv.status]}1a`, color: INVOICE_COLORS[inv.status] }}
+                  >
+                    {INVOICE_STATUS[inv.status]}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Tile({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '12px 14px' }}>
-      <div style={{ fontSize: '16px', fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: '11.5px', color: '#8A93A3', marginTop: '3px' }}>{label}</div>
-    </div>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return <p style={{ opacity: 0.6, fontSize: '13px', padding: '8px 0' }}>{text}</p>;
-}
-
-const backBar: CSSProperties = { position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(#F5F7FB 70%, rgba(245,247,251,0))', padding: '8px 0 12px', marginBottom: '4px' };
-const backBtn: CSSProperties = { fontSize: '14px', fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg,#274A78,#1B6CA8)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 20px', borderRadius: '10px', boxShadow: '0 4px 14px rgba(39,74,120,.28)' };
-const banner: CSSProperties = { background: 'linear-gradient(135deg,#274A78,#1B6CA8)', borderRadius: '14px', padding: '22px', marginBottom: '16px', boxShadow: '0 4px 16px rgba(39,74,120,.25)' };
-const chip: CSSProperties = { padding: '3px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' };
-const line: CSSProperties = { position: 'absolute', insetInlineStart: '5px', top: '8px', bottom: '8px', width: '2px', background: '#E4E8EF' };
-const stageItem: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '9px 0', position: 'relative' };
-const stageDot: CSSProperties = { width: '12px', height: '12px', borderRadius: '50%', marginTop: '4px', flexShrink: 0, marginInlineStart: '-20px', border: '2px solid #fff' };
-const invRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px', border: '1px solid #EEF2F7', borderRadius: '10px' };
-const timerRow: CSSProperties = { display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '14px' };
-const timerPill: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)', borderRadius: '999px', padding: '5px 14px' };
-const teamRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '11px', padding: '9px 12px', border: '1px solid #EEF2F7', borderRadius: '10px' };
-const teamAvatar: CSSProperties = { width: '34px', height: '34px', borderRadius: '50%', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '14px', flexShrink: 0 };
+const page: CSSProperties = { padding: 24, maxWidth: 1120, margin: '0 auto' };
+const timerRow: CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 };
+const timerPill: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 7,
+  fontSize: 12.5,
+  fontWeight: 700,
+  color: '#fff',
+  background: 'rgba(255,255,255,.16)',
+  border: '1px solid rgba(255,255,255,.22)',
+  borderRadius: 999,
+  padding: '5px 14px',
+};

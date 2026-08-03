@@ -157,6 +157,7 @@ class ClientPortalController extends ApiController
                 'id' => $project->id,
                 'code' => $project->code,
                 'name' => $project->name,
+                'description' => $project->description,
                 'status' => $project->status,
                 'start_date' => $project->start_date?->toDateString(),
                 'end_date' => $project->end_date?->toDateString(),

@@ -2381,7 +2381,7 @@
   padding-right: 32px;
   padding-left: 32px;
   background: linear-gradient(135deg, #D8335D 0%, #A82D6E 40%, #6B348C 100%);
-  min-height: 380px;
+  /* لا نفرض ارتفاعاً ثابتاً — البنر يملأ محتواه بلا فراغ سفلي (طلب أيمن). */
 }
 .mcp-root .company-hero.hero-type-individual {
   background: linear-gradient(135deg, #0D4A7A 0%, #1B6CA8 40%, #164e7e 100%);

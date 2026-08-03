@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectStage;
+use App\Models\TeamMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -43,6 +44,42 @@ class ClientPortalProjectTest extends TestCase
             ->assertJsonPath('data.payments.invoiced_kwd', 1000)
             ->assertJsonPath('data.payments.paid_kwd', 400)
             ->assertJsonPath('data.payments.remaining_kwd', 600);
+    }
+
+    public function test_project_response_includes_team_lead_and_company_participants(): void
+    {
+        $manager = User::factory()->create(['name' => 'م. خالد العتيبي']);
+        $contact = Contact::factory()->create();
+        $this->actingAsClient($contact);
+        $project = Project::factory()->create(['client_id' => $contact->id, 'manager_id' => $manager->id]);
+        TeamMember::create(['contact_id' => $contact->id, 'name' => 'محمد العمري', 'role' => 'مدير المشاريع']);
+
+        $res = $this->getJson("/api/v1/client-portal/projects/{$project->id}");
+
+        $res->assertOk()
+            ->assertJsonPath('data.team.0.name', 'م. خالد العتيبي')
+            ->assertJsonPath('data.team.0.is_lead', true)
+            ->assertJsonPath('data.team.0.role', 'المهندس المسؤول')
+            ->assertJsonPath('data.team.1.name', 'محمد العمري')
+            ->assertJsonPath('data.team.1.is_lead', false);
+    }
+
+    public function test_project_response_includes_a_change_log_from_activity(): void
+    {
+        $contact = Contact::factory()->create();
+        $this->actingAsClient($contact);
+        $project = Project::factory()->create(['client_id' => $contact->id, 'status' => 'active']);
+        $project->update(['status' => 'done']); // يولّد حدث نشاط (تغيير الحالة)
+
+        $res = $this->getJson("/api/v1/client-portal/projects/{$project->id}");
+
+        $res->assertOk();
+        $log = $res->json('data.change_log');
+        $this->assertNotEmpty($log);
+        // السجل يتضمّن حدث تغيير حالة المشروع، والأحدث أولًا
+        $this->assertStringContainsString('حالة المشروع', $log[0]['text']);
+        $texts = array_column($log, 'text');
+        $this->assertContains('تم إنشاء المشروع', $texts);
     }
 
     public function test_client_cannot_see_another_clients_project(): void

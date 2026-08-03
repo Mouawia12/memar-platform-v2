@@ -156,6 +156,10 @@ class ClientPortalController extends ApiController
                 'manager' => $project->manager?->name,
                 'stage_progress' => $stageProgress,
             ],
+            // التيم الماسك للمشروع: المهندس المسؤول (طاقم معمار) + مشاركو شركة العميل (بند 11)
+            'team' => $this->projectTeam($project, $contactId),
+            // سجل التعديلات — من سِجِل نشاط المشروع الحقيقي (بند 11)
+            'change_log' => $this->projectChangeLog($project),
             'stages' => ProjectStageResource::collection($stages),
             'payments' => [
                 'invoiced_kwd' => $invoiced,
@@ -164,6 +168,59 @@ class ClientPortalController extends ApiController
                 'invoices' => InvoiceResource::collection($invoices),
             ],
         ]);
+    }
+
+    /**
+     * التيم الظاهر للعميل على صفحة مشروعه: المهندس المسؤول من معمار (قائد) + مشاركو شركة العميل.
+     *
+     * @return list<array{name: string, role: string, is_lead: bool}>
+     */
+    private function projectTeam(Project $project, int $contactId): array
+    {
+        $team = [];
+
+        if ($project->manager?->name) {
+            $team[] = ['name' => $project->manager->name, 'role' => 'المهندس المسؤول', 'is_lead' => true];
+        }
+
+        foreach (TeamMember::where('contact_id', $contactId)->latest()->get() as $m) {
+            $team[] = ['name' => $m->name, 'role' => $m->role, 'is_lead' => false];
+        }
+
+        return $team;
+    }
+
+    /**
+     * سجل تعديلات المشروع للعميل — يُترجم آخر أحداث سجل النشاط إلى أسطر عربية مقروءة.
+     *
+     * @return list<array{text: string, at: string|null}>
+     */
+    private function projectChangeLog(Project $project): array
+    {
+        $fieldLabels = [
+            'status' => 'حالة المشروع',
+            'name' => 'اسم المشروع',
+            'code' => 'رقم المشروع',
+            'manager_id' => 'المهندس المسؤول',
+            'budget_kwd' => 'الميزانية',
+            'is_vip' => 'تمييز المشروع',
+        ];
+
+        return $project->activities()->latest('id')->limit(12)->get()
+            ->map(function ($activity) use ($fieldLabels): array {
+                $text = match ($activity->description) {
+                    'created' => 'تم إنشاء المشروع',
+                    'deleted' => 'تم حذف المشروع',
+                    default => (function () use ($activity, $fieldLabels): string {
+                        $changed = array_keys((array) ($activity->properties['attributes'] ?? []));
+                        $labels = array_values(array_intersect_key($fieldLabels, array_flip($changed)));
+
+                        return $labels === [] ? 'تحديث بيانات المشروع' : 'تحديث: '.implode('، ', $labels);
+                    })(),
+                };
+
+                return ['text' => $text, 'at' => $activity->created_at?->toIso8601String()];
+            })->all();
     }
 
     /**

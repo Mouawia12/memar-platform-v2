@@ -17,8 +17,14 @@ export function ClientProjectDetailPage() {
   if (isLoading) return <p>جارٍ التحميل…</p>;
   if (isError || !data) return <p style={{ color: '#ef4444' }}>تعذّر تحميل المشروع أو لا صلاحية لك عليه.</p>;
 
-  const { project, stages, payments } = data;
+  const { project, stages, payments, team, change_log: changeLog } = data;
   const collected = payments.invoiced_kwd > 0 ? Math.round((payments.paid_kwd / payments.invoiced_kwd) * 100) : 0;
+
+  // طايمر العمل الجاري: عدد الأيام منذ البداية والمتبقّي للتسليم المتوقّع (بند 11)
+  const daysSince = (iso: string | null) => (iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : null);
+  const daysUntil = (iso: string | null) => (iso ? Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000) : null);
+  const elapsed = daysSince(project.start_date);
+  const remaining = daysUntil(project.end_date);
 
   return (
     <div>
@@ -44,7 +50,19 @@ export function ClientProjectDetailPage() {
         <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '12px', fontSize: '12.5px', color: 'rgba(255,255,255,.85)' }}>
           <span>🚩 البداية: {fmtDate(project.start_date)}</span>
           <span>🏁 التسليم المتوقع: {fmtDate(project.end_date)}</span>
+          <span>👷 المهندس المسؤول: {project.manager ?? '—'}</span>
         </div>
+        {/* طايمر العمل الجاري: أيام العمل والمتبقّي للتسليم (بند 11) */}
+        {project.status === 'active' && (elapsed !== null || remaining !== null) && (
+          <div style={timerRow}>
+            {elapsed !== null && <span style={timerPill}><i className="fas fa-stopwatch" /> يوم العمل {elapsed}</span>}
+            {remaining !== null && (
+              <span style={{ ...timerPill, background: remaining < 0 ? 'rgba(220,74,61,.28)' : 'rgba(110,231,183,.22)' }}>
+                <i className="fas fa-hourglass-half" /> {remaining < 0 ? `تأخّر ${Math.abs(remaining)} يوم` : `${remaining} يوم للتسليم`}
+              </span>
+            )}
+          </div>
+        )}
         <div style={{ marginTop: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#fff', marginBottom: '6px' }}>
             <span>تقدّم المراحل</span><b>{project.stage_progress}%</b>
@@ -77,6 +95,44 @@ export function ClientProjectDetailPage() {
           </div>
         )}
       </div>
+
+      {/* التيم الماسك للمشروع (بند 11) */}
+      {team.length > 0 && (
+        <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
+          <h3 style={{ marginTop: 0, fontSize: '16px' }}>👥 الفريق المسؤول عن المشروع</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+            {team.map((m, i) => (
+              <div key={i} style={teamRow}>
+                <span style={{ ...teamAvatar, background: m.is_lead ? 'linear-gradient(135deg,#274A78,#1B6CA8)' : '#E4E8EF', color: m.is_lead ? '#fff' : '#5A6478' }}>{m.name.trim().charAt(0)}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700 }}>{m.name}</div>
+                  <div style={{ fontSize: '11.5px', color: '#8A93A3' }}>{m.role}</div>
+                </div>
+                {m.is_lead && <span style={{ ...chip, background: '#1B6CA81a', color: '#1B6CA8' }}><i className="fas fa-crown" /> القائد</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* سجل التعديلات (بند 11) */}
+      {changeLog.length > 0 && (
+        <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
+          <h3 style={{ marginTop: 0, fontSize: '16px' }}>🕘 سجل التعديلات</h3>
+          <div style={{ position: 'relative', paddingInlineStart: '20px', marginTop: '10px' }}>
+            <span style={line} />
+            {changeLog.map((c, i) => (
+              <div key={i} style={stageItem}>
+                <span style={{ ...stageDot, background: '#1B6CA8', boxShadow: '0 0 0 2px #E4E8EF' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.text}</div>
+                  <div style={{ fontSize: '11px', color: '#8A93A3', marginTop: '2px' }}>{fmtDate(c.at)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* الدفعات */}
       <div className="card" style={{ padding: '20px' }}>
@@ -133,3 +189,7 @@ const line: CSSProperties = { position: 'absolute', insetInlineStart: '5px', top
 const stageItem: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '9px 0', position: 'relative' };
 const stageDot: CSSProperties = { width: '12px', height: '12px', borderRadius: '50%', marginTop: '4px', flexShrink: 0, marginInlineStart: '-20px', border: '2px solid #fff' };
 const invRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px', border: '1px solid #EEF2F7', borderRadius: '10px' };
+const timerRow: CSSProperties = { display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '14px' };
+const timerPill: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)', borderRadius: '999px', padding: '5px 14px' };
+const teamRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '11px', padding: '9px 12px', border: '1px solid #EEF2F7', borderRadius: '10px' };
+const teamAvatar: CSSProperties = { width: '34px', height: '34px', borderRadius: '50%', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '14px', flexShrink: 0 };

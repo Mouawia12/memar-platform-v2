@@ -25,6 +25,7 @@ class ForumTopicResource extends JsonResource
             'body' => $this->body,
             'views' => $this->views,
             'is_pinned' => $this->is_pinned,
+            'is_public' => $this->is_public,
             'replies_count' => $this->whenCounted('replies'),
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->id,

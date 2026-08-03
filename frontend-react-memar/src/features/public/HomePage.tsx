@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
 import { LoginView } from '../auth/components/LoginView';
@@ -6,6 +7,7 @@ import { ChatWidget } from '../chatbot/components/ChatWidget';
 import cssText from './homepage.css?raw';
 import htmlText from './homepage.html?raw';
 import { initHomepage } from './homepageInteractions';
+import { PublicForumSection } from './PublicForumSection';
 
 /**
  * الصفحة الرئيسية العامة — منقولة طبق الأصل عن الموقع القديم
@@ -15,6 +17,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
   const [authOpen, setAuthOpen] = useState(false);
+  const [forumMount, setForumMount] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -23,6 +26,9 @@ export function HomePage() {
     document.head.appendChild(style);
 
     const cleanupInteractions = initHomepage((path) => navigate(path), () => setAuthOpen(true));
+
+    // نقطة تثبيت قسم المنتدى العام داخل الـHTML المحقون (بند 9)
+    setForumMount(ref.current?.querySelector<HTMLElement>('#public-forum-mount') ?? null);
 
     const container = ref.current;
     const onClick = (e: MouseEvent) => {
@@ -47,6 +53,9 @@ export function HomePage() {
     <>
       {/* eslint-disable-next-line react/no-danger */}
       <div ref={ref} dangerouslySetInnerHTML={{ __html: htmlText }} />
+
+      {/* منتدى المجتمع — يُعرض داخل نقطة التثبيت في اللاندنج (بند 9) */}
+      {forumMount && createPortal(<PublicForumSection />, forumMount)}
 
       {/* نافذة تسجيل الدخول المنبثقة — بنفس أنيميشن الأصل (popIn) */}
       {authOpen && (

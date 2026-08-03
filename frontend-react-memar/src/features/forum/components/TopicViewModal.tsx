@@ -1,10 +1,11 @@
 import { type CSSProperties, type FormEvent, useState } from 'react';
 
-import { useAddReply, useTopic } from '../hooks/useForum';
+import { useAddReply, useSetTopicPublic, useTopic } from '../hooks/useForum';
 
 export function TopicViewModal({ topicId, onClose }: { topicId: number; onClose: () => void }) {
   const { data: topic, isLoading } = useTopic(topicId);
   const reply = useAddReply(topicId);
+  const setPublic = useSetTopicPublic(topicId);
   const [body, setBody] = useState('');
 
   const handleReply = (e: FormEvent) => {
@@ -28,6 +29,16 @@ export function TopicViewModal({ topicId, onClose }: { topicId: number; onClose:
             </div>
 
             <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.9, marginTop: '12px' }}>{topic.body}</p>
+
+            {/* اعتماد السؤال/الجواب للعرض العام على اللاندنج للزوّار (بند 9) */}
+            <div style={publicToggle}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                <input type="checkbox" checked={!!topic.is_public} disabled={setPublic.isPending} onChange={(e) => setPublic.mutate(e.target.checked)} />
+                <i className="fas fa-globe" style={{ color: topic.is_public ? '#059669' : '#94A3B8' }} />
+                عرض هذا السؤال/الجواب علنًا على صفحة الموقع للزوّار
+              </label>
+              <span style={{ fontSize: '11.5px', color: '#94A3B8' }}>{topic.is_public ? 'ظاهر للزوّار' : 'مخفي — لا يظهر إلا بعد اعتمادك'}</span>
+            </div>
 
             <hr style={{ border: 'none', borderTop: '1px solid #eef2f7', margin: '16px 0' }} />
             <h4 style={{ margin: '0 0 10px' }}>الردود ({topic.replies?.length ?? 0})</h4>
@@ -56,3 +67,4 @@ export function TopicViewModal({ topicId, onClose }: { topicId: number; onClose:
 const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', zIndex: 50, padding: '20px' };
 const modal: CSSProperties = { padding: '24px', width: '100%', maxWidth: '640px', maxHeight: '92vh', overflow: 'auto' };
 const chip: CSSProperties = { display: 'inline-block', padding: '2px 10px', borderRadius: '999px', background: '#E8EEF5', color: '#274A78', fontSize: '12px' };
+const publicToggle: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginTop: '14px', padding: '10px 12px', background: '#F8FAFC', border: '1px solid #EEF2F7', borderRadius: '10px' };

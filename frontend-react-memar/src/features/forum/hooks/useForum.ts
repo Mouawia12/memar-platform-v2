@@ -30,6 +30,18 @@ export function useDeleteTopic() {
   return useMutation({ mutationFn: (id: number) => forumApi.deleteTopic(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: TOPICS }) });
 }
 
+export function useSetTopicPublic(topicId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (isPublic: boolean) => forumApi.setPublic(topicId, isPublic),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['forum-topic', topicId] });
+      qc.invalidateQueries({ queryKey: TOPICS });
+      qc.invalidateQueries({ queryKey: ['public-forum'] });
+    },
+  });
+}
+
 export function useAddReply(topicId: number) {
   const qc = useQueryClient();
   return useMutation({

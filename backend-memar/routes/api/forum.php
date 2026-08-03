@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Route;
 | متاح لكل مستخدم مسجّل (مجتمع النقاش).
 */
 
+// ── نقطة عامة للموقع الأمامي: أسئلة/أجوبة معتمدة يراها الزوّار على اللاندنج (بند 9) ──
+Route::get('/public/forum', [ForumController::class, 'publicFeed']);
+
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/forum/categories', [ForumController::class, 'categories']);
     Route::get('/forum/topics', [ForumController::class, 'topics']);
@@ -17,5 +20,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/forum/topics/{topic}', [ForumController::class, 'showTopic']);
     Route::delete('/forum/topics/{topic}', [ForumController::class, 'destroyTopic']);
     Route::post('/forum/topics/{topic}/replies', [ForumController::class, 'storeReply']);
+    // اعتماد موضوع للعرض العام (للطاقم) — يتطلّب صلاحية إدارة المنتدى
+    Route::patch('/forum/topics/{topic}/public', [ForumController::class, 'setPublic'])->middleware('permission:forum.manage');
     Route::delete('/forum/replies/{reply}', [ForumController::class, 'destroyReply']);
 });

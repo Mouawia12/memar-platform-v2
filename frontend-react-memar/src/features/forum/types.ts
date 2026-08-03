@@ -19,6 +19,7 @@ export interface ForumTopic {
   body: string;
   views: number;
   is_pinned: boolean;
+  is_public?: boolean;
   replies_count?: number;
   category: { id: number; name: string } | null;
   author: string;

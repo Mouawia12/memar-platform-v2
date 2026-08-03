@@ -13,14 +13,14 @@ class ForumTopic extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['category_id', 'user_id', 'title', 'body', 'views', 'is_pinned'];
+    protected $fillable = ['category_id', 'user_id', 'title', 'body', 'views', 'is_pinned', 'is_public'];
 
     /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
-        return ['is_pinned' => 'boolean'];
+        return ['is_pinned' => 'boolean', 'is_public' => 'boolean'];
     }
 
     public function category(): BelongsTo

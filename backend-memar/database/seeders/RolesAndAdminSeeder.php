@@ -35,6 +35,7 @@ class RolesAndAdminSeeder extends Seeder
             'finance.view', 'finance.manage',
             'hr.view', 'hr.manage',
             'pricing.view', 'pricing.manage',
+            'forum.view', 'forum.manage',
             'settings.manage',
         ];
         foreach ($permissions as $name) {
@@ -44,7 +45,7 @@ class RolesAndAdminSeeder extends Seeder
         // ── الأدوار ──
         $roles = [
             'super_admin' => $permissions, // كل الصلاحيات
-            'manager' => ['crm.view', 'crm.manage', 'requests.view', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view'],
+            'manager' => ['crm.view', 'crm.manage', 'requests.view', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view', 'forum.view', 'forum.manage'],
             'architect' => ['projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'crm.view'],
             'accountant' => ['finance.view', 'finance.manage', 'pricing.view'],
             'hr_manager' => ['hr.view', 'hr.manage'],

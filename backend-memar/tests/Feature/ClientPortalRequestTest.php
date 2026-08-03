@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Contact;
+use App\Models\Project;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,6 +109,46 @@ class ClientPortalRequestTest extends TestCase
 
         $this->assertSame(1, Contact::where('type', 'lead')->where('stage', 'new')
             ->where('project_name', 'فيلا - الدسمة')->count());
+    }
+
+    public function test_simple_modification_request_on_existing_project(): void
+    {
+        $contact = Contact::factory()->create(['full_name' => 'منى الصباح', 'phone' => '+96599994444']);
+        $project = Project::factory()->create(['client_id' => $contact->id, 'name' => 'فيلا الرقة']);
+        $user = User::factory()->create(['contact_id' => $contact->id]);
+        Sanctum::actingAs($user);
+
+        $res = $this->postJson('/api/v1/client-portal/requests', [
+            'type' => 'modification',
+            'project_id' => $project->id,
+            'request_type' => 'modify',
+            'title' => 'تعديل مخطط الدور الأول',
+            'note' => 'أرغب بتوسيع الصالة.',
+        ]);
+
+        $res->assertCreated();
+        $req = ServiceRequest::latest('id')->first();
+        $this->assertSame('طلب تعديل — تعديل مخطط الدور الأول', $req->title);
+        $this->assertSame('maintenance', $req->type);
+        $this->assertStringContainsString('المشروع: فيلا الرقة', (string) $req->description);
+        $this->assertStringContainsString('نوع الطلب: تعديل تصميم', (string) $req->description);
+        $this->assertStringContainsString('التفاصيل: أرغب بتوسيع الصالة.', (string) $req->description);
+
+        // لا يُنشئ فرصة CRM (فقط «طلب مشروع جديد» يفعل)
+        $this->assertSame(0, Contact::where('type', 'lead')->count());
+    }
+
+    public function test_modification_request_rejects_a_project_not_owned_by_client(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '+96599995555']);
+        $foreignProject = Project::factory()->create(['client_id' => Contact::factory()->create()->id]);
+        Sanctum::actingAs(User::factory()->create(['contact_id' => $contact->id]));
+
+        $this->postJson('/api/v1/client-portal/requests', [
+            'type' => 'modification',
+            'project_id' => $foreignProject->id,
+            'title' => 'محاولة على مشروع غيري',
+        ])->assertStatus(422);
     }
 
     public function test_meeting_request_does_not_spawn_a_crm_lead(): void

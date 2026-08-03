@@ -236,7 +236,7 @@ class ClientPortalController extends ApiController
         abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
 
         $data = $request->validate([
-            'type' => ['required', Rule::in(['project', 'meeting', 'inquiry'])],
+            'type' => ['required', Rule::in(['project', 'meeting', 'inquiry', 'modification'])],
             'note' => ['nullable', 'string', 'max:2000'],
             // تفاصيل طلب المشروع الجديد (اختيارية — تُملأ من نموذج «طلب مشروع جديد»)
             'project_name' => ['nullable', 'string', 'max:200'],
@@ -247,27 +247,37 @@ class ClientPortalController extends ApiController
             'start_date' => ['nullable', 'date'],
             'services' => ['nullable', 'array', 'max:20'],
             'services.*' => ['string', 'max:60'],
+            // طلب تعديل/إضافة على مشروع قائم (نموذج «طلب جديد» البسيط — مطابق لتصميم Atoms)
+            'project_id' => ['nullable', 'integer'],
+            'request_type' => ['nullable', Rule::in(['modify', 'add', 'remove', 'material', 'other'])],
+            'title' => ['nullable', 'string', 'max:200'],
         ]);
 
         $map = [
             'project' => ['title' => 'طلب مشروع جديد', 'type' => 'design'],
             'meeting' => ['title' => 'طلب حجز اجتماع', 'type' => 'inquiry'],
             'inquiry' => ['title' => 'استفسار', 'type' => 'inquiry'],
+            'modification' => ['title' => 'طلب تعديل', 'type' => 'maintenance'],
         ];
         $m = $map[$data['type']];
 
-        // عنوان يحمل اسم المشروع إن وُجد — ليظهر واضحًا في «الطلبات» ولدى المبيعات.
-        $projectName = trim((string) ($data['project_name'] ?? ''));
-        $title = $m['title'].' — '.($projectName !== '' ? $projectName : $contact->full_name);
+        if ($data['type'] === 'modification') {
+            [$title, $description] = $this->composeModificationRequest($contact, $data);
+        } else {
+            // عنوان يحمل اسم المشروع إن وُجد — ليظهر واضحًا في «الطلبات» ولدى المبيعات.
+            $projectName = trim((string) ($data['project_name'] ?? ''));
+            $title = $m['title'].' — '.($projectName !== '' ? $projectName : $contact->full_name);
+            $description = $this->composeRequestDescription($data);
+        }
 
         $req = ServiceRequest::create([
             'title' => $title,
             'type' => $m['type'],
             'client_name' => $contact->full_name,
             'contact_phone' => $contact->phone,
-            'priority' => 'high',
+            'priority' => $data['type'] === 'modification' ? 'normal' : 'high',
             'status' => 'open',
-            'description' => $this->composeRequestDescription($data),
+            'description' => $description,
             'requested_by' => $user->id,
         ]);
 
@@ -277,6 +287,52 @@ class ClientPortalController extends ApiController
         }
 
         return $this->created(['id' => $req->id], 'تم إرسال طلبك — سنتواصل معك قريبًا.');
+    }
+
+    /**
+     * يصوغ عنوان ووصف «طلب جديد» البسيط (تعديل/إضافة على مشروع قائم — مطابق لتصميم Atoms).
+     * يتحقّق أن المشروع المختار يخصّ العميل نفسه.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{0: string, 1: string}
+     */
+    private function composeModificationRequest(Contact $contact, array $data): array
+    {
+        $requestTypeLabels = [
+            'modify' => 'تعديل تصميم',
+            'add' => 'إضافة عنصر',
+            'remove' => 'حذف عنصر',
+            'material' => 'تغيير مواد',
+            'other' => 'أخرى',
+        ];
+
+        $projectName = null;
+        if (! empty($data['project_id'])) {
+            $project = Project::where('id', $data['project_id'])->where('client_id', $contact->id)->first();
+            abort_if($project === null, 422, 'المشروع المحدّد غير موجود ضمن مشاريعك.');
+            $projectName = $project->name;
+        }
+
+        $clientTitle = trim((string) ($data['title'] ?? ''));
+        $title = 'طلب تعديل'.($clientTitle !== '' ? ' — '.$clientTitle : '');
+
+        $lines = [];
+        if ($projectName !== null) {
+            $lines[] = 'المشروع: '.$projectName;
+        }
+        if (! empty($data['request_type'])) {
+            $lines[] = 'نوع الطلب: '.$requestTypeLabels[$data['request_type']];
+        }
+        if ($clientTitle !== '') {
+            $lines[] = 'عنوان الطلب: '.$clientTitle;
+        }
+        $details = trim((string) ($data['note'] ?? ''));
+        if ($details !== '') {
+            $lines[] = 'التفاصيل: '.$details;
+        }
+        $lines[] = 'مصدر الطلب: بوابة العميل';
+
+        return [$title, implode("\n", $lines)];
     }
 
     /**

@@ -89,12 +89,13 @@ export interface ClientProjectDetail {
   };
 }
 
-export type ClientRequestType = 'project' | 'meeting' | 'inquiry';
+export type ClientRequestType = 'project' | 'meeting' | 'inquiry' | 'modification';
 
-/** حمولة طلب من بوابة العميل — الحقول التفصيلية تُملأ في «طلب مشروع جديد». */
+/** حمولة طلب من بوابة العميل — الحقول التفصيلية تُملأ في «طلب مشروع جديد» أو «طلب جديد». */
 export interface ClientRequestPayload {
   type: ClientRequestType;
   note?: string;
+  // «طلب مشروع جديد» المفصّل
   project_name?: string;
   project_type?: string;
   location?: string;
@@ -102,6 +103,10 @@ export interface ClientRequestPayload {
   budget_range?: string;
   start_date?: string;
   services?: string[];
+  // «طلب جديد» البسيط (تعديل/إضافة على مشروع قائم)
+  project_id?: number;
+  request_type?: string;
+  title?: string;
 }
 
 export interface ClientRequestAttachment {

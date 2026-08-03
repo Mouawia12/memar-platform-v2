@@ -130,6 +130,19 @@ class ClientPortalSectionsTest extends TestCase
         $this->assertSame($code, $this->getJson('/api/v1/client-portal/loyalty')->json('data.code'));
     }
 
+    public function test_loyalty_marks_referrer_kind_engineer_by_position(): void
+    {
+        $engineer = Contact::factory()->create(['position' => 'مهندس استشاري']);
+        $this->actingAsClient($engineer);
+        $this->getJson('/api/v1/client-portal/loyalty')
+            ->assertOk()->assertJsonPath('data.referrer_kind', 'engineer');
+
+        $client = Contact::factory()->create(['position' => 'مالك الشركة']);
+        $this->actingAsClient($client);
+        $this->getJson('/api/v1/client-portal/loyalty')
+            ->assertOk()->assertJsonPath('data.referrer_kind', 'client');
+    }
+
     public function test_recording_share_increments_counter(): void
     {
         $contact = Contact::factory()->create(['referral_shares' => 0]);

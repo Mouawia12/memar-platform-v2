@@ -566,6 +566,23 @@ class ClientPortalController extends ApiController
     }
 
     /** برنامج الولاء — كود الإحالة الثابت + إحصاءات حقيقية + سجل الإحالات. */
+    /**
+     * هل المُحيل مهندس/شريك (يُحيل عملاء) بدل عميل عادي (يقترح لصديق)؟ (بند 7)
+     * يُستدل من مسمّاه الوظيفي — دون احتساب أي بونص (مؤجّل).
+     */
+    private function isEngineerReferrer(Contact $contact): bool
+    {
+        $position = (string) $contact->position;
+
+        foreach (['مهندس', 'هندس', 'شريك', 'partner', 'engineer'] as $needle) {
+            if (mb_stripos($position, $needle) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function loyalty(Request $request): JsonResponse
     {
         $contact = $request->user()?->contact;
@@ -578,6 +595,8 @@ class ClientPortalController extends ApiController
 
         return $this->ok([
             'code' => $contact->referral_code,
+            // نوع المُحيل: مهندس/شريك يُحيل عملاء (بند 7) أو عميل يقترح لصديق — لتكييف العرض
+            'referrer_kind' => $this->isEngineerReferrer($contact) ? 'engineer' : 'client',
             'stats' => [
                 'successful' => $referrals->where('status', 'contracted')->count(),
                 'gifts_sent' => $referrals->where('is_gift', true)->count(),

@@ -137,6 +137,8 @@ export interface ClientProfilePayload {
 
 export interface LoyaltyData {
   code: string;
+  /** نوع المُحيل: مهندس/شريك يُحيل عملاء (بند 7) أو عميل يقترح لصديق. */
+  referrer_kind?: 'engineer' | 'client';
   stats: { successful: number; gifts_sent: number; shares: number; discount: number };
   history: { id: number; name: string | null; status: 'pending' | 'joined' | 'contracted'; status_label: string; is_gift: boolean }[];
 }

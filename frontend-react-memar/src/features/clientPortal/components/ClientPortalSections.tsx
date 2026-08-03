@@ -149,26 +149,44 @@ export function MeetingsSection({ appts, onRequest }: { appts: Appointment[]; on
 interface LoyaltyStats { successful: number; gifts_sent: number; shares: number; discount: number }
 interface LoyaltyHistoryItem { id: number; name: string | null; status: string; status_label: string; is_gift: boolean }
 
-export function LoyaltySection({ code, stats, history, onCopy, onShare, onGift, onSelf }: { code: string; stats: LoyaltyStats; history: LoyaltyHistoryItem[]; onCopy: () => void; onShare: () => void; onGift: () => void; onSelf: () => void }) {
+export function LoyaltySection({ code, referrerKind = 'client', stats, history, onCopy, onShare, onGift, onSelf }: { code: string; referrerKind?: 'engineer' | 'client'; stats: LoyaltyStats; history: LoyaltyHistoryItem[]; onCopy: () => void; onShare: () => void; onGift: () => void; onSelf: () => void }) {
+  const isEngineer = referrerKind === 'engineer';
+  // كارت وكود الإحالة نفسه، لكن التأطير للمهندس/الشريك يُحيل «عملاء» بدل «صديق» (بند 7، بلا بونص)
+  const copy = isEngineer
+    ? {
+        subtitle: 'أحِل عملاءك إلى معمار عبر كودك المهني',
+        title: 'كود إحالة المهندس/الشريك',
+        desc: 'شارك كودك المهني مع عملائك. كل عميل يفتح حساباً ويُدخل كودك يُنسب إليك تلقائياً في سجل إحالاتك.',
+        codeLabel: 'كودك المهني',
+        steps: ['شارك كودك المهني مع عميلك', 'يفتح العميل حساباً ويُدخل الكود', 'يتعاقد العميل على مشروعه مع معمار', 'تُسجَّل الإحالة باسمك في سجلك المهني'],
+      }
+    : {
+        subtitle: 'شارك تجربتك مع معمار واحصل على مكافآت حصرية',
+        title: 'اقترحنا لصديق',
+        desc: 'شارك كودك الشخصي مع أصدقائك. عند فتح حساب جديد والتعاقد على مشروعه الأول، تحصل أنت على خصم 10% على مشروعك القادم.',
+        codeLabel: 'كودك الشخصي',
+        steps: ['شارك كودك الشخصي مع صديقك', 'يفتح صديقك حساباً جديداً ويُدخل الكود', 'يتعاقد صديقك على مشروعه الأول مع معمار', 'تحصل على خصم 10% على مشروعك القادم!'],
+      };
+
   return (
     <>
       <div className="section-header">
         <div>
-          <h2 className="section-title">برنامج الولاء والإحالة</h2>
-          <p className="section-subtitle">شارك تجربتك مع معمار واحصل على مكافآت حصرية</p>
+          <h2 className="section-title">{isEngineer ? 'برنامج إحالة المهندسين' : 'برنامج الولاء والإحالة'}</h2>
+          <p className="section-subtitle">{copy.subtitle}</p>
         </div>
       </div>
       <div className="loyalty-page-grid">
         <div className="loyalty-page-main-card">
           <div className="loyalty-page-header">
-            <div className="loyalty-page-icon"><i className="fas fa-handshake-angle" /></div>
+            <div className="loyalty-page-icon"><i className={`fas ${isEngineer ? 'fa-user-tie' : 'fa-handshake-angle'}`} /></div>
             <div>
-              <h3>اقترحنا لصديق</h3>
-              <p>شارك كودك الشخصي مع أصدقائك. عند فتح حساب جديد والتعاقد على مشروعه الأول، تحصل أنت على خصم 10% على مشروعك القادم.</p>
+              <h3>{copy.title}</h3>
+              <p>{copy.desc}</p>
             </div>
           </div>
           <div className="loyalty-page-code-section">
-            <div className="loyalty-page-code-label">كودك الشخصي</div>
+            <div className="loyalty-page-code-label">{copy.codeLabel}</div>
             <div className="loyalty-page-code-box">
               <span className="loyalty-page-code-text">{code}</span>
               <button className="btn btn-sm btn-primary" onClick={onCopy}><i className="fas fa-copy" /> نسخ</button>
@@ -176,15 +194,16 @@ export function LoyaltySection({ code, stats, history, onCopy, onShare, onGift, 
           </div>
           <div className="loyalty-page-actions">
             <button className="btn btn-primary" onClick={onShare}><i className="fas fa-share-nodes" /> مشاركة الكود</button>
-            <button className="btn btn-ghost" onClick={onGift}><i className="fas fa-gift" /> أهدِ الخصم لصديق</button>
-            <button className="btn btn-ghost" onClick={onSelf}><i className="fas fa-percent" /> استخدم الخصم لنفسي</button>
+            {/* أزرار الخصم للعميل فقط — المهندس يُحيل عملاء بلا خصم/بونص (بند 7) */}
+            {!isEngineer && <button className="btn btn-ghost" onClick={onGift}><i className="fas fa-gift" /> أهدِ الخصم لصديق</button>}
+            {!isEngineer && <button className="btn btn-ghost" onClick={onSelf}><i className="fas fa-percent" /> استخدم الخصم لنفسي</button>}
           </div>
         </div>
 
         <div className="loyalty-page-how-card">
           <h4><i className="fas fa-circle-info" /> كيف يعمل البرنامج؟</h4>
           <div className="loyalty-page-steps">
-            {['شارك كودك الشخصي مع صديقك', 'يفتح صديقك حساباً جديداً ويُدخل الكود', 'يتعاقد صديقك على مشروعه الأول مع معمار', 'تحصل على خصم 10% على مشروعك القادم!'].map((t, i) => (
+            {copy.steps.map((t, i) => (
               <div key={i} className="loyalty-step"><div className="loyalty-step-num">{i + 1}</div><div className="loyalty-step-text">{t}</div></div>
             ))}
           </div>
@@ -194,8 +213,10 @@ export function LoyaltySection({ code, stats, history, onCopy, onShare, onGift, 
           <h4><i className="fas fa-chart-simple" /> إحصائياتك</h4>
           <div className="loyalty-page-stats-grid">
             <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.successful}</span><span className="loyalty-page-stat-label">إحالات ناجحة</span></div>
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.discount}%</span><span className="loyalty-page-stat-label">خصم متاح</span></div>
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.gifts_sent}</span><span className="loyalty-page-stat-label">هدايا مُرسلة</span></div>
+            {isEngineer
+              ? <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{history.length}</span><span className="loyalty-page-stat-label">عملاء محالون</span></div>
+              : <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.discount}%</span><span className="loyalty-page-stat-label">خصم متاح</span></div>}
+            {!isEngineer && <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.gifts_sent}</span><span className="loyalty-page-stat-label">هدايا مُرسلة</span></div>}
             <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.shares}</span><span className="loyalty-page-stat-label">مرات المشاركة</span></div>
           </div>
         </div>

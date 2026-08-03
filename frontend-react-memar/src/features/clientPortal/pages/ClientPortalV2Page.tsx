@@ -309,7 +309,7 @@ export function ClientPortalV2Page() {
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
               {page === 'chat' && <ChatSection />}
               {page === 'forum' && <ForumSection />}
-              {page === 'loyalty' && <LoyaltySection code={referralCode} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
+              {page === 'loyalty' && <LoyaltySection code={referralCode} referrerKind={loyalty?.referrer_kind ?? 'client'} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
               {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={(id) => navigate(`/client-portal/projects/${id}`)} onRequest={() => doRequest('project')} />}
               {page === 'settings' && client && <SettingsSection client={client} />}
               {page === 'dashboard' && (<>

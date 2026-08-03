@@ -2816,6 +2816,18 @@
   font-size: 9px;
   opacity: 0.7;
 }
+/* رقم الحساب كزر يفتح بطاقة الـ QR (بند 6) */
+.mcp-root .sb-member-code-btn {
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.mcp-root .sb-member-code-btn:hover {
+  background: var(--accent-light);
+  color: #fff;
+  border-color: var(--accent);
+}
+.mcp-root .sb-member-code-btn:hover i { opacity: 1; }
+.mcp-root .sb-member-code-qr { font-size: 11px !important; margin-inline-start: 2px; }
 .mcp-root .loyalty-section-featured {
   margin-bottom: 14px;
 }

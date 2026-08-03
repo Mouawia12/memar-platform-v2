@@ -6,6 +6,7 @@ import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types'
 import { clientAccountCode } from '../api/clientPortalApi';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
 import { NewProjectRequestModal } from '../components/NewProjectRequestModal';
+import { AccountQrModal } from '../components/AccountQrModal';
 import { useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
@@ -51,6 +52,7 @@ export function ClientPortalV2Page() {
   const [heroPaused, setHeroPaused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [projectRequestOpen, setProjectRequestOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const { data: notif } = useClientNotifications();
   const { data: loyalty } = useLoyalty();
   const recordShare = useRecordReferralShare();
@@ -204,7 +206,10 @@ export function ClientPortalV2Page() {
                     </>
                   )}
                 </div>
-                <span className="sb-client-member-code"><i className="fas fa-hashtag" /> {memberCode}</span>
+                <button type="button" className="sb-client-member-code sb-member-code-btn" onClick={(e) => { e.stopPropagation(); setQrOpen(true); }} title="عرض رقم الحساب و QR">
+                  <i className="fas fa-hashtag" /> {memberCode}
+                  <i className="fas fa-qrcode sb-member-code-qr" />
+                </button>
                 {/* المسمّى الوظيفي للشخص (مالك الشركة/مدير تنفيذي/مهندس…) بدل «عميل مميز» — الشركة نفسها هي العميل المميز */}
                 <span className="sb-client-role"><i className="fas fa-id-badge" /> {(client as { position?: string } | undefined)?.position || 'ممثّل الشركة'}</span>
               </div>
@@ -449,6 +454,7 @@ export function ClientPortalV2Page() {
 
       {/* نموذج طلب مشروع جديد */}
       {projectRequestOpen && <NewProjectRequestModal onClose={() => setProjectRequestOpen(false)} />}
+      {qrOpen && client && <AccountQrModal accountNumber={memberCode} clientName={clientName} onClose={() => setQrOpen(false)} />}
 
       {/* إشعار عائم — طبق الأصل (.toast.show) */}
       <div className={`toast${toast ? ' show' : ''}`}>{toast}</div>

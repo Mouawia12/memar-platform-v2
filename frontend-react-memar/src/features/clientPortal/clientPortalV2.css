@@ -2825,6 +2825,9 @@
   border: 1px solid rgba(124,58,237,0.15);
   padding: 3px 10px;
   border-radius: 12px;
+  white-space: nowrap;
+  align-self: flex-start;
+  max-width: 100%;
   letter-spacing: 0.5px;
   margin-top: 3px;
 }

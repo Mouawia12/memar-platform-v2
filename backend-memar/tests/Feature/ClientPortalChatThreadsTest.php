@@ -87,6 +87,14 @@ class ClientPortalChatThreadsTest extends TestCase
         $this->assertDatabaseMissing('chat_thread_participants', ['id' => $pid]);
     }
 
+    public function test_sending_an_empty_message_is_rejected(): void
+    {
+        $this->actingAsClient();
+        $id = $this->getJson('/api/v1/client-portal/chat/threads')->json('data.0.id');
+
+        $this->postJson("/api/v1/client-portal/chat/threads/{$id}/messages", ['body' => ''])->assertStatus(422);
+    }
+
     public function test_client_cannot_touch_another_clients_thread(): void
     {
         $otherContact = Contact::factory()->create();

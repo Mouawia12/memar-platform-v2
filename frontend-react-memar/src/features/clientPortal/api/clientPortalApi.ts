@@ -196,8 +196,6 @@ export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
   loyalty: () => apiGet<LoyaltyData>('/client-portal/loyalty'),
   recordShare: () => apiPost<{ code: string; shares: number }>('/client-portal/loyalty/share', {}),
-  messages: () => apiGet<ClientMessage[]>('/client-portal/messages'),
-  sendMessage: (body: string) => apiPost<ClientMessage>('/client-portal/messages', { body }),
   // محادثات متعددة الخيوط (بند 8)
   chatThreads: () => apiGet<ChatThread[]>('/client-portal/chat/threads'),
   createChatThread: (title: string) => apiPost<{ id: number; title: string; kind: string }>('/client-portal/chat/threads', { title }),

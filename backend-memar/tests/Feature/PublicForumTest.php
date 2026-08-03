@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Contact;
 use App\Models\ForumCategory;
 use App\Models\ForumReply;
 use App\Models\ForumTopic;
@@ -29,8 +30,8 @@ class PublicForumTest extends TestCase
 
     public function test_public_feed_returns_only_staff_approved_topics(): void
     {
-        $asker = User::factory()->create(['name' => 'أحمد المنصور الفهد']);
-        $staff = User::factory()->create(['name' => 'م. خالد العتيبي']);
+        $asker = User::factory()->create(['name' => 'أحمد المنصور الفهد', 'contact_id' => Contact::factory()->create()->id]);
+        $staff = User::factory()->create(['name' => 'م. خالد العتيبي', 'contact_id' => null]);
 
         $public = $this->topic(['user_id' => $asker->id, 'is_public' => true, 'title' => 'مدة التصميم؟']);
         ForumReply::create(['topic_id' => $public->id, 'user_id' => $staff->id, 'body' => 'من 4 إلى 6 أسابيع']);
@@ -52,6 +53,24 @@ class PublicForumTest extends TestCase
         $body = json_encode($res->json(), JSON_UNESCAPED_UNICODE);
         $this->assertStringNotContainsString('المنصور', $body);
         $this->assertStringNotContainsString('سؤال خاص', $body);
+    }
+
+    public function test_public_feed_excludes_replies_from_other_clients(): void
+    {
+        $asker = User::factory()->create(['contact_id' => Contact::factory()->create()->id]);
+        $otherClient = User::factory()->create(['name' => 'عميل آخر', 'contact_id' => Contact::factory()->create()->id]);
+        $staff = User::factory()->create(['name' => 'م. سارة', 'contact_id' => null]);
+
+        $topic = $this->topic(['user_id' => $asker->id, 'is_public' => true]);
+        ForumReply::create(['topic_id' => $topic->id, 'user_id' => $otherClient->id, 'body' => 'رد عميل آخر لا يظهر علنًا']);
+        ForumReply::create(['topic_id' => $topic->id, 'user_id' => $staff->id, 'body' => 'رد الطاقم']);
+
+        $res = $this->getJson('/api/v1/public/forum')->assertOk();
+
+        // فقط رد الطاقم يظهر — رد العميل الآخر لا يتسرّب
+        $res->assertJsonCount(1, 'data.0.answers')
+            ->assertJsonPath('data.0.answers.0.author', 'م. سارة');
+        $this->assertStringNotContainsString('عميل آخر', json_encode($res->json(), JSON_UNESCAPED_UNICODE));
     }
 
     public function test_staff_with_permission_can_toggle_topic_public(): void

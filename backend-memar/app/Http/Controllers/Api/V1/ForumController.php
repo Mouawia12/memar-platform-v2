@@ -83,13 +83,15 @@ class ForumController extends ApiController
         $firstName = fn (?string $name): string => $name ? trim(explode(' ', trim($name))[0]) : 'عميل';
 
         $topics = ForumTopic::where('is_public', true)
-            ->with(['user:id,name', 'replies' => fn ($q) => $q->with('user:id,name')->oldest()])
+            ->with(['user:id,name', 'replies' => fn ($q) => $q->with('user:id,name,contact_id')->oldest()])
             ->latest()
             ->limit(20)
             ->get()
             ->map(function (ForumTopic $t) use ($firstName): array {
+                // أجوبة الطاقم فقط: مستخدم موجود، ليس السائل، وليس عميلًا (contact_id = null = طاقم معمار).
+                // يمنع تسرّب رد أي عميل آخر للعرض العام.
                 $replies = $t->replies
-                    ->filter(fn (ForumReply $r): bool => $r->user_id !== $t->user_id) // أجوبة الفريق فقط
+                    ->filter(fn (ForumReply $r): bool => $r->user && $r->user_id !== $t->user_id && $r->user->contact_id === null)
                     ->map(fn (ForumReply $r): array => [
                         'author' => $r->user?->name ?? 'فريق معمار',
                         'body' => $r->body,

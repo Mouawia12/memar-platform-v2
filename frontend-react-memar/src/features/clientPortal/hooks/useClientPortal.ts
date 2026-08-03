@@ -84,21 +84,6 @@ export function useRecordReferralShare() {
   });
 }
 
-/** المحادثات — سلسلة رسائل العميل (تحديث دوري كل 15 ث لالتقاط ردود الطاقم). */
-export function useClientMessages() {
-  return useQuery({ queryKey: ['client-messages'], queryFn: () => clientPortalApi.messages(), refetchInterval: 15000 });
-}
-
-/** إرسال رسالة من العميل. */
-export function useSendClientMessage() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: (body: string) => clientPortalApi.sendMessage(body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-messages'] }),
-  });
-}
-
 /** خيوط محادثات العميل (فريق + دعم فني + مخصّصة) — بند 8. */
 export function useChatThreads() {
   return useQuery({ queryKey: ['client-chat-threads'], queryFn: () => clientPortalApi.chatThreads(), refetchInterval: 20000 });

@@ -104,6 +104,8 @@ class ClientPortalController extends ApiController
                 'company' => $contact?->company,
                 // المقر الرئيسي للشركة (يظهر في بطاقات صفحة الشركة — مطابقة Atoms)
                 'head_office' => $contact?->head_office,
+                // نبذة الشركة (عنوان فرعي في هيرو صفحة الشركة — مطابقة Atoms)
+                'company_about' => $contact?->company_about,
                 'phone' => $contact?->phone,
                 'since' => $contact?->created_at?->format('Y'),
                 // رقم الحساب الشخصي الثابت MEE-YYYY-NNN (اجتماع 2026-08-03)
@@ -934,6 +936,7 @@ class ClientPortalController extends ApiController
                 'id' => $m->id,
                 'name' => $m->name,
                 'role' => $m->role,
+                'projects_count' => $m->projects_count,
                 'member_code' => $m->member_code,
             ])->all();
 

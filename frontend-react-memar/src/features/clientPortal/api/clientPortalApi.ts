@@ -29,6 +29,8 @@ export interface ClientInfo {
   company: string | null;
   /** المقر الرئيسي للشركة (يظهر في بطاقات صفحة الشركة). */
   head_office?: string | null;
+  /** نبذة الشركة (عنوان فرعي في هيرو صفحة الشركة). */
+  company_about?: string | null;
   phone: string | null;
   /** المنصب/الصفة داخل الشركة (مثل: مالك الشركة، مدير تنفيذي، مهندس). */
   position?: string | null;
@@ -196,6 +198,7 @@ export interface TeamMember {
   id: number;
   name: string;
   role: string;
+  projects_count?: number | null;
   member_code: string | null;
 }
 

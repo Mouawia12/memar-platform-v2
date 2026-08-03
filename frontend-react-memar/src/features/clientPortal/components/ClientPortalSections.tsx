@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { Appointment } from '../../appointments/types';
-import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../../projects/types';
+import type { Project, ProjectStatus } from '../../projects/types';
 import { clientAccountCode, type ClientInfo, type NotificationPrefs } from '../api/clientPortalApi';
 import { useAddTeamMember, useAddThreadParticipant, useChatThreads, useClientNotifications, useCreateChatThread, useCreateForumThread, useDeleteAvatar, useForumThreads, useMyRequests, useRemoveTeamMember, useRemoveThreadParticipant, useRenameChatThread, useSendThreadMessage, useTeamMembers, useThreadMessages, useUpdateClientPreferences, useUpdateClientProfile, useUploadAvatar } from '../hooks/useClientPortal';
 import type { ChatThread } from '../api/clientPortalApi';
@@ -614,7 +614,6 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
   const [memberRole, setMemberRole] = useState('');
   const activeCount = projects.filter((p) => p.status === 'active' || p.status === 'review').length;
   const doneCount = projects.filter((p) => p.status === 'done').length;
-  const initial = (client.name ?? 'ع').trim().charAt(0) || 'ع';
   const teamCount = 1 + (team?.length ?? 0);
 
   const saveMember = () => {
@@ -624,9 +623,23 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
   };
 
   const progressOf = (s: ProjectStatus): number => ({ draft: 10, active: 60, review: 85, on_hold: 40, done: 100, cancelled: 0 }[s] ?? 30);
-  const badgeOf = (s: ProjectStatus): string => (s === 'done' ? 'badge-gray' : s === 'review' ? 'badge-green' : s === 'on_hold' ? 'badge-orange' : 'badge-blue');
-  const fillOf = (s: ProjectStatus): string => (s === 'done' || s === 'review' ? 'green' : s === 'on_hold' ? 'orange' : '');
-  const shown = projects.filter((p) => (filter === 'all' ? true : filter === 'active' ? p.status !== 'done' : p.status === 'done'));
+  // خريطة عرض مطابقة لتصميم Atoms: الشارة واللون حسب الحالة + نسبة التقدّم (بلا مساس بتسميات الـ ERP).
+  const atomsStatus = (s: ProjectStatus, prog: number): { label: string; badge: string; fill: string } => {
+    if (prog >= 100 || s === 'done') return { label: 'مكتمل', badge: 'badge-gray', fill: 'green' };
+    if (prog >= 80) return { label: 'شبه مكتمل', badge: 'badge-green', fill: 'green' };
+    if (s === 'draft' || s === 'on_hold') return { label: 'قيد الدراسة', badge: 'badge-orange', fill: 'orange' };
+    return { label: 'نشط', badge: 'badge-blue', fill: '' };
+  };
+  // الأحرف الأولى الثنائية (اسم العائلة أولاً) مطل تصميم Atoms: «أحمد المنصور» → «أ.م».
+  const initials2 = (name: string): string => {
+    const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'ع';
+    if (parts.length === 1) return parts[0].charAt(0);
+    return `${parts[0].charAt(0)}.${parts[parts.length - 1].charAt(0)}`;
+  };
+  // الأحدث أولاً (مطابق لترتيب Atoms)
+  const sorted = [...projects].sort((a, b) => new Date(b.start_date ?? 0).getTime() - new Date(a.start_date ?? 0).getTime());
+  const shown = sorted.filter((p) => (filter === 'all' ? true : filter === 'active' ? p.status !== 'done' : p.status === 'done'));
 
   return (
     <>
@@ -638,14 +651,19 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
         </a>
         <div className="company-hero-layout">
           <div className="company-hero-content">
-            <div className="company-logo"><i className="fas fa-building-columns" /></div>
+            {/* اللوجو مع overlay كامرة (قابل للتغيير) — مطابق Atoms */}
+            <div className="company-logo" title="لوجو الشركة">
+              <i className="fas fa-building-columns" />
+              <div className="company-logo-overlay"><i className="fas fa-camera" /></div>
+            </div>
             <div className="company-hero-info">
               <h2>{client.company || 'شركتك'}</h2>
-              <p>ممثّلها: {client.name}{client.phone ? ` · ${client.phone}` : ''}</p>
+              {/* نبذة الشركة (مطابق Atoms) بدل «ممثّلها» */}
+              <p>{client.company_about || `ممثّلها: ${client.name}`}</p>
               <div className="company-hero-stats">
                 <div className="company-stat"><span className="company-stat-value">{activeCount}</span><span className="company-stat-label">مشاريع نشطة</span></div>
                 <div className="company-stat"><span className="company-stat-value">{doneCount}</span><span className="company-stat-label">مشروع مكتمل</span></div>
-                <div className="company-stat"><span className="company-stat-value">{projects.length}</span><span className="company-stat-label">إجمالي المشاريع</span></div>
+                <div className="company-stat"><span className="company-stat-value">{teamCount}</span><span className="company-stat-label">موظفين مسجلين</span></div>
               </div>
             </div>
           </div>
@@ -662,10 +680,10 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
       </div>
 
       <div className="company-info-grid">
+        {/* ترتيب Atoms: المالك → المقر الرئيسي → التواصل → عميل منذ */}
         <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-user-tie" /></div><div className="company-info-detail"><span className="company-info-label">المالك</span><strong>{client.name}</strong></div></div>
-        {client.phone && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-phone" /></div><div className="company-info-detail"><span className="company-info-label">التواصل</span><strong>{client.phone}</strong></div></div>}
-        {/* المقر الرئيسي — مطابق لتصميم Atoms؛ يظهر إن كان مُسجَّلاً للشركة */}
         {client.head_office && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-map-marker-alt" /></div><div className="company-info-detail"><span className="company-info-label">المقر الرئيسي</span><strong>{client.head_office}</strong></div></div>}
+        {client.phone && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-phone" /></div><div className="company-info-detail"><span className="company-info-label">التواصل</span><strong>{client.phone}</strong></div></div>}
         {client.since && <div className="company-info-card"><div className="company-info-icon"><i className="fas fa-calendar" /></div><div className="company-info-detail"><span className="company-info-label">عميل منذ</span><strong>{client.since}</strong></div></div>}
       </div>
 
@@ -691,24 +709,25 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
         <div className="company-team-grid">
           <div className="company-team-card owner">
             <div className="team-member-avatar owner">
-              <div className="team-avatar-placeholder">{initial}</div>
+              <div className="team-avatar-placeholder">{initials2(client.name ?? 'ع')}</div>
               <span className="team-role-badge owner"><i className="fas fa-crown" /></span>
               {/* وسم «#1» — صاحب الحساب الأول في الشركة (طلب أيمن، اجتماع 4، مقطع 7) */}
               <span className="team-rank-badge" style={{ position: 'absolute', top: -6, insetInlineStart: -6, background: 'linear-gradient(135deg,#EAB244,#E8A838)', color: '#fff', fontSize: 10, fontWeight: 800, lineHeight: 1, padding: '3px 6px', borderRadius: 8, boxShadow: '0 2px 6px rgba(232,168,56,.45)', border: '1.5px solid #fff' }}>#1</span>
             </div>
             <strong>{client.name}</strong>
             <span className="team-member-code"><i className="fas fa-fingerprint" /> {clientAccountCode(client)}</span>
-            <span>مالك الحساب</span>
+            <span>مالك الشركة</span>
             <span className="team-projects-count">{projects.length} مشاريع</span>
           </div>
           {team?.map((m) => (
             <div key={m.id} className="company-team-card">
               <div className="team-member-avatar">
-                <div className="team-avatar-placeholder">{(m.name ?? '؟').trim().charAt(0)}</div>
+                <div className="team-avatar-placeholder">{initials2(m.name)}</div>
               </div>
               <strong>{m.name}</strong>
               {m.member_code && <span className="team-member-code"><i className="fas fa-fingerprint" /> {m.member_code}</span>}
               <span>{m.role}</span>
+              <span className="team-projects-count">{m.projects_count ?? 0} مشاريع</span>
               <button className="btn btn-ghost btn-sm btn-danger-ghost" style={{ marginTop: 6 }} onClick={() => { if (window.confirm(`إزالة «${m.name}» من الفريق؟`)) removeMember.mutate(m.id); }}><i className="fas fa-user-minus" /> إزالة</button>
             </div>
           ))}
@@ -732,21 +751,24 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
           {shown.map((p) => {
             // نسبة التقدّم المعروضة: القيمة المخزّنة إن وُجدت (لعرض دقيق يطابق التصميم)، وإلا تُشتق من الحالة.
             const prog = p.progress ?? progressOf(p.status);
+            const st = atomsStatus(p.status, prog);
 
             return (
-              <div key={p.id} className="company-project-card clickable" onClick={() => onProject(p.id)} title="انقر لدخول المشروع">
+              <div key={p.id} className={`company-project-card clickable${p.status === 'done' ? ' completed' : ''}`} onClick={() => onProject(p.id)} title="انقر لدخول المشروع">
                 <div className="company-project-header">
-                  <span className={`badge ${badgeOf(p.status)}`}>{PROJECT_STATUS_LABELS[p.status]}</span>
+                  <span className={`badge ${st.badge}`}>{st.label}</span>
                   <span className="company-project-id">{p.code ? `#${p.code}` : `#${p.id}`}</span>
                 </div>
                 <h4>{p.name}</h4>
+                {/* سطر وصف المشروع — مطابق Atoms */}
+                {p.description && <p>{p.description}</p>}
                 <div className="company-project-progress">
-                  <div className="company-progress-bar"><div className={`company-progress-fill ${fillOf(p.status)}`} style={{ width: `${prog}%` }} /></div>
+                  <div className="company-progress-bar"><div className={`company-progress-fill ${st.fill}`} style={{ width: `${prog}%` }} /></div>
                   <span>{prog}%</span>
                 </div>
                 <div className="company-project-footer">
                   {p.manager?.name && <span><i className="fas fa-user" /> {p.manager.name}</span>}
-                  <span><i className="fas fa-calendar" /> {p.start_date ? yearOf(p.start_date) : '—'}</span>
+                  <span><i className="fas fa-calendar" /> {p.start_date ? `${monthOf(p.start_date)} ${yearOf(p.start_date)}` : '—'}</span>
                 </div>
               </div>
             );

@@ -35,6 +35,7 @@ class AtomsDemoSeeder extends Seeder
                 'kunya' => 'أبو عبدالرحمن',
                 'company' => 'شركة المنصور للتطوير العقاري',
                 'head_office' => 'الرياض - حي العليا',
+                'company_about' => 'شركة رائدة في مجال التطوير العقاري والاستثمار منذ 2010',
                 'phone' => '+966 11 456 7890',
                 'position' => 'مالك الشركة',
                 'type' => 'client',
@@ -57,8 +58,8 @@ class AtomsDemoSeeder extends Seeder
         $harbi = $this->manager('mgr.harbi@memar.kw', 'فهد الحربي');
 
         // ── أعضاء الفريق المسجلين (بطاقات صفحة الشركة) ──
-        $this->teamMember($contact->id, 'فهد الحربي', 'مهندس متابعة', 'MEM-2024-0156');
-        $this->teamMember($contact->id, 'محمد العمري', 'مدير المشاريع', 'MEM-2024-0342');
+        $this->teamMember($contact->id, 'فهد الحربي', 'مهندس متابعة', 'MEM-2024-0156', 2);
+        $this->teamMember($contact->id, 'محمد العمري', 'مدير المشاريع', 'MEM-2024-0342', 3);
 
         // ── مشاريع الشركة الخمسة (طبق الأصل: الأسماء/الأكواد/الحالات/النِسَب/التواريخ/المدير) ──
         $projects = [
@@ -134,11 +135,11 @@ class AtomsDemoSeeder extends Seeder
         return $user;
     }
 
-    private function teamMember(int $contactId, string $name, string $role, string $code): void
+    private function teamMember(int $contactId, string $name, string $role, string $code, int $projectsCount): void
     {
         TeamMember::updateOrCreate(
             ['contact_id' => $contactId, 'member_code' => $code],
-            ['name' => $name, 'role' => $role],
+            ['name' => $name, 'role' => $role, 'projects_count' => $projectsCount],
         );
     }
 }

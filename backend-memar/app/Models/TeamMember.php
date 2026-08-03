@@ -18,7 +18,7 @@ class TeamMember extends Model
     use HasFactory;
 
     protected $fillable = [
-        'contact_id', 'name', 'role', 'member_code',
+        'contact_id', 'name', 'role', 'projects_count', 'member_code',
     ];
 
     /**

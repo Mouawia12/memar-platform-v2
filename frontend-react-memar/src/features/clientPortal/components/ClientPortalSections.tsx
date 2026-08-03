@@ -542,7 +542,7 @@ export function CompanySection({ client, projects, onProject, onRequest }: { cli
               <div className="team-avatar-placeholder">{initial}</div>
               <span className="team-role-badge owner"><i className="fas fa-crown" /></span>
               {/* وسم «#1» — صاحب الحساب الأول في الشركة (طلب أيمن، اجتماع 4، مقطع 7) */}
-              <span className="team-rank-badge" style={{ position: 'absolute', top: -6, insetInlineStart: -6, background: 'linear-gradient(135deg,#EAB244,#E8912A)', color: '#fff', fontSize: 10, fontWeight: 800, lineHeight: 1, padding: '3px 6px', borderRadius: 8, boxShadow: '0 2px 6px rgba(232,145,42,.4)', border: '1.5px solid #fff' }}>#1</span>
+              <span className="team-rank-badge" style={{ position: 'absolute', top: -6, insetInlineStart: -6, background: 'linear-gradient(135deg,#EAB244,#E8A838)', color: '#fff', fontSize: 10, fontWeight: 800, lineHeight: 1, padding: '3px 6px', borderRadius: 8, boxShadow: '0 2px 6px rgba(232,168,56,.45)', border: '1.5px solid #fff' }}>#1</span>
             </div>
             <strong>{client.name}</strong>
             <span className="team-member-code"><i className="fas fa-fingerprint" /> {clientAccountCode(client)}</span>

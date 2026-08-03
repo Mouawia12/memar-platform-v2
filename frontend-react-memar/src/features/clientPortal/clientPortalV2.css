@@ -2941,23 +2941,23 @@
 }
 /* أزرار الولاء موحّدة على اللون البرتقالي للبراند (طلب أيمن، اجتماع 4): بدل مزيج الأزرق/البنفسجي/الأحمر */
 .mcp-root .loyalty-featured-btn-share {
-  background: rgba(232, 145, 42, 0.10) !important;
-  color: #B8690F !important;
-  border: 1px solid rgba(232, 145, 42, 0.30) !important;
+  background: rgba(232, 168, 56, 0.10) !important;
+  color: #B87514 !important;
+  border: 1px solid rgba(232, 168, 56, 0.32) !important;
 }
-.mcp-root .loyalty-featured-btn-share:hover { background: rgba(232, 145, 42, 0.18) !important; }
+.mcp-root .loyalty-featured-btn-share:hover { background: rgba(232, 168, 56, 0.18) !important; }
 .mcp-root .loyalty-featured-btn-gift {
   background: #fff !important;
-  color: #B8690F !important;
-  border: 1.5px solid #E8912A !important;
+  color: #B87514 !important;
+  border: 1.5px solid #E8A838 !important;
 }
-.mcp-root .loyalty-featured-btn-gift:hover { background: rgba(232, 145, 42, 0.08) !important; }
+.mcp-root .loyalty-featured-btn-gift:hover { background: rgba(232, 168, 56, 0.08) !important; }
 .mcp-root .loyalty-featured-btn-use {
-  background: #E8912A !important;
+  background: #E8A838 !important;
   color: #fff !important;
-  border: 1px solid #D07E1C !important;
+  border: 1px solid #C8901E !important;
 }
-.mcp-root .loyalty-featured-btn-use:hover { background: #D07E1C !important; }
+.mcp-root .loyalty-featured-btn-use:hover { background: #C8901E !important; }
 .mcp-root .loyalty-featured-stats {
   display: flex;
   gap: 10px;

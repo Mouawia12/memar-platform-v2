@@ -6,14 +6,14 @@ import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types'
 import { clientAccountCode } from '../api/clientPortalApi';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
 import { NewProjectRequestModal } from '../components/NewProjectRequestModal';
-import { NewRequestModal } from '../components/NewRequestModal';
+import { NewRequestSection } from '../components/NewRequestSection';
 import { AccountQrModal } from '../components/AccountQrModal';
 import { useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
-type PageKey = 'dashboard' | 'requests' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
+type PageKey = 'dashboard' | 'requests' | 'new-request' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
 const PAGE_TITLES: Record<PageKey, string> = {
-  dashboard: 'نظرة عامة', requests: 'طلباتي', notifications: 'الإشعارات', meetings: 'الاجتماعات',
+  dashboard: 'نظرة عامة', requests: 'طلباتي', 'new-request': 'طلب جديد', notifications: 'الإشعارات', meetings: 'الاجتماعات',
   chat: 'المحادثات', forum: 'المنتدى', loyalty: 'اقترحنا لصديق', company: 'صفحة الشركة', settings: 'الإعدادات',
 };
 
@@ -53,7 +53,6 @@ export function ClientPortalV2Page() {
   const [heroPaused, setHeroPaused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [projectRequestOpen, setProjectRequestOpen] = useState(false);
-  const [requestOpen, setRequestOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const { data: notif } = useClientNotifications();
   const { data: loyalty } = useLoyalty();
@@ -253,7 +252,7 @@ export function ClientPortalV2Page() {
 
             <div className="nav-section-label">الطلبات</div>
             <div className={`nav-item${page === 'requests' ? ' active' : ''}`} onClick={() => go('requests')}><i className="fas fa-clipboard-list" /><span>طلباتي</span></div>
-            <div className="nav-item" onClick={() => { go('requests'); setRequestOpen(true); }}><i className="fas fa-plus-circle" /><span>طلب جديد</span></div>
+            <div className={`nav-item${page === 'new-request' ? ' active' : ''}`} onClick={() => go('new-request')}><i className="fas fa-plus-circle" /><span>طلب جديد</span></div>
 
             <div className="nav-section-label">التواصل</div>
             <div className={`nav-item${page === 'meetings' ? ' active' : ''}`} onClick={() => go('meetings')}><i className="fas fa-video" /><span>الاجتماعات</span>{appts.length > 0 && <span className="nav-badge">{appts.length}</span>}</div>
@@ -306,7 +305,8 @@ export function ClientPortalV2Page() {
 
           <div className="content">
             <div className="page active">
-              {page === 'requests' && <RequestsSection onNew={() => setRequestOpen(true)} />}
+              {page === 'requests' && <RequestsSection onNew={() => go('new-request')} />}
+              {page === 'new-request' && <NewRequestSection projects={projects.map((p) => ({ id: p.id, name: p.name }))} onBack={() => go('requests')} />}
               {page === 'notifications' && <NotificationsSection />}
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
               {page === 'chat' && <ChatSection />}
@@ -456,7 +456,6 @@ export function ClientPortalV2Page() {
 
       {/* نموذج طلب مشروع جديد */}
       {projectRequestOpen && <NewProjectRequestModal onClose={() => setProjectRequestOpen(false)} />}
-      {requestOpen && <NewRequestModal projects={projects.map((p) => ({ id: p.id, name: p.name }))} onClose={() => setRequestOpen(false)} />}
       {qrOpen && client && <AccountQrModal accountNumber={memberCode} clientName={clientName} onClose={() => setQrOpen(false)} />}
 
       {/* إشعار عائم — طبق الأصل (.toast.show) */}

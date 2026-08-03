@@ -312,7 +312,7 @@ export function ClientPortalV2Page() {
               {page === 'chat' && <ChatSection />}
               {page === 'forum' && <ForumSection />}
               {page === 'loyalty' && <LoyaltySection code={referralCode} referrerKind={loyalty?.referrer_kind ?? 'client'} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
-              {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={(id) => navigate(`/client-portal/projects/${id}`)} onRequest={() => doRequest('project')} />}
+              {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={(id) => navigate(`/client-portal/projects/${id}`)} onRequest={() => doRequest('project')} onBack={() => go('dashboard')} />}
               {page === 'settings' && client && <SettingsSection client={client} />}
               {page === 'dashboard' && (<>
               {/* كاروسيل الإعلانات — طبق الأصل: ٣ شرائح بصورها ونصوصها، خلفية زرقاء، تشغيل تلقائي ٥ث مع إيقاف عند التمرير */}

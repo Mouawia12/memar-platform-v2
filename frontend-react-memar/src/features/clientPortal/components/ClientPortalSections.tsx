@@ -604,7 +604,7 @@ export function SettingsSection({ client }: { client: ClientInfo }) {
 }
 
 /** صفحة الشركة — طبق الأصل: hero + info-grid + team-grid + projects-grid (بفلاتر) من بياناتك. */
-export function CompanySection({ client, projects, onProject, onRequest }: { client: ClientInfo; projects: Project[]; onProject: (id: number) => void; onRequest: () => void }) {
+export function CompanySection({ client, projects, onProject, onRequest, onBack }: { client: ClientInfo; projects: Project[]; onProject: (id: number) => void; onRequest: () => void; onBack: () => void }) {
   const [filter, setFilter] = useState<'all' | 'active' | 'done'>('all');
   const { data: team } = useTeamMembers();
   const addMember = useAddTeamMember();
@@ -632,6 +632,10 @@ export function CompanySection({ client, projects, onProject, onRequest }: { cli
     <>
       <div className="company-hero hero-type-company">
         <div className="company-hero-bg" />
+        {/* زر الرجوع داخل الهيرو — مطابق لتصميم Atoms */}
+        <a href="#" className="company-hero-back" onClick={(e) => { e.preventDefault(); onBack(); }}>
+          <i className="fas fa-arrow-right" /> العودة لصفحتي
+        </a>
         <div className="company-hero-layout">
           <div className="company-hero-content">
             <div className="company-logo"><i className="fas fa-building-columns" /></div>
@@ -643,6 +647,15 @@ export function CompanySection({ client, projects, onProject, onRequest }: { cli
                 <div className="company-stat"><span className="company-stat-value">{doneCount}</span><span className="company-stat-label">مشروع مكتمل</span></div>
                 <div className="company-stat"><span className="company-stat-value">{projects.length}</span><span className="company-stat-label">إجمالي المشاريع</span></div>
               </div>
+            </div>
+          </div>
+          {/* الإعلان الحصري في نصف الهيرو — مطابق لتصميم Atoms (نصف الهيرو) */}
+          <div className="company-hero-ad">
+            <div className="company-ad-content">
+              <span className="company-ad-badge"><i className="fas fa-sparkles" /> عرض حصري</span>
+              <h3>خصم 15% على خدمات الإشراف الهندسي</h3>
+              <p>لعملاء {client.company || 'مجموعة معمار'} — عرض ساري حتى نهاية الربع</p>
+              <button className="btn company-ad-btn" onClick={onRequest}><i className="fas fa-arrow-left" /> استفد الآن</button>
             </div>
           </div>
         </div>

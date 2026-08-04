@@ -3856,3 +3856,16 @@
   border-radius: 8px;
   gap: 6px;
 }
+/* أزرار أكشن قسم الفريق (إضافة عضو/إزالة) + حبّة العدد: سكين الـERP القديم يُصغّر
+   .btn-sm بـ!important (4px 10px) فتبدو أصغر من تصميم atoms. نعيدها أكبر قليلًا. */
+.mcp-root .company-section-header-actions .btn,
+.mcp-root .company-team-card .btn {
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  border-radius: 9px !important;
+  gap: 7px !important;
+}
+.mcp-root .company-section-header-actions .badge {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+}

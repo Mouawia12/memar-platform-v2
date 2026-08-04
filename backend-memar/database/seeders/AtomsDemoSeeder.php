@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\Appointment;
 use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -120,6 +121,22 @@ class AtomsDemoSeeder extends Seeder
             Invoice::updateOrCreate(
                 ['number' => 'INV-2024-014'],
                 ['project_id' => $flagship->id, 'client_id' => $contact->id, 'total_kwd' => 30000, 'paid_kwd' => 12000, 'status' => 'partial', 'due_date' => '2024-08-30'],
+            );
+
+            // ── اجتماعات المشروع (صفحة «الاجتماعات») — اليوم/قادم/منتهٍ طبق الأصل ──
+            // مواعيد نسبية لوقت البذر لتظهر بحالات live/upcoming/past.
+            $staff = $flagship->manager_id;
+            Appointment::updateOrCreate(
+                ['title' => 'مراجعة التصميم المعماري', 'project_id' => $flagship->id],
+                ['type' => 'meeting', 'start_at' => Carbon::now()->setTime(10, 0), 'end_at' => Carbon::now()->setTime(11, 30), 'is_video' => true, 'video_room' => 'memar-villa-review', 'status' => 'scheduled', 'created_by' => $staff],
+            );
+            Appointment::updateOrCreate(
+                ['title' => 'عرض المخططات النهائية', 'project_id' => $flagship->id],
+                ['type' => 'meeting', 'start_at' => Carbon::now()->addDays(7)->setTime(14, 0), 'end_at' => Carbon::now()->addDays(7)->setTime(15, 0), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'status' => 'scheduled', 'created_by' => $staff],
+            );
+            Appointment::updateOrCreate(
+                ['title' => 'مناقشة متطلبات التصميم الداخلي', 'project_id' => $flagship->id],
+                ['type' => 'meeting', 'start_at' => Carbon::now()->subDays(5)->setTime(11, 0), 'end_at' => Carbon::now()->subDays(5)->setTime(11, 45), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'status' => 'done', 'notes' => 'اتُّفق على الطراز العصري مع لمسات كلاسيكية في المداخل، وتحديث ألوان الواجهة الداخلية.', 'created_by' => $staff],
             );
         }
     }

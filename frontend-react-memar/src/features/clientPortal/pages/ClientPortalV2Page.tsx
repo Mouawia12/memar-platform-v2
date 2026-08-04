@@ -87,6 +87,9 @@ export function ClientPortalV2Page() {
 
   const projects = data?.projects ?? [];
   const appts = data?.appointments ?? [];
+  // صفحة الاجتماعات تعرض الكل (منتهٍ/اليوم/قادم)؛ الداشبورد يُظهر القادمة فقط.
+  const startOfToday = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+  const upcomingAppts = appts.filter((a) => a.start_at != null && new Date(a.start_at).getTime() >= startOfToday);
   const invoices = data?.invoices ?? [];
   const stats = data?.stats;
   const client = data?.client;
@@ -104,11 +107,11 @@ export function ClientPortalV2Page() {
   const activity = useMemo(() => {
     const items: { dot: string; text: string; time: string }[] = [];
     invoices.filter((i) => Number(i.balance_kwd) > 0).slice(0, 2).forEach((i) => items.push({ dot: 'orange', text: `فاتورة ${i.number ?? '#' + i.id} بانتظار السداد — ${money(i.balance_kwd)}`, time: 'مستحقة' }));
-    appts.slice(0, 2).forEach((a) => items.push({ dot: 'purple', text: `اجتماع: ${a.title}`, time: `${monthOf(a.start_at)} ${dayOf(a.start_at)}` }));
+    upcomingAppts.slice(0, 2).forEach((a) => items.push({ dot: 'purple', text: `اجتماع: ${a.title}`, time: `${monthOf(a.start_at)} ${dayOf(a.start_at)}` }));
     projects.slice(0, 2).forEach((p) => items.push({ dot: 'blue', text: `مشروع ${p.name} — ${PROJECT_STATUS_LABELS[p.status]}`, time: '' }));
 
     return items.slice(0, 5);
-  }, [invoices, appts, projects]);
+  }, [invoices, upcomingAppts, projects]);
 
   if (isLoading) return <div className="mcp-root" style={{ padding: 40 }}>جارٍ التحميل…</div>;
   if (isError || !data) return <div className="mcp-root" style={{ padding: 40, color: '#ef4444' }}>تعذّر تحميل بوابة العميل.</div>;
@@ -254,7 +257,7 @@ export function ClientPortalV2Page() {
             <div className={`nav-item${page === 'new-request' ? ' active' : ''}`} onClick={() => go('new-request')}><i className="fas fa-plus-circle" /><span>طلب جديد</span></div>
 
             <div className="nav-section-label">التواصل</div>
-            <div className={`nav-item${page === 'meetings' ? ' active' : ''}`} onClick={() => go('meetings')}><i className="fas fa-video" /><span>الاجتماعات</span>{appts.length > 0 && <span className="nav-badge">{appts.length}</span>}</div>
+            <div className={`nav-item${page === 'meetings' ? ' active' : ''}`} onClick={() => go('meetings')}><i className="fas fa-video" /><span>الاجتماعات</span>{upcomingAppts.length > 0 && <span className="nav-badge">{upcomingAppts.length}</span>}</div>
             <div className={`nav-item${page === 'chat' ? ' active' : ''}`} onClick={() => go('chat')}><i className="fas fa-comments" /><span>المحادثات</span></div>
             <div className={`nav-item${page === 'forum' ? ' active' : ''}`} onClick={() => go('forum')}><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>
 
@@ -308,7 +311,7 @@ export function ClientPortalV2Page() {
               {page === 'new-request' && <NewRequestSection projects={projects.map((p) => ({ id: p.id, name: p.name }))} onBack={() => go('requests')} />}
               {page === 'new-project-request' && <NewProjectRequestSection onBack={() => go('dashboard')} />}
               {page === 'notifications' && <NotificationsSection />}
-              {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} />}
+              {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} onToast={showToast} />}
               {page === 'chat' && <ChatSection />}
               {page === 'forum' && <ForumSection />}
               {page === 'loyalty' && <LoyaltySection code={referralCode} referrerKind={loyalty?.referrer_kind ?? 'client'} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
@@ -344,7 +347,7 @@ export function ClientPortalV2Page() {
                 <Kpi icon="fa-diagram-project" cls="blue" value={String(activeProjects)} label="مشاريع نشطة" trend={{ cls: 'up', icon: 'fa-arrow-up', txt: `${activeProjects}` }} />
                 <Kpi icon="fa-check-circle" cls="green" value={`${completionPct}%`} label="نسبة الإنجاز" trend={{ cls: 'up', icon: 'fa-arrow-up', txt: `${completionPct}%` }} />
                 <Kpi icon="fa-file-invoice" cls="orange" value={String(unpaidCount)} label="فواتير معلقة" trend={{ cls: 'neutral', icon: 'fa-minus', txt: `${unpaidCount}` }} />
-                <Kpi icon="fa-calendar-check" cls="purple" value={String(appts.length)} label="اجتماع قادم" trend={{ cls: 'neutral', icon: 'fa-clock', txt: appts.length ? 'قريبًا' : '—' }} />
+                <Kpi icon="fa-calendar-check" cls="purple" value={String(upcomingAppts.length)} label="اجتماع قادم" trend={{ cls: 'neutral', icon: 'fa-clock', txt: upcomingAppts.length ? 'قريبًا' : '—' }} />
               </div>
 
               {/* برنامج الولاء — كامل بثلاثة أزرار وإحصائيات كالأصل */}
@@ -424,8 +427,8 @@ export function ClientPortalV2Page() {
                 <div className="card upcoming-meetings">
                   <div className="card-header"><h3 className="card-title">الاجتماعات القادمة</h3><button className="btn btn-ghost btn-sm" onClick={() => go('meetings')}>عرض الكل</button></div>
                   <div className="card-body">
-                    {appts.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا اجتماعات قادمة.</p>}
-                    {appts.map((a) => (
+                    {upcomingAppts.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا اجتماعات قادمة.</p>}
+                    {upcomingAppts.map((a) => (
                       <div key={a.id} className="meeting-mini-card">
                         <div className="meeting-mini-date"><span className="meeting-mini-day">{dayOf(a.start_at)}</span><span className="meeting-mini-month">{monthOf(a.start_at)}</span></div>
                         <div className="meeting-mini-info"><h4>{a.title}</h4><p><i className="fas fa-clock" /> {timeOf(a.start_at)}</p><p><i className={`fas ${a.is_video ? 'fa-video' : 'fa-location-dot'}`} /> {a.is_video ? 'اجتماع مرئي' : 'حضوري'}</p></div>

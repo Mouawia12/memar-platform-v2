@@ -80,12 +80,14 @@ class ClientPortalController extends ApiController
             ->limit(20)
             ->get();
 
+        // اجتماعات صفحة العميل: اجتماعات حديثة منتهية + اليوم + القادمة —
+        // لتُعرض بطاقات live/upcoming/past طبق الأصل. الداشبورد يُرشّح القادمة فقط.
         $appointments = Appointment::whereIn('project_id', $projectIds)
-            ->where('start_at', '>=', now()->startOfDay())
-            ->where('status', 'scheduled')
+            ->where('start_at', '>=', now()->subDays(60))
+            ->whereIn('status', ['scheduled', 'done'])
             ->with('project:id,name')
             ->orderBy('start_at')
-            ->limit(10)
+            ->limit(15)
             ->get();
 
         $totalDue = (float) $invoices->sum(fn (Invoice $i) => (float) $i->total_kwd - (float) $i->paid_kwd);

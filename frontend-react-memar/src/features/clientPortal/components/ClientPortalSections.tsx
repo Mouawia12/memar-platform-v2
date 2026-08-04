@@ -96,9 +96,15 @@ export function NotificationsSection() {
 }
 
 /** الاجتماعات — طبق الأصل: meetings-list (اليوم/قادم/سابق) من مواعيدك الحقيقية. */
-export function MeetingsSection({ appts, onRequest }: { appts: Appointment[]; onRequest: () => void }) {
+export function MeetingsSection({ appts, onRequest, onToast }: { appts: Appointment[]; onRequest: () => void; onToast?: (m: string) => void }) {
   const now = Date.now();
   const isSameDay = (iso: string | null) => (iso ? new Date(iso).toDateString() === new Date().toDateString() : false);
+  const durationOf = (a: Appointment): string | null => {
+    if (!a.start_at || !a.end_at) return null;
+    const mins = Math.round((new Date(a.end_at).getTime() - new Date(a.start_at).getTime()) / 60000);
+    return mins > 0 ? `${mins} دقيقة` : null;
+  };
+  const toast = (m: string) => onToast?.(m);
 
   return (
     <>
@@ -111,7 +117,14 @@ export function MeetingsSection({ appts, onRequest }: { appts: Appointment[]; on
       </div>
       <div className="meetings-list">
         {appts.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا اجتماعات مجدولة بعد — استخدم «طلب اجتماع».</p>}
-        {appts.map((a) => {
+        {[...appts].sort((x, y) => {
+          // الترتيب طبق الأصل: اليوم (live) ثم القادمة (الأقرب أولاً) ثم المنتهية (الأحدث أولاً)
+          const rank = (a: Appointment) => { const t = a.start_at ? new Date(a.start_at).getTime() : 0; const td = isSameDay(a.start_at); return td ? 0 : (t > 0 && t < now) ? 2 : 1; };
+          const rx = rank(x), ry = rank(y);
+          if (rx !== ry) return rx - ry;
+          const tx = x.start_at ? new Date(x.start_at).getTime() : 0, ty = y.start_at ? new Date(y.start_at).getTime() : 0;
+          return rx === 2 ? ty - tx : tx - ty;
+        }).map((a) => {
           const start = a.start_at ? new Date(a.start_at).getTime() : 0;
           const today = isSameDay(a.start_at);
           const past = start > 0 && start < now && !today;
@@ -129,15 +142,33 @@ export function MeetingsSection({ appts, onRequest }: { appts: Appointment[]; on
                 </div>
                 <div className="meeting-info">
                   <h4>{a.title}</h4>
+                  {/* ميتا طبق الأصل: المشروع + المدّة + النوع/الموقع (أو «مكتمل» للمنتهية) */}
                   <div className="meeting-meta">
                     {a.project?.name && <span><i className="fas fa-building" /> {a.project.name}</span>}
-                    <span><i className={`fas ${a.is_video ? 'fa-video' : 'fa-location-dot'}`} /> {a.is_video ? 'اجتماع مرئي' : (a.location || 'حضوري')}</span>
+                    {durationOf(a) && <span><i className="fas fa-clock" /> {durationOf(a)}</span>}
+                    {past ? (
+                      <span><i className="fas fa-check-circle" style={{ color: 'var(--success)' }} /> مكتمل</span>
+                    ) : (
+                      <span><i className={`fas ${a.is_video ? 'fa-video' : 'fa-location-dot'}`} /> {a.is_video ? 'اجتماع مرئي' : (a.location || 'حضوري')}</span>
+                    )}
                   </div>
                 </div>
+                {/* أزرار الإجراء طبق الأصل: انضمام (اليوم) · تأكيد+تعديل (قادم) · محضر (منتهٍ) */}
                 <div className="meeting-actions">
-                  {today && a.is_video && a.video_url && <a className="btn btn-primary" href={a.video_url} target="_blank" rel="noreferrer"><i className="fas fa-video" /> انضمام</a>}
-                  {past && <span className="badge badge-gray"><i className="fas fa-check-circle" /> منتهٍ</span>}
-                  {!today && !past && <span className="badge badge-blue">قادم</span>}
+                  {today && (
+                    a.is_video && a.video_url
+                      ? <a className="btn btn-primary" href={a.video_url} target="_blank" rel="noreferrer"><i className="fas fa-video" /> انضمام</a>
+                      : <button className="btn btn-primary" type="button" onClick={() => toast(a.is_video ? 'سيُفعّل رابط الانضمام قبل الموعد بقليل' : 'اجتماع حضوري — نراك في الموعد')}><i className="fas fa-video" /> انضمام</button>
+                  )}
+                  {!today && !past && (
+                    <>
+                      <button className="btn btn-secondary" type="button" onClick={() => toast('تم تأكيد حضورك للاجتماع ✓')}><i className="fas fa-calendar-check" /> تأكيد</button>
+                      <button className="btn btn-ghost btn-sm" type="button" onClick={() => toast('سيتواصل معك منسّق الاجتماعات لتعديل الموعد')}><i className="fas fa-pen" /> تعديل</button>
+                    </>
+                  )}
+                  {past && (
+                    <button className="btn btn-ghost btn-sm" type="button" onClick={() => toast(a.notes ? `محضر الاجتماع: ${a.notes}` : 'لم يُرفع محضر هذا الاجتماع بعد')}><i className="fas fa-file-lines" /> محضر الاجتماع</button>
+                  )}
                 </div>
               </div>
             </div>

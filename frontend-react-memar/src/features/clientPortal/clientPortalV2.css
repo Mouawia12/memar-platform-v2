@@ -2793,8 +2793,11 @@
 .mcp-root .hero-ad-visual { width: 160px; height: 130px; }
 }
 @media (max-width: 900px) {
-.mcp-root .sidebar { transform: translateX(100%); }
+/* سكين الـERP القديم يفرض .sidebar{display:none} عند ≤580px فيمنع فتح شريط البوابة.
+   نُبقيه ظاهرًا (flex) ونخفيه بالإزاحة فقط، ونظهره بـ.open (طبق سلوك الموبايل الأصلي). */
+.mcp-root .sidebar { transform: translateX(100%); display: flex !important; }
 .mcp-root .sidebar.open { transform: translateX(0); }
+.mcp-root .sidebar-overlay,
 .mcp-root .sidebar-overlay.active { display: block; }
 .mcp-root .main { margin-right: 0; }
 .mcp-root .topbar-menu-btn { display: flex; }

@@ -39,7 +39,7 @@
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 
   
-  --sidebar-w: 260px;
+  --sidebar-w: 280px;
   --topbar-h: 64px;
   --radius: 12px;
   --radius-sm: 8px;
@@ -65,6 +65,10 @@
 .mcp-root img { display: block; max-width: 100%; }
 .mcp-root .hidden { display: none !important; }
 .mcp-root .app { display: flex; min-height: 100vh; }
+/* تثبيت عرض التخطيط بين الصفحات: صفحة طويلة تُظهر شريط تمرير النافذة وصفحة قصيرة
+   تخفيه، فتتحرّك حافة الشاشة ويتزحزح السايد بار الثابت (right:0) قليلًا. نحجز مساحة
+   الشريط دائمًا فيبقى العرض ثابتًا مهما اختلف طول الصفحة. مقصور على وجود البوابة. */
+html:has(.mcp-root) { scrollbar-gutter: stable; }
 .mcp-root .sidebar {
   width: var(--sidebar-w);
   background: #FFFFFF;

@@ -39,18 +39,12 @@ const initials2 = (name: string): string => {
  * عرض للقراءة فقط بلا أي بيانات داخلية. تُحفَظ استثناءات أيمن المقصودة:
  * زر عودة بارز، طايمر العمل (بند 11)، عملة الدينار الكويتي، بيانات backend الحقيقية.
  */
-export function ClientProjectDetailPage() {
-  const { id } = useParams();
-  const projectId = Number(id);
+export function ProjectDetailSection({ projectId }: { projectId: number }) {
   const { data, isLoading, isError } = useClientProject(projectId);
 
-  if (isLoading) return <div className="mcp-root" style={{ padding: 40 }}>جارٍ التحميل…</div>;
+  if (isLoading) return <p style={{ padding: 40 }}>جارٍ التحميل…</p>;
   if (isError || !data)
-    return (
-      <div className="mcp-root" style={{ padding: 40, color: '#ef4444' }}>
-        تعذّر تحميل المشروع أو لا صلاحية لك عليه.
-      </div>
-    );
+    return <p style={{ padding: 40, color: '#ef4444' }}>تعذّر تحميل المشروع أو لا صلاحية لك عليه.</p>;
 
   const { project, stages, payments, team, change_log: changeLog } = data;
   const pct = Math.max(0, Math.min(100, project.stage_progress));
@@ -65,14 +59,7 @@ export function ClientProjectDetailPage() {
   const remaining = daysUntil(project.end_date);
 
   return (
-    <div className="mcp-root" style={page}>
-      {/* زر عودة بارز وثابت — يمنع «حبس» العميل داخل صفحة المشروع (طلب أيمن، اجتماع 4) */}
-      <div style={{ marginBottom: 16 }}>
-        <Link to="/client-portal" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-          <i className="fas fa-arrow-right" /> الرجوع إلى بوابة العميل
-        </Link>
-      </div>
-
+    <>
       {/* ═══ الهيرو — طبق الأصل: وسم الحالة + الاسم + الوصف + الميتا + حلقة التقدّم ═══ */}
       <div className="project-hero">
         <div className="project-hero-content">
@@ -291,6 +278,24 @@ export function ClientProjectDetailPage() {
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+/**
+ * صفحة المشروع كمسار مستقل (وصول مباشر عبر الرابط /client-portal/projects/:id) —
+ * تغلّف القسم بزر رجوع بارز. داخل البوابة يُعرض القسم inline بلا هذا الغلاف.
+ */
+export function ClientProjectDetailPage() {
+  const { id } = useParams();
+  return (
+    <div className="mcp-root" style={page}>
+      <div style={{ marginBottom: 16 }}>
+        <Link to="/client-portal" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+          <i className="fas fa-arrow-right" /> الرجوع إلى بوابة العميل
+        </Link>
+      </div>
+      <ProjectDetailSection projectId={Number(id)} />
     </div>
   );
 }

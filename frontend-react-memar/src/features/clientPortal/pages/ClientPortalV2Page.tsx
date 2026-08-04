@@ -7,13 +7,14 @@ import { clientAccountCode } from '../api/clientPortalApi';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
 import { NewProjectRequestSection } from '../components/NewProjectRequestSection';
 import { NewRequestSection } from '../components/NewRequestSection';
+import { ProjectDetailSection } from './ClientProjectDetailPage';
 import { AccountQrModal } from '../components/AccountQrModal';
 import { useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
-type PageKey = 'dashboard' | 'requests' | 'new-request' | 'new-project-request' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
+type PageKey = 'dashboard' | 'requests' | 'new-request' | 'new-project-request' | 'project-detail' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
 const PAGE_TITLES: Record<PageKey, string> = {
-  dashboard: 'نظرة عامة', requests: 'طلباتي', 'new-request': 'طلب جديد', 'new-project-request': 'طلب مشروع جديد', notifications: 'الإشعارات', meetings: 'الاجتماعات',
+  dashboard: 'نظرة عامة', requests: 'طلباتي', 'new-request': 'طلب جديد', 'new-project-request': 'طلب مشروع جديد', 'project-detail': 'تفاصيل المشروع', notifications: 'الإشعارات', meetings: 'الاجتماعات',
   chat: 'المحادثات', forum: 'المنتدى', loyalty: 'اقترحنا لصديق', company: 'صفحة الشركة', settings: 'الإعدادات',
 };
 
@@ -48,6 +49,7 @@ export function ClientPortalV2Page() {
   const [slide, setSlide] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<PageKey[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [page, setPage] = useState<PageKey>('dashboard');
   const [toast, setToast] = useState<string | null>(null);
@@ -174,6 +176,8 @@ export function ClientPortalV2Page() {
     setPage(prev);
     setSidebarOpen(false);
   };
+  // فتح تفاصيل المشروع داخل البوابة (تغيير محتوى داخلي، لا انتقال لصفحة منفصلة) — طبق الأصل.
+  const openProject = (id: number) => { setSelectedProjectId(id); go('project-detail'); };
   const notifCount = notif?.count ?? unpaidCount;
 
   return (
@@ -257,7 +261,7 @@ export function ClientPortalV2Page() {
             <div className="nav-sub-items">
               {projects.length === 0 && <div className="nav-item" style={{ opacity: 0.6 }}><i className="fas fa-building" /><span>لا مشاريع بعد</span></div>}
               {projects.map((p) => (
-                <div key={p.id} className="nav-item" onClick={() => navigate(`/client-portal/projects/${p.id}`)}>
+                <div key={p.id} className={`nav-item${page === 'project-detail' && selectedProjectId === p.id ? ' active' : ''}`} onClick={() => openProject(p.id)}>
                   <i className="fas fa-building" /><span>{p.name}</span>
                   <span className={`nav-progress-dot ${p.status === 'active' ? 'active' : 'pending'}`} />
                 </div>
@@ -322,12 +326,13 @@ export function ClientPortalV2Page() {
               {page === 'requests' && <RequestsSection onNew={() => go('new-request')} />}
               {page === 'new-request' && <NewRequestSection projects={projects.map((p) => ({ id: p.id, name: p.name }))} onBack={() => go('requests')} />}
               {page === 'new-project-request' && <NewProjectRequestSection onBack={() => go('dashboard')} />}
+              {page === 'project-detail' && selectedProjectId != null && <ProjectDetailSection projectId={selectedProjectId} />}
               {page === 'notifications' && <NotificationsSection />}
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} onToast={showToast} />}
               {page === 'chat' && <ChatSection />}
               {page === 'forum' && <ForumSection />}
               {page === 'loyalty' && <LoyaltySection code={referralCode} referrerKind={loyalty?.referrer_kind ?? 'client'} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
-              {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={(id) => navigate(`/client-portal/projects/${id}`)} onRequest={() => doRequest('project')} onBack={() => go('dashboard')} />}
+              {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={openProject} onRequest={() => doRequest('project')} onBack={() => go('dashboard')} />}
               {page === 'settings' && client && <SettingsSection client={client} />}
               {page === 'dashboard' && (<>
               {/* كاروسيل الإعلانات — طبق الأصل: ٣ شرائح بصورها ونصوصها، خلفية زرقاء، تشغيل تلقائي ٥ث مع إيقاف عند التمرير */}
@@ -396,7 +401,7 @@ export function ClientPortalV2Page() {
               {/* الشبكة */}
               <div className="dashboard-grid">
                 <div className="card projects-overview">
-                  <div className="card-header"><h3 className="card-title">المشاريع النشطة</h3>{projects.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => projects[0] && navigate(`/client-portal/projects/${projects[0].id}`)}>عرض الكل</button>}</div>
+                  <div className="card-header"><h3 className="card-title">المشاريع النشطة</h3>{projects.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => projects[0] && openProject(projects[0].id)}>عرض الكل</button>}</div>
                   <div className="card-body">
                     <div className="project-list">
                       {projects.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا مشاريع بعد.</p>}
@@ -405,7 +410,7 @@ export function ClientPortalV2Page() {
                         const iconCls = ['', 'orange', 'green'][idx % 3];
 
                         return (
-                          <div key={p.id} className="project-item" onClick={() => navigate(`/client-portal/projects/${p.id}`)}>
+                          <div key={p.id} className="project-item" onClick={() => openProject(p.id)}>
                             <div className={`project-item-icon ${iconCls}`}><i className="fas fa-building" /></div>
                             <div className="project-item-info"><h4>{p.name}</h4><span className="project-item-stage">{PROJECT_STATUS_LABELS[p.status]}</span></div>
                             <div className="project-item-progress">
@@ -454,8 +459,8 @@ export function ClientPortalV2Page() {
                   <div className="card-header"><h3 className="card-title">إجراءات سريعة</h3></div>
                   <div className="card-body">
                     <div className="quick-actions-grid">
-                      <button className="quick-action-btn" onClick={() => (projects[0] ? navigate(`/client-portal/projects/${projects[0].id}`) : showToast('لا مشاريع بعد لرفع مستنداتها'))}><i className="fas fa-cloud-arrow-up" /><span>رفع مستند</span></button>
-                      <button className="quick-action-btn" onClick={() => (projects[0] ? navigate(`/client-portal/projects/${projects[0].id}`) : showToast('لا فواتير مستحقة'))}><i className="fas fa-money-bill-wave" /><span>سداد فاتورة</span></button>
+                      <button className="quick-action-btn" onClick={() => (projects[0] ? openProject(projects[0].id) : showToast('لا مشاريع بعد لرفع مستنداتها'))}><i className="fas fa-cloud-arrow-up" /><span>رفع مستند</span></button>
+                      <button className="quick-action-btn" onClick={() => (projects[0] ? openProject(projects[0].id) : showToast('لا فواتير مستحقة'))}><i className="fas fa-money-bill-wave" /><span>سداد فاتورة</span></button>
                       <button className="quick-action-btn" onClick={() => doRequest('meeting')}><i className="fas fa-calendar-plus" /><span>حجز اجتماع</span></button>
                       <button className="quick-action-btn" onClick={() => go('chat')}><i className="fas fa-headset" /><span>دعم فني</span></button>
                     </div>

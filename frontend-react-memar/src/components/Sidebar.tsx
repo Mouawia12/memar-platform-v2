@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 
 import { NAV_SECTIONS, visibleNavSections } from '../config/nav';
 import { authApi } from '../features/auth/api/authApi';
+import { SidebarUserCard } from './SidebarUserCard';
 import { useAuthStore } from '../store/auth';
 import type { UiPrefs } from '../types/api';
 
@@ -95,6 +96,9 @@ export function Sidebar({ open, onNavigate }: Props) {
           <span>مجموعة معمار للاستشارات</span>
         </div>
       </div>
+
+      {/* بطاقة تعريف الموظف/المهندس — نظير بطاقة العميل (اجتماع 2026-08-03، مقطع 15) */}
+      <SidebarUserCard />
 
       {/* تخصيص القائمة (DASH-3): إظهار/إخفاء الروابط */}
       <button type="button" onClick={() => setEditing((e) => !e)} style={{ ...customizeBtn, ...(editing ? customizeOn : null) }}>

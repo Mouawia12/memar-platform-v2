@@ -517,8 +517,10 @@
   white-space: nowrap;
   font-family: inherit;
 }
-.mcp-root .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(27, 108, 168, 0.15); }
-.mcp-root .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 6px 16px rgba(27, 108, 168, 0.25); transform: translateY(-1px); }
+/* توحيد لون الأزرار الأساسية على أزرق atoms (#1B6CA8): سكينات الـERP القديمة تفرض
+   .btn-primary أزرق داكن (navy) بـ!important فتبدو بعض الأزرار غامقة والبعض صحيحًا. */
+.mcp-root .btn-primary { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; box-shadow: 0 2px 8px rgba(27, 108, 168, 0.15) !important; }
+.mcp-root .btn-primary:hover { background: var(--primary-dark) !important; box-shadow: 0 6px 16px rgba(27, 108, 168, 0.25) !important; transform: translateY(-1px); }
 .mcp-root .btn-secondary { background: var(--divider); color: var(--text-2); }
 .mcp-root .btn-secondary:hover { background: var(--border); }
 .mcp-root .btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--border); }

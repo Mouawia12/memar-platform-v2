@@ -119,9 +119,10 @@ class ClientPortalSectionsTest extends TestCase
 
         $res->assertOk()
             ->assertJsonPath('data.stats.successful', 1)
-            ->assertJsonPath('data.stats.gifts_sent', 1)
             ->assertJsonPath('data.stats.shares', 4)
-            ->assertJsonCount(2, 'data.history');
+            ->assertJsonPath('data.points', 0)
+            ->assertJsonPath('data.tier.key', 'bronze')
+            ->assertJsonCount(2, 'data.referrals');
 
         $code = $res->json('data.code');
         $this->assertNotEmpty($code);

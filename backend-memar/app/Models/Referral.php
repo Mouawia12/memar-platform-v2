@@ -18,7 +18,8 @@ class Referral extends Model
     use HasFactory;
 
     protected $fillable = [
-        'referrer_contact_id', 'referred_name', 'status', 'is_gift',
+        'referrer_contact_id', 'referred_contact_id', 'referred_name', 'status', 'is_gift',
+        'points_awarded', 'welcome_discount_pct', 'joined_at', 'contracted_at',
     ];
 
     /**
@@ -28,6 +29,10 @@ class Referral extends Model
     {
         return [
             'is_gift' => 'boolean',
+            'points_awarded' => 'integer',
+            'welcome_discount_pct' => 'integer',
+            'joined_at' => 'datetime',
+            'contracted_at' => 'datetime',
         ];
     }
 
@@ -37,5 +42,11 @@ class Referral extends Model
     public function referrer(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'referrer_contact_id');
+    }
+
+    /** الصديق المُحال (بعد فتح حسابه). @return BelongsTo<Contact, $this> */
+    public function referred(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'referred_contact_id');
     }
 }

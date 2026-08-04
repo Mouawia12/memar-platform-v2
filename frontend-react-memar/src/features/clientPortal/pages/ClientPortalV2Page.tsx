@@ -9,7 +9,7 @@ import { NewProjectRequestSection } from '../components/NewProjectRequestSection
 import { NewRequestSection } from '../components/NewRequestSection';
 import { ProjectDetailSection } from './ClientProjectDetailPage';
 import { AccountQrModal } from '../components/AccountQrModal';
-import { useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
+import { useApplyLoyaltyCredit, useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useRedeemLoyalty, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
 type PageKey = 'dashboard' | 'requests' | 'new-request' | 'new-project-request' | 'project-detail' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
@@ -69,6 +69,8 @@ export function ClientPortalV2Page() {
   const { data: notif } = useClientNotifications();
   const { data: loyalty } = useLoyalty();
   const recordShare = useRecordReferralShare();
+  const redeemLoyalty = useRedeemLoyalty();
+  const applyCredit = useApplyLoyaltyCredit();
 
   const adCount = HERO_SLIDES.length;
   useEffect(() => {
@@ -110,7 +112,6 @@ export function ClientPortalV2Page() {
   const initial = clientName.trim().charAt(0) || 'ع';
   const memberCode = client ? clientAccountCode(client) : '…';
   const referralCode = loyalty?.code ?? '…';
-  const loyaltyStats = loyalty?.stats ?? { successful: 0, gifts_sent: 0, shares: 0, discount: 10 };
 
   const doneCount = stats?.done_projects ?? projects.filter((p) => p.status === 'done').length;
   const activeProjects = stats?.active_projects ?? projects.filter((p) => p.status === 'active').length;
@@ -163,9 +164,17 @@ export function ClientPortalV2Page() {
     recordShare.mutate();
     showToast('تم نسخ رابط المشاركة ✓');
   };
-  const loyaltyAction = (type: 'gift' | 'self') => {
-    if (type === 'gift') { navigator.clipboard?.writeText(referralCode); showToast('📋 تم نسخ رابط الإهداء'); setTimeout(() => showToast('لتفعيل الإهداء، شارك كودك مع صديقك. سيحصل على الخصم بعد فتح حساب جديد والتعاقد على مشروعه الأول.'), 1500); }
-    else showToast('لتفعيل خصمك، شارك كودك مع صديق. يُطبَّق الخصم تلقائياً بعد فتح صديقك حساباً جديداً وتعاقده على مشروعه الأول.');
+  const doRedeem = (points: number) => {
+    redeemLoyalty.mutate(points, {
+      onSuccess: (r) => showToast(`تم استبدال ${points.toLocaleString('ar')} نقطة برصيد خصم ${r.amount_kwd} د.ك ✓`),
+      onError: () => showToast('تعذّر الاستبدال — تأكّد من رصيد نقاطك.'),
+    });
+  };
+  const doApplyCredit = (voucher: string, invoiceId: number) => {
+    applyCredit.mutate({ voucher, invoiceId }, {
+      onSuccess: (r) => showToast(`طُبِّق خصم ${r.applied_kwd} د.ك على فاتورتك ✓`),
+      onError: () => showToast('تعذّر تطبيق القسيمة على الفاتورة.'),
+    });
   };
   // تعديل الكنية داخليًا (طبق الأصل: editClientTitle) — يُحفظ فعليًا في الباك اند.
   const startEditKunya = () => { setKunyaDraft(client?.kunya ?? ''); setEditingKunya(true); };
@@ -359,7 +368,9 @@ export function ClientPortalV2Page() {
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} onToast={showToast} />}
               {page === 'chat' && <ChatSection />}
               {page === 'forum' && <ForumSection />}
-              {page === 'loyalty' && <LoyaltySection code={referralCode} referrerKind={loyalty?.referrer_kind ?? 'client'} stats={loyaltyStats} history={loyalty?.history ?? []} onCopy={copyCode} onShare={shareReferral} onGift={() => loyaltyAction('gift')} onSelf={() => loyaltyAction('self')} />}
+              {page === 'loyalty' && (loyalty
+                ? <LoyaltySection data={loyalty} busy={redeemLoyalty.isPending || applyCredit.isPending} onCopy={copyCode} onShare={shareReferral} onRedeem={doRedeem} onApplyCredit={doApplyCredit} />
+                : <div style={{ padding: 40, color: '#64748B' }}>جارٍ تحميل برنامج الولاء…</div>)}
               {page === 'company' && client && <CompanySection client={client} projects={projects} onProject={openProject} onRequest={() => doRequest('project')} onBack={() => go('dashboard')} />}
               {page === 'settings' && client && <SettingsSection client={client} />}
               {page === 'dashboard' && (<>
@@ -395,32 +406,31 @@ export function ClientPortalV2Page() {
                 <Kpi icon="fa-calendar-check" cls="purple" value={String(upcomingAppts.length)} label="اجتماع قادم" trend={{ cls: 'neutral', icon: 'fa-clock', txt: upcomingAppts.length ? 'قريبًا' : '—' }} />
               </div>
 
-              {/* برنامج الولاء — كامل بثلاثة أزرار وإحصائيات كالأصل */}
+              {/* برنامج الولاء والإحالة — بطاقة الداشبورد: إحالة ثنائية واضحة + نقاطي.
+                  تحلّ لبس الفيديو: «شارك» = خصم لصديقك + نقاط لك · «استبدل نقاطي» = خصم لك. */}
               <div className="loyalty-section-featured">
                 <div className="loyalty-featured-card">
                   <div className="loyalty-featured-bg" />
                   <div className="loyalty-featured-content">
                     <div className="loyalty-featured-icon"><i className="fas fa-handshake-angle" /></div>
                     <div className="loyalty-featured-info">
-                      <h3>اقترحنا لصديق</h3>
-                      <p>شارك تجربتك مع معمار واحصل على خصم 10% على مشروعك القادم أو أهدِ الخصم لصديقك</p>
+                      <h3>برنامج الولاء والإحالة</h3>
+                      <p>شارك كودك: <b>صديقك يربح خصم {loyalty?.welcome_discount ?? 10}٪</b> على أول مشروع، <b>وأنت تربح {(loyalty?.referral_reward ?? 500).toLocaleString('ar')} نقطة</b> عند تعاقده.</p>
+                    </div>
+                    <div className="loyalty-featured-points">
+                      <div className="lf-points-box"><span className="lf-points-num">{(loyalty?.points ?? 0).toLocaleString('ar')}</span><span className="lf-points-lbl">نقطة ولاء</span></div>
+                      <span className="lf-tier-badge"><i className="fas fa-crown" /> {loyalty?.tier.label ?? '—'}</span>
                     </div>
                     <div className="loyalty-featured-code-box">
-                      <div className="loyalty-featured-code-label">كود العضوية</div>
+                      <div className="loyalty-featured-code-label">كود الإحالة</div>
                       <div className="loyalty-featured-code-value">
                         <span>{referralCode}</span>
                         <button className="loyalty-featured-copy-btn" title="نسخ الكود" onClick={copyCode}><i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`} /></button>
                       </div>
                     </div>
                     <div className="loyalty-featured-actions">
-                      <button className="btn loyalty-featured-btn-share" onClick={shareReferral}><i className="fas fa-share-nodes" /> مشاركة الكود</button>
-                      <button className="btn loyalty-featured-btn-gift" onClick={() => loyaltyAction('gift')}><i className="fas fa-gift" /> أهدِ لصديق</button>
-                      <button className="btn loyalty-featured-btn-use" onClick={() => loyaltyAction('self')}><i className="fas fa-percent" /> استخدم لنفسي</button>
-                    </div>
-                    <div className="loyalty-featured-stats">
-                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">{loyaltyStats.successful}</span><span className="loyalty-featured-stat-txt">إحالات ناجحة</span></div>
-                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">{loyaltyStats.discount}%</span><span className="loyalty-featured-stat-txt">خصم متاح</span></div>
-                      <div className="loyalty-featured-stat"><span className="loyalty-featured-stat-num">{loyaltyStats.gifts_sent}</span><span className="loyalty-featured-stat-txt">هدايا مُرسلة</span></div>
+                      <button className="btn loyalty-featured-btn-share" onClick={shareReferral}><i className="fas fa-share-nodes" /> شارك الكود مع صديق</button>
+                      <button className="btn loyalty-featured-btn-use" onClick={() => go('loyalty')}><i className="fas fa-percent" /> استبدل نقاطي</button>
                     </div>
                   </div>
                 </div>

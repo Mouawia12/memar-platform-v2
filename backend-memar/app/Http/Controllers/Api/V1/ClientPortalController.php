@@ -27,7 +27,10 @@ use App\Models\Referral;
 use App\Models\ServiceRequest;
 use App\Models\StoredFile;
 use App\Models\TeamMember;
+use App\Models\LoyaltyRedemption;
+use App\Models\LoyaltyTransaction;
 use App\Services\FileStorageService;
+use App\Services\LoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -693,74 +696,155 @@ class ClientPortalController extends ApiController
         return false;
     }
 
-    public function loyalty(Request $request): JsonResponse
+    /** مسمّيات مصادر حركات النقاط للعرض. */
+    private const SOURCE_LABELS = [
+        'referral' => 'إحالة صديق',
+        'project_completed' => 'إتمام مشروع',
+        'invoice_paid' => 'سداد فاتورة',
+        'signup' => 'مكافأة ترحيبية',
+        'share' => 'مشاركة الكود',
+        'anniversary' => 'ذكرى سنوية',
+        'redeem' => 'استبدال نقاط',
+        'adjust' => 'تعديل يدوي',
+    ];
+
+    private const REFERRAL_STATUS_LABELS = [
+        'pending' => 'بانتظار التسجيل',
+        'joined' => 'فتح حساب',
+        'contracted' => 'إحالة ناجحة',
+    ];
+
+    /**
+     * لوحة الولاء والإحالة الكاملة: رصيد النقاط + المستوى + رصيد الخصم المتاح +
+     * سجل الحركات + الإحالات + قواعد الاستبدال + الفواتير غير المسدّدة (لتطبيق الرصيد).
+     */
+    public function loyalty(Request $request, LoyaltyService $loyalty): JsonResponse
     {
         $contact = $request->user()?->contact;
         abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
 
-        $this->ensureReferralCode($contact);
+        $loyalty->ensureReferralCode($contact);
+        $contact->refresh();
 
         $referrals = $contact->referrals()->latest()->get();
-        $labels = ['pending' => 'بانتظار التعاقد', 'joined' => 'فتح حساب', 'contracted' => 'مكتمل'];
 
         return $this->ok([
             'code' => $contact->referral_code,
-            // نوع المُحيل: مهندس/شريك يُحيل عملاء (بند 7) أو عميل يقترح لصديق — لتكييف العرض
             'referrer_kind' => $this->isEngineerReferrer($contact) ? 'engineer' : 'client',
-            'stats' => [
-                'successful' => $referrals->where('status', 'contracted')->count(),
-                'gifts_sent' => $referrals->where('is_gift', true)->count(),
-                'shares' => (int) $contact->referral_shares,
-                'discount' => 10,
+            'points' => $loyalty->balance($contact),
+            'available_credit' => $loyalty->availableCredit($contact),
+            'welcome_discount' => (int) config('loyalty.welcome_discount_pct'),
+            'referral_reward' => (int) config('loyalty.earn.referral_contracted'),
+            'redeem' => [
+                'points_per_kwd' => (int) config('loyalty.redeem.points_per_kwd'),
+                'min_points' => (int) config('loyalty.redeem.min_points'),
             ],
-            'history' => $referrals->map(fn (Referral $r): array => [
+            'tier' => $loyalty->tier($contact),
+            'stats' => [
+                'points' => $loyalty->balance($contact),
+                'successful' => $referrals->where('status', 'contracted')->count(),
+                'joined' => $referrals->where('status', 'joined')->count(),
+                'shares' => (int) $contact->referral_shares,
+                'discount' => (int) config('loyalty.welcome_discount_pct'),
+            ],
+            'referrals' => $referrals->map(fn (Referral $r): array => [
                 'id' => $r->id,
                 'name' => $r->referred_name,
                 'status' => $r->status,
-                'status_label' => $labels[$r->status] ?? $r->status,
-                'is_gift' => $r->is_gift,
+                'status_label' => self::REFERRAL_STATUS_LABELS[$r->status] ?? $r->status,
+                'points_awarded' => (int) $r->points_awarded,
+                'date' => ($r->contracted_at ?? $r->joined_at ?? $r->created_at)?->toIso8601String(),
+            ])->values()->all(),
+            'ledger' => $contact->loyaltyTransactions()->latest()->limit(30)->get()->map(fn (LoyaltyTransaction $t): array => [
+                'id' => $t->id,
+                'points' => $t->points,
+                'balance_after' => $t->balance_after,
+                'source' => $t->source,
+                'source_label' => self::SOURCE_LABELS[$t->source] ?? $t->source,
+                'description' => $t->description,
+                'date' => $t->created_at?->toIso8601String(),
             ])->all(),
+            'vouchers' => $contact->loyaltyRedemptions()->latest()->get()->map(fn (LoyaltyRedemption $v): array => [
+                'code' => $v->code,
+                'amount_kwd' => (float) $v->amount_kwd,
+                'points_spent' => $v->points_spent,
+                'status' => $v->status,
+                'date' => $v->created_at?->toIso8601String(),
+            ])->all(),
+            'unpaid_invoices' => Invoice::where('client_id', $contact->id)
+                ->whereIn('status', ['sent', 'partial'])
+                ->latest('issue_date')->get()
+                ->map(fn (Invoice $i): array => [
+                    'id' => $i->id,
+                    'number' => $i->number,
+                    'due_kwd' => max(0, (float) $i->total_kwd - (float) $i->paid_kwd),
+                ])->filter(fn (array $i): bool => $i['due_kwd'] > 0)->values()->all(),
         ]);
     }
 
-    /** تسجيل مشاركة الكود (زر المشاركة/النسخ) — عدّاد حقيقي. */
-    public function recordReferralShare(Request $request): JsonResponse
+    /** استبدال نقاط برصيد خصم (قسيمة). */
+    public function redeemLoyalty(Request $request, LoyaltyService $loyalty): JsonResponse
     {
         $contact = $request->user()?->contact;
         abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
 
-        $this->ensureReferralCode($contact);
-        $contact->increment('referral_shares');
+        $data = $request->validate(['points' => ['required', 'integer', 'min:1']]);
+
+        try {
+            $voucher = $loyalty->redeem($contact, (int) $data['points']);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422);
+        }
+
+        return $this->ok([
+            'code' => $voucher->code,
+            'amount_kwd' => (float) $voucher->amount_kwd,
+            'points_spent' => $voucher->points_spent,
+            'balance' => $loyalty->balance($contact->refresh()),
+        ], "تم استبدال {$voucher->points_spent} نقطة برصيد خصم {$voucher->amount_kwd} د.ك");
+    }
+
+    /** تطبيق قسيمة خصم متاحة على فاتورة غير مسدّدة للعميل. */
+    public function applyLoyaltyCredit(Request $request, LoyaltyService $loyalty): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $data = $request->validate([
+            'voucher_code' => ['required', 'string'],
+            'invoice_id' => ['required', 'integer'],
+        ]);
+
+        $voucher = LoyaltyRedemption::where('code', $data['voucher_code'])->where('contact_id', $contact->id)->first();
+        $invoice = Invoice::where('id', $data['invoice_id'])->where('client_id', $contact->id)->first();
+        abort_unless($voucher && $invoice, 404, 'القسيمة أو الفاتورة غير موجودة.');
+
+        try {
+            $applied = $loyalty->applyRedemptionToInvoice($voucher, $invoice);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422);
+        }
+
+        return $this->ok([
+            'applied_kwd' => $applied,
+            'invoice_status' => $invoice->refresh()->status,
+        ], "طُبِّق خصم {$applied} د.ك على الفاتورة {$invoice->number}");
+    }
+
+    /** تسجيل مشاركة الكود (زر المشاركة/النسخ) — عدّاد + نقاط تفاعل مسقوفة. */
+    public function recordReferralShare(Request $request, LoyaltyService $loyalty): JsonResponse
+    {
+        $contact = $request->user()?->contact;
+        abort_unless($contact !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
+
+        $loyalty->ensureReferralCode($contact);
+        $granted = $loyalty->recordShare($contact);
 
         return $this->ok([
             'code' => $contact->referral_code,
-            'shares' => (int) $contact->referral_shares,
+            'shares' => (int) $contact->refresh()->referral_shares,
+            'points_granted' => $granted,
         ], 'تم تسجيل المشاركة');
-    }
-
-    /** يُولّد كود إحالة فريدًا ثابتًا للعميل مرة واحدة. */
-    private function ensureReferralCode(Contact $contact): void
-    {
-        if ($contact->referral_code) {
-            return;
-        }
-
-        // الصيغة المطلوبة (اجتماع 2026-08-03): MEMAR-<الاسم><السنة> مثل MEMAR-AHMED2024،
-        // مع تمييز رقمي عند تكرار الاسم في نفس السنة. الرقم الشخصي ثابت لا يتغيّر.
-        $first = (string) Str::of($contact->full_name)->trim()->explode(' ')->first();
-        $slug = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', Str::ascii($first)));
-        $base = $slug !== '' ? $slug : strtoupper(Str::random(4));
-        $year = now()->year;
-
-        $code = "MEMAR-{$base}{$year}";
-        $i = 1;
-        while (Contact::where('referral_code', $code)->exists()) {
-            $code = "MEMAR-{$base}{$year}-{$i}";
-            $i++;
-        }
-
-        $contact->referral_code = $code;
-        $contact->save();
     }
 
     // ═══ محادثات متعددة الخيوط (اجتماع 2026-08-03، بند 8) ═══

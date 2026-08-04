@@ -3917,3 +3917,147 @@ html:has(.mcp-root) { overflow-y: scroll; scrollbar-gutter: stable; }
   padding: 6px 12px !important;
   font-size: 12px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   برنامج الولاء والإحالة — النظام الكامل (فيديو أيمن 2026-08-04)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* بطاقة الداشبورد: صفّ النقاط + شارة المستوى */
+.mcp-root .loyalty-featured-points {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 14px 0; padding: 12px 16px; border-radius: 12px;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+}
+.mcp-root .lf-points-box { display: flex; align-items: baseline; gap: 6px; }
+.mcp-root .lf-points-num { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
+.mcp-root .lf-points-lbl { font-size: 12px; color: rgba(255,255,255,0.8); }
+.mcp-root .lf-tier-badge {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700;
+  color: #fff; background: rgba(232,168,56,0.9); padding: 6px 12px; border-radius: 999px;
+}
+.mcp-root .loyalty-featured-info p b { color: #FFE3A6; font-weight: 800; }
+
+/* شبكة صفحة الولاء */
+.mcp-root .loyalty-grid {
+  display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; align-items: start;
+}
+.mcp-root .loyalty-grid > div { min-width: 0; }
+.mcp-root .loyalty-hero-card,
+.mcp-root .loyalty-referral-card,
+.mcp-root .loyalty-redeem-card,
+.mcp-root .loyalty-ledger-card,
+.mcp-root .loyalty-referrals-card,
+.mcp-root .loyalty-perks-card {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm); padding: 20px;
+}
+.mcp-root .loyalty-card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+.mcp-root .loyalty-card-head h3 { font-size: 15.5px; font-weight: 800; color: var(--text); margin: 0; }
+.mcp-root .loyalty-card-head i { color: var(--primary); font-size: 16px; }
+
+/* بطاقة النقاط + المستوى (هيرو) */
+.mcp-root .loyalty-hero-card {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #0D4A7A 0%, #1B6CA8 100%);
+  border: none; color: #fff;
+}
+.mcp-root .loyalty-hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.mcp-root .loyalty-hero-points { font-size: 40px; font-weight: 800; line-height: 1; }
+.mcp-root .loyalty-hero-points-label { font-size: 13px; color: rgba(255,255,255,0.82); margin-top: 4px; }
+.mcp-root .loyalty-tier-badge {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800;
+  padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,0.16);
+}
+.mcp-root .loyalty-tier-progress { margin-top: 18px; }
+.mcp-root .loyalty-tier-progress-head { display: flex; justify-content: space-between; font-size: 12.5px; color: rgba(255,255,255,0.9); margin-bottom: 7px; }
+.mcp-root .loyalty-progress-track { height: 9px; border-radius: 999px; background: rgba(255,255,255,0.2); overflow: hidden; }
+.mcp-root .loyalty-progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #E8A838, #F5C563); transition: width .5s ease; }
+.mcp-root .loyalty-tier-max { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #FFE3A6; }
+.mcp-root .loyalty-credit-chip {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 8px 14px;
+  border-radius: 10px; background: rgba(45,155,111,0.22); border: 1px solid rgba(255,255,255,0.2); font-size: 13px;
+}
+.mcp-root .loyalty-credit-chip strong { color: #B9F5D8; }
+
+/* بطاقة الإحالة الثنائية */
+.mcp-root .loyalty-dual { display: flex; align-items: stretch; gap: 10px; margin-bottom: 16px; }
+.mcp-root .loyalty-dual-side {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  padding: 14px 10px; border-radius: 12px; border: 1px solid var(--border);
+}
+.mcp-root .loyalty-dual-side i { font-size: 20px; margin-bottom: 2px; }
+.mcp-root .loyalty-dual-side strong { font-size: 13px; color: var(--text); }
+.mcp-root .loyalty-dual-side span { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+.mcp-root .loyalty-dual-side.friend { background: rgba(232,168,56,0.08); border-color: rgba(232,168,56,0.3); }
+.mcp-root .loyalty-dual-side.friend i { color: #D99A16; }
+.mcp-root .loyalty-dual-side.you { background: rgba(27,108,168,0.07); border-color: rgba(27,108,168,0.25); }
+.mcp-root .loyalty-dual-side.you i { color: var(--primary); }
+.mcp-root .loyalty-dual-plus { display: flex; align-items: center; font-size: 20px; font-weight: 800; color: var(--text-3); }
+.mcp-root .loyalty-code-box,
+.mcp-root .loyalty-featured-code-box + .loyalty-code-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; background: var(--bg-2); border: 1px dashed var(--border); margin-bottom: 12px;
+}
+.mcp-root .loyalty-code-text { font-weight: 800; letter-spacing: .5px; color: var(--primary-dark); font-size: 14px; }
+.mcp-root .loyalty-share-btn { width: 100%; justify-content: center; }
+.mcp-root .loyalty-referral-note {
+  margin: 12px 0 0; font-size: 12px; line-height: 1.7; color: var(--text-3);
+  display: flex; gap: 7px; align-items: flex-start;
+}
+.mcp-root .loyalty-referral-note i { color: var(--primary); margin-top: 2px; }
+
+/* بطاقة الاستبدال */
+.mcp-root .loyalty-redeem-rate { font-size: 13px; color: var(--text-2); margin: 0 0 14px; }
+.mcp-root .loyalty-redeem-rate strong { color: #D99A16; }
+.mcp-root .loyalty-redeem-picker { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.mcp-root .loyalty-step-btn {
+  width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: #fff;
+  color: var(--primary); cursor: pointer; display: grid; place-items: center; font-size: 14px; flex-shrink: 0;
+}
+.mcp-root .loyalty-step-btn:disabled { opacity: .4; cursor: not-allowed; }
+.mcp-root .loyalty-step-btn:not(:disabled):hover { background: var(--primary-50); }
+.mcp-root .loyalty-redeem-amount { flex: 1; text-align: center; }
+.mcp-root .loyalty-redeem-amount strong { font-size: 22px; color: var(--text); }
+.mcp-root .loyalty-redeem-amount span { display: block; font-size: 13px; color: #2D9B6F; font-weight: 700; margin-top: 2px; }
+.mcp-root .loyalty-redeem-btn { width: 100%; justify-content: center; }
+.mcp-root .loyalty-redeem-empty { font-size: 13px; color: var(--text-3); line-height: 1.7; margin: 0; }
+.mcp-root .loyalty-vouchers { margin-top: 16px; border-top: 1px solid var(--divider); padding-top: 14px; }
+.mcp-root .loyalty-vouchers-title { font-size: 12px; font-weight: 700; color: var(--text-3); margin-bottom: 8px; }
+.mcp-root .loyalty-voucher { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-radius: 10px; background: var(--bg-2); margin-bottom: 8px; }
+.mcp-root .loyalty-voucher.applied { opacity: .6; }
+.mcp-root .loyalty-voucher-info { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.mcp-root .loyalty-voucher-info i { color: #D99A16; }
+.mcp-root .loyalty-voucher-info strong { color: var(--text); }
+.mcp-root .loyalty-voucher-info span { color: var(--text-4); font-size: 11.5px; letter-spacing: .3px; }
+
+/* السجل + الإحالات + المزايا */
+.mcp-root .loyalty-side-col { display: flex; flex-direction: column; gap: 18px; }
+.mcp-root .loyalty-ledger, .mcp-root .loyalty-referrals { display: flex; flex-direction: column; gap: 4px; max-height: 340px; overflow-y: auto; }
+.mcp-root .loyalty-ledger-row { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-bottom: 1px solid var(--divider); }
+.mcp-root .loyalty-ledger-row:last-child { border-bottom: none; }
+.mcp-root .loyalty-ledger-icon { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+.mcp-root .loyalty-ledger-icon.earn { background: rgba(45,155,111,0.12); color: #2D9B6F; }
+.mcp-root .loyalty-ledger-icon.spend { background: rgba(232,168,56,0.14); color: #D99A16; }
+.mcp-root .loyalty-ledger-info { flex: 1; min-width: 0; }
+.mcp-root .loyalty-ledger-info strong { display: block; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mcp-root .loyalty-ledger-info span { font-size: 11.5px; color: var(--text-4); }
+.mcp-root .loyalty-ledger-points { font-size: 15px; font-weight: 800; flex-shrink: 0; }
+.mcp-root .loyalty-ledger-points.earn { color: #2D9B6F; }
+.mcp-root .loyalty-ledger-points.spend { color: #D99A16; }
+.mcp-root .loyalty-referral-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--divider); }
+.mcp-root .loyalty-referral-row:last-child { border-bottom: none; }
+.mcp-root .loyalty-referral-avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; background: var(--primary-gradient); color: #fff; font-weight: 800; font-size: 14px; }
+.mcp-root .loyalty-referral-info { flex: 1; min-width: 0; }
+.mcp-root .loyalty-referral-info strong { display: block; font-size: 13px; color: var(--text); }
+.mcp-root .loyalty-referral-info span { font-size: 11.5px; color: var(--text-4); }
+.mcp-root .loyalty-perks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.mcp-root .loyalty-perks li { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-2); }
+.mcp-root .loyalty-perks li i { color: #2D9B6F; font-size: 12px; }
+.mcp-root .loyalty-perks-next { margin: 14px 0 0; font-size: 12px; color: var(--primary); display: flex; align-items: center; gap: 7px; }
+.mcp-root .loyalty-empty { color: var(--text-3); padding: 10px 4px; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .mcp-root .loyalty-grid { grid-template-columns: 1fr; }
+  .mcp-root .loyalty-hero-points { font-size: 34px; }
+  .mcp-root .loyalty-featured-points { flex-direction: row; }
+}

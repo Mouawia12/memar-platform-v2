@@ -12,6 +12,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class ContractService
 {
+    public function __construct(private readonly LoyaltyService $loyalty) {}
+
     public function list(?string $search, ?string $status, int $perPage = 15): LengthAwarePaginator
     {
         return Contract::query()
@@ -30,6 +32,11 @@ class ContractService
         $contract = Contract::create($data);
         $contract->number = 'CT-'.str_pad((string) $contract->id, 4, '0', STR_PAD_LEFT);
         $contract->save();
+
+        // برنامج الولاء: أول تعاقد لعميل مُحال يُنجح إحالته ويكافئ مُحيله.
+        if ($contract->client) {
+            $this->loyalty->markReferredContracted($contract->client);
+        }
 
         return $contract->load(['project', 'client', 'quotation']);
     }

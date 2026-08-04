@@ -27,6 +27,7 @@ class Contact extends Model
         'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
         'referral_code', 'referral_shares', 'account_number', 'avatar_file_id', 'referred_by_user_id',
+        'referred_by_contact_id', 'loyalty_points', 'loyalty_points_lifetime',
     ];
 
     /**
@@ -81,6 +82,8 @@ class Contact extends Model
         return [
             'deal_value_kwd' => 'decimal:3',
             'notification_prefs' => 'array',
+            'loyalty_points' => 'integer',
+            'loyalty_points_lifetime' => 'integer',
         ];
     }
 
@@ -104,6 +107,24 @@ class Contact extends Model
     public function referrals(): HasMany
     {
         return $this->hasMany(Referral::class, 'referrer_contact_id');
+    }
+
+    /** حركات نقاط الولاء (السجل) — الأحدث أولًا. @return HasMany<LoyaltyTransaction, $this> */
+    public function loyaltyTransactions(): HasMany
+    {
+        return $this->hasMany(LoyaltyTransaction::class);
+    }
+
+    /** قسائم الاستبدال (نقاط → رصيد خصم). @return HasMany<LoyaltyRedemption, $this> */
+    public function loyaltyRedemptions(): HasMany
+    {
+        return $this->hasMany(LoyaltyRedemption::class);
+    }
+
+    /** العميل الذي أحال هذا العميل (عميل↔عميل). @return BelongsTo<Contact, $this> */
+    public function referredByContact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'referred_by_contact_id');
     }
 
     /**

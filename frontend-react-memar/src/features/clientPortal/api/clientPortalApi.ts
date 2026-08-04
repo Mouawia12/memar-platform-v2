@@ -148,12 +148,65 @@ export interface ClientProfilePayload {
   company?: string | null;
 }
 
+export interface LoyaltyTier {
+  key: 'bronze' | 'silver' | 'gold' | 'platinum';
+  label: string;
+  discount_bonus_pct: number;
+  perks: string[];
+  lifetime: number;
+  next: { label: string; min: number; remaining: number } | null;
+  progress: number;
+}
+
+export interface LoyaltyLedgerEntry {
+  id: number;
+  points: number;
+  balance_after: number;
+  source: string;
+  source_label: string;
+  description: string | null;
+  date: string | null;
+}
+
+export interface LoyaltyReferralItem {
+  id: number;
+  name: string | null;
+  status: 'pending' | 'joined' | 'contracted';
+  status_label: string;
+  points_awarded: number;
+  date: string | null;
+}
+
+export interface LoyaltyVoucher {
+  code: string;
+  amount_kwd: number;
+  points_spent: number;
+  status: 'available' | 'applied' | 'expired';
+  date: string | null;
+}
+
 export interface LoyaltyData {
   code: string;
   /** نوع المُحيل: مهندس/شريك يُحيل عملاء (بند 7) أو عميل يقترح لصديق. */
   referrer_kind?: 'engineer' | 'client';
-  stats: { successful: number; gifts_sent: number; shares: number; discount: number };
-  history: { id: number; name: string | null; status: 'pending' | 'joined' | 'contracted'; status_label: string; is_gift: boolean }[];
+  points: number;
+  available_credit: number;
+  welcome_discount: number;
+  referral_reward: number;
+  redeem: { points_per_kwd: number; min_points: number };
+  tier: LoyaltyTier;
+  stats: { points: number; successful: number; joined: number; shares: number; discount: number };
+  referrals: LoyaltyReferralItem[];
+  ledger: LoyaltyLedgerEntry[];
+  vouchers: LoyaltyVoucher[];
+  unpaid_invoices: { id: number; number: string | null; due_kwd: number }[];
+}
+
+export interface RedeemResult {
+  code: string;
+  amount_kwd: number;
+  points_spent: number;
+  balance: number;
 }
 
 export interface ClientMessage {
@@ -216,7 +269,10 @@ export interface TeamMember {
 export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
   loyalty: () => apiGet<LoyaltyData>('/client-portal/loyalty'),
-  recordShare: () => apiPost<{ code: string; shares: number }>('/client-portal/loyalty/share', {}),
+  recordShare: () => apiPost<{ code: string; shares: number; points_granted: number }>('/client-portal/loyalty/share', {}),
+  redeemLoyalty: (points: number) => apiPost<RedeemResult>('/client-portal/loyalty/redeem', { points }),
+  applyLoyaltyCredit: (voucher_code: string, invoice_id: number) =>
+    apiPost<{ applied_kwd: number; invoice_status: string }>('/client-portal/loyalty/apply-credit', { voucher_code, invoice_id }),
   // محادثات متعددة الخيوط (بند 8)
   chatThreads: () => apiGet<ChatThread[]>('/client-portal/chat/threads'),
   createChatThread: (title: string) => apiPost<{ id: number; title: string; kind: string }>('/client-portal/chat/threads', { title }),

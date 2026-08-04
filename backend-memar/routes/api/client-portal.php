@@ -22,6 +22,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::match(['put', 'patch'], '/client-portal/preferences', [ClientPortalController::class, 'updatePreferences']);
     Route::get('/client-portal/loyalty', [ClientPortalController::class, 'loyalty']);
     Route::post('/client-portal/loyalty/share', [ClientPortalController::class, 'recordReferralShare']);
+    Route::post('/client-portal/loyalty/redeem', [ClientPortalController::class, 'redeemLoyalty']);
+    Route::post('/client-portal/loyalty/apply-credit', [ClientPortalController::class, 'applyLoyaltyCredit']);
     // محادثات متعددة الخيوط: الفريق + الدعم الفني + مخصّصة، مع مشاركين (بند 8)
     Route::get('/client-portal/chat/threads', [ClientPortalController::class, 'chatThreads']);
     Route::post('/client-portal/chat/threads', [ClientPortalController::class, 'createChatThread']);

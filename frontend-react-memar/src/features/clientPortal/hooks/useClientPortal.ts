@@ -84,6 +84,30 @@ export function useRecordReferralShare() {
   });
 }
 
+/** استبدال نقاط برصيد خصم (قسيمة). */
+export function useRedeemLoyalty() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (points: number) => clientPortalApi.redeemLoyalty(points),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client-loyalty'] }),
+  });
+}
+
+/** تطبيق قسيمة خصم على فاتورة. */
+export function useApplyLoyaltyCredit() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ voucher, invoiceId }: { voucher: string; invoiceId: number }) =>
+      clientPortalApi.applyLoyaltyCredit(voucher, invoiceId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client-loyalty'] });
+      qc.invalidateQueries({ queryKey: ['client-portal'] });
+    },
+  });
+}
+
 /** خيوط محادثات العميل (فريق + دعم فني + مخصّصة) — بند 8. */
 export function useChatThreads() {
   return useQuery({ queryKey: ['client-chat-threads'], queryFn: () => clientPortalApi.chatThreads(), refetchInterval: 20000 });

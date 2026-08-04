@@ -18,6 +18,8 @@ use Illuminate\Validation\ValidationException;
  */
 class AuthService
 {
+    public function __construct(private readonly LoyaltyService $loyalty) {}
+
     /**
      * تسجيل عميل جديد ذاتيًا: ينشئ المستخدم بدور «عميل»، ويربطه بسجل في الـCRM
      * (يجد جهة اتصال بالهاتف/البريد أو ينشئ عميلًا جديدًا)، ثم يصدر توكنًا للدخول الفوري.
@@ -41,6 +43,20 @@ class AuthService
 
             $user->assignRole('client');
             $user->forceFill(['last_login_at' => now()])->save();
+
+            // برنامج الولاء: كود إحالة شخصي + مكافأة ترحيبية للحسابات الجديدة،
+            // وتسجيل الإحالة إن سجّل الصديق بكود عميل (إحالة عميل↔عميل).
+            $this->loyalty->ensureReferralCode($contact);
+            if ($contact->wasRecentlyCreated) {
+                $this->loyalty->award($contact, (int) config('loyalty.earn.signup_bonus'), 'signup', $user, 'مكافأة ترحيبية بفتح الحساب');
+
+                if (! empty($data['referral_code'])) {
+                    $referrer = $this->loyalty->resolveReferrer((string) $data['referral_code']);
+                    if ($referrer) {
+                        $this->loyalty->registerReferral($contact, $referrer);
+                    }
+                }
+            }
 
             $token = $user->createToken('api')->plainTextToken;
 

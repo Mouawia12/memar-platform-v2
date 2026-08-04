@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Appointment } from '../../appointments/types';
 import type { Project, ProjectStatus } from '../../projects/types';
-import { clientAccountCode, type ClientInfo, type NotificationPrefs } from '../api/clientPortalApi';
+import { clientAccountCode, type ClientInfo, type LoyaltyData, type NotificationPrefs } from '../api/clientPortalApi';
 import { useAddTeamMember, useAddThreadParticipant, useChatThreads, useClientNotifications, useCreateChatThread, useCreateForumThread, useDeleteAvatar, useForumThreads, useMyRequests, useRemoveTeamMember, useRemoveThreadParticipant, useRenameChatThread, useSendThreadMessage, useTeamMembers, useThreadMessages, useUpdateClientPreferences, useUpdateClientProfile, useUploadAvatar } from '../hooks/useClientPortal';
 import type { ChatThread } from '../api/clientPortalApi';
 
@@ -197,95 +197,187 @@ export function MeetingsSection({ appts, onRequest, onToast }: { appts: Appointm
 }
 
 /** برنامج الولاء — طبق الأصل: loyalty-page-grid (بطاقة رئيسية + كيف يعمل + إحصاءات + سجل) بإحصاءات وسجل حقيقيين. */
-interface LoyaltyStats { successful: number; gifts_sent: number; shares: number; discount: number }
-interface LoyaltyHistoryItem { id: number; name: string | null; status: string; status_label: string; is_gift: boolean }
+/** ألوان المستويات + أيقونة التاج. */
+const TIER_UI: Record<string, { color: string; bg: string }> = {
+  bronze: { color: '#B87333', bg: 'rgba(184,115,51,.12)' },
+  silver: { color: '#7C8AA0', bg: 'rgba(124,138,160,.14)' },
+  gold: { color: '#D99A16', bg: 'rgba(232,168,56,.15)' },
+  platinum: { color: '#6366F1', bg: 'rgba(99,102,241,.13)' },
+};
 
-export function LoyaltySection({ code, referrerKind = 'client', stats, history, onCopy, onShare, onGift, onSelf }: { code: string; referrerKind?: 'engineer' | 'client'; stats: LoyaltyStats; history: LoyaltyHistoryItem[]; onCopy: () => void; onShare: () => void; onGift: () => void; onSelf: () => void }) {
-  const isEngineer = referrerKind === 'engineer';
-  // كارت وكود الإحالة نفسه، لكن التأطير للمهندس/الشريك يُحيل «عملاء» بدل «صديق» (بند 7، بلا بونص)
-  const copy = isEngineer
-    ? {
-        subtitle: 'أحِل عملاءك إلى معمار عبر كودك المهني',
-        title: 'كود إحالة المهندس/الشريك',
-        desc: 'شارك كودك المهني مع عملائك. كل عميل يفتح حساباً ويُدخل كودك يُنسب إليك تلقائياً في سجل إحالاتك.',
-        codeLabel: 'كودك المهني',
-        steps: ['شارك كودك المهني مع عميلك', 'يفتح العميل حساباً ويُدخل الكود', 'يتعاقد العميل على مشروعه مع معمار', 'تُسجَّل الإحالة باسمك في سجلك المهني'],
-      }
-    : {
-        subtitle: 'شارك تجربتك مع معمار واحصل على مكافآت حصرية',
-        title: 'اقترحنا لصديق',
-        desc: 'شارك كودك الشخصي مع أصدقائك. عند فتح حساب جديد والتعاقد على مشروعه الأول، تحصل أنت على خصم 10% على مشروعك القادم.',
-        codeLabel: 'كودك الشخصي',
-        steps: ['شارك كودك الشخصي مع صديقك', 'يفتح صديقك حساباً جديداً ويُدخل الكود', 'يتعاقد صديقك على مشروعه الأول مع معمار', 'تحصل على خصم 10% على مشروعك القادم!'],
-      };
+/** أيقونة مصدر حركة النقاط في السجل. */
+const SOURCE_ICON: Record<string, string> = {
+  referral: 'fa-user-plus', project_completed: 'fa-diagram-project', invoice_paid: 'fa-file-invoice-dollar',
+  signup: 'fa-gift', share: 'fa-share-nodes', anniversary: 'fa-cake-candles', redeem: 'fa-percent', adjust: 'fa-sliders',
+};
+
+const fmtKwd = (n: number) => `${n.toLocaleString('ar', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 3 })} د.ك`;
+
+/**
+ * برنامج الولاء والإحالة — النظام الكامل (طلب أيمن، فيديو 2026-08-04):
+ * محفظة نقاط + مستوى + إحالة ثنائية واضحة (صديقك يربح خصمًا وأنت تربح نقاطًا)
+ * + استبدال النقاط رصيدَ خصم يُطبَّق على الفواتير. يحلّ لبس «الخصم لمين؟».
+ */
+export function LoyaltySection({ data, busy, onCopy, onShare, onRedeem, onApplyCredit }: {
+  data: LoyaltyData;
+  busy?: boolean;
+  onCopy: () => void;
+  onShare: () => void;
+  onRedeem: (points: number) => void;
+  onApplyCredit: (voucher: string, invoiceId: number) => void;
+}) {
+  const isEngineer = data.referrer_kind === 'engineer';
+  const per = data.redeem.points_per_kwd;
+  const minR = data.redeem.min_points;
+  const maxR = Math.floor(data.points / per) * per; // أعلى استبدال ممكن (مضاعف الصرف)
+  const tier = data.tier;
+  const tierUi = TIER_UI[tier.key] ?? TIER_UI.bronze;
+
+  const [redeemPts, setRedeemPts] = useState(() => Math.min(Math.max(minR, per), Math.max(minR, maxR)));
+  const canRedeem = data.points >= minR && redeemPts >= minR && redeemPts <= data.points;
 
   return (
     <>
       <div className="section-header">
         <div>
-          <h2 className="section-title">{isEngineer ? 'برنامج إحالة المهندسين' : 'برنامج الولاء والإحالة'}</h2>
-          <p className="section-subtitle">{copy.subtitle}</p>
+          <h2 className="section-title">برنامج الولاء والإحالة</h2>
+          <p className="section-subtitle">اكسب نقاطًا من مشاريعك وإحالاتك، واستبدلها رصيدَ خصم على فواتيرك.</p>
         </div>
       </div>
-      <div className="loyalty-page-grid">
-        <div className="loyalty-page-main-card">
-          <div className="loyalty-page-header">
-            <div className="loyalty-page-icon"><i className={`fas ${isEngineer ? 'fa-user-tie' : 'fa-handshake-angle'}`} /></div>
+
+      <div className="loyalty-grid">
+        {/* بطاقة النقاط + المستوى */}
+        <div className="loyalty-hero-card" style={{ ['--tier' as string]: tierUi.color }}>
+          <div className="loyalty-hero-top">
             <div>
-              <h3>{copy.title}</h3>
-              <p>{copy.desc}</p>
+              <div className="loyalty-hero-points">{data.points.toLocaleString('ar')}</div>
+              <div className="loyalty-hero-points-label">نقطة ولاء</div>
+            </div>
+            <div className="loyalty-tier-badge" style={{ background: tierUi.bg, color: tierUi.color }}>
+              <i className="fas fa-crown" /> {tier.label}
             </div>
           </div>
-          <div className="loyalty-page-code-section">
-            <div className="loyalty-page-code-label">{copy.codeLabel}</div>
-            <div className="loyalty-page-code-box">
-              <span className="loyalty-page-code-text">{code}</span>
-              <button className="btn btn-sm btn-primary" onClick={onCopy}><i className="fas fa-copy" /> نسخ</button>
+          {tier.next ? (
+            <div className="loyalty-tier-progress">
+              <div className="loyalty-tier-progress-head">
+                <span>التقدّم إلى {tier.next.label}</span>
+                <span>باقٍ {tier.next.remaining.toLocaleString('ar')} نقطة</span>
+              </div>
+              <div className="loyalty-progress-track"><div className="loyalty-progress-fill" style={{ width: `${tier.progress}%` }} /></div>
+            </div>
+          ) : (
+            <div className="loyalty-tier-progress"><div className="loyalty-tier-max"><i className="fas fa-trophy" /> وصلت لأعلى مستوى — بلاتيني</div></div>
+          )}
+          {data.available_credit > 0 && (
+            <div className="loyalty-credit-chip"><i className="fas fa-wallet" /> رصيد خصم متاح: <strong>{fmtKwd(data.available_credit)}</strong></div>
+          )}
+        </div>
+
+        {/* بطاقة الإحالة — ثنائية واضحة (حلّ لبس الفيديو) */}
+        <div className="loyalty-referral-card">
+          <div className="loyalty-card-head"><i className="fas fa-handshake-angle" /><h3>{isEngineer ? 'أحِل عملاءك' : 'اقترحنا لصديق'}</h3></div>
+          <div className="loyalty-dual">
+            <div className="loyalty-dual-side friend">
+              <i className="fas fa-gift" />
+              <strong>صديقك يربح</strong>
+              <span>خصم ترحيبي {data.welcome_discount}٪ على أول مشروع</span>
+            </div>
+            <div className="loyalty-dual-plus">+</div>
+            <div className="loyalty-dual-side you">
+              <i className="fas fa-star" />
+              <strong>أنت تربح</strong>
+              <span>{data.referral_reward.toLocaleString('ar')} نقطة عند تعاقده</span>
             </div>
           </div>
-          <div className="loyalty-page-actions">
-            <button className="btn btn-primary" onClick={onShare}><i className="fas fa-share-nodes" /> مشاركة الكود</button>
-            {/* أزرار الخصم للعميل فقط — المهندس يُحيل عملاء بلا خصم/بونص (بند 7) */}
-            {!isEngineer && <button className="btn btn-ghost" onClick={onGift}><i className="fas fa-gift" /> أهدِ الخصم لصديق</button>}
-            {!isEngineer && <button className="btn btn-ghost" onClick={onSelf}><i className="fas fa-percent" /> استخدم الخصم لنفسي</button>}
+          <div className="loyalty-code-box">
+            <span className="loyalty-code-text">{data.code}</span>
+            <button className="btn btn-sm btn-primary" onClick={onCopy}><i className="fas fa-copy" /> نسخ</button>
           </div>
+          <button className="btn btn-primary loyalty-share-btn" onClick={onShare}><i className="fas fa-share-nodes" /> شارك الكود مع صديق</button>
+          <p className="loyalty-referral-note"><i className="fas fa-circle-info" /> الخصم يذهب لصديقك، ونقاط المكافأة تُضاف لك تلقائيًا عند تعاقده — دون أي خطوة إضافية منك.</p>
         </div>
 
-        <div className="loyalty-page-how-card">
-          <h4><i className="fas fa-circle-info" /> كيف يعمل البرنامج؟</h4>
-          <div className="loyalty-page-steps">
-            {copy.steps.map((t, i) => (
-              <div key={i} className="loyalty-step"><div className="loyalty-step-num">{i + 1}</div><div className="loyalty-step-text">{t}</div></div>
-            ))}
-          </div>
-        </div>
-
-        <div className="loyalty-page-stats-card">
-          <h4><i className="fas fa-chart-simple" /> إحصائياتك</h4>
-          <div className="loyalty-page-stats-grid">
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.successful}</span><span className="loyalty-page-stat-label">إحالات ناجحة</span></div>
-            {isEngineer
-              ? <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{history.length}</span><span className="loyalty-page-stat-label">عملاء محالون</span></div>
-              : <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.discount}%</span><span className="loyalty-page-stat-label">خصم متاح</span></div>}
-            {!isEngineer && <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.gifts_sent}</span><span className="loyalty-page-stat-label">هدايا مُرسلة</span></div>}
-            <div className="loyalty-page-stat-item"><span className="loyalty-page-stat-value">{stats.shares}</span><span className="loyalty-page-stat-label">مرات المشاركة</span></div>
-          </div>
-        </div>
-
-        <div className="loyalty-page-history-card">
-          <h4><i className="fas fa-clock-rotate-left" /> سجل الإحالات</h4>
-          <div className="loyalty-page-history">
-            {history.length === 0 && <p style={{ color: '#64748B', padding: 8 }}>لا إحالات بعد — شارك كودك لتبدأ.</p>}
-            {history.map((h) => (
-              <div key={h.id} className="loyalty-history-item">
-                <div className="loyalty-history-avatar">{(h.name ?? '؟').trim().charAt(0)}</div>
-                <div className="loyalty-history-info">
-                  <strong>{h.name ?? 'صديق'}{h.is_gift ? ' 🎁' : ''}</strong>
-                  <span>{h.status === 'contracted' ? 'فتح حساب وتعاقد على مشروع' : h.status === 'joined' ? 'فتح حساب - بانتظار التعاقد' : 'دعوة مُرسلة'}</span>
+        {/* بطاقة الاستبدال — استخدم نقاطك لنفسك */}
+        <div className="loyalty-redeem-card">
+          <div className="loyalty-card-head"><i className="fas fa-percent" /><h3>استبدل نقاطك</h3></div>
+          <p className="loyalty-redeem-rate">كل {per.toLocaleString('ar')} نقطة = <strong>{fmtKwd(1)}</strong> رصيد خصم على فاتورتك.</p>
+          {maxR >= minR ? (
+            <>
+              <div className="loyalty-redeem-picker">
+                <button type="button" className="loyalty-step-btn" onClick={() => setRedeemPts((p) => Math.max(minR, p - per))} disabled={redeemPts <= minR}><i className="fas fa-minus" /></button>
+                <div className="loyalty-redeem-amount">
+                  <strong>{redeemPts.toLocaleString('ar')}</strong> نقطة
+                  <span>= {fmtKwd(redeemPts / per)}</span>
                 </div>
-                <span className={`badge ${h.status === 'contracted' ? 'badge-green' : 'badge-orange'}`}>{h.status_label}</span>
+                <button type="button" className="loyalty-step-btn" onClick={() => setRedeemPts((p) => Math.min(maxR, p + per))} disabled={redeemPts >= maxR}><i className="fas fa-plus" /></button>
+              </div>
+              <button className="btn btn-primary loyalty-redeem-btn" disabled={!canRedeem || busy} onClick={() => onRedeem(redeemPts)}>
+                <i className="fas fa-ticket" /> استبدل واحصل على قسيمة خصم
+              </button>
+            </>
+          ) : (
+            <p className="loyalty-redeem-empty">تحتاج {minR.toLocaleString('ar')} نقطة على الأقل للاستبدال — اكسب المزيد من مشاريعك وإحالاتك.</p>
+          )}
+
+          {data.vouchers.length > 0 && (
+            <div className="loyalty-vouchers">
+              <div className="loyalty-vouchers-title">قسائمك</div>
+              {data.vouchers.map((v) => (
+                <div key={v.code} className={`loyalty-voucher ${v.status}`}>
+                  <div className="loyalty-voucher-info"><i className="fas fa-ticket" /><strong>{fmtKwd(v.amount_kwd)}</strong><span>{v.code}</span></div>
+                  {v.status === 'available' && data.unpaid_invoices.length > 0 ? (
+                    <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => onApplyCredit(v.code, data.unpaid_invoices[0].id)}>
+                      تطبيق على فاتورة {data.unpaid_invoices[0].number ?? ''}
+                    </button>
+                  ) : (
+                    <span className={`badge ${v.status === 'available' ? 'badge-green' : 'badge-blue'}`}>{v.status === 'available' ? 'متاحة' : v.status === 'applied' ? 'مُطبّقة' : 'منتهية'}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* سجل النقاط */}
+        <div className="loyalty-ledger-card">
+          <div className="loyalty-card-head"><i className="fas fa-clock-rotate-left" /><h3>سجل النقاط</h3></div>
+          <div className="loyalty-ledger">
+            {data.ledger.length === 0 && <p className="loyalty-empty">لا حركات بعد — ابدأ باكتساب نقاطك.</p>}
+            {data.ledger.map((t) => (
+              <div key={t.id} className="loyalty-ledger-row">
+                <div className={`loyalty-ledger-icon ${t.points >= 0 ? 'earn' : 'spend'}`}><i className={`fas ${SOURCE_ICON[t.source] ?? 'fa-star'}`} /></div>
+                <div className="loyalty-ledger-info">
+                  <strong>{t.description ?? t.source_label}</strong>
+                  <span>{t.source_label} · {fmtDate(t.date)}</span>
+                </div>
+                <div className={`loyalty-ledger-points ${t.points >= 0 ? 'earn' : 'spend'}`}>{t.points >= 0 ? '+' : ''}{t.points.toLocaleString('ar')}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* الإحالات + مزايا المستوى */}
+        <div className="loyalty-side-col">
+          <div className="loyalty-referrals-card">
+            <div className="loyalty-card-head"><i className="fas fa-users" /><h3>إحالاتك</h3></div>
+            <div className="loyalty-referrals">
+              {data.referrals.length === 0 && <p className="loyalty-empty">لا إحالات بعد — شارك كودك لتبدأ.</p>}
+              {data.referrals.map((r) => (
+                <div key={r.id} className="loyalty-referral-row">
+                  <div className="loyalty-referral-avatar">{(r.name ?? '؟').trim().charAt(0)}</div>
+                  <div className="loyalty-referral-info"><strong>{r.name ?? 'صديق'}</strong><span>{fmtDate(r.date)}</span></div>
+                  <span className={`badge ${r.status === 'contracted' ? 'badge-green' : 'badge-orange'}`}>{r.status_label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="loyalty-perks-card">
+            <div className="loyalty-card-head"><i className="fas fa-award" /><h3>مزايا مستوى {tier.label}</h3></div>
+            <ul className="loyalty-perks">
+              {tier.perks.map((p, i) => <li key={i}><i className="fas fa-check" /> {p}</li>)}
+            </ul>
+            {tier.next && <p className="loyalty-perks-next"><i className="fas fa-arrow-up" /> ارتقِ إلى {tier.next.label} لمزايا أكبر.</p>}
           </div>
         </div>
       </div>

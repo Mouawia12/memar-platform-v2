@@ -190,6 +190,18 @@ table {
 .user-menu-content.show {
   display: block;
 }
+/* الشريط العلوي للـERP: القائمة تُفتح بالنقر فقط — نُبطِل قاعدة hover في homepage.css
+   (‎.user-menu:hover‎) التي كانت تُظهرها ثم تُخفيها عند عبور الفجوة نحو الأزرار،
+   ونُحاذيها تحت الزر تمامًا (نهاية السطر لا يساره). */
+.topbar .user-menu-content {
+  display: none !important;
+  top: calc(100% + 6px) !important;
+  inset-inline-end: 0 !important;
+  left: auto !important;
+}
+.topbar .user-menu-content.show {
+  display: block !important;
+}
 .user-menu-content button,
 .user-menu-content a {
   display: block;

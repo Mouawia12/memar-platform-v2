@@ -61,6 +61,11 @@ export function Topbar({ onToggleSidebar }: Props) {
             <button type="button" onClick={() => { setMenuOpen(false); navigate('/'); }}>
               🌐 صفحة الموقع الرئيسي
             </button>
+            {user?.permissions?.includes('settings.manage') && (
+              <button type="button" onClick={() => { setMenuOpen(false); navigate('/web-builder'); }}>
+                ⚙️ الإعدادات
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { setMenuOpen(false); logout.mutate(); }}

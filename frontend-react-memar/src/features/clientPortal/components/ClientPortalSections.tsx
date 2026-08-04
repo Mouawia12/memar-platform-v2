@@ -450,16 +450,35 @@ export function ForumSection() {
   const initialOf = (name: string | null) => (name ?? 'أنا').trim().charAt(0) || 'أ';
   const titleRef = useRef<HTMLInputElement>(null);
   const focusForm = () => { titleRef.current?.focus(); titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+  const totalThreads = threads?.length ?? 0;
+  const answeredThreads = threads?.filter((t) => t.status === 'answered').length ?? 0;
 
   return (
     <>
-      {/* ترويسة المنتدى — طبق الأصل: section-header + زر طرح سؤال جديد */}
-      <div className="section-header">
-        <div>
-          <h2 className="section-title">المنتدى</h2>
-          <p className="section-subtitle">أسئلة العملاء وإجابات فريق عمل مجموعة معمار</p>
+      {/* هيرو المنتدى (يبقى بطلب أيمن) — منتدى معمار بالإحصاءات + زر طرح سؤال جديد */}
+      <div className="company-hero hero-type-individual">
+        <div className="company-hero-bg" />
+        <div className="company-hero-layout">
+          <div className="company-hero-content">
+            <div className="company-logo"><i className="fas fa-users-rectangle" /></div>
+            <div className="company-hero-info">
+              <h2>منتدى معمار</h2>
+              <p>اطرح أسئلتك واطّلع على إجابات وخبرات فريق مجموعة معمار</p>
+              <div className="company-hero-stats">
+                <div className="company-stat"><span className="company-stat-value">{totalThreads}</span><span className="company-stat-label">سؤال</span></div>
+                <div className="company-stat"><span className="company-stat-value">{answeredThreads}</span><span className="company-stat-label">مُجاب عنه</span></div>
+              </div>
+            </div>
+          </div>
+          <div className="company-hero-ad">
+            <div className="company-ad-content">
+              <span className="company-ad-badge"><i className="fas fa-circle-question" /> لديك سؤال؟</span>
+              <h3>اطرح سؤالك على فريق معمار</h3>
+              <p>سيجيبك مهندسو المشروع بالتفصيل مع المرفقات اللازمة.</p>
+              <button className="btn company-ad-btn" type="button" onClick={focusForm}><i className="fas fa-plus" /> طرح سؤال جديد</button>
+            </div>
+          </div>
         </div>
-        <button className="btn btn-primary" type="button" onClick={focusForm}><i className="fas fa-plus" /> طرح سؤال جديد</button>
       </div>
 
       <div className="forum-threads">

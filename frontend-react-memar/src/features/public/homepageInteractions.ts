@@ -293,11 +293,64 @@ export function initHomepage(navigate: Nav, onAuthPopup?: () => void): () => voi
   const prev: Record<string, unknown> = {};
   Object.keys(fns).forEach((k) => { prev[k] = w[k]; w[k] = fns[k]; });
 
+  // ── طبقة الحركة الاحترافية: كشف العناصر عند التمرير + عدّ الأرقام ──
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const revealIO = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('mz-in'); revealIO.unobserve(e.target); } });
+  }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+
+  const vh = window.innerHeight || 800;
+  const addReveal = (sel: string, opts?: { scale?: boolean; stagger?: number }) => {
+    document.querySelectorAll<HTMLElement>(sel).forEach((el, i) => {
+      // لا نُخفي ما هو ظاهر أصلًا (فوق الطية) — أمان: لا يبقى محتوى مخفيًا إن تعطّل المراقب.
+      if (el.getBoundingClientRect().top < vh * 0.92) return;
+      el.classList.add('mz-reveal');
+      if (opts?.scale) el.classList.add('mz-scale');
+      if (opts?.stagger) el.style.transitionDelay = `${(i % 4) * opts.stagger}s`;
+      revealIO.observe(el);
+    });
+  };
+  addReveal('.section-header');
+  addReveal('.svc-card', { stagger: 0.08 });
+  addReveal('.pkg-card', { scale: true, stagger: 0.1 });
+  addReveal('.pe-header');
+  addReveal('.trust-item', { stagger: 0.06 });
+  addReveal('.contact-card', { stagger: 0.1 });
+  addReveal('.footer-col', { stagger: 0.08 });
+
+  // عدّاد الأرقام في شريط الثقة (يتجاهل القيم النصّية مثل «الكويت»).
+  const countIO = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const el = e.target as HTMLElement;
+      countIO.unobserve(el);
+      const raw = (el.textContent ?? '').trim();
+      const m = raw.match(/^([+]?)(\d[\d,]*)(%?)$/);
+      if (!m) return;
+      const prefix = m[1];
+      const target = parseInt(m[2].replace(/,/g, ''), 10);
+      const suffix = m[3];
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - t0) / 1300);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = prefix + Math.round(target * eased).toLocaleString('en') + suffix;
+        if (t < 1) requestAnimationFrame(step);
+        else el.textContent = raw;
+      };
+      requestAnimationFrame(step);
+    });
+  }, { threshold: 0.6 });
+  if (!reduceMotion) document.querySelectorAll<HTMLElement>('.trust-num').forEach((el) => countIO.observe(el));
+
   // ── التنظيف ──
   return () => {
     document.removeEventListener('click', outsideClick);
     window.scrollTo = originalScrollTo;
     Object.keys(fns).forEach((k) => { w[k] = prev[k]; });
     document.documentElement.classList.remove('theme-premium');
+    revealIO.disconnect();
+    countIO.disconnect();
   };
 }

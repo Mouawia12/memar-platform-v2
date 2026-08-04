@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { LoginView } from '../auth/components/LoginView';
 import { ChatWidget } from '../chatbot/components/ChatWidget';
+import animCssText from './homepageAnimations.css?raw';
 import cssText from './homepage.css?raw';
 import htmlText from './homepage.html?raw';
 import { initHomepage } from './homepageInteractions';
@@ -22,7 +23,7 @@ export function HomePage() {
   useEffect(() => {
     const style = document.createElement('style');
     style.id = 'homepage-legacy-css';
-    style.textContent = cssText;
+    style.textContent = cssText + '\n' + animCssText;
     document.head.appendChild(style);
 
     const cleanupInteractions = initHomepage((path) => navigate(path), () => setAuthOpen(true));

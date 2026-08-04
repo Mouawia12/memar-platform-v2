@@ -1075,7 +1075,7 @@
 }
 .mcp-root .chat-main-user { display: flex; align-items: center; gap: 10px; }
 .mcp-root .chat-main-user strong { display: block; font-size: 14px; font-weight: 700; }
-.mcp-root .chat-online-status { font-size: 11px; color: var(--success); font-weight: 500; }
+.mcp-root .chat-online-status { display: block; margin-top: 2px; font-size: 11px; color: var(--success); font-weight: 500; }
 .mcp-root .chat-main-actions { display: flex; gap: 4px; }
 .mcp-root .chat-messages-area {
   flex: 1;

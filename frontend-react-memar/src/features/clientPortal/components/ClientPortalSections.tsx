@@ -357,7 +357,7 @@ export function ChatSection() {
       <div className="chat-sidebar-panel">
         <div className="chat-sidebar-header">
           <h3>المحادثات</h3>
-          <button className="chat-new-btn" onClick={startNewChat} title="محادثة جديدة"><i className="fas fa-plus" /></button>
+          <button className="chat-new-btn" onClick={startNewChat} title="محادثة جديدة"><i className="fas fa-pen-to-square" /></button>
         </div>
         <div className="chat-contacts-list">
           {threadsLoading && <p style={{ color: '#64748B', padding: 8 }}>جارٍ التحميل…</p>}

@@ -59,6 +59,7 @@ export function QuickAddMenu() {
   );
 }
 
-const panel: CSSProperties = { position: 'absolute', top: 'calc(100% + 8px)', insetInlineEnd: 0, width: '210px', background: '#fff', border: '1px solid #E4E8EF', borderRadius: '12px', boxShadow: '0 12px 32px rgba(0,0,0,.14)', zIndex: 300, padding: '6px' };
+// maxWidth:none يمنع قاعدة max-width:100% العامة من تقليص القائمة (حاويتها بعرض 0) إلى ~14px.
+const panel: CSSProperties = { position: 'absolute', top: 'calc(100% + 8px)', insetInlineEnd: 0, width: '210px', maxWidth: 'none', background: '#fff', border: '1px solid #E4E8EF', borderRadius: '12px', boxShadow: '0 12px 32px rgba(0,0,0,.14)', zIndex: 300, padding: '6px' };
 const head: CSSProperties = { fontSize: '11px', fontWeight: 700, color: '#5A6478', padding: '8px 10px 6px', borderBottom: '1px solid #F1F5F9', marginBottom: '4px' };
-const row: CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'start', padding: '8px 10px', border: 'none', background: 'transparent', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', color: '#1A1F2E' };
+const row: CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', width: '100%', maxWidth: 'none', textAlign: 'start', padding: '8px 10px', border: 'none', background: 'transparent', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', color: '#1A1F2E', whiteSpace: 'nowrap' };

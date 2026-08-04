@@ -49,19 +49,21 @@ class ClientPortalProjectTest extends TestCase
     public function test_project_response_includes_team_lead_and_company_participants(): void
     {
         $manager = User::factory()->create(['name' => 'م. خالد العتيبي']);
-        $contact = Contact::factory()->create();
+        $contact = Contact::factory()->create(['full_name' => 'أحمد المنصور', 'position' => 'مالك الشركة']);
         $this->actingAsClient($contact);
         $project = Project::factory()->create(['client_id' => $contact->id, 'manager_id' => $manager->id]);
         TeamMember::create(['contact_id' => $contact->id, 'name' => 'محمد العمري', 'role' => 'مدير المشاريع']);
 
         $res = $this->getJson("/api/v1/client-portal/projects/{$project->id}");
 
+        // المشاركون طبق الأصل = مالك الشركة (العميل) ثم أعضاء فريقه؛ المهندس المسؤول يظهر في الهيرو لا هنا.
         $res->assertOk()
-            ->assertJsonPath('data.team.0.name', 'م. خالد العتيبي')
+            ->assertJsonPath('data.team.0.name', 'أحمد المنصور')
             ->assertJsonPath('data.team.0.is_lead', true)
-            ->assertJsonPath('data.team.0.role', 'المهندس المسؤول')
+            ->assertJsonPath('data.team.0.role', 'مالك الشركة')
             ->assertJsonPath('data.team.1.name', 'محمد العمري')
-            ->assertJsonPath('data.team.1.is_lead', false);
+            ->assertJsonPath('data.team.1.is_lead', false)
+            ->assertJsonPath('data.project.manager', 'م. خالد العتيبي');
     }
 
     public function test_project_response_includes_a_change_log_from_activity(): void

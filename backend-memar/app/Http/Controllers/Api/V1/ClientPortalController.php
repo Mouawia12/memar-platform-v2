@@ -25,6 +25,7 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Referral;
 use App\Models\ServiceRequest;
+use App\Models\StoredFile;
 use App\Models\TeamMember;
 use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
@@ -170,6 +171,23 @@ class ClientPortalController extends ApiController
             'team' => $this->projectTeam($project, $contactId),
             // سجل التعديلات — من سِجِل نشاط المشروع الحقيقي (بند 11)
             'change_log' => $this->projectChangeLog($project),
+            // آخر مستندات المشروع (طبق الأصل: قسم «آخر المستندات»)
+            'documents' => StoredFile::where('project_id', $project->id)
+                ->latest()
+                ->limit(6)
+                ->get()
+                ->map(function (StoredFile $f): array {
+                    $kind = $this->docKind($f->extension, $f->mime);
+
+                    return [
+                        'id' => $f->id,
+                        'name' => $f->name ?: $f->original_name,
+                        'kind' => $kind,                                            // لأيقونة البطاقة
+                        'ext' => strtoupper((string) ($f->extension ?: $kind)),      // وسم النوع المعروض (PDF/DWG/PNG)
+                        'size' => (int) $f->size,
+                        'at' => $f->created_at?->toIso8601String(),
+                    ];
+                })->all(),
             'stages' => ProjectStageResource::collection($stages),
             'payments' => [
                 'invoiced_kwd' => $invoiced,
@@ -180,21 +198,38 @@ class ClientPortalController extends ApiController
         ]);
     }
 
+    /** نوع المستند من الامتداد/الـmime — لاختيار أيقونة بطاقة المستند (pdf/dwg/img/doc). */
+    private function docKind(?string $ext, ?string $mime): string
+    {
+        $e = strtolower((string) $ext);
+        if ($e === 'pdf' || str_contains((string) $mime, 'pdf')) {
+            return 'pdf';
+        }
+        if (in_array($e, ['dwg', 'dxf'], true)) {
+            return 'dwg';
+        }
+        if (in_array($e, ['png', 'jpg', 'jpeg', 'webp', 'gif'], true) || str_contains((string) $mime, 'image')) {
+            return 'img';
+        }
+
+        return 'doc';
+    }
+
     /**
      * التيم الظاهر للعميل على صفحة مشروعه: المهندس المسؤول من معمار (قائد) + مشاركو شركة العميل.
      *
-     * @return list<array{name: string, role: string, is_lead: bool}>
+     * @return list<array{name: string, role: string, is_lead: bool, added_at: string|null}>
      */
     private function projectTeam(Project $project, int $contactId): array
     {
+        // مشاركو شركة العميل (طبق الأصل): المالك أولاً ثم أعضاء الفريق — والمهندس المسؤول يظهر في الهيرو.
         $team = [];
-
-        if ($project->manager?->name) {
-            $team[] = ['name' => $project->manager->name, 'role' => 'المهندس المسؤول', 'is_lead' => true];
+        $contact = Contact::find($contactId);
+        if ($contact) {
+            $team[] = ['name' => $contact->full_name, 'role' => $contact->position ?: 'مالك الشركة', 'is_lead' => true, 'added_at' => ($project->start_date ?? $project->created_at)?->toDateString()];
         }
-
-        foreach (TeamMember::where('contact_id', $contactId)->latest()->get() as $m) {
-            $team[] = ['name' => $m->name, 'role' => $m->role, 'is_lead' => false];
+        foreach (TeamMember::where('contact_id', $contactId)->oldest()->get() as $m) {
+            $team[] = ['name' => $m->name, 'role' => $m->role, 'is_lead' => false, 'added_at' => $m->created_at?->toDateString()];
         }
 
         return $team;

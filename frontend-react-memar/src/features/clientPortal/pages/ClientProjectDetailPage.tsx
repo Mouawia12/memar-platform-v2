@@ -9,6 +9,24 @@ import { useClientProject } from '../hooks/useClientPortal';
 const money = (v: string | number) => `${Number(v).toLocaleString('ar', { maximumFractionDigits: 3 })} د.ك`;
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+const fmtBytes = (n: number): string => (n < 1024 ? `${n} B` : n < 1_048_576 ? `${Math.round(n / 1024)} KB` : `${(n / 1_048_576).toFixed(1)} MB`);
+/** وقت نسبي عربي (منذ يومين…) — لبطاقات المستندات طبق الأصل. */
+const relTime = (iso: string | null): string => {
+  if (!iso) return '';
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (d <= 0) return 'اليوم';
+  if (d === 1) return 'منذ يوم';
+  if (d === 2) return 'منذ يومين';
+  if (d < 7) return `منذ ${d} أيام`;
+  const w = Math.floor(d / 7);
+  if (w === 1) return 'منذ أسبوع';
+  if (w === 2) return 'منذ أسبوعين';
+  if (d < 30) return `منذ ${w} أسابيع`;
+  const mo = Math.floor(d / 30);
+  return mo === 1 ? 'منذ شهر' : `منذ ${mo} أشهر`;
+};
+/** أيقونة بطاقة المستند حسب النوع (طبق الأصل من Atoms). */
+const DOC_ICON: Record<string, string> = { pdf: 'fa-file-pdf', dwg: 'fa-drafting-compass', img: 'fa-image', doc: 'fa-file-lines' };
 
 /** محيط دائرة نصف قطرها 54 (طبق الأصل من Atoms) — 2·π·54. */
 const CIRC = 339.292;
@@ -46,7 +64,7 @@ export function ProjectDetailSection({ projectId }: { projectId: number }) {
   if (isError || !data)
     return <p style={{ padding: 40, color: '#ef4444' }}>تعذّر تحميل المشروع أو لا صلاحية لك عليه.</p>;
 
-  const { project, stages, payments, team, change_log: changeLog } = data;
+  const { project, stages, payments, team, change_log: changeLog, documents } = data;
   const pct = Math.max(0, Math.min(100, project.stage_progress));
   const offset = CIRC - (CIRC * pct) / 100;
 
@@ -158,12 +176,35 @@ export function ProjectDetailSection({ projectId }: { projectId: number }) {
         )}
       </div>
 
-      {/* ═══ المشاركون في المشروع — للقراءة فقط (بلا إضافة/إزالة) ═══ */}
+      {/* ═══ آخر المستندات — طبق الأصل: docs-grid ببطاقات ملفات المشروع ═══ */}
+      {documents.length > 0 && (
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header">
+            <h3 className="card-title">آخر المستندات</h3>
+          </div>
+          <div className="card-body">
+            <div className="docs-grid">
+              {documents.map((d) => (
+                <div key={d.id} className="doc-card">
+                  <div className={`doc-icon ${d.kind}`}><i className={`fas ${DOC_ICON[d.kind] ?? 'fa-file-lines'}`} /></div>
+                  <div className="doc-info">
+                    <span className="doc-name">{d.name}</span>
+                    <span className="doc-meta">{d.ext} • {fmtBytes(d.size)} • {relTime(d.at)}</span>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" type="button" title="تحميل"><i className="fas fa-download" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ إدارة المشاركين — للقراءة فقط (مشاركو شركة العميل) ═══ */}
       {(team.length > 0 || changeLog.length > 0) && (
         <div className="card" style={{ marginTop: 24 }}>
           <div className="card-header">
             <h3 className="card-title">
-              <i className="fas fa-users-gear" /> المشاركون في المشروع
+              <i className="fas fa-users-gear" /> إدارة المشاركين
             </h3>
           </div>
           <div className="card-body">
@@ -176,11 +217,11 @@ export function ProjectDetailSection({ projectId }: { projectId: number }) {
                   </div>
                   <div className="team-mgmt-info">
                     <strong>{m.name}</strong>
-                    <span>{m.role}</span>
+                    <span>{m.role}{m.added_at ? ` • أُضيف في ${fmtDate(m.added_at)}` : ''}</span>
                   </div>
                   {m.is_lead ? (
                     <span className="team-mgmt-role owner-badge">
-                      <i className="fas fa-crown" /> القائد
+                      <i className="fas fa-crown" /> مالك
                     </span>
                   ) : (
                     <span className="team-mgmt-role">مشارك</span>

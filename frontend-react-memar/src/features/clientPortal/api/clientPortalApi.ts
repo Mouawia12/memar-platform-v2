@@ -83,8 +83,9 @@ export interface ClientProjectDetail {
     manager: string | null;
     stage_progress: number;
   };
-  team: { name: string; role: string; is_lead: boolean }[];
+  team: { name: string; role: string; is_lead: boolean; added_at: string | null }[];
   change_log: { text: string; at: string | null }[];
+  documents: { id: number; name: string; kind: 'pdf' | 'dwg' | 'img' | 'doc'; ext: string; size: number; at: string | null }[];
   stages: ProjectStage[];
   payments: {
     invoiced_kwd: number;

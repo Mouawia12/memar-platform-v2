@@ -13,6 +13,7 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectStage;
 use App\Models\ServiceRequest;
+use App\Models\StoredFile;
 use App\Models\TeamMember;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -63,8 +64,8 @@ class AtomsDemoSeeder extends Seeder
         $harbi = $this->manager('mgr.harbi@memar.kw', 'فهد الحربي');
 
         // ── أعضاء الفريق المسجلين (بطاقات صفحة الشركة) ──
-        $this->teamMember($contact->id, 'فهد الحربي', 'مهندس متابعة', 'MEM-2024-0156', 2);
-        $this->teamMember($contact->id, 'محمد العمري', 'مدير المشاريع', 'MEM-2024-0342', 3);
+        $this->teamMember($contact->id, 'محمد العمري', 'مدير المشاريع', 'MEM-2024-0342', 3, '2024-01-20');
+        $this->teamMember($contact->id, 'فهد الحربي', 'مهندس متابعة', 'MEM-2024-0156', 2, '2024-03-01');
 
         // ── مشاريع الشركة الخمسة (طبق الأصل: الأسماء/الأكواد/الحالات/النِسَب/التواريخ/المدير) ──
         $projects = [
@@ -146,6 +147,20 @@ class AtomsDemoSeeder extends Seeder
                 ['title' => 'مناقشة متطلبات التصميم الداخلي', 'project_id' => $flagship->id],
                 ['type' => 'meeting', 'start_at' => Carbon::now()->subDays(5)->setTime(11, 0), 'end_at' => Carbon::now()->subDays(5)->setTime(11, 45), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'status' => 'done', 'notes' => 'اتُّفق على الطراز العصري مع لمسات كلاسيكية في المداخل، وتحديث ألوان الواجهة الداخلية.', 'created_by' => $staff],
             );
+
+            // ── مستندات المشروع (قسم «آخر المستندات») — طبق الأصل من Atoms ──
+            $docs = [
+                ['name' => 'المخطط المعماري - الدور الأرضي', 'ext' => 'pdf', 'mime' => 'application/pdf', 'size' => 4404019, 'at' => Carbon::now()->subDays(2)],
+                ['name' => 'ملف AutoCAD - الواجهات', 'ext' => 'dwg', 'mime' => 'image/vnd.dwg', 'size' => 13421773, 'at' => Carbon::now()->subDays(5)],
+                ['name' => 'تصور ثلاثي الأبعاد - المدخل', 'ext' => 'png', 'mime' => 'image/png', 'size' => 8493466, 'at' => Carbon::now()->subDays(7)],
+            ];
+            foreach ($docs as $d) {
+                $file = StoredFile::updateOrCreate(
+                    ['project_id' => $flagship->id, 'name' => $d['name']],
+                    ['original_name' => $d['name'].'.'.$d['ext'], 'path' => 'demo/'.$d['ext'].'/'.md5($d['name']).'.'.$d['ext'], 'disk' => 'local', 'mime' => $d['mime'], 'extension' => $d['ext'], 'size' => $d['size'], 'folder' => 'مخططات', 'uploaded_by' => $staff],
+                );
+                $file->forceFill(['created_at' => $d['at']])->save();
+            }
 
             // ── طلبات التعديل/الإضافة (صفحة «طلباتي») — طبق الأصل من Atoms بحالات متنوّعة ──
             if ($client) {
@@ -229,11 +244,14 @@ class AtomsDemoSeeder extends Seeder
         return $user;
     }
 
-    private function teamMember(int $contactId, string $name, string $role, string $code, int $projectsCount): void
+    private function teamMember(int $contactId, string $name, string $role, string $code, int $projectsCount, ?string $addedAt = null): void
     {
-        TeamMember::updateOrCreate(
+        $m = TeamMember::updateOrCreate(
             ['contact_id' => $contactId, 'member_code' => $code],
             ['name' => $name, 'role' => $role, 'projects_count' => $projectsCount],
         );
+        if ($addedAt) {
+            $m->forceFill(['created_at' => Carbon::parse($addedAt)])->save();
+        }
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useLogout } from '../../auth/hooks/useAuth';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
@@ -46,12 +46,22 @@ export function ClientPortalV2Page() {
   const [editingKunya, setEditingKunya] = useState(false);
   const [kunyaDraft, setKunyaDraft] = useState('');
 
+  // مزامنة الصفحة الحالية مع الرابط (?tab=&pid=) — يبقى العميل على صفحته عند تحديث المتصفّح.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const initialPid = Number(searchParams.get('pid')) || null;
+  // صفحة المشروع تحتاج معرّفاً؛ إن غاب نعود للوحة بدل محتوى فارغ.
+  const initialPage: PageKey =
+    initialTab && initialTab in PAGE_TITLES && !(initialTab === 'project-detail' && initialPid == null)
+      ? (initialTab as PageKey)
+      : 'dashboard';
+
   const [slide, setSlide] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<PageKey[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(initialPid);
   const [copied, setCopied] = useState(false);
-  const [page, setPage] = useState<PageKey>('dashboard');
+  const [page, setPage] = useState<PageKey>(initialPage);
   const [toast, setToast] = useState<string | null>(null);
   const [heroPaused, setHeroPaused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -165,19 +175,30 @@ export function ClientPortalV2Page() {
     if (v !== (client?.kunya ?? '')) updateProfile.mutate({ kunya: v || null }, { onSuccess: () => showToast('تم حفظ الكنية ✓') });
   };
   // سجل تنقّل داخلي — يتيح زر «رجوع» يعيدنا للصفحة السابقة فعلاً (مفيد على الموبايل).
-  const go = (p: PageKey) => {
+  // يكتب الصفحة (ومعرّف المشروع عند الحاجة) في الرابط بلا إضافة سجلّ تصفّح (الرجوع الداخلي يتكفّل بذلك).
+  const syncUrl = (p: PageKey, pid?: number | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (p === 'dashboard') next.delete('tab');
+    else next.set('tab', p);
+    if (p === 'project-detail' && pid != null) next.set('pid', String(pid));
+    else next.delete('pid');
+    setSearchParams(next, { replace: true });
+  };
+  const go = (p: PageKey, pid?: number | null) => {
     if (p !== page) setHistory((h) => [...h, page]);
     setPage(p);
     setSidebarOpen(false);
+    syncUrl(p, pid ?? selectedProjectId);
   };
   const goBack = () => {
     const prev = history.length > 0 ? history[history.length - 1] : 'dashboard';
     setHistory((h) => h.slice(0, -1));
     setPage(prev);
     setSidebarOpen(false);
+    syncUrl(prev, selectedProjectId);
   };
   // فتح تفاصيل المشروع داخل البوابة (تغيير محتوى داخلي، لا انتقال لصفحة منفصلة) — طبق الأصل.
-  const openProject = (id: number) => { setSelectedProjectId(id); go('project-detail'); };
+  const openProject = (id: number) => { setSelectedProjectId(id); go('project-detail', id); };
   const notifCount = notif?.count ?? unpaidCount;
 
   return (

@@ -13,6 +13,19 @@ interface Props {
   onToggleSidebar: () => void;
 }
 
+/**
+ * اسم مختصر لزر المستخدم: اللقب (م./د./أ.) + الاسم الأول فقط لتوفير المساحة.
+ * مثال: «م. أيمن الطوخي» → «م. أيمن»، و«أحمد العلي» → «أحمد».
+ */
+function shortName(full?: string | null): string {
+  if (!full) return 'مستخدم';
+  const parts = full.trim().split(/\s+/);
+  if (parts.length <= 1) return full;
+  const isTitle = /^(م|د|أ|أ\.د|eng|dr|mr|ms|prof)\.?$/i.test(parts[0]) || parts[0].replace('.', '').length <= 1;
+
+  return isTitle ? `${parts[0]} ${parts[1]}` : parts[0];
+}
+
 export function Topbar({ onToggleSidebar }: Props) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -53,8 +66,8 @@ export function Topbar({ onToggleSidebar }: Props) {
         {!clientOnly && <QuickAddMenu />}
 
         <div className="user-menu" ref={menuRef}>
-          <button type="button" className="user-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-haspopup="menu" aria-expanded={menuOpen}>
-            👤 {user?.name ?? 'مستخدم'} ▼
+          <button type="button" className="user-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-haspopup="menu" aria-expanded={menuOpen} title={user?.name ?? 'مستخدم'}>
+            👤 {shortName(user?.name)} ▼
           </button>
           <div className={`user-menu-content${menuOpen ? ' show' : ''}`}>
             {/* أول عنصر: العودة لصفحة الموقع الرئيسي العامة التي سجّل الدخول منها (اجتماع 2026-08-03) */}

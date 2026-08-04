@@ -41,7 +41,9 @@ class DemoUsersSeeder extends Seeder
         ['interior@memar.kw', 'int123', 'م. سمر', 'architect'],
         ['ui@memar.kw', 'ui123', 'م. آلاء', 'architect'],
 
-        ['client1@memar.kw', 'client123', 'أحمد العلي', 'client'],
+        // client1 هو العميل الرئيسي الغني (شركة المنصور) الذي يبنيه AtomsDemoSeeder؛
+        // نطابق اسمه هنا حتى لا يتعارض السيدران ولا تظهر فجوة اسم في زر الدخول مقابل البوابة.
+        ['client1@memar.kw', 'client123', 'أحمد بن عبدالله المنصور', 'client'],
         ['client2@memar.kw', 'client123', 'خالد خلف العازمي', 'client'],
         ['client3@memar.kw', 'client123', 'د. آمنة الرشيدي', 'client'],
     ];

@@ -68,7 +68,9 @@ export const DEMO_GROUPS: DemoGroup[] = [
   {
     title: '🏠 العملاء',
     accounts: [
-      { email: 'client1@memar.kw', password: 'client123', label: '🏠 أحمد العلي', badge: 'Client', tone: 'orange' },
+      // ملاحظة: يجب أن تطابق الأسماء هنا حقول users.name في DemoUsersSeeder + AtomsDemoSeeder،
+      // وإلا ظهر اسم على زر الدخول ثم اسم آخر داخل البوابة (فجوة أبلغ عنها أيمن 2026-08-04).
+      { email: 'client1@memar.kw', password: 'client123', label: '🏢 أحمد بن عبدالله المنصور', badge: 'Client', tone: 'orange' },
       { email: 'client2@memar.kw', password: 'client123', label: '🏠 خالد خلف العازمي', badge: 'Client', tone: 'orange' },
       { email: 'client3@memar.kw', password: 'client123', label: '🏠 د. آمنة الرشيدي', badge: 'Client', tone: 'orange' },
     ],

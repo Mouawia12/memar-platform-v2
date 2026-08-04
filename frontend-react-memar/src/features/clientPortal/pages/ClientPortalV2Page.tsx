@@ -202,7 +202,7 @@ export function ClientPortalV2Page() {
   const notifCount = notif?.count ?? unpaidCount;
 
   return (
-    <div className="mcp-root">
+    <div className={`mcp-root page-${page}`}>
       <div className="app">
         {/* ══ SIDEBAR ══ */}
         <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>

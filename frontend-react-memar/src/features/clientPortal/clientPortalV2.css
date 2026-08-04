@@ -362,6 +362,12 @@
   -webkit-backdrop-filter: none !important;
   border-bottom: none !important;
 }
+/* الشريط العلوي يتلوّن بلون هيرو الصفحة الحالية (تصميم أتومز): في صفحة الشركة
+   يطابق تدرّج بنر الشركة فيندمجان في كتلة واحدة متّصلة. صفحة الشركة تمتدّ خلف
+   الشريط أصلًا (margin علوي سالب)، فتطابق اللون يجعلهما بنرًا واحدًا بلا خطّ فاصل. */
+.mcp-root.page-company .topbar {
+  background: linear-gradient(135deg, #D8335D 0%, #A82D6E 40%, #6B348C 100%) !important;
+}
 .mcp-root .topbar-page-title { color: #fff !important; font-size: 16px !important; }
 /* حبّة التاريخ: السكين القديم يعطيها خلفية فاتحة (#EEF2F9) فيختفي نصّها الأبيض.
    نجعلها حبّة شفّافة بيضاء لتظهر بوضوح على الشريط الأزرق. */
@@ -2391,7 +2397,12 @@
   padding-right: 32px;
   padding-left: 32px;
   background: linear-gradient(135deg, #D8335D 0%, #A82D6E 40%, #6B348C 100%);
-  /* لا نفرض ارتفاعاً ثابتاً — البنر يملأ محتواه بلا فراغ سفلي (طلب أيمن). */
+  /* نفس ارتفاع هيرو الصفحة الرئيسية (.hero-ads-fullwidth = 360px) — طلب أيمن أن
+     يتساوى بنر صفحة الشركة مع بنر النظرة العامة. نوسّط المحتوى عموديًا لملء الارتفاع. */
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 /* البنر يمتدّ لأقصى اليسار/اليمين بلا فراغ أبيض حول الشاشة: -26px يعادل حشوة .content،
    وmax-width:none يبطل قصّ «سكين ERP القديم» (نفس معالجة .hero-ads-fullwidth). طلب أيمن. */
@@ -2404,6 +2415,7 @@
   .mcp-root .company-hero {
     margin-left: -16px !important;
     margin-right: -16px !important;
+    min-height: 240px; /* نفس هيرو النظرة العامة على الموبايل */
   }
 }
 .mcp-root .company-hero.hero-type-individual {

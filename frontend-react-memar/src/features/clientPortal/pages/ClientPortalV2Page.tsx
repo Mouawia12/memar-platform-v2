@@ -262,7 +262,7 @@ export function ClientPortalV2Page() {
             <div className={`nav-item${page === 'forum' ? ' active' : ''}`} onClick={() => go('forum')}><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>
 
             <div className="nav-section-label sb-loyalty-section-label">اقترحنا لصديق</div>
-            <div className={`nav-item nav-item-loyalty${page === 'loyalty' ? ' active' : ''}`} onClick={() => go('loyalty')}><i className="fas fa-handshake-angle" /><span>اقترحنا لصديق</span><span className="nav-badge" style={{ background: '#EAB244', color: '#7a5a00' }}>10%</span></div>
+            <div className={`nav-item nav-item-loyalty${page === 'loyalty' ? ' active' : ''}`} onClick={() => go('loyalty')}><i className="fas fa-handshake-angle" /><span>اقترحنا لصديق</span><span className="nav-badge loyalty">10%</span></div>
 
             <div className="nav-section-label">الشركة</div>
             <div className={`nav-item${page === 'company' ? ' active' : ''}`} onClick={() => go('company')}><i className="fas fa-building-columns" /><span>صفحة الشركة</span></div>

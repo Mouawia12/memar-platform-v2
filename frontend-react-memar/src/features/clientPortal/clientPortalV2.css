@@ -193,25 +193,29 @@
   width: 20px;
   text-align: center;
   flex-shrink: 0;
-  /* أيقونات واضحة على خلفية الشريط البيضاء (كانت باهتة) */
-  color: #334155;
+  /* لون أيقونة الشريط طبق الأصل من Atoms: var(--text-3) للخامل، ويرث primary عند التفعيل */
+  color: var(--text-3);
 }
 .mcp-root .nav-item:hover i,
 .mcp-root .nav-item.active i {
   color: inherit;
 }
+/* نبطل قاعدة «سكين ERP القديم» (mimar-skin/premium) التي تفرض كل الطاغات وردية/حمراء
+   بـ!important — ونعيد ألوان Atoms: عدّاد أزرق (primary)، إشعارات أحمر (danger)، ولاء ذهبي. */
 .mcp-root .nav-badge {
   margin-right: auto;
-  background: var(--primary);
-  color: #fff;
-  border-radius: 20px;
-  padding: 2px 8px;
-  font-size: 10.5px;
-  font-weight: 700;
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 2px 8px !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
   min-width: 20px;
   text-align: center;
 }
-.mcp-root .nav-badge.danger { background: var(--danger); }
+.mcp-root .nav-badge.danger { background: var(--danger) !important; }
+.mcp-root .nav-badge.loyalty { background: #EAB244 !important; color: #7a5a00 !important; }
 .mcp-root .nav-progress-dot {
   width: 8px;
   height: 8px;

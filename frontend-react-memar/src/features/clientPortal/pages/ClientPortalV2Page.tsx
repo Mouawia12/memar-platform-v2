@@ -47,6 +47,7 @@ export function ClientPortalV2Page() {
 
   const [slide, setSlide] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [history, setHistory] = useState<PageKey[]>([]);
   const [copied, setCopied] = useState(false);
   const [page, setPage] = useState<PageKey>('dashboard');
   const [toast, setToast] = useState<string | null>(null);
@@ -161,7 +162,18 @@ export function ClientPortalV2Page() {
     const v = kunyaDraft.trim();
     if (v !== (client?.kunya ?? '')) updateProfile.mutate({ kunya: v || null }, { onSuccess: () => showToast('تم حفظ الكنية ✓') });
   };
-  const go = (p: PageKey) => { setPage(p); setSidebarOpen(false); };
+  // سجل تنقّل داخلي — يتيح زر «رجوع» يعيدنا للصفحة السابقة فعلاً (مفيد على الموبايل).
+  const go = (p: PageKey) => {
+    if (p !== page) setHistory((h) => [...h, page]);
+    setPage(p);
+    setSidebarOpen(false);
+  };
+  const goBack = () => {
+    const prev = history.length > 0 ? history[history.length - 1] : 'dashboard';
+    setHistory((h) => h.slice(0, -1));
+    setPage(prev);
+    setSidebarOpen(false);
+  };
   const notifCount = notif?.count ?? unpaidCount;
 
   return (
@@ -285,7 +297,7 @@ export function ClientPortalV2Page() {
           <header className="topbar">
             <button className="topbar-menu-btn" onClick={() => setSidebarOpen((o) => !o)}><i className="fas fa-bars" /></button>
             <div className="topbar-breadcrumb">
-              {page !== 'dashboard' && <button className="back-btn" onClick={() => go('dashboard')} title="رجوع"><i className="fas fa-arrow-right" /></button>}
+              {(page !== 'dashboard' || history.length > 0) && <button className="back-btn visible" onClick={goBack} title="رجوع للصفحة السابقة" aria-label="رجوع"><i className="fas fa-arrow-right" /></button>}
               <span className="topbar-page-title">{PAGE_TITLES[page]}</span>
             </div>
             <div className="topbar-actions">

@@ -15,6 +15,12 @@ export interface PaginationMeta {
   last_page: number;
 }
 
+/** تفضيلات القائمة الجانبية المحفوظة في قاعدة البيانات (تخصيص شخصي ثابت). */
+export interface UiPrefs {
+  nav_hidden?: Record<string, boolean>;
+  nav_collapsed?: Record<string, boolean>;
+}
+
 export interface AuthUser {
   id: number;
   name: string;
@@ -22,4 +28,5 @@ export interface AuthUser {
   phone?: string | null;
   roles?: string[];
   permissions?: string[];
+  ui_prefs?: UiPrefs;
 }

@@ -29,6 +29,8 @@ class UserResource extends JsonResource
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'roles' => $this->getRoleNames(),
             'permissions' => $this->getAllPermissions()->pluck('name'),
+            // تفضيلات القائمة الجانبية (المخفي/المطوي) — تُحمَّل عند الدخول لتبقى ثابتة عبر الأجهزة.
+            'ui_prefs' => $this->ui_prefs ?? (object) [],
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

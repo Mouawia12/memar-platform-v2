@@ -1,8 +1,10 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import { NAV_SECTIONS, visibleNavSections } from '../config/nav';
+import { authApi } from '../features/auth/api/authApi';
 import { useAuthStore } from '../store/auth';
+import type { UiPrefs } from '../types/api';
 
 interface Props {
   open: boolean;
@@ -33,15 +35,31 @@ function persist(key: string, value: Record<string, boolean>): void {
 }
 
 export function Sidebar({ open, onNavigate }: Props) {
-  // طيّ أقسام القائمة يبقى محفوظًا بين الجلسات (DASH-3).
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => loadMap(COLLAPSE_KEY));
-  // إخفاء روابط بعينها من القائمة (DASH-3): تفضيل شخصي محفوظ محليًا.
-  const [hidden, setHidden] = useState<Record<string, boolean>>(() => loadMap(HIDDEN_KEY));
+  // تفضيلات القائمة تُحفظ في قاعدة البيانات لكل مستخدم فتبقى ثابتة عبر الأجهزة
+  // وتحديثات السيرفر؛ والتخزين المحلي يُستخدم كذاكرة سريعة للعرض الفوري (DASH-3).
+  const serverPrefs = useAuthStore((s) => s.user?.ui_prefs);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => serverPrefs?.nav_collapsed ?? loadMap(COLLAPSE_KEY));
+  const [hidden, setHidden] = useState<Record<string, boolean>>(() => serverPrefs?.nav_hidden ?? loadMap(HIDDEN_KEY));
   const [editing, setEditing] = useState(false);
+  const saveTimer = useRef<number | undefined>(undefined);
+
+  // عند وصول تفضيلات الخادم (تسجيل الدخول / تحديث /auth/me) نعتمدها كمصدر الحقيقة.
+  useEffect(() => {
+    if (!serverPrefs) return;
+    if (serverPrefs.nav_collapsed) { setCollapsed(serverPrefs.nav_collapsed); persist(COLLAPSE_KEY, serverPrefs.nav_collapsed); }
+    if (serverPrefs.nav_hidden) { setHidden(serverPrefs.nav_hidden); persist(HIDDEN_KEY, serverPrefs.nav_hidden); }
+  }, [serverPrefs]);
+
+  // حفظ مؤجَّل في قاعدة البيانات (يتجنّب الإرسال عند كل نقرة سريعة).
+  const saveServer = (partial: UiPrefs) => {
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => { void authApi.updateUiPrefs(partial).catch(() => {}); }, 600);
+  };
 
   const toggleCollapse = (id: string) => setCollapsed((c) => {
     const next = { ...c, [id]: !c[id] };
     persist(COLLAPSE_KEY, next);
+    saveServer({ nav_collapsed: next });
 
     return next;
   });
@@ -49,6 +67,7 @@ export function Sidebar({ open, onNavigate }: Props) {
   const toggleHidden = (key: string) => setHidden((h) => {
     const next = { ...h, [key]: !h[key] };
     persist(HIDDEN_KEY, next);
+    saveServer({ nav_hidden: next });
 
     return next;
   });

@@ -19,6 +19,7 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
+        Route::match(['put', 'patch'], '/me/ui-prefs', [AuthController::class, 'updateUiPrefs']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });

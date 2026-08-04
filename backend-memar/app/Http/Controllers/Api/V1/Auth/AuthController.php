@@ -83,4 +83,27 @@ class AuthController extends ApiController
 
         return $this->ok(null, 'تم تسجيل الخروج');
     }
+
+    /**
+     * حفظ تفضيلات القائمة الجانبية للمستخدم (المخفي/المطوي) في قاعدة البيانات
+     * لتبقى ثابتة عبر الأجهزة وتحديثات السيرفر (بدل التخزين المحلي فقط).
+     */
+    public function updateUiPrefs(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $data = $request->validate([
+            'nav_hidden' => ['sometimes', 'array'],
+            'nav_hidden.*' => ['boolean'],
+            'nav_collapsed' => ['sometimes', 'array'],
+            'nav_collapsed.*' => ['boolean'],
+        ]);
+
+        // دمج جزئي: لا يمسح المفتاح الآخر إن أُرسل أحدهما فقط.
+        $user->ui_prefs = array_merge($user->ui_prefs ?? [], $data);
+        $user->save();
+
+        return $this->ok($user->ui_prefs, 'تم حفظ تفضيلات القائمة');
+    }
 }

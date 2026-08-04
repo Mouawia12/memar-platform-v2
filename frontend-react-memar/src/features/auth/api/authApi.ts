@@ -1,5 +1,5 @@
-import { apiGet, apiPost } from '../../../lib/api';
-import type { AuthUser } from '../../../types/api';
+import { apiGet, apiPatch, apiPost } from '../../../lib/api';
+import type { AuthUser, UiPrefs } from '../../../types/api';
 
 export interface LoginPayload {
   email: string;
@@ -36,5 +36,6 @@ export const authApi = {
   forgotPassword: (email: string) => apiPost<null>('/auth/forgot-password', { email }),
   resetPassword: (payload: ResetPayload) => apiPost<null>('/auth/reset-password', payload),
   me: () => apiGet<AuthUser>('/auth/me'),
+  updateUiPrefs: (prefs: UiPrefs) => apiPatch<UiPrefs>('/auth/me/ui-prefs', prefs),
   logout: () => apiPost<null>('/auth/logout'),
 };

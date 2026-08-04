@@ -786,8 +786,14 @@ html:has(.mcp-root) { overflow-y: scroll; scrollbar-gutter: stable; }
 .mcp-root .quick-action-btn:hover { background: var(--primary-50); border-color: var(--primary-100); color: var(--primary); transform: translateY(-2px); }
 .mcp-root .project-hero {
   background: var(--primary-gradient);
-  border-radius: var(--radius-lg);
-  padding: 28px 32px;
+  /* موحّد مع هيرو الصفحة الرئيسية: ملء العرض + يمتدّ خلف الشريط العلوي (نفس لونه
+     الأزرق فيندمجان) + ارتفاع ظاهر ثابت 360px. لا يتغيّر حجمه بين مشروع وآخر مهما
+     اختلفت بياناته (شارات «يوم العمل/التأخّر» تظهر للنشط فقط) — طلب أيمن. */
+  border-radius: 0;
+  margin: calc(var(--topbar-h) * -1 - 24px) -26px 24px -26px;
+  padding: calc(var(--topbar-h) + 28px) 32px 32px;
+  min-height: calc(360px + var(--topbar-h) - 2px);
+  max-width: none;
   color: #fff;
   display: flex;
   align-items: center;
@@ -2841,7 +2847,7 @@ html:has(.mcp-root) { overflow-y: scroll; scrollbar-gutter: stable; }
 .mcp-root .chat-layout { grid-template-columns: 1fr; height: auto; max-height: none; }
 .mcp-root .chat-sidebar-panel { max-height: 200px; }
 .mcp-root .form-grid { grid-template-columns: 1fr; }
-.mcp-root .project-hero { flex-direction: column; text-align: center; }
+.mcp-root .project-hero { flex-direction: column; text-align: center; margin-left: -16px; margin-right: -16px; min-height: calc(240px + var(--topbar-h) - 2px); }
 .mcp-root .project-hero-meta { justify-content: center; }
 }
 @media (max-width: 600px) {

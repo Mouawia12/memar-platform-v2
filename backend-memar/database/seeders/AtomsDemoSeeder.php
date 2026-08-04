@@ -9,6 +9,7 @@ use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectStage;
+use App\Models\ServiceRequest;
 use App\Models\TeamMember;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -72,6 +73,7 @@ class AtomsDemoSeeder extends Seeder
         ];
 
         $flagship = null;
+        $commercial = null;
         foreach ($projects as $p) {
             $project = Project::updateOrCreate(
                 ['code' => $p['code']],
@@ -89,6 +91,9 @@ class AtomsDemoSeeder extends Seeder
             );
             if ($p['code'] === 'PRJ-001') {
                 $flagship = $project;
+            }
+            if ($p['code'] === 'PRJ-002') {
+                $commercial = $project;
             }
         }
 
@@ -138,6 +143,30 @@ class AtomsDemoSeeder extends Seeder
                 ['title' => 'مناقشة متطلبات التصميم الداخلي', 'project_id' => $flagship->id],
                 ['type' => 'meeting', 'start_at' => Carbon::now()->subDays(5)->setTime(11, 0), 'end_at' => Carbon::now()->subDays(5)->setTime(11, 45), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'status' => 'done', 'notes' => 'اتُّفق على الطراز العصري مع لمسات كلاسيكية في المداخل، وتحديث ألوان الواجهة الداخلية.', 'created_by' => $staff],
             );
+
+            // ── طلبات التعديل/الإضافة (صفحة «طلباتي») — طبق الأصل من Atoms بحالات متنوّعة ──
+            if ($client) {
+                $reqs = [
+                    ['title' => 'تعديل مخطط الدور الأرضي - فيلا الرياض', 'desc' => 'طلب تعديل توزيع الغرف في الدور الأرضي مع إضافة غرفة خادمة', 'project_id' => $flagship->id, 'status' => 'open', 'at' => '2026-07-28'],
+                    ['title' => 'إضافة مسبح خارجي', 'desc' => 'إضافة مسبح بمساحة 6×12 متر في الحديقة الخلفية مع منطقة جلوس', 'project_id' => $flagship->id, 'status' => 'in_progress', 'at' => '2026-07-20'],
+                    ['title' => 'تغيير واجهة المبنى', 'desc' => 'تغيير تصميم الواجهة الأمامية من كلاسيكي إلى مودرن', 'project_id' => $commercial?->id, 'status' => 'resolved', 'at' => '2026-07-15'],
+                ];
+                foreach ($reqs as $r) {
+                    $sr = ServiceRequest::updateOrCreate(
+                        ['title' => $r['title'], 'requested_by' => $client->id],
+                        [
+                            'type' => 'maintenance',
+                            'client_name' => $contact->full_name,
+                            'contact_phone' => $contact->phone,
+                            'priority' => 'normal',
+                            'status' => $r['status'],
+                            'description' => $r['desc'],
+                            'project_id' => $r['project_id'],
+                        ],
+                    );
+                    $sr->forceFill(['created_at' => Carbon::parse($r['at'])])->save();
+                }
+            }
         }
     }
 

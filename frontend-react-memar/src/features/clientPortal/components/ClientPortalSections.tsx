@@ -16,9 +16,9 @@ const yearOf = (iso: string | null) => (iso ? String(new Date(iso).getFullYear()
 /** طلباتي — طبق الأصل: section-header + قائمة request-item ببياناتك الحقيقية. */
 const REQ_STATUS: Record<string, { cls: string; icon: string }> = {
   open: { cls: 'status-pending', icon: 'fa-clock' },
-  in_progress: { cls: 'status-approved', icon: 'fa-spinner' },
+  in_progress: { cls: 'status-approved', icon: 'fa-check' },
   resolved: { cls: 'status-completed', icon: 'fa-check-double' },
-  closed: { cls: 'status-completed', icon: 'fa-check' },
+  closed: { cls: 'status-completed', icon: 'fa-check-double' },
 };
 
 export function RequestsSection({ onNew }: { onNew?: () => void }) {

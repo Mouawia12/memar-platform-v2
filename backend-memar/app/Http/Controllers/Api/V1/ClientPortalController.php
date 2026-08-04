@@ -533,7 +533,8 @@ class ClientPortalController extends ApiController
     /** طلباتي — قائمة طلبات العميل الواردة التي أرسلها من بوابته. */
     public function myRequests(Request $request): JsonResponse
     {
-        $labels = ['open' => 'قيد المراجعة', 'in_progress' => 'قيد التنفيذ', 'resolved' => 'تمّت المعالجة', 'closed' => 'مغلق'];
+        // تسميات حالة الطلب للعميل — طبق الأصل من Atoms (قيد المراجعة/تمت الموافقة/مكتمل).
+        $labels = ['open' => 'قيد المراجعة', 'in_progress' => 'تمت الموافقة', 'resolved' => 'مكتمل', 'closed' => 'مكتمل'];
 
         $requests = ServiceRequest::where('requested_by', $request->user()->id)
             ->with(['files', 'project:id,name'])

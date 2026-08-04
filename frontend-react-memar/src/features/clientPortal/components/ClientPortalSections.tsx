@@ -42,13 +42,16 @@ export function RequestsSection({ onNew }: { onNew?: () => void }) {
           return (
             <div key={r.id} className="request-item">
               <div className="request-item-header">
-                <span className="request-item-id">#{String(r.id).padStart(3, '0')}</span>
+                <span className="request-item-id">#REQ-{String(r.id).padStart(3, '0')}</span>
                 <span className={`request-status-badge ${st.cls}`}><i className={`fas ${st.icon}`} /> {r.status_label}</span>
               </div>
               <h4 className="request-item-title">{r.title}</h4>
               {r.description && <p className="request-item-desc" style={{ whiteSpace: 'pre-line' }}>{r.description}</p>}
+              {/* ميتا طبق الأصل: المشروع + التاريخ + الشخص (+ المرفقات إن وُجدت) */}
               <div className="request-item-meta">
+                {r.project && <span><i className="fas fa-building" /> {r.project}</span>}
                 <span><i className="fas fa-calendar" /> {fmtDate(r.created_at)}</span>
+                {r.person && <span><i className="fas fa-user" /> {r.person}</span>}
                 {r.attachments && r.attachments.length > 0 && (
                   <span><i className="fas fa-paperclip" /> {r.attachments.length} مرفق</span>
                 )}

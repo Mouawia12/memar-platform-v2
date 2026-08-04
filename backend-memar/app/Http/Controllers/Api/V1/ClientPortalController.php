@@ -276,6 +276,12 @@ class ClientPortalController extends ApiController
             $description = $this->composeRequestDescription($data);
         }
 
+        // ربط الطلب بمشروع قائم (لطلبات التعديل/الإضافة) إن كان يخصّ العميل — يظهر في ميتا «طلباتي».
+        $projectId = null;
+        if (! empty($data['project_id'])) {
+            $projectId = Project::where('id', $data['project_id'])->where('client_id', $contact->id)->value('id');
+        }
+
         $req = ServiceRequest::create([
             'title' => $title,
             'type' => $m['type'],
@@ -285,6 +291,7 @@ class ClientPortalController extends ApiController
             'status' => 'open',
             'description' => $description,
             'requested_by' => $user->id,
+            'project_id' => $projectId,
         ]);
 
         // طلب مشروع جديد يظهر أيضًا لدى المبيعات كفرصة في لوحة CRM (اجتماع 2026-08-03، بند 2).
@@ -527,7 +534,7 @@ class ClientPortalController extends ApiController
         $labels = ['open' => 'قيد المراجعة', 'in_progress' => 'قيد التنفيذ', 'resolved' => 'تمّت المعالجة', 'closed' => 'مغلق'];
 
         $requests = ServiceRequest::where('requested_by', $request->user()->id)
-            ->with('files')
+            ->with(['files', 'project:id,name'])
             ->latest()
             ->limit(50)
             ->get()
@@ -537,6 +544,9 @@ class ClientPortalController extends ApiController
                 'status' => $r->status,
                 'status_label' => $labels[$r->status] ?? $r->status,
                 'description' => $r->description,
+                // ميتا بطاقة الطلب (طبق الأصل): المشروع + الشخص (مقدّم الطلب).
+                'project' => $r->project?->name,
+                'person' => $r->client_name,
                 'attachments' => $r->files->map(fn ($f) => [
                     'id' => $f->id,
                     'original_name' => $f->original_name,

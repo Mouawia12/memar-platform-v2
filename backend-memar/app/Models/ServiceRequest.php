@@ -18,12 +18,18 @@ class ServiceRequest extends Model
 
     protected $fillable = [
         'title', 'type', 'client_name', 'contact_phone',
-        'priority', 'status', 'description', 'requested_by',
+        'priority', 'status', 'description', 'requested_by', 'project_id',
     ];
 
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /** المشروع المرتبط بالطلب (لطلبات التعديل/الإضافة على مشروع قائم). */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     /** المرفقات المرفوعة مع الطلب (صك ملكية، كروكي، صور الموقع…). */

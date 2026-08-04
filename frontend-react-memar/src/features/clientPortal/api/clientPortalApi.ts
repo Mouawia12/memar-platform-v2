@@ -126,6 +126,8 @@ export interface ClientRequestItem {
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   status_label: string;
   description: string | null;
+  project: string | null;
+  person: string | null;
   attachments?: ClientRequestAttachment[];
   created_at: string | null;
 }

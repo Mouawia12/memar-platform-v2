@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../../store/auth';
@@ -16,10 +16,14 @@ function landingFor(user: AuthUser): string {
 export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: LoginPayload) => authApi.login(payload),
     onSuccess: (data) => {
+      // مسح كاش React Query أولًا: عند تبديل حساب (مثلًا من عميل لآخر) يجب ألا
+      // تبقى بيانات المستخدم السابق مخزّنة تحت نفس المفتاح فتظهر لمن بعده.
+      queryClient.clear();
       setAuth(data.token, data.user);
       navigate(landingFor(data.user));
     },
@@ -30,10 +34,12 @@ export function useLogin() {
 export function useRegister() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: RegisterPayload) => authApi.register(payload),
     onSuccess: (data) => {
+      queryClient.clear();
       setAuth(data.token, data.user);
       navigate(landingFor(data.user));
     },
@@ -59,11 +65,13 @@ export function useResetPassword() {
 export function useLogout() {
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSettled: () => {
       logout();
+      queryClient.clear(); // لا تُبقِ بيانات هذا المستخدم في الكاش لمن يدخل بعده
       navigate('/login');
     },
   });

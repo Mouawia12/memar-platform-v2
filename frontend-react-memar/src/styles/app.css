@@ -196,8 +196,12 @@ table {
 .topbar .user-menu-content {
   display: none;
   top: 100% !important;
-  inset-inline-end: 0 !important;
-  left: auto !important;
+  /* الزر في أقصى يسار الشريط: نُحاذي القائمة لليسار فتمتدّ يمينًا داخل الشاشة
+     (المحاذاة اليمنى/inset-inline-end كانت تُخرجها خارج المتصفّح من اليسار). */
+  left: 0 !important;
+  right: auto !important;
+  inset-inline-start: auto !important;
+  inset-inline-end: auto !important;
   margin-top: 0 !important;
 }
 .topbar .user-menu:hover .user-menu-content,

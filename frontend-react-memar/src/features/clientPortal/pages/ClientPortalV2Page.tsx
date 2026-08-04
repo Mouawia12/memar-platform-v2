@@ -206,12 +206,12 @@ export function ClientPortalV2Page() {
                     </>
                   )}
                 </div>
+                {/* تاغ كود العضوية — طبق الأصل من Atoms: أيقونة # + الكود فقط (يبقى قابلاً للنقر لفتح QR). */}
                 <button type="button" className="sb-client-member-code sb-member-code-btn" onClick={(e) => { e.stopPropagation(); setQrOpen(true); }} title="عرض رقم الحساب و QR">
                   <i className="fas fa-hashtag" /> {memberCode}
-                  <i className="fas fa-qrcode sb-member-code-qr" />
                 </button>
-                {/* المسمّى الوظيفي للشخص (مالك الشركة/مدير تنفيذي/مهندس…) بدل «عميل مميز» — الشركة نفسها هي العميل المميز */}
-                <span className="sb-client-role"><i className="fas fa-id-badge" /> {(client as { position?: string } | undefined)?.position || 'ممثّل الشركة'}</span>
+                {/* المسمّى الوظيفي — طبق الأصل من Atoms: تاج + «مالك الشركة» */}
+                <span className="sb-client-role"><i className="fas fa-crown" /> {(client as { position?: string } | undefined)?.position || 'مالك الشركة'}</span>
               </div>
             </div>
             <div className="sb-profile-details">

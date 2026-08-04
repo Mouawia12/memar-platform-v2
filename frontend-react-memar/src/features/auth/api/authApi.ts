@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from '../../../lib/api';
+import { api, apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import type { AuthUser, UiPrefs } from '../../../types/api';
 
 export interface LoginPayload {
@@ -37,5 +37,13 @@ export const authApi = {
   resetPassword: (payload: ResetPayload) => apiPost<null>('/auth/reset-password', payload),
   me: () => apiGet<AuthUser>('/auth/me'),
   updateUiPrefs: (prefs: UiPrefs) => apiPatch<UiPrefs>('/auth/me/ui-prefs', prefs),
+  /** رفع الصورة الشخصية للموظف — تُعيد بيانات المستخدم المحدّثة (تتضمّن avatar_url). */
+  uploadAvatar: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    return api.post('/auth/me/avatar', fd).then((r) => r.data.data as AuthUser);
+  },
+  deleteAvatar: () => apiDelete<AuthUser>('/auth/me/avatar'),
   logout: () => apiPost<null>('/auth/logout'),
 };

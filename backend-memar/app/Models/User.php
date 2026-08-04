@@ -13,13 +13,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'is_active', 'contact_id', 'ui_prefs', 'account_number', 'referral_code'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'is_active', 'contact_id', 'ui_prefs', 'account_number', 'referral_code', 'avatar_file_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -57,6 +58,26 @@ class User extends Authenticatable
     public function referredContacts(): HasMany
     {
         return $this->hasMany(Contact::class, 'referred_by_user_id');
+    }
+
+    /** ملف الصورة الشخصية المخزّن (على القرص الخاص). */
+    public function avatarFile(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'avatar_file_id');
+    }
+
+    /**
+     * data URI للصورة الشخصية ليعرضها المتصفّح مباشرةً في <img> (نفس آلية صور العملاء)،
+     * دون الحاجة لقرص عام أو نقطة تنزيل محميّة. يرجع null إن لم تُرفع صورة.
+     */
+    public function avatarDataUri(): ?string
+    {
+        $file = $this->avatarFile;
+        if (! $file || ! Storage::disk($file->disk)->exists($file->path)) {
+            return null;
+        }
+
+        return 'data:'.($file->mime ?: 'image/jpeg').';base64,'.base64_encode(Storage::disk($file->disk)->get($file->path));
     }
 
     /**

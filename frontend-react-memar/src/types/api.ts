@@ -35,4 +35,6 @@ export interface AuthUser {
   referral_code?: string | null;
   /** عدد العملاء الذين سجّلوا عبر كود إحالة هذا الموظف. */
   referred_clients?: number;
+  /** الصورة الشخصية كـ data URI (إن رفعها الموظف) — من الباك اند. */
+  avatar_url?: string | null;
 }

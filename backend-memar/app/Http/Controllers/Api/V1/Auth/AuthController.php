@@ -12,6 +12,7 @@ use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\AuthService;
+use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -72,6 +73,44 @@ class AuthController extends ApiController
         $user = $request->user();
 
         return $this->ok(new UserResource($user));
+    }
+
+    /** رفع/تغيير الصورة الشخصية للموظف (بالنقر على دائرة كارت السايدبار). */
+    public function uploadAvatar(Request $request, FileStorageService $files): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $request->validate(['file' => ['required', 'file', 'image', 'max:3072']]); // 3MB
+        $ext = strtolower($request->file('file')->getClientOriginalExtension());
+        abort_unless(in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true), 422, 'الصيغ المدعومة: JPG, PNG, WEBP.');
+
+        $old = $user->avatarFile; // نحذفها بعد نجاح الحفظ
+        $stored = $files->store($request->file('file'), ['folder' => 'صور الموظفين'], $user->id);
+        $user->avatar_file_id = $stored->id;
+        $user->save();
+
+        if ($old) {
+            $files->delete($old);
+        }
+
+        return $this->ok(new UserResource($user->refresh()), 'تم تحديث صورتك الشخصية.');
+    }
+
+    /** حذف الصورة الشخصية للموظف. */
+    public function deleteAvatar(Request $request, FileStorageService $files): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $avatar = $user->avatarFile;
+        if ($avatar) {
+            $user->avatar_file_id = null;
+            $user->save();
+            $files->delete($avatar);
+        }
+
+        return $this->ok(new UserResource($user->refresh()), 'تم حذف صورتك الشخصية.');
     }
 
     /** تسجيل الخروج — إلغاء التوكن الحالي. */

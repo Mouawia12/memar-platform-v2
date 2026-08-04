@@ -31,6 +31,7 @@ class UserResource extends JsonResource
             'account_number' => $this->resource->ensureAccountNumber(),
             'referral_code' => $this->resource->ensureReferralCode(),
             'referred_clients' => $this->referredContacts()->count(),
+            'avatar_url' => $this->resource->avatarDataUri(),
             'roles' => $this->getRoleNames(),
             'permissions' => $this->getAllPermissions()->pluck('name'),
             // تفضيلات القائمة الجانبية (المخفي/المطوي) — تُحمَّل عند الدخول لتبقى ثابتة عبر الأجهزة.

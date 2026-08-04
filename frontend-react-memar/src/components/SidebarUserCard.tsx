@@ -1,5 +1,6 @@
-import { useState, type CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 
+import { authApi } from '../features/auth/api/authApi';
 import { useAuthStore } from '../store/auth';
 
 /**
@@ -49,9 +50,33 @@ const referralCodeOf = (name: string, id: number): string => {
 
 export function SidebarUserCard() {
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
+
+  const onPickAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // للسماح برفع نفس الملف ثانيةً
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { window.alert('حجم الصورة يجب أن يكون أقل من 3 ميجابايت.'); return; }
+    setUploading(true);
+    authApi.uploadAvatar(file)
+      .then((updated) => setUser(updated))
+      .catch(() => window.alert('تعذّر رفع الصورة — جرّب صورة JPG أو PNG أصغر.'))
+      .finally(() => setUploading(false));
+  };
+
+  const removeAvatar = () => {
+    if (!window.confirm('حذف الصورة الشخصية؟')) return;
+    setUploading(true);
+    authApi.deleteAvatar()
+      .then((updated) => setUser(updated))
+      .catch(() => {})
+      .finally(() => setUploading(false));
+  };
 
   const initial = (user.name || 'م').trim().charAt(0) || 'م';
   // المصدر الرسمي من الباك اند، ومع غيابه (بيانات قديمة) نحسب محليًا.
@@ -68,10 +93,22 @@ export function SidebarUserCard() {
   return (
     <div style={card} className="sb-user-card">
       <div style={header}>
-        <div style={avatar}>{initial}</div>
+        {/* دائرة الصورة — بالنقر عليها يرفع/يغيّر صورته الشخصية (طلب أيمن 2026-08-04) */}
+        <div
+          style={{ ...avatar, position: 'relative', cursor: uploading ? 'wait' : 'pointer', overflow: 'hidden' }}
+          onClick={() => !uploading && fileRef.current?.click()}
+          title="انقر لتغيير صورتك الشخصية"
+        >
+          {user.avatar_url
+            ? <img src={user.avatar_url} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            : initial}
+          <span style={avatarOverlay}><i className={`fas ${uploading ? 'fa-spinner fa-spin' : 'fa-camera'}`} /></span>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPickAvatar} style={{ display: 'none' }} />
+        </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <strong style={name} title={user.name}>{user.name}</strong>
           <span style={position}><i className="fas fa-id-badge" /> {roleLabel(user.roles)}</span>
+          {user.avatar_url && <button type="button" onClick={removeAvatar} style={removeAvatarBtn} disabled={uploading}>إزالة الصورة</button>}
         </div>
       </div>
 
@@ -108,6 +145,8 @@ export function SidebarUserCard() {
 const card: CSSProperties = { margin: '0 12px 10px', padding: '14px', borderRadius: '14px', background: '#fff', border: '1px solid #E7ECF3', boxShadow: '0 2px 10px rgba(39,74,120,.06)' };
 const header: CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' };
 const avatar: CSSProperties = { width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg,#274A78,#1B6CA8)', color: '#fff', fontSize: '19px', fontWeight: 800 };
+const avatarOverlay: CSSProperties = { position: 'absolute', insetInlineEnd: -2, bottom: -2, width: '18px', height: '18px', borderRadius: '50%', background: '#E8A838', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '8.5px', border: '2px solid #fff' };
+const removeAvatarBtn: CSSProperties = { display: 'block', marginTop: '4px', padding: 0, border: 'none', background: 'none', color: '#B0483C', fontSize: '10.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
 const name: CSSProperties = { display: 'block', fontSize: '14px', color: '#1E293B', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 const position: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '3px', fontSize: '11.5px', color: '#5A6478', fontWeight: 600 };
 const accountRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 10px', borderRadius: '9px', background: '#F4F7FB', color: '#274A78', fontSize: '12.5px', marginBottom: '8px' };

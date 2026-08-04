@@ -54,8 +54,10 @@ export function SidebarUserCard() {
   if (!user) return null;
 
   const initial = (user.name || 'م').trim().charAt(0) || 'م';
-  const account = staffAccountNumber(user.id);
-  const referral = referralCodeOf(user.name, user.id);
+  // المصدر الرسمي من الباك اند، ومع غيابه (بيانات قديمة) نحسب محليًا.
+  const account = user.account_number || staffAccountNumber(user.id);
+  const referral = user.referral_code || referralCodeOf(user.name, user.id);
+  const referredClients = user.referred_clients ?? 0;
 
   const copyReferral = () => {
     navigator.clipboard?.writeText(referral);
@@ -95,6 +97,9 @@ export function SidebarUserCard() {
           </button>
         </div>
         <p style={referralNote}>احصل على بونص مبيعات على كل عميل يسجّل ويتعاقد عبر كودك.</p>
+        {referredClients > 0 && (
+          <div style={referredBadge}><i className="fas fa-users" /> {referredClients} عميل عبر كودك</div>
+        )}
       </div>
     </div>
   );
@@ -113,3 +118,4 @@ const referralLabel: CSSProperties = { fontSize: '10.5px', fontWeight: 700, colo
 const referralValue: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#fff', border: '1px solid rgba(232,168,56,.4)', borderRadius: '8px', padding: '5px 8px 5px 5px' };
 const copyBtn: CSSProperties = { display: 'grid', placeItems: 'center', width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: '#E8A838', color: '#fff', cursor: 'pointer', fontSize: '11px', flexShrink: 0 };
 const referralNote: CSSProperties = { margin: '7px 2px 0', fontSize: '10.5px', lineHeight: 1.6, color: '#8A7328' };
+const referredBadge: CSSProperties = { marginTop: '7px', display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#E8A838', color: '#fff', fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '999px' };

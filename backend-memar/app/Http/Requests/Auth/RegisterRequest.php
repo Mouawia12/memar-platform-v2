@@ -31,6 +31,8 @@ class RegisterRequest extends FormRequest
             'account_type' => ['nullable', 'in:client,company'],
             'company' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:120'],
+            // كود إحالة موظف/مهندس (اختياري) — يربط العميل بمن أحاله لبونص المبيعات.
+            'referral_code' => ['nullable', 'string', 'max:40'],
         ];
     }
 

@@ -27,6 +27,10 @@ class UserResource extends JsonResource
             'contact_id' => $this->contact_id,
             'contact_name' => $this->contact?->full_name,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
+            // هوية الموظف/المهندس لبطاقة الشريط الجانبي (اجتماع 2026-08-03): رقم حساب ثابت + كود إحالة + عدد العملاء المُحالين.
+            'account_number' => $this->resource->ensureAccountNumber(),
+            'referral_code' => $this->resource->ensureReferralCode(),
+            'referred_clients' => $this->referredContacts()->count(),
             'roles' => $this->getRoleNames(),
             'permissions' => $this->getAllPermissions()->pluck('name'),
             // تفضيلات القائمة الجانبية (المخفي/المطوي) — تُحمَّل عند الدخول لتبقى ثابتة عبر الأجهزة.

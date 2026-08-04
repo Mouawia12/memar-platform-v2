@@ -26,7 +26,7 @@ class Contact extends Model
         'full_name', 'kunya', 'email', 'phone', 'company', 'head_office', 'company_about', 'position',
         'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
-        'referral_code', 'referral_shares', 'account_number', 'avatar_file_id',
+        'referral_code', 'referral_shares', 'account_number', 'avatar_file_id', 'referred_by_user_id',
     ];
 
     /**

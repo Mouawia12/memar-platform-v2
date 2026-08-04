@@ -29,4 +29,10 @@ export interface AuthUser {
   roles?: string[];
   permissions?: string[];
   ui_prefs?: UiPrefs;
+  /** رقم حساب الموظف الثابت (MEM-YYYY-NNN) — من الباك اند. */
+  account_number?: string | null;
+  /** كود إحالة الموظف الثابت (MEMAR-…) — من الباك اند. */
+  referral_code?: string | null;
+  /** عدد العملاء الذين سجّلوا عبر كود إحالة هذا الموظف. */
+  referred_clients?: number;
 }

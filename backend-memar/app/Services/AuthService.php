@@ -64,6 +64,12 @@ class AuthService
             return $existing;
         }
 
+        // إحالة موظف/مهندس: إن سجّل العميل بكود إحالة صحيح نربطه بصاحب الكود (لبونص المبيعات).
+        $referrerId = null;
+        if (! empty($data['referral_code'])) {
+            $referrerId = User::where('referral_code', $data['referral_code'])->value('id');
+        }
+
         return Contact::create([
             'full_name' => $data['name'],
             'email' => $data['email'],
@@ -73,6 +79,7 @@ class AuthService
             'type' => 'client',
             'status' => 'active',
             'stage' => 'new',
+            'referred_by_user_id' => $referrerId,
             'notes' => 'حساب أنشأه العميل بنفسه من بوابة معمار',
         ]);
     }

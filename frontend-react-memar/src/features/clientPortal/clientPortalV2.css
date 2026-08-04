@@ -815,6 +815,9 @@
 .mcp-root .hero-progress-label { font-size: 11px; opacity: 0.8; }
 .mcp-root .stages-section { margin-top: 28px; }
 .mcp-root .stages-timeline {
+  /* سكين ERP القديم (erp-inline.css) يفرض display:flex فيصفّ المراحل أفقياً ويترك فراغاً
+     على اليسار — نعيدها لمسار عمودي كامل العرض طبق الأصل. */
+  display: block !important;
   position: relative;
   padding-right: 24px;
   margin-top: 16px;
@@ -872,7 +875,8 @@
 .mcp-root .upload-zone p { font-size: 12px; color: var(--text-3); }
 .mcp-root .docs-section { margin-bottom: 28px; }
 .mcp-root .docs-section-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--divider); }
-.mcp-root .docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+/* auto-fit (لا auto-fill) حتى تتمدّد البطاقات وتملأ كامل العرض بلا عمود فارغ على اليسار. */
+.mcp-root .docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 .mcp-root .doc-card {
   display: flex;
   align-items: center;

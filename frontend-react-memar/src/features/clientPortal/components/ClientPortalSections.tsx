@@ -810,7 +810,7 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
         </div>
       </div>
 
-      <div className="company-section">
+      <div className="company-section" id="company-projects" style={{ scrollMarginTop: 84 }}>
         <div className="company-section-header">
           <h3><i className="fas fa-folder-tree" /> جميع مشاريع الشركة</h3>
           <div className="company-section-header-actions">

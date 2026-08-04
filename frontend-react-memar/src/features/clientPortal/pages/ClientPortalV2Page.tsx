@@ -199,6 +199,13 @@ export function ClientPortalV2Page() {
   };
   // فتح تفاصيل المشروع داخل البوابة (تغيير محتوى داخلي، لا انتقال لصفحة منفصلة) — طبق الأصل.
   const openProject = (id: number) => { setSelectedProjectId(id); go('project-detail', id); };
+  // «عرض مشاريع الشركة» من السايد بار: ينتقل لصفحة الشركة ثم يمرّر تلقائيًا لقسم المشاريع (طلب أيمن).
+  const goToCompanyProjects = () => {
+    go('company');
+    window.setTimeout(() => {
+      document.getElementById('company-projects')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  };
   const notifCount = notif?.count ?? unpaidCount;
 
   return (
@@ -256,7 +263,7 @@ export function ClientPortalV2Page() {
             </div>
             <div className="sb-profile-details">
               {client?.company && <a href="#" className="sb-client-company" onClick={(e) => { e.preventDefault(); e.stopPropagation(); go('company'); }}><i className="fas fa-building-columns" /> {client.company}</a>}
-              <div className="sb-profile-stats-new" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); go('company'); }} title="عرض مشاريع الشركة">
+              <div className="sb-profile-stats-new" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); goToCompanyProjects(); }} title="عرض مشاريع الشركة">
                 <div className="sb-stat-main"><span className="sb-stat-main-value">{projects.length}</span><span className="sb-stat-main-label">مشاريع</span></div>
                 <div className="sb-stat-breakdown">
                   <div className="sb-stat-row"><span className="sb-stat-dot active" /><span className="sb-stat-row-value">{activeProjects}</span><span className="sb-stat-row-label">نشطة</span></div>

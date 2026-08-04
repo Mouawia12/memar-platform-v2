@@ -2397,9 +2397,11 @@
   padding-right: 32px;
   padding-left: 32px;
   background: linear-gradient(135deg, #D8335D 0%, #A82D6E 40%, #6B348C 100%);
-  /* نفس ارتفاع هيرو الصفحة الرئيسية (.hero-ads-fullwidth = 360px) — طلب أيمن أن
-     يتساوى بنر صفحة الشركة مع بنر النظرة العامة. نوسّط المحتوى عموديًا لملء الارتفاع. */
-  min-height: 360px;
+  /* الارتفاع الظاهر (تحت الشريط العلوي) يساوي تمامًا هيرو النظرة العامة (360px).
+     صفحة الشركة تُسحب 88px للأعلى (margin) فيختبئ ~62px منها خلف الشريط؛ لذا نضيف
+     هذا القدر إلى 360 (=422) ليصبح الجزء الظاهر 360 بالضبط — فلا يلاحظ المستخدم
+     أي تمدّد/تقلّص عند التنقّل بين «النظرة العامة» و«صفحة الشركة». طلب أيمن. */
+  min-height: calc(360px + var(--topbar-h) - 2px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -2415,7 +2417,7 @@
   .mcp-root .company-hero {
     margin-left: -16px !important;
     margin-right: -16px !important;
-    min-height: 240px; /* نفس هيرو النظرة العامة على الموبايل */
+    min-height: calc(240px + var(--topbar-h) - 2px); /* نفس هيرو النظرة العامة على الموبايل (تعويض اختباء الجزء العلوي خلف الشريط) */
   }
 }
 .mcp-root .company-hero.hero-type-individual {

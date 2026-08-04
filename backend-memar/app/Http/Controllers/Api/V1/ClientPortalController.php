@@ -897,6 +897,7 @@ class ClientPortalController extends ApiController
                     'from_staff' => $r->user_id !== $user->id,
                     'author' => $r->user_id !== $user->id ? ($r->user?->name ?? 'فريق معمار') : $user->name,
                     'body' => $r->body,
+                    'attachments' => $r->attachments ?? [],
                     'at' => $r->created_at?->toIso8601String(),
                 ])->all();
                 $answered = collect($replies)->contains('from_staff', true);
@@ -905,6 +906,7 @@ class ClientPortalController extends ApiController
                     'id' => $t->id,
                     'title' => $t->title,
                     'body' => $t->body,
+                    'author' => $user->name,
                     'status' => $answered ? 'answered' : 'open',
                     'status_label' => $answered ? 'تمت الإجابة' : 'سؤال',
                     'created_at' => $t->created_at?->toIso8601String(),

@@ -179,11 +179,17 @@ export interface ChatThread {
   participants: ChatParticipant[];
 }
 
+export interface ForumAttachment {
+  name: string;
+  kind: 'pdf' | 'video' | 'image' | 'file';
+}
+
 export interface ForumReply {
   id: number;
   from_staff: boolean;
   author: string | null;
   body: string;
+  attachments?: ForumAttachment[];
   at: string | null;
 }
 
@@ -191,6 +197,7 @@ export interface ForumThread {
   id: number;
   title: string;
   body: string | null;
+  author: string | null;
   status: 'open' | 'answered';
   status_label: string;
   created_at: string | null;

@@ -6,6 +6,9 @@ namespace Database\Seeders;
 
 use App\Models\Appointment;
 use App\Models\Contact;
+use App\Models\ForumCategory;
+use App\Models\ForumReply;
+use App\Models\ForumTopic;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectStage;
@@ -165,6 +168,51 @@ class AtomsDemoSeeder extends Seeder
                         ],
                     );
                     $sr->forceFill(['created_at' => Carbon::parse($r['at'])])->save();
+                }
+
+                // ── المنتدى (صفحة «المنتدى») — أسئلة العميل وردود فريق معمار طبق الأصل ──
+                $khaled = $this->manager('eng.khaled@memar.kw', 'م. خالد العتيبي');
+                $sara = $this->manager('eng.sara@memar.kw', 'م. سارة الحربي');
+                $cat = ForumCategory::updateOrCreate(['slug' => 'projects-qa'], ['name' => 'أسئلة المشاريع', 'order' => 1]);
+
+                $threads = [
+                    [
+                        'title' => 'ما هي المدة المتوقعة لإنهاء مرحلة التصميم المعماري؟',
+                        'body' => 'أريد معرفة الجدول الزمني المتوقع لإنهاء التصميم المعماري الكامل للفيلا بما في ذلك الواجهات والمخططات الداخلية.',
+                        'at' => Carbon::now()->subDays(3),
+                        'replies' => [
+                            ['user' => $khaled, 'at' => Carbon::now()->subDays(2), 'body' => 'مرحباً أحمد، عادةً تستغرق مرحلة التصميم المعماري من 4 إلى 6 أسابيع حسب حجم المشروع. في حالة مشروعك، نتوقع الانتهاء خلال 5 أسابيع.', 'attachments' => [['name' => 'الجدول_الزمني.pdf', 'kind' => 'pdf']]],
+                            ['user' => $sara, 'at' => Carbon::now()->subDays(1), 'body' => 'أضيف على كلام م. خالد أننا أرفقنا فيديو توضيحي يشرح مراحل العمل بالتفصيل.', 'attachments' => [['name' => 'شرح_المراحل.mp4', 'kind' => 'video']]],
+                        ],
+                    ],
+                    [
+                        'title' => 'هل يمكن تعديل مساحة غرفة المعيشة بعد اعتماد المخطط؟',
+                        'body' => 'أفكّر في توسيع غرفة المعيشة قليلاً على حساب الممر المجاور — هل هذا ممكن في هذه المرحلة؟',
+                        'at' => Carbon::now()->subDays(7),
+                        'replies' => [
+                            ['user' => $khaled, 'at' => Carbon::now()->subDays(6), 'body' => 'نعم ممكن في المرحلة الحالية قبل اعتماد المخطط الإنشائي. سنرسل لك مقترحين للتوزيع الجديد خلال يومين.', 'attachments' => []],
+                        ],
+                    ],
+                    [
+                        'title' => 'ما الفرق بين الإشراف الدوري والإشراف الكامل؟',
+                        'body' => 'أرغب في معرفة الفرق بين باقتي الإشراف لاختيار الأنسب لمشروع الفيلا.',
+                        'at' => Carbon::now()->subDays(1),
+                        'replies' => [],
+                    ],
+                ];
+                foreach ($threads as $th) {
+                    $topic = ForumTopic::updateOrCreate(
+                        ['title' => $th['title'], 'user_id' => $client->id],
+                        ['category_id' => $cat->id, 'body' => $th['body'], 'is_public' => true],
+                    );
+                    $topic->forceFill(['created_at' => $th['at']])->save();
+                    foreach ($th['replies'] as $rep) {
+                        $reply = ForumReply::updateOrCreate(
+                            ['topic_id' => $topic->id, 'user_id' => $rep['user']->id],
+                            ['body' => $rep['body'], 'attachments' => $rep['attachments']],
+                        );
+                        $reply->forceFill(['created_at' => $rep['at']])->save();
+                    }
                 }
             }
         }

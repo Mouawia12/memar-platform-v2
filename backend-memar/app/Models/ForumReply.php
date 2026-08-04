@@ -12,7 +12,12 @@ class ForumReply extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['topic_id', 'user_id', 'body'];
+    protected $fillable = ['topic_id', 'user_id', 'body', 'attachments'];
+
+    protected function casts(): array
+    {
+        return ['attachments' => 'array'];
+    }
 
     public function topic(): BelongsTo
     {

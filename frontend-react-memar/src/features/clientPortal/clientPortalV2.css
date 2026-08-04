@@ -68,7 +68,19 @@
 /* تثبيت عرض التخطيط بين الصفحات: صفحة طويلة تُظهر شريط تمرير النافذة وصفحة قصيرة
    تخفيه، فتتحرّك حافة الشاشة ويتزحزح السايد بار الثابت (right:0) قليلًا. نحجز مساحة
    الشريط دائمًا فيبقى العرض ثابتًا مهما اختلف طول الصفحة. مقصور على وجود البوابة. */
-html:has(.mcp-root) { scrollbar-gutter: stable; }
+html:has(.mcp-root) { overflow-y: scroll; scrollbar-gutter: stable; }
+/* «سكين ERP القديم» (mimar-skin) يثبّت السايد بار والمحتوى على 242px بـ!important
+   (.sidebar width/min-width, و.main margin-right/max-width) فيتجاهل عرضنا 280.
+   نتجاوزه بـ!important مع أسبقية أعلى (‎.mcp-root ‎)، ونربط الكل بمتغيّر واحد فيبقى
+   العرض ثابتًا تمامًا في كل الصفحات — لا تمدّد/تقلّص عند التنقّل. طلب أيمن. */
+.mcp-root .sidebar {
+  width: var(--sidebar-w) !important;
+  min-width: var(--sidebar-w) !important;
+}
+.mcp-root .main {
+  margin-right: var(--sidebar-w) !important;
+  max-width: calc(100vw - var(--sidebar-w)) !important;
+}
 .mcp-root .sidebar {
   width: var(--sidebar-w);
   background: #FFFFFF;
@@ -308,7 +320,9 @@ html:has(.mcp-root) { scrollbar-gutter: stable; }
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  display: flex;
+  /* زر الرجوع للموبايل فقط — مخفي على الدسكتوب (نظير زر القائمة الهامبرغر).
+     يظهر flex داخل media ≤900px. */
+  display: none;
   align-items: center;
   justify-content: center;
   color: rgba(255,255,255,0.85);
@@ -2823,6 +2837,7 @@ html:has(.mcp-root) { scrollbar-gutter: stable; }
 .mcp-root .sidebar-overlay.active { display: block; }
 .mcp-root .main { margin-right: 0; }
 .mcp-root .topbar-menu-btn { display: flex; }
+.mcp-root .back-btn { display: flex; } /* يظهر على الموبايل فقط */
 .mcp-root .chat-layout { grid-template-columns: 1fr; height: auto; max-height: none; }
 .mcp-root .chat-sidebar-panel { max-height: 200px; }
 .mcp-root .form-grid { grid-template-columns: 1fr; }

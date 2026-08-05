@@ -22,6 +22,7 @@ class CommunicationController extends ApiController
         $paginator = $this->communications->list(
             $request->string('search')->toString() ?: null,
             $request->string('channel')->toString() ?: null,
+            $request->string('contact_type')->toString() ?: null,
             $this->perPage($request, 20),
         );
 

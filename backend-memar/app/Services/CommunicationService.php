@@ -12,11 +12,12 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class CommunicationService
 {
-    public function list(?string $search, ?string $channel, int $perPage = 20): LengthAwarePaginator
+    public function list(?string $search, ?string $channel, ?string $contactType, int $perPage = 20): LengthAwarePaginator
     {
         return Communication::query()
             ->when($search, fn ($q, string $s) => $q->where('contact_name', 'like', "%{$s}%")->orWhere('subject', 'like', "%{$s}%"))
             ->when($channel, fn ($q, string $c) => $q->where('channel', $c))
+            ->when($contactType, fn ($q, string $t) => $q->where('contact_type', $t))
             ->with('logger:id,name')
             ->latest('happened_at')
             ->latest()

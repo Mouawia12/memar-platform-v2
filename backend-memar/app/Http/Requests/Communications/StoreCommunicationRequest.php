@@ -21,6 +21,7 @@ class StoreCommunicationRequest extends FormRequest
     {
         return [
             'contact_name' => ['required', 'string', 'max:255'],
+            'contact_type' => ['nullable', Rule::in(['client', 'company', 'staff'])],
             'phone' => ['nullable', 'string', 'max:30'],
             'channel' => ['required', Rule::in(['whatsapp', 'phone', 'email', 'sms', 'meeting'])],
             'direction' => ['required', Rule::in(['inbound', 'outbound'])],

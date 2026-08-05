@@ -2,7 +2,7 @@ import { type CSSProperties, useState } from 'react';
 
 import { CommunicationFormModal } from '../components/CommunicationFormModal';
 import { useCommunications, useDeleteCommunication } from '../hooks/useCommunications';
-import { CHANNEL_ICONS, CHANNEL_LABELS, DIRECTION_LABELS, type Channel, type Communication } from '../types';
+import { CHANNEL_ICONS, CHANNEL_LABELS, CONTACT_TYPE_LABELS, DIRECTION_LABELS, type Channel, type Communication, type ContactType } from '../types';
 
 type ChannelFilter = '' | Channel;
 
@@ -12,11 +12,12 @@ const waLink = (phone: string) => `https://wa.me/${phone.replace(/[^0-9]/g, '')}
 export function CommunicationsPage() {
   const [search, setSearch] = useState('');
   const [channel, setChannel] = useState<ChannelFilter>('');
+  const [contactType, setContactType] = useState<'' | ContactType>('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Communication | null>(null);
 
-  const { data, isLoading, isError } = useCommunications({ search: search || undefined, channel: channel || undefined, page });
+  const { data, isLoading, isError } = useCommunications({ search: search || undefined, channel: channel || undefined, contact_type: contactType || undefined, page });
   const del = useDeleteCommunication();
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
@@ -34,6 +35,15 @@ export function CommunicationsPage() {
       </div>
 
       <div className="card" style={{ padding: '16px' }}>
+        {/* فلتر نوع الجهة (بند 36): موظفين / عملاء / شركات */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {([['', 'الكل'], ['client', 'عملاء'], ['company', 'شركات'], ['staff', 'موظفون']] as const).map(([val, label]) => (
+            <button key={val} type="button" onClick={() => { setContactType(val); setPage(1); }}
+              style={{ ...typeTab, ...(contactType === val ? typeTabOn : null) }}>
+              {label}
+            </button>
+          ))}
+        </div>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
           <input className="input" placeholder="بحث بالاسم أو الموضوع…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ flex: 1, minWidth: '220px' }} />
           <select className="input" value={channel} onChange={(e) => { setChannel(e.target.value as ChannelFilter); setPage(1); }}>
@@ -61,7 +71,7 @@ export function CommunicationsPage() {
                 {rows.map((c) => (
                   <tr key={c.id}>
                     <td style={td}>
-                      <b>{c.contact_name}</b>
+                      <b>{c.contact_name}</b> <span style={typeChip}>{CONTACT_TYPE_LABELS[c.contact_type] ?? c.contact_type}</span>
                       {c.phone && <div style={{ fontSize: '12px', opacity: 0.6, direction: 'ltr', textAlign: 'right' }}>{c.phone}</div>}
                     </td>
                     <td style={td}>
@@ -102,3 +112,6 @@ export function CommunicationsPage() {
 const th: CSSProperties = { textAlign: 'right', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontSize: '13px', opacity: 0.7 };
 const td: CSSProperties = { padding: '10px 12px', borderBottom: '1px solid #f0f0f0' };
 const badge: CSSProperties = { display: 'inline-block', padding: '2px 10px', borderRadius: '6px', fontSize: '12px', background: '#274A781a', color: '#274A78', whiteSpace: 'nowrap' };
+const typeTab: CSSProperties = { padding: '6px 16px', borderRadius: '999px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700 };
+const typeTabOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
+const typeChip: CSSProperties = { fontSize: '10.5px', fontWeight: 700, color: '#7C3AED', background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.15)', borderRadius: '999px', padding: '1px 8px', marginInlineStart: '4px' };

@@ -21,6 +21,7 @@ class CommunicationResource extends JsonResource
         return [
             'id' => $this->id,
             'contact_name' => $this->contact_name,
+            'contact_type' => $this->contact_type,
             'phone' => $this->phone,
             'channel' => $this->channel,
             'direction' => $this->direction,

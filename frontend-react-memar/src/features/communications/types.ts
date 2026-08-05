@@ -1,9 +1,17 @@
 export type Channel = 'whatsapp' | 'phone' | 'email' | 'sms' | 'meeting';
 export type Direction = 'inbound' | 'outbound';
+export type ContactType = 'client' | 'company' | 'staff';
+
+export const CONTACT_TYPE_LABELS: Record<ContactType, string> = {
+  client: 'عميل',
+  company: 'شركة',
+  staff: 'موظف',
+};
 
 export interface Communication {
   id: number;
   contact_name: string;
+  contact_type: ContactType;
   phone: string | null;
   channel: Channel;
   direction: Direction;
@@ -16,6 +24,7 @@ export interface Communication {
 
 export interface CommunicationFormData {
   contact_name: string;
+  contact_type: ContactType;
   phone: string;
   channel: Channel;
   direction: Direction;

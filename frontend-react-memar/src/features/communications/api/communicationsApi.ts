@@ -4,6 +4,7 @@ import type { Communication } from '../types';
 export interface CommunicationsQuery {
   search?: string;
   channel?: string;
+  contact_type?: string;
   page?: number;
   per_page?: number;
 }

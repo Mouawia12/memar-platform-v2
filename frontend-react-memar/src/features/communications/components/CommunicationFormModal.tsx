@@ -2,7 +2,7 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveCommunication } from '../hooks/useCommunications';
-import { CHANNEL_LABELS, DIRECTION_LABELS, type Channel, type Communication, type CommunicationFormData, type Direction } from '../types';
+import { CHANNEL_LABELS, CONTACT_TYPE_LABELS, DIRECTION_LABELS, type Channel, type Communication, type CommunicationFormData, type ContactType, type Direction } from '../types';
 
 interface Props {
   communication: Communication | null;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 const empty: CommunicationFormData = {
-  contact_name: '', phone: '', channel: 'whatsapp', direction: 'outbound', subject: '', body: '',
+  contact_name: '', contact_type: 'client', phone: '', channel: 'whatsapp', direction: 'outbound', subject: '', body: '',
 };
 
 export function CommunicationFormModal({ communication, onClose }: Props) {
@@ -21,6 +21,7 @@ export function CommunicationFormModal({ communication, onClose }: Props) {
     if (communication) {
       setForm({
         contact_name: communication.contact_name,
+        contact_type: communication.contact_type ?? 'client',
         phone: communication.phone ?? '',
         channel: communication.channel,
         direction: communication.direction,
@@ -45,8 +46,13 @@ export function CommunicationFormModal({ communication, onClose }: Props) {
         <h2 style={{ marginTop: 0 }}>{communication ? 'تعديل تواصل' : 'تسجيل تواصل'}</h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <label style={label}>اسم العميل
+          <label style={label}>اسم الجهة
             <input className="input" style={input} value={form.contact_name} onChange={(e) => set('contact_name', e.target.value)} required />
+          </label>
+          <label style={label}>النوع
+            <select className="input" style={input} value={form.contact_type} onChange={(e) => set('contact_type', e.target.value as ContactType)}>
+              {(Object.keys(CONTACT_TYPE_LABELS) as ContactType[]).map((k) => <option key={k} value={k}>{CONTACT_TYPE_LABELS[k]}</option>)}
+            </select>
           </label>
           <label style={label}>الهاتف
             <input className="input" style={input} value={form.phone} onChange={(e) => set('phone', e.target.value)} dir="ltr" />

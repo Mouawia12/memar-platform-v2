@@ -13,7 +13,7 @@ class Communication extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'contact_name', 'phone', 'channel', 'direction',
+        'contact_name', 'contact_type', 'phone', 'channel', 'direction',
         'subject', 'body', 'happened_at', 'logged_by',
     ];
 

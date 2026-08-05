@@ -21,6 +21,7 @@ class UpdateCommunicationRequest extends FormRequest
     {
         return [
             'contact_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'contact_type' => ['nullable', Rule::in(['client', 'company', 'staff'])],
             'phone' => ['nullable', 'string', 'max:30'],
             'channel' => ['sometimes', 'required', Rule::in(['whatsapp', 'phone', 'email', 'sms', 'meeting'])],
             'direction' => ['sometimes', 'required', Rule::in(['inbound', 'outbound'])],

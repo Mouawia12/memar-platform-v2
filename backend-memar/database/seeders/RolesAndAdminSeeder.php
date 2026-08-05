@@ -21,21 +21,22 @@ class RolesAndAdminSeeder extends Seeder
         // تصفير كاش الصلاحيات قبل الإنشاء (يمنع تعارض النسخ القديمة)
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // ── الصلاحيات (كتالوج مبدئي — يتوسّع مع كل وحدة) ──
+        // ── الصلاحيات (كتالوج CRUD لكل وحدة: view=عرض · manage=تعديل · delete=حذف) ──
+        // (اجتماع 2026-08-05: صلاحيات CRUD لكل صفحة + جدول مربّعات في صفحة الصلاحيات)
         $permissions = [
-            'users.view', 'users.manage',
-            'roles.view', 'roles.manage',
-            'crm.view', 'crm.manage',
-            'requests.view', 'requests.manage',
-            'projects.view', 'projects.manage',
+            'users.view', 'users.manage', 'users.delete',
+            'roles.view', 'roles.manage', 'roles.delete',
+            'crm.view', 'crm.manage', 'crm.delete',
+            'requests.view', 'requests.manage', 'requests.delete',
+            'projects.view', 'projects.manage', 'projects.delete',
             'tasks.view', 'tasks.manage', 'tasks.delete',
-            'appointments.view', 'appointments.manage',
-            'documents.view', 'documents.manage',
-            'contracts.view', 'contracts.manage',
-            'finance.view', 'finance.manage',
-            'hr.view', 'hr.manage',
+            'appointments.view', 'appointments.manage', 'appointments.delete',
+            'documents.view', 'documents.manage', 'documents.delete',
+            'contracts.view', 'contracts.manage', 'contracts.delete',
+            'finance.view', 'finance.manage', 'finance.delete',
+            'hr.view', 'hr.manage', 'hr.delete',
             'pricing.view', 'pricing.manage',
-            'forum.view', 'forum.manage',
+            'forum.view', 'forum.manage', 'forum.delete',
             'settings.manage',
         ];
         foreach ($permissions as $name) {

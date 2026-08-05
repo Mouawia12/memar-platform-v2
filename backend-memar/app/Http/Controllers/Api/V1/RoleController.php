@@ -83,14 +83,29 @@ class RoleController extends ApiController
     {
         $groups = Permission::orderBy('name')->get()
             ->groupBy(fn (Permission $p): string => explode('.', (string) $p->name)[0])
-            ->map(fn ($items, string $key): array => [
-                'group' => $key,
-                'label' => self::GROUP_LABELS[$key] ?? $key,
-                'permissions' => $items->map(fn (Permission $p): array => [
-                    'name' => $p->name,
-                    'action' => str_ends_with((string) $p->name, '.manage') ? 'إدارة' : 'عرض',
-                ])->values(),
-            ])
+            ->map(function ($items, string $key): array {
+                // خريطة الفعل → اسم الصلاحية (view/manage/delete) لبناء مصفوفة CRUD في الواجهة.
+                $byAction = [];
+                foreach ($items as $p) {
+                    $action = explode('.', (string) $p->name)[1] ?? 'view';
+                    $byAction[$action] = $p->name;
+                }
+
+                return [
+                    'group' => $key,
+                    'label' => self::GROUP_LABELS[$key] ?? $key,
+                    'actions' => [
+                        'view' => $byAction['view'] ?? null,
+                        'manage' => $byAction['manage'] ?? null,
+                        'delete' => $byAction['delete'] ?? null,
+                    ],
+                    // القائمة الكاملة تبقى للتوافق مع المودال القديم.
+                    'permissions' => $items->map(fn (Permission $p): array => [
+                        'name' => $p->name,
+                        'action' => str_ends_with((string) $p->name, '.manage') ? 'إدارة' : (str_ends_with((string) $p->name, '.delete') ? 'حذف' : 'عرض'),
+                    ])->values(),
+                ];
+            })
             ->values();
 
         return $this->ok($groups);

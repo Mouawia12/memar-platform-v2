@@ -12,9 +12,16 @@ export interface PermissionItem {
   action: string;
 }
 
+export interface PermissionActions {
+  view: string | null;
+  manage: string | null;
+  delete: string | null;
+}
+
 export interface PermissionGroup {
   group: string;
   label: string;
+  actions: PermissionActions;
   permissions: PermissionItem[];
 }
 

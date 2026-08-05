@@ -16,6 +16,9 @@ const TYPE_UI: Record<InternalNewsItem['type'], { label: string; icon: string; c
 
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long' }) : '');
 
+/** تاريخ اليوم — نُقل من شريط الهيدر إلى أسفل يسار البنر (طلب أيمن). */
+const todayLong = new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
 export function InternalNewsHero() {
   const { data, isLoading } = useInternalNews();
   const news = data ?? [];
@@ -68,11 +71,15 @@ export function InternalNewsHero() {
           <button type="button" style={navBtn} onClick={() => setIdx((i) => (i + 1) % news.length)} aria-label="التالي"><i className="fas fa-chevron-left" /></button>
         </div>
       )}
+
+      {/* تاريخ اليوم — أسفل يسار البنر (نُقل من الهيدر) */}
+      <span style={dateBadge}><i className="fas fa-calendar-day" /> {todayLong}</span>
     </div>
   );
 }
 
-const hero: CSSProperties = { position: 'relative', overflow: 'hidden', borderRadius: '16px', background: 'linear-gradient(135deg,#0D4A7A 0%,#1B6CA8 100%)', color: '#fff', padding: '22px 24px', marginBottom: '20px', boxShadow: '0 6px 22px rgba(13,74,122,.22)', minHeight: '150px' };
+const hero: CSSProperties = { position: 'relative', overflow: 'hidden', borderRadius: '16px', background: 'linear-gradient(135deg,#0D4A7A 0%,#1B6CA8 100%)', color: '#fff', padding: '22px 24px 46px', marginBottom: '20px', boxShadow: '0 6px 22px rgba(13,74,122,.22)', minHeight: '150px' };
+const dateBadge: CSSProperties = { position: 'absolute', left: '24px', bottom: '16px', zIndex: 2, fontSize: '12.5px', fontWeight: 600, color: 'rgba(255,255,255,.92)', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.22)', borderRadius: '999px', padding: '5px 13px', display: 'inline-flex', alignItems: 'center', gap: '7px', backdropFilter: 'blur(4px)' };
 const pattern: CSSProperties = { position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 85% 15%, rgba(255,255,255,.10) 0, transparent 45%), radial-gradient(circle at 10% 90%, rgba(232,168,56,.14) 0, transparent 40%)', pointerEvents: 'none' };
 const content: CSSProperties = { position: 'relative', display: 'flex', alignItems: 'center', gap: '18px' };
 const badge: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '999px', color: '#fff' };

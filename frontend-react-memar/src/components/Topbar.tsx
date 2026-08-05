@@ -49,8 +49,6 @@ export function Topbar({ onToggleSidebar }: Props) {
     return () => document.removeEventListener('mousedown', onDown);
   }, [menuOpen]);
 
-  const today = new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' });
-
   return (
     <header className="topbar">
       <button className="topbar-toggle icon-btn" type="button" onClick={onToggleSidebar} title="طيّ/فتح القائمة">☰</button>
@@ -61,7 +59,6 @@ export function Topbar({ onToggleSidebar }: Props) {
       {!clientOnly && <GlobalSearch />}
 
       <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginInlineStart: 'auto' }}>
-        <span className="topbar-date">{today}</span>
         <NotificationsMenu />
         {!clientOnly && <QuickAddMenu />}
 

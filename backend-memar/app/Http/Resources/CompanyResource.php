@@ -27,6 +27,8 @@ class CompanyResource extends JsonResource
             'email' => $this->email,
             'address' => $this->address,
             'notes' => $this->notes,
+            'internal_rating' => $this->internal_rating !== null ? (int) $this->internal_rating : null,
+            'internal_notes' => $this->internal_notes,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

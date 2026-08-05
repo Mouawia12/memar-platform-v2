@@ -1,6 +1,10 @@
 import type { CSSProperties } from 'react';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { InternalRating } from '../../../components/InternalRating';
 import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
+import { crmApi } from '../api/crmApi';
 import { LeadReminders } from './LeadReminders';
 import { useLeadHistory, useSetTemperature } from '../hooks/useCrm';
 import { STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Stage, type Temperature } from '../types';
@@ -26,6 +30,11 @@ const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { 
 export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
   const setTemp = useSetTemperature();
+  const qc = useQueryClient();
+  const saveRating = useMutation({
+    mutationFn: (p: { internal_rating: number; internal_notes: string }) => crmApi.update(lead.id, p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['crm-leads'] }),
+  });
   const rows = data?.data ?? [];
   const temp = TEMPERATURE_META[lead.temperature];
 
@@ -99,6 +108,17 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
         <div style={section}>
           <div style={secTitle}>🔔 تذكيرات المتابعة</div>
           <LeadReminders leadId={lead.id} />
+        </div>
+
+        {/* التقييم الداخلي للعميل — خاص بالفريق (بند 27) */}
+        <div style={section}>
+          <div style={secTitle}>⭐ التقييم الداخلي للعميل</div>
+          <InternalRating
+            rating={lead.internal_rating ?? 0}
+            notes={lead.internal_notes ?? ''}
+            busy={saveRating.isPending}
+            onSave={(r, n) => saveRating.mutate({ internal_rating: r, internal_notes: n })}
+          />
         </div>
 
         {/* نقل لمسار آخر */}

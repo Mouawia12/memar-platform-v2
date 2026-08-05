@@ -31,6 +31,8 @@ class ContactResource extends JsonResource
             'temperature' => $this->temperature,
             'deal_value_kwd' => $this->deal_value_kwd,
             'notes' => $this->notes,
+            'internal_rating' => $this->internal_rating !== null ? (int) $this->internal_rating : null,
+            'internal_notes' => $this->internal_notes,
             // الاسم المبدئي المُدخل في الفرصة (مسوّدة تُستخدم قبل التحويل فقط)
             'project_name' => $this->project_name,
             'project_details' => $this->project_details,

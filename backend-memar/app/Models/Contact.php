@@ -28,6 +28,7 @@ class Contact extends Model
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
         'referral_code', 'referral_shares', 'account_number', 'avatar_file_id', 'referred_by_user_id',
         'referred_by_contact_id', 'loyalty_points', 'loyalty_points_lifetime',
+        'internal_rating', 'internal_notes',
     ];
 
     /**

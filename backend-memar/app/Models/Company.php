@@ -16,6 +16,7 @@ class Company extends Model
 
     protected $fillable = [
         'name', 'type', 'industry', 'phone', 'email', 'address', 'notes',
+        'internal_rating', 'internal_notes',
     ];
 
     public function getActivitylogOptions(): LogOptions

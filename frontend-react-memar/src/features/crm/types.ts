@@ -38,6 +38,9 @@ export interface Lead {
   owner: { id: number; name: string } | null;
   // أقرب تذكير معلّق + هل حان وقته (لتنبيه الكرت) — اجتماع 2026-08-05
   reminder: { id: number; remind_at: string | null; note: string | null; due: boolean } | null;
+  // تقييم داخلي خاص بالفريق (اجتماع 2026-08-05)
+  internal_rating: number | null;
+  internal_notes: string | null;
   created_at: string | null;
 }
 

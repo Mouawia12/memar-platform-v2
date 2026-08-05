@@ -30,6 +30,9 @@ class UpdateContactRequest extends FormRequest
             'stage' => ['sometimes', 'required', 'string', Rule::exists('pipeline_stages', 'key')],
             'temperature' => ['nullable', Rule::in(['hot', 'warm', 'cold', 'normal'])],
             'deal_value_kwd' => ['nullable', 'numeric', 'min:0'],
+            // تقييم داخلي (خاص بالفريق) — اجتماع 2026-08-05
+            'internal_rating' => ['nullable', 'integer', 'min:0', 'max:5'],
+            'internal_notes' => ['nullable', 'string', 'max:2000'],
             'notes' => ['nullable', 'string'],
             'project_name' => ['nullable', 'string', 'max:255'],
             'project_details' => ['nullable', 'string'],

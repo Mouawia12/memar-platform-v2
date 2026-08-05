@@ -1,5 +1,6 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
+import { InternalRating } from '../../../components/InternalRating';
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveCompany } from '../hooks/useCompanies';
 import { COMPANY_TYPE_LABELS, type Company, type CompanyFormData, type CompanyType } from '../types';
@@ -9,7 +10,7 @@ interface Props {
   onClose: () => void;
 }
 
-const empty: CompanyFormData = { name: '', type: 'client', industry: '', phone: '', email: '', address: '', notes: '' };
+const empty: CompanyFormData = { name: '', type: 'client', industry: '', phone: '', email: '', address: '', notes: '', internal_rating: 0, internal_notes: '' };
 
 export function CompanyFormModal({ company, onClose }: Props) {
   const save = useSaveCompany();
@@ -25,6 +26,8 @@ export function CompanyFormModal({ company, onClose }: Props) {
         email: company.email ?? '',
         address: company.address ?? '',
         notes: company.notes ?? '',
+        internal_rating: company.internal_rating ?? 0,
+        internal_notes: company.internal_notes ?? '',
       });
     } else {
       setForm(empty);
@@ -70,6 +73,17 @@ export function CompanyFormModal({ company, onClose }: Props) {
         <label style={label}>ملاحظات
           <textarea className="input" style={{ ...input, minHeight: '60px' }} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
         </label>
+
+        {/* التقييم الداخلي للشركة — خاص بالفريق (بند 26) */}
+        <div style={label}>
+          <span>⭐ التقييم الداخلي للشركة</span>
+          <InternalRating
+            rating={form.internal_rating}
+            notes={form.internal_notes}
+            placeholder="ملاحظات داخلية عن الشركة (يُستحب/لا يُستحب التعامل، ملاحظات…)"
+            onChange={(r, n) => setForm((f) => ({ ...f, internal_rating: r, internal_notes: n }))}
+          />
+        </div>
 
         {save.isError && <p style={{ color: '#ef4444' }}>{apiErrorMessage(save.error, 'تعذّر الحفظ')}</p>}
 

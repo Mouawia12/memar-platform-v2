@@ -9,6 +9,8 @@ export interface Company {
   email: string | null;
   address: string | null;
   notes: string | null;
+  internal_rating: number | null;
+  internal_notes: string | null;
   created_at: string | null;
 }
 
@@ -20,6 +22,8 @@ export interface CompanyFormData {
   email: string;
   address: string;
   notes: string;
+  internal_rating: number;
+  internal_notes: string;
 }
 
 export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {

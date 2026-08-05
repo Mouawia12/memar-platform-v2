@@ -27,6 +27,9 @@ class UpdateCompanyRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
+            // تقييم داخلي (خاص بالفريق) — اجتماع 2026-08-05
+            'internal_rating' => ['nullable', 'integer', 'min:0', 'max:5'],
+            'internal_notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

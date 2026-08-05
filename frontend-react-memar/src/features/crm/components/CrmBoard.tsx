@@ -42,7 +42,7 @@ function CollapsedColumn({ stage, count, total }: { stage: PipelineStage; count:
 }
 
 /** عمود مرحلة قابل للإفلات فيه (الحالة الموسّعة). */
-function DroppableColumn({ stage, count, total, children }: { stage: PipelineStage; count: number; total: number; children: ReactNode }) {
+function DroppableColumn({ stage, count, total, onExpand, children }: { stage: PipelineStage; count: number; total: number; onExpand: () => void; children: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   return (
     <div ref={setNodeRef} style={{ ...column, ...(isOver ? columnOver : null) }}>
@@ -54,9 +54,35 @@ function DroppableColumn({ stage, count, total, children }: { stage: PipelineSta
           </div>
           {total > 0 && <div style={{ fontSize: '11px', fontWeight: 600, color: '#8A93A3', marginTop: '1px' }}>{money(total)}</div>}
         </div>
+        {/* تكبير: يفتح صفحة كاملة بكروت مرتّبة شبكيًّا لسهولة المراجعة (طلب أيمن 2026-08-05) */}
+        <button type="button" onClick={onExpand} title="تكبير — عرض كل الكروت في صفحة كاملة" style={collapseBtn}>⤢</button>
         <button type="button" onClick={() => setStageCollapsed(stage.key, true)} title="طيّ العمود" style={collapseBtn}>⟩</button>
       </div>
       {children}
+    </div>
+  );
+}
+
+/** تكبير مرحلة إلى صفحة كاملة: شبكة كروت (عدّة بالصف) مع تمرير — أسهل من العمود الطولي. */
+function StageExpand({ stage, leads, onOpen, onClose }: { stage: PipelineStage; leads: Lead[]; onOpen: (l: Lead) => void; onClose: () => void }) {
+  const total = leads.reduce((s, l) => s + Number(l.deal_value_kwd), 0);
+  return (
+    <div style={expandOverlay} onClick={onClose}>
+      <div style={expandPanel} onClick={(e) => e.stopPropagation()}>
+        <div style={{ ...expandHeader, borderTop: `4px solid ${stage.color}` }}>
+          <div>
+            <b style={{ fontSize: '18px' }}>{stage.label}</b> <span style={{ color: stage.color, fontWeight: 800 }}>({leads.length})</span>
+            {total > 0 && <span style={{ color: '#8A93A3', fontSize: '13px', marginInlineStart: '10px' }}>{money(total)}</span>}
+          </div>
+          <button type="button" onClick={onClose} aria-label="إغلاق" style={expandClose}>×</button>
+        </div>
+        <div style={expandGrid}>
+          {leads.length === 0 && <p style={{ opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>لا فرص في هذه المرحلة.</p>}
+          {leads.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} onOpen={onOpen} stageColor={stage.color} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -72,6 +98,7 @@ function DraggableCard({ lead, children }: { lead: Lead; children: ReactNode }) 
 
 export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
   const [active, setActive] = useState<Lead | null>(null);
+  const [expanded, setExpanded] = useState<PipelineStage | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const collapsedMap = useCollapsedStages();
   const hiddenMap = useHiddenStages();
@@ -103,7 +130,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
             return <CollapsedColumn key={stage.key} stage={stage} count={colLeads.length} total={total} />;
           }
           return (
-            <DroppableColumn key={stage.key} stage={stage} count={colLeads.length} total={total}>
+            <DroppableColumn key={stage.key} stage={stage} count={colLeads.length} total={total} onExpand={() => setExpanded(stage)}>
               {colLeads.length === 0 && <p style={{ opacity: 0.4, fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>أفلت هنا</p>}
               {colLeads.map((lead) => (
                 <DraggableCard key={lead.id} lead={lead}>
@@ -122,6 +149,15 @@ export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
           </div>
         ) : null}
       </DragOverlay>
+
+      {expanded && (
+        <StageExpand
+          stage={expanded}
+          leads={leads.filter((l) => l.stage === expanded.key)}
+          onOpen={(l) => { setExpanded(null); onOpen(l); }}
+          onClose={() => setExpanded(null)}
+        />
+      )}
     </DndContext>
   );
 }
@@ -137,3 +173,9 @@ const collapseBtn: CSSProperties = { background: '#F2F5F9', border: '1px solid #
 const collapsedCol: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '10px 6px', minHeight: '140px', width: '46px', flex: '0 0 46px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'background 0.15s ease, outline 0.15s ease' };
 const collapsedCount: CSSProperties = { fontSize: '13px', fontWeight: 800, minWidth: '20px', textAlign: 'center' };
 const collapsedLabel: CSSProperties = { writingMode: 'vertical-rl', fontWeight: 700, fontSize: '12.5px', whiteSpace: 'nowrap', flex: 1 };
+// وضع التكبير: نافذة كبيرة بشبكة كروت (auto-fill) لسهولة مراجعة عدد كبير.
+const expandOverlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'grid', placeItems: 'center', zIndex: 80, padding: '24px' };
+const expandPanel: CSSProperties = { background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '1200px', height: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' };
+const expandHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '16px 22px', borderBottom: '1px solid #EEF2F7' };
+const expandClose: CSSProperties = { background: 'none', border: 'none', fontSize: '28px', lineHeight: 1, cursor: 'pointer', color: '#8A93A3', padding: 0 };
+const expandGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px', padding: '20px 22px', overflowY: 'auto', alignContent: 'start' };

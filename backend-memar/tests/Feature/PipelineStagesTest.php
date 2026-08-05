@@ -24,7 +24,8 @@ class PipelineStagesTest extends TestCase
 
         $res = $this->getJson('/api/v1/pipeline-stages');
 
-        $res->assertOk()->assertJsonCount(6, 'data');
+        // 6 مراحل افتراضية + «عملاء قدامى» (اجتماع 2026-08-05) = 7
+        $res->assertOk()->assertJsonCount(7, 'data');
         $this->assertSame('عميل محتمل', $res->json('data.0.label'));
     }
 

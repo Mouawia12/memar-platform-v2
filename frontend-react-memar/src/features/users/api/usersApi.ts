@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
+import type { AuthUser } from '../../../types/api';
 import type { Role, User } from '../types';
 
 export interface UsersQuery {
@@ -13,4 +14,5 @@ export const usersApi = {
   update: (id: number, payload: Record<string, unknown>) => apiPatch<User>(`/users/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/users/${id}`),
   roles: () => apiGet<Role[]>('/roles'),
+  impersonate: (id: number) => apiPost<{ token: string; user: AuthUser }>(`/users/${id}/impersonate`, {}),
 };

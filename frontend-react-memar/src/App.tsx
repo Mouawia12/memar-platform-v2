@@ -40,6 +40,7 @@ import { ProjectsPage } from './features/projects/pages/ProjectsPage';
 import { QuotationsPage } from './features/quotations/pages/QuotationsPage';
 import { ServicesPage } from './features/services/pages/ServicesPage';
 import { TasksPage } from './features/tasks/pages/TasksPage';
+import { ImpersonationBanner } from './features/users/components/ImpersonationBanner';
 import { UsersPage } from './features/users/pages/UsersPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
@@ -50,6 +51,8 @@ const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DON
 
 export default function App() {
   return (
+    <>
+    <ImpersonationBanner />
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/jobs" element={<PublicCareersPage />} />
@@ -103,5 +106,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </>
   );
 }

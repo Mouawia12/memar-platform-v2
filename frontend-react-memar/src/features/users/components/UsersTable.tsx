@@ -7,10 +7,15 @@ interface Props {
   roles: Role[];
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  /** دخول المالك بحساب الموظف (impersonation) — يُمرَّر لمدير النظام فقط. */
+  onImpersonate?: (user: User) => void;
+  currentUserId?: number;
 }
 
-export function UsersTable({ users, roles, onEdit, onDelete }: Props) {
+export function UsersTable({ users, roles, onEdit, onDelete, onImpersonate, currentUserId }: Props) {
   const roleLabel = (name: string) => roles.find((r) => r.name === name)?.label ?? name;
+  // يمكن الدخول بحساب أي مستخدم عدا النفس ومديري النظام الآخرين.
+  const canImpersonate = (u: User) => !!onImpersonate && u.id !== currentUserId && !u.roles.includes('super_admin');
 
   if (users.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا يوجد مستخدمون.</p>;
@@ -46,6 +51,11 @@ export function UsersTable({ users, roles, onEdit, onDelete }: Props) {
                 </span>
               </td>
               <td style={td}>
+                {canImpersonate(user) && (
+                  <>
+                    <button className="btn btn-sm" onClick={() => onImpersonate?.(user)} type="button" style={{ color: '#B45309' }} title="الدخول بحساب هذا الموظف">🕵️ دخول بحسابه</button>{' '}
+                  </>
+                )}
                 <button className="btn btn-sm" onClick={() => onEdit(user)} type="button">تعديل</button>{' '}
                 <button className="btn btn-sm" onClick={() => onDelete(user)} type="button" style={{ color: '#ef4444' }}>حذف</button>
               </td>

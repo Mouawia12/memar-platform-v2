@@ -2,8 +2,10 @@ import { useState } from 'react';
 
 import { UserFormModal } from '../components/UserFormModal';
 import { UsersTable } from '../components/UsersTable';
+import { useImpersonation } from '../hooks/useImpersonation';
 import { useDeleteUser, useRoles, useUsers } from '../hooks/useUsers';
 import type { User } from '../types';
+import { useAuthStore } from '../../../store/auth';
 
 export function UsersPage() {
   const [search, setSearch] = useState('');
@@ -14,6 +16,15 @@ export function UsersPage() {
   const { data, isLoading, isError } = useUsers({ search: search || undefined, page });
   const { data: roles = [] } = useRoles();
   const del = useDeleteUser();
+  const currentUser = useAuthStore((s) => s.user);
+  const isOwner = !!currentUser?.roles?.includes('super_admin');
+  const { start: startImpersonation } = useImpersonation();
+
+  const handleImpersonate = (user: User) => {
+    if (confirm(`الدخول بحساب "${user.name}"؟ ستتصفّح المنصة ببياناته، ويمكنك العودة من الشريط العلوي.`)) {
+      void startImpersonation(user.id);
+    }
+  };
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (user: User) => { setEditing(user); setModalOpen(true); };
@@ -42,7 +53,7 @@ export function UsersPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المستخدمين.</p>}
-        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onDelete={handleDelete} />}
+        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onDelete={handleDelete} onImpersonate={isOwner ? handleImpersonate : undefined} currentUserId={currentUser?.id} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

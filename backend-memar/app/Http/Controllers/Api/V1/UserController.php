@@ -56,4 +56,24 @@ class UserController extends ApiController
 
         return $this->ok(null, 'تم حذف المستخدم');
     }
+
+    /**
+     * دخول المالك بحساب أي موظف (impersonation) — اجتماع 2026-08-05.
+     * لمدير النظام فقط؛ يُصدر توكن الهدف ليتصفّح الواجهة ببياناته. تحتفظ الواجهة
+     * بتوكن المالك للعودة، ويظهر شريط «تتصفّح بحساب X — عودة».
+     */
+    public function impersonate(Request $request, User $user): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor?->hasRole('super_admin'), 403, 'الدخول بحساب موظف متاح لمدير النظام فقط.');
+        abort_if($actor->id === $user->id, 422, 'لا يمكنك الدخول بحسابك نفسه.');
+        abort_if($user->hasRole('super_admin'), 422, 'لا يمكن الدخول بحساب مدير نظام آخر.');
+
+        $token = $user->createToken('impersonation')->plainTextToken;
+
+        return $this->ok([
+            'token' => $token,
+            'user' => new UserResource($user->load('roles')),
+        ], "دخلت بحساب {$user->name}");
+    }
 }

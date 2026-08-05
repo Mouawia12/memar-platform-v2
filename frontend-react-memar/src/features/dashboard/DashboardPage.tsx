@@ -8,6 +8,7 @@ import { useEmployees } from '../hr/hooks/useEmployees';
 import { useInvoices } from '../invoices/hooks/useInvoices';
 import { useProjects } from '../projects/hooks/useProjects';
 import { useTasks } from '../tasks/hooks/useTasks';
+import { InternalNewsHero } from './components/InternalNewsHero';
 import { KpiCard } from './components/KpiCard';
 import { WorkloadPanel } from './components/WorkloadPanel';
 
@@ -50,6 +51,9 @@ export function DashboardPage() {
 
   return (
     <div>
+      {/* هيرو أخبار الشركة الداخلية (اجتماع 2026-08-05) — أعلى لوحة الموظف */}
+      <InternalNewsHero />
+
       {/* شريط التنبيهات */}
       <div style={alertStrip}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>

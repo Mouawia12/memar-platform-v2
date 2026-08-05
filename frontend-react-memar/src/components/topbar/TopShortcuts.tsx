@@ -3,32 +3,16 @@ import { NavLink } from 'react-router-dom';
 
 import { NAV_SECTIONS, type NavItem } from '../../config/nav';
 import { useAuthStore } from '../../store/auth';
-
-// v2: بعد اجتماع 2026-08-03 غيّرنا الافتراضي (أيمن طلب إزالة «المهام» و«CRM» من الأعلى)؛
-// رفع رقم النسخة يتجاهل الاختيار القديم المحفوظ محليًا فيظهر الافتراضي الجديد للجميع.
-const STORAGE_KEY = 'memar_top_shortcuts_v2';
-
-/** الاختصارات الافتراضية فوق — طلب أيمن (اجتماع 4): «المواعيد» و«التواصل» فقط، والباقي في القائمة الجانبية. */
-const DEFAULT_KEYS = ['appointments', 'whatsapp'];
-
-function loadKeys(): string[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-
-    return raw ? (JSON.parse(raw) as string[]) : DEFAULT_KEYS;
-  } catch {
-    return DEFAULT_KEYS;
-  }
-}
+import { useTopShortcutsStore } from '../../store/topShortcuts';
 
 /**
  * شريط اختصارات علوي (نمط Bitrix) — تبويبات قابلة للتخصيص في المساحة العلوية (CRM-1).
- * يختار المستخدم العناصر ويرتّبها ويُحفظ اختياره محليًا. تُعرض بأيقونة + عنوان ليقرأها بوضوح.
+ * التخصيص (إضافة/إزالة/ترتيب) عبر زرّ ⚙️ المنقول جنب الإشعارات (TopShortcutsCustomize)؛
+ * الحالة مشتركة عبر useTopShortcutsStore فيتحدّث هذا الشريط فورًا.
  */
 export function TopShortcuts() {
   const permissions = useAuthStore((s) => s.user?.permissions);
-  const [keys, setKeys] = useState<string[]>(loadKeys);
-  const [customizing, setCustomizing] = useState(false);
+  const keys = useTopShortcutsStore((s) => s.keys);
   const [moreOpen, setMoreOpen] = useState(false);
   // عدد الاختصارات التي تتّسع فعلاً في الشريط؛ الباقي يذهب لقائمة «المزيد».
   const [visibleCount, setVisibleCount] = useState(99);
@@ -43,29 +27,8 @@ export function TopShortcuts() {
   }, [permissions]);
 
   const byKey = useMemo(() => new Map(allowed.map((i) => [i.key, i])), [allowed]);
-  // العناصر المختارة بالترتيب المحفوظ، ثم بقية المتاح لإضافته.
+  // العناصر المختارة بالترتيب المحفوظ.
   const selected = keys.map((k) => byKey.get(k)).filter((i): i is NavItem => Boolean(i));
-  const available = allowed.filter((i) => !keys.includes(i.key));
-
-  const persist = (next: string[]) => {
-    setKeys(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // تجاهل أخطاء التخزين المحلي
-    }
-  };
-
-  const add = (key: string) => persist([...keys, key]);
-  const remove = (key: string) => persist(keys.filter((k) => k !== key));
-  const move = (index: number, dir: -1 | 1) => {
-    const next = [...keys];
-    const target = index + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    persist(next);
-  };
-  const reset = () => persist(DEFAULT_KEYS);
 
   // قياس كم اختصاراً يتّسع فعلاً: نقيس عرض كل التبويبات في صفّ مخفي، ثم نُظهر ما يسع
   // ونُبقي فراغاً لزر «المزيد»؛ الباقي يُعرض كقائمة منسدلة. يُعاد الحساب مع تغيّر العرض/العناصر.
@@ -81,12 +44,11 @@ export function TopShortcuts() {
       if (avail <= 60) { raf = requestAnimationFrame(compute); return; } // لم يُرسَم التخطيط بعد — نعيد المحاولة
       const items = Array.from(measurer.children) as HTMLElement[];
       const GAP = 5;
-      const GEAR_W = 40; // زر ⚙️ (ثابت في نهاية الشريط)
       const MORE_W = 104; // مساحة زر «المزيد»
-      let used = GEAR_W;
+      let used = 0;
       let count = 0;
       for (let idx = 0; idx < items.length; idx++) {
-        const cand = used + GAP + items[idx].offsetWidth;
+        const cand = used + (count === 0 ? 0 : GAP) + items[idx].offsetWidth;
         const needMore = idx < items.length - 1; // سيظهر زر المزيد إن بقي عنصر بعده
         if (cand > avail - (needMore ? MORE_W + GAP : 0)) break;
         used = cand;
@@ -143,46 +105,6 @@ export function TopShortcuts() {
           </div>
         )}
       </div>
-
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <button type="button" title="تخصيص الاختصارات" onClick={() => setCustomizing((v) => !v)} style={gear}>⚙️</button>
-        {customizing && (
-          <>
-            <div style={backdrop} onClick={() => setCustomizing(false)} />
-            <div style={panel}>
-              <div style={panelHead}>
-                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#274A78' }}>تخصيص اختصارات الأعلى</span>
-                <button type="button" onClick={reset} style={resetBtn} title="استعادة الافتراضي">استعادة الافتراضي</button>
-              </div>
-              <p style={panelHint}>اختصارات الشريط العلوي هي روابط سريعة لصفحاتك الأكثر استخدامًا. أضِف أو أزِل أو رتّب ما يظهر هنا.</p>
-              <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
-                {/* المختارة — قابلة لإعادة الترتيب والإزالة */}
-                <div style={groupLabel}>الظاهرة الآن ({selected.length})</div>
-                {selected.length === 0 && <div style={emptyHint}>لا اختصارات — أضِف من الأسفل.</div>}
-                {selected.map((i, idx) => (
-                  <div key={i.key} style={row}>
-                    <span style={{ fontSize: '15px' }}>{i.icon}</span>
-                    <span style={{ fontSize: '13px', flex: 1 }}>{i.label}</span>
-                    <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} style={iconBtn} title="أعلى">▲</button>
-                    <button type="button" onClick={() => move(idx, 1)} disabled={idx === selected.length - 1} style={iconBtn} title="أسفل">▼</button>
-                    <button type="button" onClick={() => remove(i.key)} style={removeBtn} title="إزالة">✕</button>
-                  </div>
-                ))}
-
-                {/* المتاحة للإضافة */}
-                {available.length > 0 && <div style={groupLabel}>إضافة اختصار</div>}
-                {available.map((i) => (
-                  <button key={i.key} type="button" onClick={() => add(i.key)} style={addRow} title={`إضافة ${i.label}`}>
-                    <span style={{ fontSize: '15px' }}>{i.icon}</span>
-                    <span style={{ fontSize: '13px', flex: 1, textAlign: 'start' }}>{i.label}</span>
-                    <span style={addPlus}>＋</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
     </div>
   );
 }
@@ -200,16 +122,4 @@ const moreRowActive: CSSProperties = { background: '#274A78', color: '#fff' };
 const pill: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', height: '32px', padding: '0 11px', borderRadius: '9px', background: '#F0F4F8', color: '#334155', textDecoration: 'none', flexShrink: 0, transition: 'all .15s', fontSize: '13px', fontWeight: 600 };
 const pillActive: CSSProperties = { background: '#274A78', color: '#fff', boxShadow: '0 2px 8px rgba(39,74,120,.3)' };
 const pillLabel: CSSProperties = { whiteSpace: 'nowrap', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis' };
-const gear: CSSProperties = { display: 'grid', placeItems: 'center', width: '32px', height: '32px', borderRadius: '9px', border: '1px dashed #CBD5E1', background: 'transparent', cursor: 'pointer', fontSize: '13px', flexShrink: 0, padding: 0 };
 const backdrop: CSSProperties = { position: 'fixed', inset: 0, zIndex: 290 };
-const panel: CSSProperties = { position: 'absolute', top: 'calc(100% + 8px)', insetInlineEnd: 0, width: '280px', maxWidth: 'none', boxSizing: 'border-box', background: '#fff', border: '1px solid #E4E8EF', borderRadius: '12px', boxShadow: '0 12px 32px rgba(0,0,0,.14)', zIndex: 300, padding: '10px' };
-const panelHead: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' };
-const panelHint: CSSProperties = { fontSize: '11px', lineHeight: 1.6, color: '#7A869A', margin: '0 2px 8px', background: '#F8FAFC', border: '1px solid #EEF2F7', borderRadius: '7px', padding: '6px 8px' };
-const resetBtn: CSSProperties = { border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#5A6478', borderRadius: '7px', padding: '4px 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' };
-const groupLabel: CSSProperties = { fontSize: '11px', fontWeight: 800, color: '#94A3B8', margin: '10px 4px 4px' };
-const emptyHint: CSSProperties = { fontSize: '12px', color: '#94A3B8', padding: '4px 6px' };
-const row: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', borderRadius: '7px', color: '#334155' };
-const iconBtn: CSSProperties = { width: '24px', height: '24px', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#fff', color: '#64748B', cursor: 'pointer', fontSize: '10px', padding: 0, lineHeight: 1 };
-const removeBtn: CSSProperties = { width: '24px', height: '24px', borderRadius: '6px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontSize: '11px', padding: 0, lineHeight: 1 };
-const addRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '7px 6px', borderRadius: '7px', border: 'none', background: 'transparent', color: '#334155', cursor: 'pointer', fontFamily: 'inherit' };
-const addPlus: CSSProperties = { display: 'grid', placeItems: 'center', width: '22px', height: '22px', borderRadius: '6px', background: '#E8F5EE', color: '#2D9B6F', fontSize: '14px', fontWeight: 800 };

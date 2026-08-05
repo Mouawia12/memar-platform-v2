@@ -6,6 +6,7 @@ import { GlobalSearch } from './topbar/GlobalSearch';
 import { NotificationsMenu } from './topbar/NotificationsMenu';
 import { QuickAddMenu } from './topbar/QuickAddMenu';
 import { TopShortcuts } from './topbar/TopShortcuts';
+import { TopShortcutsCustomize } from './topbar/TopShortcutsCustomize';
 import { useLogout } from '../features/auth/hooks/useAuth';
 import { useAuthStore } from '../store/auth';
 
@@ -60,10 +61,8 @@ export function Topbar({ onToggleSidebar }: Props) {
 
       <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginInlineStart: 'auto' }}>
         <NotificationsMenu />
-        {/* زر الإعدادات في الهيدر جنب الإشعارات (طلب أيمن) — يفتح مُنشئ الصفحات/الإعدادات */}
-        {user?.permissions?.includes('settings.manage') && (
-          <button className="icon-btn" type="button" title="الإعدادات" onClick={() => navigate('/web-builder')}>⚙️</button>
-        )}
+        {/* زر تخصيص الاختصارات جنب الإشعارات (طلب أيمن) — نفس زر شريط الاختصارات، نُقل هنا */}
+        {!clientOnly && <TopShortcutsCustomize />}
         {!clientOnly && <QuickAddMenu />}
 
         <div className="user-menu" ref={menuRef}>
@@ -75,6 +74,11 @@ export function Topbar({ onToggleSidebar }: Props) {
             <button type="button" onClick={() => { setMenuOpen(false); navigate('/'); }}>
               🌐 صفحة الموقع الرئيسي
             </button>
+            {user?.permissions?.includes('settings.manage') && (
+              <button type="button" onClick={() => { setMenuOpen(false); navigate('/web-builder'); }}>
+                ⚙️ الإعدادات
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { setMenuOpen(false); logout.mutate(); }}

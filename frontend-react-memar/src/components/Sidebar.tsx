@@ -18,6 +18,9 @@ interface Props {
  */
 const COLLAPSE_KEY = 'memar_nav_collapsed';
 const HIDDEN_KEY = 'memar_nav_hidden';
+// «وضع المدير» (طلب أيمن 2026-08-05): تبديل يُخفي الروابط الاختيارية (الباهتة) تمامًا
+// من السايدبار لعرض نظيف مركّز، أو يُظهرها. حالة عرض محلية لكل جهاز.
+const HIDE_OPTIONAL_KEY = 'memar_nav_hide_optional';
 
 function loadMap(key: string): Record<string, boolean> {
   try {
@@ -42,7 +45,17 @@ export function Sidebar({ open, onNavigate }: Props) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => serverPrefs?.nav_collapsed ?? loadMap(COLLAPSE_KEY));
   const [hidden, setHidden] = useState<Record<string, boolean>>(() => serverPrefs?.nav_hidden ?? loadMap(HIDDEN_KEY));
   const [editing, setEditing] = useState(false);
+  const [hideOptional, setHideOptional] = useState<boolean>(() => {
+    try { return localStorage.getItem(HIDE_OPTIONAL_KEY) === '1'; } catch { return false; }
+  });
   const saveTimer = useRef<number | undefined>(undefined);
+
+  const toggleHideOptional = () => setHideOptional((v) => {
+    const next = !v;
+    try { localStorage.setItem(HIDE_OPTIONAL_KEY, next ? '1' : '0'); } catch { /* تجاهل */ }
+
+    return next;
+  });
 
   // عند وصول تفضيلات الخادم (تسجيل الدخول / تحديث /auth/me) نعتمدها كمصدر الحقيقة.
   useEffect(() => {
@@ -106,15 +119,29 @@ export function Sidebar({ open, onNavigate }: Props) {
       </button>
       {editing && <div style={editHint}>حدِّد الروابط التي تريد إظهارها؛ أزِل التحديد لإخفائها.</div>}
 
+      {/* وضع المدير: يُخفي الروابط الاختيارية (الباهتة) تمامًا لعرض نظيف، أو يُظهرها. */}
+      {!editing && (
+        <button type="button" onClick={toggleHideOptional} style={{ ...managerBtn, ...(hideOptional ? managerOn : null) }} title="إخفاء/إظهار الروابط الاختيارية الباهتة">
+          {hideOptional ? '👁️ إظهار كل الروابط' : '🎯 وضع المدير — إخفاء الاختيارية'}
+        </button>
+      )}
+
       <nav id="sidebar-nav">
-        {sections.map((section) => (
+        {sections.map((section) => {
+          // في وضع المدير (خارج التحرير) نستبعد الروابط الباهتة كليًّا، ونُخفي القسم إن فرغ.
+          const itemsToRender = !editing && hideOptional
+            ? section.items.filter((it) => !hidden[it.key])
+            : section.items;
+          if (itemsToRender.length === 0) return null;
+
+          return (
           <div className={`sidebar-block${!editing && collapsed[section.id] ? ' collapsed' : ''}`} data-id={`block-${section.id}`} key={section.id}>
             <div className="sb-section-label" onClick={() => !editing && toggleCollapse(section.id)}>
               <span>{section.title}</span>
               {!editing && <span className="chevron">▾</span>}
             </div>
             <div className="sidebar-sub-container">
-              {section.items.map((item) => (
+              {itemsToRender.map((item) => (
                 editing ? (
                   <label key={item.key} style={editRow} title={hidden[item.key] ? 'مخفي — حدِّد لإظهاره' : 'ظاهر'}>
                     <input type="checkbox" checked={!hidden[item.key]} onChange={() => toggleHidden(item.key)} style={{ accentColor: '#274A78', width: '15px', height: '15px' }} />
@@ -147,7 +174,8 @@ export function Sidebar({ open, onNavigate }: Props) {
               ))}
             </div>
           </div>
-        ))}
+          );
+        })}
       </nav>
     </aside>
   );
@@ -155,6 +183,8 @@ export function Sidebar({ open, onNavigate }: Props) {
 
 const customizeBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '4px 12px 8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F0F4F8', color: '#274A78', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, textAlign: 'center' };
 const customizeOn: CSSProperties = { background: '#2D9B6F', borderColor: '#2D9B6F', color: '#fff' };
+const managerBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '0 12px 10px', padding: '7px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center' };
+const managerOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
 const editHint: CSSProperties = { margin: '0 12px 8px', fontSize: '10.5px', color: '#64748B', lineHeight: 1.6, textAlign: 'center' };
 const editRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer', color: '#334155', fontSize: '13px' };
 // رابط معطّل: باهت وبمؤشّر "ممنوع" مع إبقاء النص مقروءًا.

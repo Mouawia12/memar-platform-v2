@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
 import { ChatWidget } from '../features/chatbot/components/ChatWidget';
+import './staffShell.css';
 
 const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
 

@@ -9,6 +9,7 @@ use App\Http\Requests\Contacts\StoreContactRequest;
 use App\Http\Requests\Contacts\UpdateContactRequest;
 use App\Http\Resources\ContactResource;
 use App\Models\Contact;
+use App\Models\LeadReminder;
 use App\Services\ContactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,5 +56,58 @@ class ContactController extends ApiController
         $this->contacts->delete($contact);
 
         return $this->ok(null, 'تم حذف العميل');
+    }
+
+    // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───
+
+    /** تذكيرات الفرصة (الأحدث أولًا). */
+    public function reminders(Contact $contact): JsonResponse
+    {
+        return $this->ok($contact->reminders()->with('creator:id,name')->orderByDesc('remind_at')->get()
+            ->map(fn (LeadReminder $r): array => $this->presentReminder($r)));
+    }
+
+    public function addReminder(Request $request, Contact $contact): JsonResponse
+    {
+        $data = $request->validate([
+            'remind_at' => ['required', 'date'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $reminder = $contact->reminders()->create([
+            'remind_at' => $data['remind_at'],
+            'note' => $data['note'] ?? null,
+            'created_by' => $request->user()?->id,
+        ]);
+
+        return $this->created($this->presentReminder($reminder->load('creator:id,name')), 'تم ضبط التذكير');
+    }
+
+    /** إنجاز/إلغاء إنجاز التذكير (يخفي التنبيه من الكرت). */
+    public function toggleReminder(LeadReminder $reminder): JsonResponse
+    {
+        $reminder->update(['done' => ! $reminder->done]);
+
+        return $this->ok($this->presentReminder($reminder), $reminder->done ? 'تم الإنجاز' : 'أُعيد فتح التذكير');
+    }
+
+    public function deleteReminder(LeadReminder $reminder): JsonResponse
+    {
+        $reminder->delete();
+
+        return $this->ok(null, 'تم حذف التذكير');
+    }
+
+    /** @return array<string, mixed> */
+    private function presentReminder(LeadReminder $r): array
+    {
+        return [
+            'id' => $r->id,
+            'remind_at' => $r->remind_at?->toIso8601String(),
+            'note' => $r->note,
+            'done' => $r->done,
+            'due' => ! $r->done && $r->remind_at !== null && $r->remind_at->isPast(),
+            'creator' => $r->creator?->name,
+        ];
     }
 }

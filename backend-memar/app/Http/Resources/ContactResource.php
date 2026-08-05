@@ -44,6 +44,17 @@ class ContactResource extends JsonResource
                 'name' => $this->convertedProject->name,
                 'status' => $this->convertedProject->status,
             ] : null),
+            // أقرب تذكير معلّق + هل حان وقته (لتنبيه الكرت) — اجتماع 2026-08-05
+            'reminder' => $this->whenLoaded('reminders', function () {
+                $next = $this->reminders->first();
+
+                return $next ? [
+                    'id' => $next->id,
+                    'remind_at' => $next->remind_at?->toIso8601String(),
+                    'note' => $next->note,
+                    'due' => $next->remind_at !== null && $next->remind_at->isPast(),
+                ] : null;
+            }),
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? [
                 'id' => $this->owner->id,
                 'name' => $this->owner->name,

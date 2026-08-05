@@ -10,14 +10,20 @@ interface Props {
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
 const AVATAR_COLORS = ['#6366f1', '#22c55e', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444'];
+const fmtReminder = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 
-/** بطاقة فرصة — طبق أصل بطاقة CRM: صورة + اسم، وسم الجهة، القيمة + الحرارة. */
+/** بطاقة فرصة — طبق أصل بطاقة CRM: صورة + اسم، وسم الجهة، القيمة + الحرارة، وتنبيه تذكير. */
 export function LeadCard({ lead, onOpen, stageColor }: Props) {
   const temp = TEMPERATURE_META[lead.temperature];
   const avatarColor = AVATAR_COLORS[lead.id % AVATAR_COLORS.length];
+  const dueReminder = lead.reminder?.due ? lead.reminder : null;
 
   return (
-    <div className="card" style={{ ...card, borderInlineStart: `4px solid ${stageColor ?? STAGE_COLOR_FALLBACK}` }} onClick={() => onOpen(lead)}>
+    <div className="card" style={{ ...card, borderInlineStart: `4px solid ${stageColor ?? STAGE_COLOR_FALLBACK}`, ...(dueReminder ? cardDue : null) }} onClick={() => onOpen(lead)}>
+      {/* تنبيه «تذكير مستحق» بارز فوق الكرت — يُقرأ من الخارج (طلب أيمن 2026-08-05) */}
+      {dueReminder && (
+        <div style={dueBar}><i className="fas fa-bell" /> تذكير مستحق{dueReminder.note ? ` — ${dueReminder.note}` : ''}</div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ ...avatar, background: avatarColor }}>{lead.full_name.trim().charAt(0)}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -42,6 +48,9 @@ export function LeadCard({ lead, onOpen, stageColor }: Props) {
       <div style={metaRow}>
         {lead.phone && <span dir="ltr" style={{ ...metaItem, direction: 'ltr' }}>📞 {lead.phone}</span>}
         {lead.owner && <span style={metaItem} title={`المسؤول: ${lead.owner.name}`}>👤 {lead.owner.name}</span>}
+        {lead.reminder && !lead.reminder.due && (
+          <span style={upcomingPill} title={lead.reminder.note ?? 'تذكير قادم'}><i className="fas fa-clock" /> {fmtReminder(lead.reminder.remind_at)}</span>
+        )}
       </div>
 
       <div style={footer}>
@@ -53,6 +62,9 @@ export function LeadCard({ lead, onOpen, stageColor }: Props) {
 }
 
 const card: CSSProperties = { padding: '10px 11px', marginBottom: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', cursor: 'pointer' };
+const cardDue: CSSProperties = { border: '1px solid #FCA5A5', boxShadow: '0 0 0 3px rgba(220,38,38,.10)' };
+const dueBar: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', margin: '-10px -11px 8px', padding: '5px 11px', background: 'linear-gradient(90deg,#DC2626,#EF4444)', color: '#fff', fontSize: '11.5px', fontWeight: 800, borderRadius: '8px 8px 0 0' };
+const upcomingPill: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#B45309', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '999px', padding: '1px 8px', fontSize: '10.5px', fontWeight: 700 };
 const avatar: CSSProperties = { width: '32px', height: '32px', borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '14px', flexShrink: 0 };
 const tempPill: CSSProperties = { fontSize: '11px', fontWeight: 700, padding: '2px 9px', borderRadius: '999px' };
 const subtitle: CSSProperties = { fontSize: '11px', color: '#8A93A3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };

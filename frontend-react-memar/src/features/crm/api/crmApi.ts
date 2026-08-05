@@ -1,5 +1,5 @@
-import { apiDelete, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
-import type { Lead, Stage, Temperature } from '../types';
+import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
+import type { Lead, LeadReminder, Stage, Temperature } from '../types';
 
 export interface CrmQuery {
   search?: string;
@@ -25,4 +25,10 @@ export const crmApi = {
   remove: (id: number) => apiDelete<null>(`/contacts/${id}`),
   /** سجل تعديلات الصفقة (AUDIT-1). */
   history: (id: number) => apiGetPaginated<LeadActivity>('/activity-log', { params: { subject_type: 'Contact', subject_id: id, per_page: 40 } }),
+
+  // تذكيرات المتابعة (اجتماع 2026-08-05)
+  reminders: (id: number) => apiGet<LeadReminder[]>(`/contacts/${id}/reminders`),
+  addReminder: (id: number, payload: { remind_at: string; note?: string }) => apiPost<LeadReminder>(`/contacts/${id}/reminders`, payload),
+  toggleReminder: (reminderId: number) => apiPatch<LeadReminder>(`/reminders/${reminderId}`, {}),
+  deleteReminder: (reminderId: number) => apiDelete<null>(`/reminders/${reminderId}`),
 };

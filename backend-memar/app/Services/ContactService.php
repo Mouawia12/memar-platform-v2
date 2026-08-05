@@ -27,7 +27,7 @@ class ContactService
                 });
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
-            ->with(['owner', 'convertedProject'])
+            ->with(['owner', 'convertedProject', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
             ->latest()
             ->paginate($perPage);
     }

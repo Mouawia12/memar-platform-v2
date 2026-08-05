@@ -23,4 +23,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/contacts/{contact}', [ContactController::class, 'show'])->middleware('permission:crm.view');
     Route::match(['put', 'patch'], '/contacts/{contact}', [ContactController::class, 'update'])->middleware('permission:crm.manage');
     Route::delete('/contacts/{contact}', [ContactController::class, 'destroy'])->middleware('permission:crm.manage');
+
+    // تذكيرات متابعة الفرص (اجتماع 2026-08-05)
+    Route::get('/contacts/{contact}/reminders', [ContactController::class, 'reminders'])->middleware('permission:crm.view');
+    Route::post('/contacts/{contact}/reminders', [ContactController::class, 'addReminder'])->middleware('permission:crm.manage');
+    Route::patch('/reminders/{reminder}', [ContactController::class, 'toggleReminder'])->middleware('permission:crm.manage');
+    Route::delete('/reminders/{reminder}', [ContactController::class, 'deleteReminder'])->middleware('permission:crm.manage');
 });

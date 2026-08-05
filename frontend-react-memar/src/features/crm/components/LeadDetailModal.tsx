@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
+import { LeadReminders } from './LeadReminders';
 import { useLeadHistory, useSetTemperature } from '../hooks/useCrm';
 import { STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Stage, type Temperature } from '../types';
 
@@ -92,6 +93,12 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
               );
             })}
           </div>
+        </div>
+
+        {/* تذكيرات المتابعة (اجتماع 2026-08-05) */}
+        <div style={section}>
+          <div style={secTitle}>🔔 تذكيرات المتابعة</div>
+          <LeadReminders leadId={lead.id} />
         </div>
 
         {/* نقل لمسار آخر */}

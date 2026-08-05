@@ -36,7 +36,19 @@ export interface Lead {
   // المشروع المرتبط بعد التحويل (حيّ من سجل المشاريع)
   project: { id: number; code: string; name: string; status: string } | null;
   owner: { id: number; name: string } | null;
+  // أقرب تذكير معلّق + هل حان وقته (لتنبيه الكرت) — اجتماع 2026-08-05
+  reminder: { id: number; remind_at: string | null; note: string | null; due: boolean } | null;
   created_at: string | null;
+}
+
+/** تذكير متابعة على فرصة. */
+export interface LeadReminder {
+  id: number;
+  remind_at: string | null;
+  note: string | null;
+  done: boolean;
+  due: boolean;
+  creator: string | null;
 }
 
 export interface LeadFormData {

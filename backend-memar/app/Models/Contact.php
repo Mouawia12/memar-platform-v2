@@ -127,6 +127,12 @@ class Contact extends Model
         return $this->belongsTo(Contact::class, 'referred_by_contact_id');
     }
 
+    /** تذكيرات المتابعة على الفرصة/العميل. @return HasMany<LeadReminder, $this> */
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(LeadReminder::class);
+    }
+
     /**
      * اسم المشروع الموحّد: اسم المشروع الحيّ من سجل المشاريع إن وُجد،
      * وإلا الاسم المبدئي المُدخل في الفرصة قبل التحويل.

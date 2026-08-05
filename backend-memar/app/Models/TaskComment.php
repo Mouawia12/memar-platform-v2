@@ -12,6 +12,9 @@ class TaskComment extends Model
 {
     protected $fillable = ['task_id', 'user_id', 'body'];
 
+    // إضافة تعليق تُحدّث updated_at للمهمة → يظهر جرس «تم تحديث الموضوع» على الكرت.
+    protected $touches = ['task'];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

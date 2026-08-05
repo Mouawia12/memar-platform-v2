@@ -35,6 +35,9 @@ class TaskResource extends JsonResource
                 'id' => $this->assignee->id,
                 'name' => $this->assignee->name,
             ] : null),
+            // عدّاد التعليقات + آخر تحديث — لإظهار جرس «تحديث جديد» على الكرت (اجتماع 2026-08-05)
+            'comments_count' => (int) ($this->comments_count ?? 0),
+            'updated_at' => $this->updated_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

@@ -30,6 +30,7 @@ class TaskService
             ->when($projectId, fn ($q, int $id) => $q->where('project_id', $id))
             ->when($assigneeId, fn ($q, int $id) => $q->where('assignee_id', $id))
             ->with(['project', 'assignee'])
+            ->withCount('comments')
             ->orderBy('position')
             ->latest()
             ->get();
@@ -79,6 +80,8 @@ class TaskService
         return $task->load([
             'project:id,name', 'assignee:id,name', 'creator:id,name',
             'participants:id,name', 'comments.user:id,name', 'files',
+            // سجل التعديلات (اجتماع 2026-08-05): آخر 20 حركة من سجل النشاط.
+            'activities' => fn ($q) => $q->with('causer:id,name')->latest()->limit(20),
         ]);
     }
 

@@ -49,6 +49,21 @@ class TaskDetailResource extends JsonResource
                 'size' => $f->size,
                 'created_at' => $f->created_at?->toIso8601String(),
             ])->values(),
+            // سجل التعديلات (اجتماع 2026-08-05): من سجل نشاط spatie — من غيّر ماذا ومتى.
+            'activities' => $this->whenLoaded('activities', fn () => $this->activities->map(function ($a): array {
+                $labels = ['title' => 'العنوان', 'status' => 'الحالة', 'priority' => 'الأولوية', 'assignee_id' => 'المسؤول', 'due_date' => 'الموعد'];
+                $changed = array_keys((array) data_get($a->properties, 'attributes', []));
+                $eventLabels = ['created' => 'إنشاء المهمة', 'updated' => 'تعديل', 'deleted' => 'حذف'];
+
+                return [
+                    'id' => $a->id,
+                    'event' => $a->description,
+                    'event_label' => $eventLabels[$a->description] ?? $a->description,
+                    'fields' => array_values(array_intersect_key($labels, array_flip($changed))),
+                    'causer' => $a->causer?->name,
+                    'created_at' => $a->created_at?->toIso8601String(),
+                ];
+            })->values()),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

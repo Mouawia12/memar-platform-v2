@@ -17,6 +17,18 @@ export interface Task {
   due_date: string | null;
   project: TaskRef | null;
   assignee: TaskRef | null;
+  comments_count?: number;
+  updated_at?: string | null;
+  created_at: string | null;
+}
+
+/** حركة في سجل تعديلات المهمة (اجتماع 2026-08-05). */
+export interface TaskActivity {
+  id: number;
+  event: string;
+  event_label: string;
+  fields: string[];
+  causer: string | null;
   created_at: string | null;
 }
 
@@ -44,6 +56,7 @@ export interface TaskDetail extends Task {
   participants: TaskRef[];
   comments: TaskComment[];
   files: TaskFile[];
+  activities: TaskActivity[];
 }
 
 export interface TaskFormData {

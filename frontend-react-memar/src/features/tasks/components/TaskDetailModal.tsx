@@ -34,6 +34,7 @@ export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, on
   const rate = useRateTask(task.id);
 
   const [comment, setComment] = useState('');
+  const [confirmDone, setConfirmDone] = useState(false); // تأكيد الإكمال (طلب أيمن 2026-08-05)
   const [inCall, setInCall] = useState(false);
   const [booking, setBooking] = useState(false);
   const [pickParts, setPickParts] = useState(false);
@@ -83,8 +84,19 @@ export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, on
         {task.description && <p style={{ fontSize: '13.5px', color: '#5A6478', marginTop: '10px' }}>{task.description}</p>}
 
         {/* أزرار سريعة */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px' }}>
-          <button className="btn btn-primary btn-sm" type="button" onClick={() => { onToggle(task); }}>{done ? '↩ إعادة فتح' : '✅ إكمال'}</button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px', alignItems: 'center' }}>
+          {/* الإكمال خطوة مهمة → تأكيد «هل أنت متأكد؟» قبل التنفيذ (إعادة الفتح فورية) */}
+          {done ? (
+            <button className="btn btn-primary btn-sm" type="button" onClick={() => onToggle(task)}>↩ إعادة فتح</button>
+          ) : confirmDone ? (
+            <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '8px', padding: '4px 8px' }}>
+              <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#B45309' }}>هل أنت متأكد من الإكمال؟</span>
+              <button className="btn btn-primary btn-sm" type="button" onClick={() => { onToggle(task); setConfirmDone(false); }}>نعم، أكمل</button>
+              <button className="btn btn-sm" type="button" onClick={() => setConfirmDone(false)}>تراجع</button>
+            </span>
+          ) : (
+            <button className="btn btn-primary btn-sm" type="button" onClick={() => setConfirmDone(true)}>✅ إكمال</button>
+          )}
           <button className="btn btn-sm" type="button" onClick={() => void startCall()} style={{ background: '#059669', color: '#fff' }}>📹 مكالمة فيديو</button>
           <button className="btn btn-sm" type="button" onClick={() => setBooking(true)}>📅 حجز موعد</button>
           <button className="btn btn-sm" type="button" onClick={() => onEdit(task)}>✏️ تعديل</button>
@@ -182,6 +194,27 @@ export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, on
             <button className="btn btn-primary" type="button" disabled={addComment.isPending || !comment.trim()} onClick={submitComment}>إرسال</button>
           </div>
         </div>
+
+        {/* سجل التعديلات (طلب أيمن 2026-08-05): من غيّر ماذا ومتى */}
+        {(detail?.activities?.length ?? 0) > 0 && (
+          <div style={section}>
+            <div style={secTitle}>🕓 سجل التعديلات</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {detail!.activities.map((a) => (
+                <div key={a.id} style={logRow}>
+                  <span style={logDot} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: '13px' }}>
+                      <b>{a.causer ?? 'النظام'}</b> — {a.event_label}
+                      {a.fields.length > 0 && <span style={{ color: '#8A93A3' }}> ({a.fields.join('، ')})</span>}
+                    </span>
+                    <div style={{ fontSize: '10.5px', color: '#8A93A3' }}>{fmt(a.created_at)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {inCall && <MeetingRoom room={room} title={`مكالمة: ${task.title}`} displayName={userName} onClose={() => setInCall(false)} />}
@@ -209,6 +242,8 @@ const chip: CSSProperties = { background: '#274A7810', color: '#274A78', border:
 const pickRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', fontSize: '13px', cursor: 'pointer' };
 const fileRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', fontSize: '13px', borderBottom: '1px solid #F3F5F8' };
 const bubble: CSSProperties = { background: '#F7F9FC', borderRadius: '10px', padding: '8px 12px' };
+const logRow: CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '6px 2px', borderRight: '2px solid #EEF2F7', paddingRight: '10px', marginRight: '4px' };
+const logDot: CSSProperties = { width: '8px', height: '8px', borderRadius: '50%', background: '#1B6CA8', marginTop: '5px', flexShrink: 0, marginRight: '-15px' };
 const rateBtn: CSSProperties = { padding: '6px 16px', borderRadius: '8px', border: '1px solid #E4E8EF', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' };
 const rateOn: CSSProperties = { background: '#05966915', borderColor: '#059669', color: '#059669', fontWeight: 700 };
 const rateBad: CSSProperties = { background: '#DC262615', borderColor: '#DC2626', color: '#DC2626', fontWeight: 700 };

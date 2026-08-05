@@ -15,6 +15,8 @@
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+/* عنوان الصفحة «لوحة التحكم» أبيض ليظهر على الشريط الأزرق (طلب أيمن). */
+.app .topbar-page-title { color: #fff !important; }
 
 /* ── شعار السايدبار: أيقونة متدرّجة مربّعة الحواف كبوابة العميل ── */
 .app .sb-logo { padding: 20px 18px !important; border-bottom: 1px solid #EEF2F7 !important; }

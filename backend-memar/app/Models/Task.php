@@ -65,6 +65,12 @@ class Task extends Model
         return $this->hasMany(StoredFile::class, 'task_id')->latest();
     }
 
+    /** حالات قراءة الإشعار (سجل لكل مستخدم علّم نشاط المهمة كمقروء). */
+    public function reads(): HasMany
+    {
+        return $this->hasMany(TaskRead::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

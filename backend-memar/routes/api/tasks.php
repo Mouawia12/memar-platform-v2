@@ -17,6 +17,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::match(['put', 'patch'], '/tasks/{task}', [TaskController::class, 'update'])->middleware('permission:tasks.manage');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->middleware('permission:tasks.delete');
 
+    // تعليم إشعار المهمة كمقروء لكل مستخدم (يكفي إذن العرض — كل مستخدم لنفسه)
+    Route::post('/tasks/{task}/read', [TaskController::class, 'markRead'])->middleware('permission:tasks.view');
+
     // صفحة التفاصيل: محادثة، مشاركون، ملفات، فيديو
     Route::post('/tasks/{task}/comments', [TaskController::class, 'addComment'])->middleware('permission:tasks.manage');
     Route::put('/tasks/{task}/participants', [TaskController::class, 'syncParticipants'])->middleware('permission:tasks.manage');

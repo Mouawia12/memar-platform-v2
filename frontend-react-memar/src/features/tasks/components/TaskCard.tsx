@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { useMarkTaskRead } from '../hooks/useTasks';
 import { PRIORITY_COLORS, PRIORITY_LABELS, dueLabel, isDone, type Task } from '../types';
 
 interface Props {
@@ -25,8 +26,9 @@ export function TaskCard({ task, onOpen, onToggle, onDelete }: Props) {
   const done = isDone(task);
   const due = dueColor(task);
   const commentsCount = task.comments_count ?? 0;
-  // «تم تحديث الموضوع» (طلب أيمن 2026-08-05): جرس إذا عُدّلت المهمة خلال آخر 24 ساعة.
-  const recentlyUpdated = !done && !!task.updated_at && Date.now() - new Date(task.updated_at).getTime() < 86_400_000;
+  const markRead = useMarkTaskRead();
+  // جرس «نشاط جديد» خاصّ بالمستخدم الحالي (has_unread من الباك اند) — يختفي عند التعليم كمقروء.
+  const showBell = !done && !!task.has_unread;
 
   return (
     <div
@@ -53,8 +55,19 @@ export function TaskCard({ task, onOpen, onToggle, onDelete }: Props) {
             <div style={{ flex: 1, minWidth: 0, fontSize: '13px', fontWeight: 700, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>
               {task.title}
             </div>
-            {/* جرس «تم تحديث الموضوع» — إشعار بصري متحرّك عند وجود نشاط/تعليق حديث على المهمة */}
-            {recentlyUpdated && <span className="task-bell-ring" title="يوجد نشاط/تعليق جديد على المهمة" style={bell}><i className="fas fa-bell" /></span>}
+            {/* جرس «نشاط جديد» متحرّك — اضغط لتعليمه كمقروء فيختفي لك وحدك (طلب أيمن) */}
+            {showBell && (
+              <button
+                type="button"
+                className="task-bell-ring"
+                title="نشاط/تعليق جديد — اضغط لتعليمه كمقروء"
+                onClick={(e) => { e.stopPropagation(); markRead.mutate(task.id); }}
+                disabled={markRead.isPending}
+                style={bell}
+              >
+                <i className="fas fa-bell" />
+              </button>
+            )}
           </div>
           {task.description && (
             <div style={{ fontSize: '11px', color: '#5A6478', marginBottom: '5px', opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -94,4 +107,4 @@ const card: CSSProperties = { cursor: 'pointer', borderRadius: '10px', padding: 
 const chk: CSSProperties = { flexShrink: 0, width: '18px', height: '18px', borderRadius: '5px', border: '1.5px solid', cursor: 'pointer', fontSize: '11px', lineHeight: 1, display: 'grid', placeItems: 'center', marginTop: '1px', padding: 0 };
 const pill: CSSProperties = { fontSize: '10px', padding: '2px 7px', borderRadius: '10px', fontWeight: 700, whiteSpace: 'nowrap' };
 const delBtn: CSSProperties = { flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', opacity: 0.4, padding: '2px' };
-const bell: CSSProperties = { flexShrink: 0, width: '20px', height: '20px', borderRadius: '50%', background: '#FEF3C7', color: '#D97706', display: 'grid', placeItems: 'center', fontSize: '10px' };
+const bell: CSSProperties = { flexShrink: 0, width: '20px', height: '20px', borderRadius: '50%', background: '#FEF3C7', color: '#D97706', display: 'grid', placeItems: 'center', fontSize: '10px', border: 'none', cursor: 'pointer', padding: 0 };

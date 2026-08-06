@@ -39,6 +39,24 @@ class TaskResource extends JsonResource
             'comments_count' => (int) ($this->comments_count ?? 0),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
+            // جرس «نشاط جديد» لكل مستخدم على حدة: نشاط خلال آخر 24 ساعة لم يعلّمه المستخدم كمقروء
+            'has_unread' => $this->hasUnreadActivity(),
         ];
+    }
+
+    /** هل للمهمة نشاط حديث (≤ 24 ساعة) لم يعلّمه المستخدم الحالي كمقروء؟ */
+    private function hasUnreadActivity(): bool
+    {
+        if ($this->updated_at === null || $this->updated_at->lt(now()->subDay())) {
+            return false; // لا نشاط حديث → لا جرس
+        }
+
+        if (! $this->relationLoaded('reads')) {
+            return false; // خارج قائمة اللوحة لا نحسب الجرس
+        }
+
+        $read = $this->reads->first(); // مُصفّى مسبقًا لقراءة المستخدم الحالي
+
+        return $read === null || $read->read_at === null || $read->read_at->lt($this->updated_at);
     }
 }

@@ -20,6 +20,8 @@ export interface Task {
   comments_count?: number;
   updated_at?: string | null;
   created_at: string | null;
+  /** جرس «نشاط جديد» خاص بالمستخدم الحالي — يختفي عند التعليم كمقروء. */
+  has_unread?: boolean;
 }
 
 /** حركة في سجل تعديلات المهمة (اجتماع 2026-08-05). */

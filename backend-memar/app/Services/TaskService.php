@@ -25,15 +25,28 @@ class TaskService
      */
     public function list(?string $search, ?int $projectId, ?int $assigneeId): Collection
     {
+        $userId = auth()->id();
+
         return Task::query()
             ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
             ->when($projectId, fn ($q, int $id) => $q->where('project_id', $id))
             ->when($assigneeId, fn ($q, int $id) => $q->where('assignee_id', $id))
             ->with(['project', 'assignee'])
+            // قراءة المستخدم الحالي فقط لهذه المهمة — لحساب جرس «غير مقروء» لكل مستخدم على حدة
+            ->with(['reads' => fn ($q) => $q->where('user_id', $userId)])
             ->withCount('comments')
             ->orderBy('position')
             ->latest()
             ->get();
+    }
+
+    /** يعلّم نشاط المهمة كمقروء للمستخدم (يُخفي الجرس عنده وحده). */
+    public function markRead(Task $task, int $userId): void
+    {
+        $task->reads()->updateOrCreate(
+            ['user_id' => $userId],
+            ['read_at' => now()],
+        );
     }
 
     /**

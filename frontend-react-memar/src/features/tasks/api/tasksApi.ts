@@ -25,6 +25,8 @@ export const tasksApi = {
   create: (payload: Record<string, unknown>) => apiPost<Task>('/tasks', payload),
   update: (id: number, payload: Record<string, unknown>) => apiPatch<Task>(`/tasks/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/tasks/${id}`),
+  /** يعلّم إشعار المهمة كمقروء للمستخدم الحالي (يُخفي الجرس عنده وحده). */
+  markRead: (id: number) => apiPost<null>(`/tasks/${id}/read`),
 
   // ── صفحة التفاصيل (TASK-4) ──
   detail: (id: number) => apiGet<TaskDetail>(`/tasks/${id}`),

@@ -38,6 +38,14 @@ class TaskController extends ApiController
         return $this->ok($this->tasks->workload());
     }
 
+    /** يعلّم نشاط المهمة كمقروء للمستخدم الحالي (يُخفي جرس الإشعار عنده وحده). */
+    public function markRead(Request $request, Task $task): JsonResponse
+    {
+        $this->tasks->markRead($task, (int) $request->user()->id);
+
+        return $this->ok(null, 'تم التعليم كمقروء');
+    }
+
     public function store(StoreTaskRequest $request): JsonResponse
     {
         $task = $this->tasks->create($request->validated(), $request->user()?->id);

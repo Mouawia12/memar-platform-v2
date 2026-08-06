@@ -65,6 +65,14 @@ export function useDeleteTask() {
   });
 }
 
+/** تعليم إشعار المهمة كمقروء للمستخدم الحالي — يُخفي جرس «نشاط جديد» عنده وحده. */
+export function useMarkTaskRead() {
+  return useMutation({
+    mutationFn: (id: number) => tasksApi.markRead(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
 // ── صفحة التفاصيل (TASK-4) ──
 
 export function useTaskDetail(id: number | null) {

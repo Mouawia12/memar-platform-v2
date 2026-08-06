@@ -188,16 +188,33 @@ class ProjectStagesTest extends TestCase
         $this->assertNotNull($pending->started_at);
     }
 
-    public function test_activate_is_rejected_when_another_stage_is_active(): void
+    public function test_activate_allows_overlapping_active_stages(): void
     {
+        // مرحلة مُدرَجة في المنتصف يمكن بدؤها حتى لو وُجدت مرحلة جارية أخرى (تداخل واقعي).
         $this->actingAsUserWith([self::VIEW, self::MANAGE]);
         $project = Project::factory()->create();
         ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'جارية', 'status' => 'active', 'position' => 0, 'started_at' => now()]);
-        $pending = ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'منتظرة', 'status' => 'pending', 'position' => 1]);
+        $pending = ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'منتصف', 'status' => 'pending', 'position' => 1]);
 
         $this->postJson("/api/v1/projects/{$project->id}/stages/{$pending->id}/activate")
-            ->assertStatus(422);
-        $this->assertSame('pending', $pending->refresh()->status);
+            ->assertOk()->assertJsonPath('data.status', 'active');
+        $this->assertSame(2, $project->stages()->where('status', 'active')->count());
+    }
+
+    public function test_advance_does_not_auto_activate_next_while_another_stage_is_active(): void
+    {
+        // في وضع التداخل: إتمام مرحلة مع بقاء أخرى جارية لا يُفعّل مرحلة منتظرة تلقائيًا.
+        $this->actingAsUserWith([self::VIEW, self::MANAGE]);
+        $project = Project::factory()->create();
+        $a = ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'أ', 'status' => 'active', 'position' => 0, 'started_at' => now()]);
+        ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'ب', 'status' => 'active', 'position' => 1, 'started_at' => now()]);
+        $c = ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'ج', 'status' => 'pending', 'position' => 2]);
+
+        $this->postJson("/api/v1/projects/{$project->id}/stages/{$a->id}/advance")->assertOk();
+
+        $this->assertSame('done', $a->refresh()->status);
+        $this->assertSame('pending', $c->refresh()->status); // لم تُفعَّل تلقائيًا
+        $this->assertSame(1, $project->stages()->where('status', 'active')->count()); // بقيت «ب» فقط
     }
 
     public function test_activate_requires_manage_permission(): void

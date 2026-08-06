@@ -123,14 +123,23 @@ class ProjectStageService
             }
             $stage->save();
 
-            $next = $stage->project->stages()
-                ->where('status', 'pending')
-                ->where('position', '>', $stage->position)
-                ->orderBy('position')
-                ->first();
+            // تفعيل المرحلة التالية تلقائيًا فقط إن لم تتبقَّ مرحلة جارية أخرى — للحفاظ على
+            // التدفّق الخطّي في المسار المعتاد، ودون مفاجآت في وضع التداخل (عدة مراحل جارية).
+            $otherActive = $stage->project->stages()
+                ->where('status', 'active')
+                ->whereKeyNot($stage->id)
+                ->exists();
 
-            if ($next) {
-                $next->update(['status' => 'active', 'started_at' => now()]);
+            if (! $otherActive) {
+                $next = $stage->project->stages()
+                    ->where('status', 'pending')
+                    ->where('position', '>', $stage->position)
+                    ->orderBy('position')
+                    ->first();
+
+                if ($next) {
+                    $next->update(['status' => 'active', 'started_at' => now()]);
+                }
             }
 
             return $stage->refresh();

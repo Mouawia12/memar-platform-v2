@@ -143,7 +143,7 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
               total={ordered.length}
               nextName={ordered.find((s) => s.status === 'pending' && s.position > selected.position)?.name ?? null}
               canManage={canManage}
-              canStart={canManage && !activeStage && selected.status === 'pending'}
+              canStart={canManage && selected.status === 'pending'}
               advancing={advance.isPending}
               starting={activate.isPending}
               onAdvance={() => advance.mutate(selected.id)}
@@ -243,8 +243,8 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, canSt
       {stage.status === 'pending' && (
         <div style={{ ...advanceHint, background: '#fff', borderColor: pal.border, color: canStart ? '#1B6CA8' : '#8A93A3' }}>
           <span>{canStart
-            ? <>▶ لا توجد مرحلة جارية حاليًا — اضغط <b>«بدء المرحلة»</b> لتفعيل هذه المرحلة والبدء بها.</>
-            : <>⏳ مرحلة قادمة — تبدأ تلقائيًا عند إتمام المرحلة الجارية التي قبلها.</>}</span>
+            ? <>▶ اضغط <b>«بدء المرحلة»</b> لبدء العمل عليها الآن (يمكن تشغيل أكثر من مرحلة معًا) — أو تبدأ تلقائيًا عند وصول التسلسل إليها.</>
+            : <>⏳ مرحلة قادمة — تبدأ عند إتمام المرحلة الجارية التي قبلها.</>}</span>
         </div>
       )}
 

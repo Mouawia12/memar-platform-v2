@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Contact;
+use App\Models\Project;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -12,50 +13,55 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 /**
- * حسابات تجريبية مسماة بأسماء الموظفين — تطابق لوحة الدخول في الموقع القديم.
+ * حسابات الدخول التجريبية — حساب واحد لكل دور (تنظيف طلبه أيمن 2026-08-06).
+ * كلٌّ يفتح لوحة تحكم حقيقية بصلاحيات دوره. الموظفون يُسنَد لهم مشاريع حقيقية
+ * (project_members) لتظهر في «مشاريعي».
  *
- * ⚠️ للعرض والتجربة فقط: كلمات المرور ضعيفة ومعروفة.
- * لا تُشغّل هذا السيدر على بيئة إنتاج حقيقية، أو غيّر كلمات المرور بعده فورًا.
+ * ملاحظة: سجلّ الموارد البشرية (EmployeesSeeder) يبقى غنيًّا بكل الموظفين —
+ * الدخول التجريبي شيء وقائمة الموظفين شيء آخر.
  *
+ * ⚠️ للعرض فقط: كلمات المرور ضعيفة ومعروفة.
  *   php artisan db:seed --class=DemoUsersSeeder --force
  */
 class DemoUsersSeeder extends Seeder
 {
-    /** الحسابات: [البريد, كلمة المرور, الاسم, الدور] */
+    /** حساب واحد لكل دور: [البريد, كلمة المرور, الاسم, الدور] */
     private const ACCOUNTS = [
         ['admin@memar.kw', 'admin123', 'م. أيمن الطوخي', 'super_admin'],
         ['pm@memar.kw', 'pm123', 'م. عبدالله', 'manager'],
-
         ['arch1@memar.kw', 'arch123', 'م. دعاء', 'architect'],
-        ['arch2@memar.kw', 'arch123', 'م. خالد', 'architect'],
-        ['struct1@memar.kw', 'struct123', 'م. إسماعيل', 'architect'],
-        ['struct2@memar.kw', 'struct123', 'م. بيشوي', 'architect'],
-
         ['acc@memar.kw', 'acc123', 'أ. وليد', 'accountant'],
-        ['sec@memar.kw', 'sec123', 'أ. رنا', 'staff'],
-        ['rep@memar.kw', 'rep123', 'مندوب أبو علي', 'staff'],
-        ['draft@memar.kw', 'draft123', 'رسام نشأت', 'staff'],
-        ['office@memar.kw', 'office123', 'أوفيس بوي جميل', 'staff'],
-
-        ['3d@memar.kw', '3d123', 'م. أحمد سمير', 'architect'],
-        ['interior@memar.kw', 'int123', 'م. سمر', 'architect'],
-        ['ui@memar.kw', 'ui123', 'م. آلاء', 'architect'],
-
-        // client1 هو العميل الرئيسي الغني (شركة المنصور) الذي يبنيه AtomsDemoSeeder؛
-        // نطابق اسمه هنا حتى لا يتعارض السيدران ولا تظهر فجوة اسم في زر الدخول مقابل البوابة.
+        ['hr@memar.kw', 'hr123', 'أ. منى الهاجري', 'hr_manager'],
+        ['rep@memar.kw', 'rep123', 'مندوب أبو علي', 'sales'],
+        ['sec@memar.kw', 'sec123', 'أ. رنا', 'secretary'],
+        // العميل الرئيسي الغني (شركة المنصور) — يربطه AtomsDemoSeeder ببوابته
         ['client1@memar.kw', 'client123', 'أحمد بن عبدالله المنصور', 'client'],
-        ['client2@memar.kw', 'client123', 'خالد خلف العازمي', 'client'],
-        ['client3@memar.kw', 'client123', 'د. آمنة الرشيدي', 'client'],
+    ];
+
+    /** حسابات دخول قديمة زائدة تُحذف (أبقينا واحدًا لكل دور). */
+    private const REMOVED = [
+        'arch2@memar.kw', 'struct1@memar.kw', 'struct2@memar.kw', 'draft@memar.kw',
+        'office@memar.kw', '3d@memar.kw', 'interior@memar.kw', 'ui@memar.kw',
+        'client2@memar.kw', 'client3@memar.kw',
+    ];
+
+    /** كم مشروعًا يُسنَد لكل موظف (تُختار ديناميكيًا من المشاريع الموجودة). */
+    private const ASSIGN_ROLES = [
+        'pm@memar.kw' => 'مدير المشروع',
+        'arch1@memar.kw' => 'مهندسة معمارية',
     ];
 
     public function run(): void
     {
-        // دور «طاقم العمل» — صلاحيات عرض أساسية (غير موجود في الأدوار النظامية)
+        // دور «طاقم العمل» — يبقى معرّفًا (صلاحيات عرض) وإن لم يعد يُستخدم في الحسابات
         $staff = Role::findOrCreate('staff', 'web');
         $staff->syncPermissions(array_filter(
             ['tasks.view', 'projects.view', 'appointments.view', 'documents.view'],
             fn (string $p): bool => Permission::where('name', $p)->exists(),
         ));
+
+        // حذف الحسابات الزائدة — علاقات المستخدم كلها nullOnDelete/cascade فالحذف آمن
+        User::whereIn('email', self::REMOVED)->get()->each->delete();
 
         foreach (self::ACCOUNTS as [$email, $password, $name, $role]) {
             $user = User::updateOrCreate(
@@ -65,7 +71,7 @@ class DemoUsersSeeder extends Seeder
 
             $user->syncRoles([$role]);
 
-            // ربط حسابات العملاء بسجلاتهم — يُفعّل بوابة العميل مباشرة
+            // ربط حساب العميل بسجلّه → يُفعّل بوابة العميل مباشرة
             if ($role === 'client') {
                 $contactId = Contact::where('full_name', $name)->value('id');
                 if ($contactId && $user->contact_id !== $contactId) {
@@ -73,5 +79,52 @@ class DemoUsersSeeder extends Seeder
                 }
             }
         }
+
+        $this->assignProjects();
+    }
+
+    /** يُسند مشاريع حقيقية موجودة للموظفين عبر project_members (بيانات حقيقية لـ«مشاريعي»). */
+    private function assignProjects(): void
+    {
+        $adminId = User::where('email', 'admin@memar.kw')->value('id');
+
+        // نختار مشاريع موجودة ديناميكيًا (يعمل على أي قاعدة بيانات، لا اعتماد على IDs ثابتة).
+        $ids = Project::orderBy('id')->pluck('id')->all();
+        if ($ids !== []) {
+            // pm يأخذ أول 3، arch1 يأخذ ثلاثة مع تداخل مشروع واحد (لعرض المشاركة).
+            $plan = [
+                'pm@memar.kw' => array_slice($ids, 0, 3),
+                'arch1@memar.kw' => array_slice($ids, 2, 3) ?: array_slice($ids, 0, 3),
+            ];
+
+            foreach ($plan as $email => $projectIds) {
+                $user = User::where('email', $email)->first();
+                if (! $user || $projectIds === []) {
+                    continue;
+                }
+
+                $sync = [];
+                foreach ($projectIds as $projectId) {
+                    $sync[$projectId] = [
+                        'role_on_project' => self::ASSIGN_ROLES[$email],
+                        'assigned_by' => $adminId,
+                        'assigned_at' => now(),
+                    ];
+                }
+                // idempotent: يُحدّث القائمة دون حذف يدوي أو تصفير last_seen_at
+                $user->assignedProjects()->syncWithoutDetaching($sync);
+            }
+        }
+
+        // اتساق نظرة الفريق: مدير كل مشروع عضوٌ فيه أيضًا → كل مدير يرى مشاريعه في «مشاريعي».
+        Project::whereNotNull('manager_id')->get()->each(function (Project $project) use ($adminId): void {
+            $project->members()->syncWithoutDetaching([
+                $project->manager_id => [
+                    'role_on_project' => 'مدير المشروع',
+                    'assigned_by' => $adminId,
+                    'assigned_at' => now(),
+                ],
+            ]);
+        });
     }
 }

@@ -29,50 +29,38 @@ export const BADGE_COLORS: Record<BadgeTone, { bg: string; fg: string }> = {
   red: { bg: '#DC4A3D', fg: '#fff' },
 };
 
-/** المجموعة الأولى تظهر دائمًا؛ الباقي خلف زر «عرض الكل». */
+/**
+ * حساب واحد لكل دور (تنظيف طلبه أيمن 2026-08-06) — يطابق DemoUsersSeeder تمامًا.
+ * المجموعة الأولى تظهر دائمًا؛ الباقي خلف زر «عرض الكل».
+ */
 export const DEMO_GROUPS: DemoGroup[] = [
   {
     title: '👑 الإدارة العليا',
     accounts: [
-      { email: 'admin@memar.kw', password: 'admin123', label: '👑 م. أيمن', badge: 'Admin', tone: 'primary' },
-      { email: 'pm@memar.kw', password: 'pm123', label: '🎯 م. عبدالله', badge: 'PM', tone: 'primary' },
+      { email: 'admin@memar.kw', password: 'admin123', label: '👑 م. أيمن (مدير النظام)', badge: 'Admin', tone: 'primary' },
+      { email: 'pm@memar.kw', password: 'pm123', label: '🎯 م. عبدالله (مدير مشاريع)', badge: 'Manager', tone: 'primary' },
     ],
   },
   {
-    title: '🏢 مهندسون ومصممون',
+    title: '🏢 الفريق الفني والمالي',
     accounts: [
-      { email: 'arch1@memar.kw', password: 'arch123', label: '🏗️ م. دعاء', badge: 'Arch', tone: 'green' },
-      { email: 'arch2@memar.kw', password: 'arch123', label: '🏗️ م. خالد', badge: 'Arch', tone: 'green' },
-      { email: 'struct1@memar.kw', password: 'struct123', label: '⚙️ م. إسماعيل', badge: 'Struct', tone: 'green' },
-      { email: 'struct2@memar.kw', password: 'struct123', label: '⚙️ م. بيشوي', badge: 'Struct', tone: 'green' },
+      { email: 'arch1@memar.kw', password: 'arch123', label: '🏗️ م. دعاء (مهندسة)', badge: 'Architect', tone: 'green' },
+      { email: 'acc@memar.kw', password: 'acc123', label: '💰 أ. وليد (محاسب)', badge: 'Accountant', tone: 'orange' },
+      { email: 'hr@memar.kw', password: 'hr123', label: '👔 أ. منى (موارد بشرية)', badge: 'HR', tone: 'purple' },
     ],
   },
   {
-    title: '📋 إداريون وطاقم العمل',
+    title: '📋 المكتب والمبيعات',
     accounts: [
-      { email: 'acc@memar.kw', password: 'acc123', label: '💰 أ. وليد', badge: 'Finance', tone: 'orange' },
-      { email: 'sec@memar.kw', password: 'sec123', label: '📋 أ. رنا', badge: 'Office', tone: 'primary' },
-      { email: 'rep@memar.kw', password: 'rep123', label: '🤝 أبو علي', badge: 'Sales', tone: 'orange' },
-      { email: 'draft@memar.kw', password: 'draft123', label: '✏️ نشأت', badge: 'Draft', tone: 'green' },
-      { email: 'office@memar.kw', password: 'office123', label: '☕ جميل', badge: 'Staff', tone: 'primary' },
-    ],
-  },
-  {
-    title: '🎨 فري لانسر',
-    accounts: [
-      { email: '3d@memar.kw', password: '3d123', label: '🖥️ م. أحمد سمير', badge: '3D', tone: 'purple' },
-      { email: 'interior@memar.kw', password: 'int123', label: '🛋️ م. سمر', badge: 'Interior', tone: 'purple' },
-      { email: 'ui@memar.kw', password: 'ui123', label: '📱 م. آلاء', badge: 'UI/UX', tone: 'purple' },
+      { email: 'sec@memar.kw', password: 'sec123', label: '📋 أ. رنا (سكرتارية)', badge: 'Secretary', tone: 'primary' },
+      { email: 'rep@memar.kw', password: 'rep123', label: '🤝 أبو علي (مبيعات)', badge: 'Sales', tone: 'orange' },
     ],
   },
   {
     title: '🏠 العملاء',
     accounts: [
-      // ملاحظة: يجب أن تطابق الأسماء هنا حقول users.name في DemoUsersSeeder + AtomsDemoSeeder،
-      // وإلا ظهر اسم على زر الدخول ثم اسم آخر داخل البوابة (فجوة أبلغ عنها أيمن 2026-08-04).
+      // الاسم يطابق users.name في DemoUsersSeeder + AtomsDemoSeeder (لا فجوة اسم في البوابة).
       { email: 'client1@memar.kw', password: 'client123', label: '🏢 أحمد بن عبدالله المنصور', badge: 'Client', tone: 'orange' },
-      { email: 'client2@memar.kw', password: 'client123', label: '🏠 خالد خلف العازمي', badge: 'Client', tone: 'orange' },
-      { email: 'client3@memar.kw', password: 'client123', label: '🏠 د. آمنة الرشيدي', badge: 'Client', tone: 'orange' },
     ],
   },
 ];

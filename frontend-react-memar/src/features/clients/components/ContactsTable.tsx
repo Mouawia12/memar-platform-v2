@@ -48,15 +48,16 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile }: Pro
               </td>
               <td style={td}>{c.owner?.name ?? '—'}</td>
               <td style={td}>
-                {onViewProfile && (
-                  <>
-                    <button className="btn btn-sm" onClick={() => onViewProfile(c)} type="button" style={{ color: '#1B6CA8' }} title="زيارة بروفيل العميل داخل الداشبورد">
-                      <i className="fas fa-eye" /> بروفيل
-                    </button>{' '}
-                  </>
-                )}
-                <button className="btn btn-sm" onClick={() => onEdit(c)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>
+                {/* إجراءات كأيقونات فقط في صفّ واحد (طلب أيمن) — العنوان title للتوضيح والوصولية */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {onViewProfile && (
+                    <button className="btn btn-sm btn-icon" onClick={() => onViewProfile(c)} type="button" style={{ color: '#1B6CA8' }} title="زيارة بروفيل العميل داخل الداشبورد" aria-label="بروفيل">
+                      <i className="fas fa-eye" />
+                    </button>
+                  )}
+                  <button className="btn btn-sm btn-icon" onClick={() => onEdit(c)} type="button" title="تعديل" aria-label="تعديل"><i className="fas fa-pen" /></button>
+                  <button className="btn btn-sm btn-icon" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }} title="حذف" aria-label="حذف"><i className="fas fa-trash" /></button>
+                </div>
               </td>
             </tr>
           ))}

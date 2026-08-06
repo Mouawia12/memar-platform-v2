@@ -38,6 +38,8 @@ import { PayrollPage } from './features/payroll/pages/PayrollPage';
 import { ReportsPage } from './features/reports/pages/ReportsPage';
 import { ProjectDetailPage } from './features/projects/pages/ProjectDetailPage';
 import { ProjectsPage } from './features/projects/pages/ProjectsPage';
+import { MyProjectsPage } from './features/myProjects/pages/MyProjectsPage';
+import { TeamProjectsPage } from './features/myProjects/pages/TeamProjectsPage';
 import { QuotationsPage } from './features/quotations/pages/QuotationsPage';
 import { ServicesPage } from './features/services/pages/ServicesPage';
 import { TasksPage } from './features/tasks/pages/TasksPage';
@@ -47,7 +49,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
-const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads', 'audit', 'file_manager', 'field_visits', 'engineer_portal', 'client_portal'];
+const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'my_projects', 'team_projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads', 'audit', 'file_manager', 'field_visits', 'engineer_portal', 'client_portal'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
@@ -72,6 +74,8 @@ export default function App() {
           <Route path="/clients/:id/profile" element={<StaffClientProfilePage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/my-projects" element={<MyProjectsPage />} />
+          <Route path="/team-projects" element={<TeamProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />

@@ -6,6 +6,7 @@ import { ProjectContractTab, ProjectDocumentsTab } from '../components/ProjectDo
 import { ProjectPaymentsPanel } from '../components/ProjectPaymentsPanel';
 import { ProjectStages } from '../components/ProjectStages';
 import { ProjectStatusControl } from '../components/ProjectStatusControl';
+import { ProjectMembersSection } from '../../myProjects/components/ProjectMembersSection';
 import { useProjectOverview } from '../hooks/useProjectOverview';
 
 type Tab = 'overview' | 'stages' | 'payments' | 'documents' | 'contract';
@@ -78,6 +79,9 @@ export function ProjectDetailPage() {
         <>
           {/* التقييم الإداري (PROJ-4) — للطاقم فقط */}
           <ProjectAssessmentPanel project={project} />
+
+          {/* الفريق المكلّف — إسناد الموظفين + آخر دخولهم (بند 11-14) */}
+          <ProjectMembersSection projectId={project.id} />
 
           {/* مؤشرات */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '18px' }}>

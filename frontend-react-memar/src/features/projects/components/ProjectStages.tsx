@@ -1,16 +1,27 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useAddStage, useAddStageComment, useAdvanceStage, useRemoveStage, useSeedStages, useStageDetail } from '../hooks/useProjectStages';
-import { STAGE_STATUS_COLORS, STAGE_STATUS_LABELS, type ProjectStage } from '../types';
+import { STAGE_STATUS_LABELS, type ProjectStage, type StageStatus } from '../types';
 
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
-/** مراحل المشروع (PROJ-1/PROJ-2): شريط تقدّم + سلسلة مراحل مع محادثة كل مرحلة وأكشن التقديم الإداري. */
+// لوحة ألوان المراحل (إعادة تصميم اجتماع 2026-08-05): أخضر=منتهية · أزرق معماري=جارية · رمادي=منتظرة.
+const PALETTE: Record<StageStatus, { solid: string; soft: string; ring: string; border: string; label: string }> = {
+  done: { solid: '#059669', soft: '#ECFDF5', ring: 'rgba(5,150,105,.20)', border: '#A7F3D0', label: STAGE_STATUS_LABELS.done },
+  active: { solid: '#1B6CA8', soft: '#EFF6FF', ring: 'rgba(27,108,168,.22)', border: '#BFDBFE', label: STAGE_STATUS_LABELS.active },
+  pending: { solid: '#94A3B8', soft: '#F8FAFC', ring: 'rgba(148,163,184,.18)', border: '#E2E8F0', label: STAGE_STATUS_LABELS.pending },
+};
+const markerGlyph = (s: StageStatus, order: number) => (s === 'done' ? '✓' : s === 'active' ? '●' : String(order));
+
+/**
+ * مراحل المشروع — إعادة تصميم (بند 28، اجتماع 2026-08-05):
+ * خط زمني RTL واضح (منتهية يمينًا ← الحالية وسطًا ← قادمة يسارًا) بعُقد مُعنونة،
+ * ولوحة تفاصيل مركّزة للمرحلة المختارة مع نقاش المرحلة (شات) بداخلها.
+ */
 export function ProjectStages({ projectId, stages }: { projectId: number; stages: ProjectStage[] }) {
   const canManage = usePermission('projects.manage');
-  const [openId, setOpenId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDays, setNewDays] = useState('');
@@ -20,9 +31,19 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
   const remove = useRemoveStage(projectId);
   const addStage = useAddStage(projectId);
 
-  const activeStage = stages.find((s) => s.status === 'active');
-  const doneCount = stages.filter((s) => s.status === 'done').length;
-  const overallPct = stages.length > 0 ? Math.round((doneCount / stages.length) * 100) : 0;
+  // ترتيب حسب position لضمان التدفّق الصحيح (الأقدم يمينًا في RTL).
+  const ordered = useMemo(() => [...stages].sort((a, b) => a.position - b.position), [stages]);
+  const activeStage = ordered.find((s) => s.status === 'active');
+  const doneCount = ordered.filter((s) => s.status === 'done').length;
+  const overallPct = ordered.length > 0 ? Math.round((doneCount / ordered.length) * 100) : 0;
+
+  // المرحلة المختارة للوحة التفاصيل — تبدأ بالحالية (أو أول مرحلة)، وتتابع تغيّر الحالية.
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  useEffect(() => {
+    if (selectedId && ordered.some((s) => s.id === selectedId)) return;
+    setSelectedId(activeStage?.id ?? ordered[0]?.id ?? null);
+  }, [selectedId, ordered, activeStage]);
+  const selected = ordered.find((s) => s.id === selectedId) ?? null;
 
   const submitNewStage = () => {
     const name = newName.trim();
@@ -35,12 +56,20 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
 
   return (
     <div className="card" style={{ padding: '20px', marginBottom: '18px' }}>
+      {/* رأس + شريط تقدّم عام */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0, fontSize: '16px' }}>🧭 مراحل المشروع</h3>
-        {stages.length > 0 && <span style={{ fontSize: '13px', color: '#5A6478' }}>{doneCount} من {stages.length} منتهية · {overallPct}%</span>}
+        {ordered.length > 0 && (
+          <span style={{ fontSize: '13px', color: '#5A6478', fontWeight: 600 }}>
+            <b style={{ color: '#059669' }}>{doneCount}</b> من {ordered.length} منتهية · {overallPct}%
+          </span>
+        )}
       </div>
+      {ordered.length > 0 && (
+        <div style={progressTrack}><div style={{ ...progressFill, width: `${overallPct}%` }} /></div>
+      )}
 
-      {stages.length === 0 ? (
+      {ordered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '26px 10px' }}>
           <p style={{ color: '#5A6478', fontSize: '13.5px', marginBottom: '14px' }}>لا توجد مراحل لهذا المشروع بعد.</p>
           {canManage && (
@@ -51,50 +80,75 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
         </div>
       ) : (
         <>
-          {/* شريط دوائر المراحل — طبق الأصل */}
-          <div style={dotsBar}>
-            {stages.map((s, i) => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', flex: i === stages.length - 1 ? '0 0 auto' : 1 }}>
-                <div title={s.name} style={{ ...dot, background: STAGE_STATUS_COLORS[s.status], boxShadow: s.status === 'active' ? `0 0 0 4px ${STAGE_STATUS_COLORS.active}33` : 'none' }} />
-                {i < stages.length - 1 && <div style={{ ...connector, background: s.status === 'done' ? STAGE_STATUS_COLORS.done : '#E4E8EF' }} />}
-              </div>
-            ))}
+          {/* دليل الاتجاه: منتهية يمينًا ← الحالية ← قادمة يسارًا */}
+          <div style={legend}>
+            <span><i style={{ ...legendDot, background: PALETTE.done.solid }} /> منتهية</span>
+            <span><i style={{ ...legendDot, background: PALETTE.active.solid }} /> الحالية</span>
+            <span><i style={{ ...legendDot, background: '#fff', border: `2px solid ${PALETTE.pending.solid}` }} /> قادمة</span>
+            <span style={{ marginInlineStart: 'auto', color: '#B4BCC8', fontSize: '11px' }}>الأقدم يمينًا ← الأحدث يسارًا</span>
           </div>
 
-          {/* المرحلة الحالية بارزة */}
-          {activeStage && (
-            <div style={activeBanner}>
-              <div>
-                <div style={{ fontSize: '11px', color: '#DC2626', fontWeight: 800 }}>● المرحلة الحالية</div>
-                <div style={{ fontSize: '15px', fontWeight: 800, marginTop: '2px' }}>{activeStage.name}</div>
-                {activeStage.started_at && <div style={{ fontSize: '11.5px', color: '#5A6478', marginTop: '2px' }}>بدأت: {fmtDate(activeStage.started_at)}{activeStage.expected_days ? ` · المدة المتوقعة ${activeStage.expected_days} يوم` : ''}</div>}
-              </div>
-              {canManage && (
-                <button className="btn btn-primary" type="button" disabled={advance.isPending} onClick={() => advance.mutate(activeStage.id)}>
-                  {advance.isPending ? '…' : 'إنهاء وتقديم ←'}
-                </button>
-              )}
+          {/* الخط الزمني الأفقي (RTL) */}
+          <div style={railScroll}>
+            <div style={rail}>
+              {ordered.map((s, i) => {
+                const pal = PALETTE[s.status];
+                const isSel = s.id === selectedId;
+                // الموصل يسار العقدة (نحو المرحلة الأحدث): أخضر إذا كانت هذه العقدة منتهية.
+                const connectorColor = s.status === 'done' ? PALETTE.done.solid : '#E4E8EF';
+                return (
+                  <div key={s.id} style={node}>
+                    <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      {/* موصل يسار (للعقد غير الأخيرة) */}
+                      {i < ordered.length - 1 ? <div style={{ ...connector, background: connectorColor }} /> : <div style={{ flex: 1 }} />}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(s.id)}
+                        title={s.name}
+                        style={{
+                          ...marker,
+                          width: s.status === 'active' ? 52 : 40,
+                          height: s.status === 'active' ? 52 : 40,
+                          background: s.status === 'pending' ? '#fff' : pal.solid,
+                          color: s.status === 'pending' ? pal.solid : '#fff',
+                          border: s.status === 'pending' ? `2px solid ${pal.solid}` : '2px solid #fff',
+                          boxShadow: isSel ? `0 0 0 4px ${pal.ring}, 0 4px 12px rgba(2,32,71,.12)` : s.status === 'active' ? `0 0 0 5px ${pal.ring}` : '0 1px 3px rgba(2,32,71,.10)',
+                          transform: isSel ? 'translateY(-2px)' : 'none',
+                          fontSize: s.status === 'active' ? '18px' : '15px',
+                        }}
+                      >
+                        {markerGlyph(s.status, i + 1)}
+                      </button>
+                      {/* موصل يمين (للعقدة الأولى فقط، لموازنة التوسيط) */}
+                      {i === 0 ? <div style={{ flex: 1 }} /> : null}
+                    </div>
+                    <button type="button" onClick={() => setSelectedId(s.id)} style={{ ...nodeLabel, cursor: 'pointer' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: isSel || s.status === 'active' ? 800 : 600, color: isSel ? pal.solid : '#274A78' }}>{s.name}</span>
+                      <span style={{ ...statusChip, color: pal.solid, background: pal.soft, border: `1px solid ${pal.border}` }}>{pal.label}</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-          )}
-
-          {/* سلسلة المراحل */}
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {stages.map((s) => (
-              <StageRow
-                key={s.id}
-                projectId={projectId}
-                stage={s}
-                open={openId === s.id}
-                canManage={canManage}
-                onToggle={() => setOpenId(openId === s.id ? null : s.id)}
-                onRemove={() => { if (confirm(`حذف المرحلة "${s.name}"؟`)) remove.mutate(s.id); }}
-              />
-            ))}
           </div>
+
+          {/* لوحة تفاصيل المرحلة المختارة + نقاشها */}
+          {selected && (
+            <StagePanel
+              projectId={projectId}
+              stage={selected}
+              index={ordered.findIndex((s) => s.id === selected.id)}
+              total={ordered.length}
+              canManage={canManage}
+              advancing={advance.isPending}
+              onAdvance={() => advance.mutate(selected.id)}
+              onRemove={() => { if (confirm(`حذف المرحلة "${selected.name}"؟`)) remove.mutate(selected.id, { onSuccess: () => setSelectedId(activeStage?.id ?? null) }); }}
+            />
+          )}
 
           {/* إضافة مرحلة */}
           {canManage && (
-            <div style={{ marginTop: '12px' }}>
+            <div style={{ marginTop: '14px' }}>
               {adding ? (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <input className="input" placeholder="اسم المرحلة" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '160px' }} autoFocus />
@@ -113,38 +167,55 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
   );
 }
 
-/** صف مرحلة واحدة: يُطوى منتهيًا، ويُبرز جاريًا، ويفتح على المحادثة عند النقر. */
-function StageRow({ projectId, stage, open, canManage, onToggle, onRemove }: {
+/** لوحة تفاصيل المرحلة المختارة: عنوان + حالة + تواريخ + إجراءات + نقاش المرحلة. */
+function StagePanel({ projectId, stage, index, total, canManage, advancing, onAdvance, onRemove }: {
   projectId: number;
   stage: ProjectStage;
-  open: boolean;
+  index: number;
+  total: number;
   canManage: boolean;
-  onToggle: () => void;
+  advancing: boolean;
+  onAdvance: () => void;
   onRemove: () => void;
 }) {
-  const color = STAGE_STATUS_COLORS[stage.status];
-  const icon = stage.status === 'done' ? '✓' : stage.status === 'active' ? '●' : '○';
+  const pal = PALETTE[stage.status];
 
   return (
-    <div style={{ border: `1px solid ${stage.status === 'active' ? '#FCA5A5' : '#EEF2F7'}`, borderRadius: '10px', overflow: 'hidden', background: stage.status === 'active' ? '#FEF6F6' : '#fff' }}>
-      <div style={rowHead} onClick={onToggle}>
-        <span style={{ ...rowIcon, background: color }}>{icon}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '13.5px', fontWeight: 700 }}>{stage.name}</div>
-          <div style={{ fontSize: '11px', color: '#8A93A3', marginTop: '2px' }}>
-            {STAGE_STATUS_LABELS[stage.status]}
-            {stage.status === 'done' && stage.actual_days != null && ` · استغرقت ${stage.actual_days} يوم`}
-            {stage.status !== 'done' && stage.expected_days != null && ` · متوقّعة ${stage.expected_days} يوم`}
-            {typeof stage.comments_count === 'number' && stage.comments_count > 0 && ` · 💬 ${stage.comments_count}`}
+    <div style={{ ...panel, background: pal.soft, borderColor: pal.border }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ ...statusChip, color: pal.solid, background: '#fff', border: `1px solid ${pal.border}`, fontWeight: 800 }}>
+              {stage.status === 'active' ? '● ' : stage.status === 'done' ? '✓ ' : ''}{pal.label}
+            </span>
+            <span style={{ fontSize: '11.5px', color: '#8A93A3' }}>المرحلة {index + 1} من {total}</span>
+          </div>
+          <h4 style={{ margin: '8px 0 0', fontSize: '17px', fontWeight: 800, color: '#0F2E4D' }}>{stage.name}</h4>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+            {stage.started_at && <span style={metaChip}>📅 بدأت {fmtDate(stage.started_at)}</span>}
+            {stage.completed_at && <span style={metaChip}>🏁 انتهت {fmtDate(stage.completed_at)}</span>}
+            {stage.status === 'done' && stage.actual_days != null && <span style={metaChip}>⏱️ استغرقت {stage.actual_days} يوم</span>}
+            {stage.status !== 'done' && stage.expected_days != null && <span style={metaChip}>⏳ متوقّعة {stage.expected_days} يوم</span>}
           </div>
         </div>
-        {canManage && stage.status === 'pending' && (
-          <button className="btn btn-sm" type="button" onClick={(e) => { e.stopPropagation(); onRemove(); }} style={{ color: '#DC2626', fontSize: '11px', padding: '2px 7px' }}>🗑</button>
+        {canManage && (
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            {stage.status === 'active' && (
+              <button className="btn btn-primary" type="button" disabled={advancing} onClick={onAdvance}>
+                {advancing ? '…' : 'إنهاء وتقديم ←'}
+              </button>
+            )}
+            {stage.status === 'pending' && (
+              <button className="btn btn-sm" type="button" onClick={onRemove} style={{ color: '#DC2626' }}>🗑 حذف</button>
+            )}
+          </div>
         )}
-        <span style={{ color: '#B4BCC8', fontSize: '12px' }}>{open ? '▲' : '▼'}</span>
       </div>
 
-      {open && <StageConversation projectId={projectId} stageId={stage.id} />}
+      <div style={{ marginTop: '14px', borderTop: `1px dashed ${pal.border}`, paddingTop: '12px' }}>
+        <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#274A78', marginBottom: '8px' }}>💬 نقاش المرحلة</div>
+        <StageConversation projectId={projectId} stageId={stage.id} />
+      </div>
     </div>
   );
 }
@@ -162,12 +233,12 @@ function StageConversation({ projectId, stageId }: { projectId: number; stageId:
   };
 
   return (
-    <div style={{ borderTop: '1px solid #EEF2F7', padding: '12px 14px', background: '#FAFBFC' }}>
+    <div>
       {isLoading && <p style={{ fontSize: '12px', color: '#8A93A3', margin: 0 }}>جارٍ التحميل…</p>}
       {stage && (
         <>
           {(stage.comments ?? []).length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#8A93A3', margin: '0 0 10px' }}>لا توجد رسائل في هذه المرحلة بعد.</p>
+            <p style={{ fontSize: '12px', color: '#8A93A3', margin: '0 0 10px' }}>لا توجد رسائل في هذه المرحلة بعد — ابدأ النقاش.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
               {stage.comments!.map((c) => (
@@ -188,7 +259,7 @@ function StageConversation({ projectId, stageId }: { projectId: number; stageId:
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
-              style={{ flex: 1 }}
+              style={{ flex: 1, background: '#fff' }}
             />
             <button className="btn btn-primary btn-sm" type="button" disabled={addComment.isPending || !text.trim()} onClick={send}>إرسال</button>
           </div>
@@ -198,10 +269,17 @@ function StageConversation({ projectId, stageId }: { projectId: number; stageId:
   );
 }
 
-const dotsBar: CSSProperties = { display: 'flex', alignItems: 'center', marginTop: '18px', padding: '0 4px' };
-const dot: CSSProperties = { width: '14px', height: '14px', borderRadius: '50%', flexShrink: 0 };
-const connector: CSSProperties = { height: '3px', flex: 1, margin: '0 4px', borderRadius: '2px' };
-const activeBanner: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginTop: '16px', padding: '12px 14px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '10px' };
-const rowHead: CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer' };
-const rowIcon: CSSProperties = { width: '22px', height: '22px', borderRadius: '50%', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, flexShrink: 0 };
+const progressTrack: CSSProperties = { height: '7px', background: '#EEF2F7', borderRadius: '999px', marginTop: '12px', overflow: 'hidden' };
+const progressFill: CSSProperties = { height: '100%', borderRadius: '999px', background: 'linear-gradient(90deg,#34D399,#059669)', transition: 'width .4s ease' };
+const legend: CSSProperties = { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginTop: '16px', fontSize: '11.5px', color: '#5A6478' };
+const legendDot: CSSProperties = { display: 'inline-block', width: '9px', height: '9px', borderRadius: '50%', marginInlineEnd: '5px', verticalAlign: 'middle' };
+const railScroll: CSSProperties = { overflowX: 'auto', paddingBottom: '4px', marginTop: '10px' };
+const rail: CSSProperties = { display: 'flex', alignItems: 'flex-start', minWidth: 'min-content' };
+const node: CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '1 0 128px', minWidth: '128px' };
+const marker: CSSProperties = { borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'transform .15s ease, box-shadow .15s ease' };
+const connector: CSSProperties = { height: '4px', flex: 1, borderRadius: '2px', marginTop: '0' };
+const nodeLabel: CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', marginTop: '10px', padding: '0 6px', background: 'none', border: 'none', textAlign: 'center', maxWidth: '128px' };
+const statusChip: CSSProperties = { fontSize: '10.5px', fontWeight: 700, padding: '2px 9px', borderRadius: '999px', whiteSpace: 'nowrap' };
+const panel: CSSProperties = { marginTop: '18px', padding: '16px 18px', border: '1px solid', borderRadius: '14px' };
+const metaChip: CSSProperties = { fontSize: '11.5px', color: '#475569', background: '#fff', border: '1px solid #E4E8EF', borderRadius: '999px', padding: '3px 10px' };
 const msgCard: CSSProperties = { background: '#fff', border: '1px solid #EEF2F7', borderRadius: '8px', padding: '8px 10px' };

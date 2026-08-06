@@ -9,7 +9,6 @@ use App\Models\Communication;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Contract;
-use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -32,19 +31,8 @@ class DemoDataSeeder extends Seeder
         $adminId = User::where('email', 'admin@memar.local')->value('id');
 
         // ── الموظفون ─────────────────────────────
-        $employees = [
-            ['full_name' => 'م. عبدالله الفهد', 'job_title' => 'مدير مشاريع', 'department' => 'الإدارة', 'base_salary_kwd' => 1200],
-            ['full_name' => 'م. دعاء السالم', 'job_title' => 'مهندسة معمارية', 'department' => 'التصميم', 'base_salary_kwd' => 900],
-            ['full_name' => 'م. إسماعيل خالد', 'job_title' => 'مهندس إنشائي', 'department' => 'الإنشاء', 'base_salary_kwd' => 950],
-            ['full_name' => 'أ. وليد ناصر', 'job_title' => 'محاسب', 'department' => 'المالية', 'base_salary_kwd' => 700],
-        ];
-        foreach ($employees as $e) {
-            Employee::firstOrCreate(['full_name' => $e['full_name']], $e + [
-                'hire_date' => now()->subMonths(14)->toDateString(),
-                'status' => 'active',
-                'phone' => '9'.random_int(1000000, 9999999),
-            ]);
-        }
+        // فريق معمار الحقيقي — مصدر واحد في EmployeesSeeder (آمن للتكرار).
+        $this->call(EmployeesSeeder::class);
 
         // ── الشركات (B2B) ────────────────────────
         foreach ([

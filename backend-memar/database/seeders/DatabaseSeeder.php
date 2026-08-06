@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RolesAndAdminSeeder::class,   // الصلاحيات + الأدوار + مستخدم الأدمن
             HeroSlidesSeeder::class,      // شرائح كاروسيل الصفحة الرئيسية
             JobOpeningsSeeder::class,     // الوظائف المعروضة في صفحة /jobs
+            EmployeesSeeder::class,       // فريق معمار (HR) — بيانات موظفين حقيقية
         ]);
     }
 }

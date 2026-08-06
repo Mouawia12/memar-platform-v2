@@ -231,3 +231,27 @@ table {
 .user-menu-content a:hover {
   background: #f8fafc;
 }
+
+/* جرس «تعليق/تحديث جديد» على بطاقة المهمة — رنّة خفيفة متكرّرة + هالة نابضة تلفت
+   الانتباه لوجود نشاط جديد (طلب أيمن 2026-08-06). يُحترم تقليل الحركة. */
+@keyframes taskBellRing {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  55% { transform: rotate(16deg); }
+  60% { transform: rotate(-14deg); }
+  65% { transform: rotate(11deg); }
+  70% { transform: rotate(-8deg); }
+  75% { transform: rotate(5deg); }
+  80% { transform: rotate(-2deg); }
+}
+@keyframes taskBellGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.16); }
+}
+.task-bell-ring {
+  transform-origin: 50% 18%;
+  animation: taskBellRing 2.6s ease-in-out infinite, taskBellGlow 2.6s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-bell-ring { animation: taskBellGlow 2.6s ease-in-out infinite; }
+}

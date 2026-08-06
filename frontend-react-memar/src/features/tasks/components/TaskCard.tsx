@@ -53,8 +53,8 @@ export function TaskCard({ task, onOpen, onToggle, onDelete }: Props) {
             <div style={{ flex: 1, minWidth: 0, fontSize: '13px', fontWeight: 700, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>
               {task.title}
             </div>
-            {/* جرس «تم تحديث الموضوع» — إشعار بصري عند وجود نشاط حديث على المهمة */}
-            {recentlyUpdated && <span title="تم تحديث الموضوع مؤخرًا" style={bell}><i className="fas fa-bell" /></span>}
+            {/* جرس «تم تحديث الموضوع» — إشعار بصري متحرّك عند وجود نشاط/تعليق حديث على المهمة */}
+            {recentlyUpdated && <span className="task-bell-ring" title="يوجد نشاط/تعليق جديد على المهمة" style={bell}><i className="fas fa-bell" /></span>}
           </div>
           {task.description && (
             <div style={{ fontSize: '11px', color: '#5A6478', marginBottom: '5px', opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

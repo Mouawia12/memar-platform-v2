@@ -8,6 +8,7 @@ use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Contracts\Activity;
@@ -59,6 +60,19 @@ class Project extends Model
     public function manager(): BelongsTo
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    /**
+     * الموظفون المُسنَدون للمشروع (many-to-many) — يحمل المحور الدور وآخر دخول.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'project_members')
+            ->using(ProjectMember::class)
+            ->withPivot(['role_on_project', 'assigned_by', 'assigned_at', 'last_seen_at'])
+            ->withTimestamps();
     }
 
     /** @return HasMany<ProjectStage, $this> */

@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\MyProjectsController;
 use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\ProjectMemberController;
 use App\Http\Controllers\Api\V1\ProjectStageController;
+use App\Http\Controllers\Api\V1\TeamProjectsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,6 +14,18 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    // «مشاريعي» — مشاريع الموظف الحالي (بلا صلاحية خاصة؛ كل موظف يرى مشاريعه)
+    Route::get('/my/projects', [MyProjectsController::class, 'index']);
+    Route::post('/projects/{project}/seen', [MyProjectsController::class, 'markSeen']);
+
+    // نظرة الأدمن على مشاريع الفريق + إسناد الموظفين (بند 11-14)
+    Route::get('/team/projects', [TeamProjectsController::class, 'index'])->middleware('permission:projects.manage');
+    Route::get('/team/projects/{user}', [TeamProjectsController::class, 'show'])->middleware('permission:projects.manage');
+    Route::get('/projects/{project}/members', [ProjectMemberController::class, 'index'])->middleware('permission:projects.view');
+    Route::get('/projects/{project}/assignable-members', [ProjectMemberController::class, 'assignable'])->middleware('permission:projects.manage');
+    Route::post('/projects/{project}/members', [ProjectMemberController::class, 'store'])->middleware('permission:projects.manage');
+    Route::delete('/projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy'])->middleware('permission:projects.manage');
+
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('permission:projects.view');
     Route::post('/projects', [ProjectController::class, 'store'])->middleware('permission:projects.manage');
     Route::get('/projects/{project}/overview', [ProjectController::class, 'overview'])->middleware('permission:projects.view');

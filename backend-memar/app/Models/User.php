@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -58,6 +59,25 @@ class User extends Authenticatable
     public function referredContacts(): HasMany
     {
         return $this->hasMany(Contact::class, 'referred_by_user_id');
+    }
+
+    /**
+     * المشاريع المُسنَدة لهذا الموظف («مشاريعي») — many-to-many مع محور الإسناد.
+     *
+     * @return BelongsToMany<Project, $this>
+     */
+    public function assignedProjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_members')
+            ->using(ProjectMember::class)
+            ->withPivot(['role_on_project', 'assigned_by', 'assigned_at', 'last_seen_at'])
+            ->withTimestamps();
+    }
+
+    /** إشعارات التطبيق لهذا المستخدم (جرس التوب‌بار). */
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class)->latest();
     }
 
     /** ملف الصورة الشخصية المخزّن (على القرص الخاص). */

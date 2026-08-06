@@ -35,6 +35,14 @@ class NotificationController extends ApiController
             }
         }
 
+        // مشاريع مُسنَدة إليّ حديثًا (إشعارات الإسناد غير المقروءة) — بند 11-14
+        if ($user) {
+            $assigned = $user->appNotifications()->whereNull('read_at')->count();
+            if ($assigned > 0) {
+                $items[] = $this->item('🏗️', 'مشاريع مُسنَدة إليك', "{$assigned} مشروع جديد بانتظارك", '/my-projects', 'info', $assigned);
+            }
+        }
+
         // مهام مُسندة إليّ (لكل مستخدم، حتى بلا صلاحية عرض كل المهام) — TASK-5
         if ($user) {
             $mine = Task::where('status', '!=', 'done')

@@ -96,7 +96,33 @@ class EngineerPortalController extends ApiController
             ->orderBy('start_at')
             ->get();
 
+        // ── الأداء الشخصي (نسبة الإنجاز/الالتزام) — يُحسب في PHP ليعمل على أي قاعدة ──
+        $doneTotal = Task::where('assignee_id', $userId)->where('status', 'done')->count();
+        $openTotal = Task::where('assignee_id', $userId)->where('status', '!=', 'done')->count();
+        $doneThisWeek = Task::where('assignee_id', $userId)->where('status', 'done')
+            ->where('updated_at', '>=', now()->startOfWeek())->count();
+        $doneWithDue = Task::where('assignee_id', $userId)->where('status', 'done')
+            ->whereNotNull('due_date')->get(['due_date', 'updated_at']);
+        $onTime = $doneWithDue->filter(fn (Task $t): bool => $t->updated_at->toDateString() <= $t->due_date->toDateString())->count();
+
+        // ── أجندة اليوم الموحّدة: مهام مستحقّة اليوم + زيارات اليوم + مواعيد اليوم ──
+        $todayItems = Task::where('assignee_id', $userId)->where('status', '!=', 'done')
+            ->whereDate('due_date', today())->with('project:id,name')->get()
+            ->map(fn (Task $t): array => ['kind' => 'task', 'id' => $t->id, 'title' => $t->title, 'time' => null, 'project' => $t->project?->name, 'meta' => $t->priority, 'status' => $t->status])
+            ->concat(FieldVisit::where('engineer_id', $userId)->whereDate('visit_date', today())->where('status', '!=', 'cancelled')->with('project:id,name')->get()
+                ->map(fn (FieldVisit $v): array => ['kind' => 'visit', 'id' => $v->id, 'title' => $v->title, 'time' => $v->visit_date?->format('H:i'), 'project' => $v->project?->name, 'meta' => $v->location, 'status' => $v->status]))
+            ->concat(Appointment::where('created_by', $userId)->whereDate('start_at', today())->where('status', '!=', 'cancelled')->with('project:id,name')->get()
+                ->map(fn (Appointment $a): array => ['kind' => 'appointment', 'id' => $a->id, 'title' => $a->title, 'time' => $a->start_at?->format('H:i'), 'project' => $a->project?->name, 'meta' => $a->is_video ? 'مرئي' : ($a->location ?: 'حضوري'), 'status' => $a->status]))
+            ->sortBy(fn (array $i): string => $i['time'] ?? '99:99')->values();
+
         return [
+            'performance' => [
+                'done_total' => $doneTotal,
+                'done_this_week' => $doneThisWeek,
+                'completion_rate' => ($doneTotal + $openTotal) > 0 ? (int) round($doneTotal * 100 / ($doneTotal + $openTotal)) : 0,
+                'on_time_rate' => $doneWithDue->count() > 0 ? (int) round($onTime * 100 / $doneWithDue->count()) : 100,
+            ],
+            'today' => $todayItems,
             'stats' => [
                 'open_tasks' => Task::where('assignee_id', $userId)->where('status', '!=', 'done')->count(),
                 'overdue_tasks' => Task::where('assignee_id', $userId)

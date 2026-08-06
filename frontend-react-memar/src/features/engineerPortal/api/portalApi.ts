@@ -12,7 +12,26 @@ export interface PortalStats {
   my_projects: number;
 }
 
+export interface PortalPerformance {
+  done_total: number;
+  done_this_week: number;
+  completion_rate: number;
+  on_time_rate: number;
+}
+
+export interface TodayItem {
+  kind: 'task' | 'visit' | 'appointment';
+  id: number;
+  title: string;
+  time: string | null;
+  project: string | null;
+  meta: string | null;
+  status: string;
+}
+
 export interface PortalData {
+  performance: PortalPerformance;
+  today: TodayItem[];
   stats: PortalStats;
   tasks: Task[];
   visits: FieldVisit[];

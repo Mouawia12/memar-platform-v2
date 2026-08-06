@@ -139,6 +139,7 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
               stage={selected}
               index={ordered.findIndex((s) => s.id === selected.id)}
               total={ordered.length}
+              nextName={ordered.find((s) => s.status === 'pending' && s.position > selected.position)?.name ?? null}
               canManage={canManage}
               advancing={advance.isPending}
               onAdvance={() => advance.mutate(selected.id)}
@@ -168,11 +169,12 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
 }
 
 /** لوحة تفاصيل المرحلة المختارة: عنوان + حالة + تواريخ + إجراءات + نقاش المرحلة. */
-function StagePanel({ projectId, stage, index, total, canManage, advancing, onAdvance, onRemove }: {
+function StagePanel({ projectId, stage, index, total, nextName, canManage, advancing, onAdvance, onRemove }: {
   projectId: number;
   stage: ProjectStage;
   index: number;
   total: number;
+  nextName: string | null;
   canManage: boolean;
   advancing: boolean;
   onAdvance: () => void;
@@ -211,6 +213,18 @@ function StagePanel({ projectId, stage, index, total, canManage, advancing, onAd
           </div>
         )}
       </div>
+
+      {/* توضيح آلية الانتقال بين المراحل (سؤال أيمن 2026-08-06) */}
+      {stage.status === 'active' && canManage && (
+        <div style={{ ...advanceHint, background: '#fff', borderColor: pal.border }}>
+          <span>⤴ بالضغط على <b>«إنهاء وتقديم»</b>: تُصبح هذه المرحلة <b style={{ color: '#059669' }}>منتهية</b>{nextName ? <> وتبدأ <b style={{ color: '#1B6CA8' }}>«{nextName}»</b> تلقائيًا.</> : <> ويكتمل المشروع (هذه آخر مرحلة).</>}</span>
+        </div>
+      )}
+      {stage.status === 'pending' && (
+        <div style={{ ...advanceHint, background: '#fff', borderColor: pal.border, color: '#8A93A3' }}>
+          <span>⏳ مرحلة قادمة — تبدأ تلقائيًا عند إتمام المرحلة التي قبلها.</span>
+        </div>
+      )}
 
       <div style={{ marginTop: '14px', borderTop: `1px dashed ${pal.border}`, paddingTop: '12px' }}>
         <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#274A78', marginBottom: '8px' }}>💬 نقاش المرحلة</div>
@@ -281,5 +295,6 @@ const connector: CSSProperties = { height: '4px', flex: 1, borderRadius: '2px', 
 const nodeLabel: CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', marginTop: '10px', padding: '0 6px', background: 'none', border: 'none', textAlign: 'center', maxWidth: '128px' };
 const statusChip: CSSProperties = { fontSize: '10.5px', fontWeight: 700, padding: '2px 9px', borderRadius: '999px', whiteSpace: 'nowrap' };
 const panel: CSSProperties = { marginTop: '18px', padding: '16px 18px', border: '1px solid', borderRadius: '14px' };
+const advanceHint: CSSProperties = { marginTop: '12px', padding: '9px 12px', border: '1px solid', borderRadius: '10px', fontSize: '12px', color: '#475569', lineHeight: 1.7 };
 const metaChip: CSSProperties = { fontSize: '11.5px', color: '#475569', background: '#fff', border: '1px solid #E4E8EF', borderRadius: '999px', padding: '3px 10px' };
 const msgCard: CSSProperties = { background: '#fff', border: '1px solid #EEF2F7', borderRadius: '8px', padding: '8px 10px' };

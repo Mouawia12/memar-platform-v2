@@ -83,6 +83,8 @@ export function SidebarUserCard() {
   const account = user.account_number || staffAccountNumber(user.id);
   const referral = user.referral_code || referralCodeOf(user.name, user.id);
   const referredClients = user.referred_clients ?? 0;
+  // سنة الانضمام لوسم «منذ …» الأزرق (طبق بطاقة العميل) — من رقم الحساب MEM-<سنة>-<تسلسل>.
+  const sinceYear = account.match(/\d{4}/)?.[0] ?? null;
 
   const copyReferral = () => {
     navigator.clipboard?.writeText(referral);
@@ -108,15 +110,23 @@ export function SidebarUserCard() {
         </div>
         <div style={info}>
           <strong style={name} title={user.name}>{user.name}</strong>
-          <span style={role}><i className="fas fa-id-badge" /> {roleLabel(user.roles)}</span>
-          <span style={memberChip} title="رقم الحساب الشخصي"><i className="fas fa-hashtag" /> {account}</span>
+          {/* رقاقة رقم الحساب — نفس رقاقة كود العضوية في بطاقة العميل (accent بنفسجي + #) */}
+          <span style={memberChip} title="رقم الحساب الشخصي"><i className="fas fa-hashtag" style={{ fontSize: '9px', opacity: 0.7 }} /> {account}</span>
+          {/* المسمّى — نفس ستايل «مالك الشركة» في بطاقة العميل (accent + أيقونة) */}
+          <span style={role}><i className="fas fa-user-shield" style={{ fontSize: '10px' }} /> {roleLabel(user.roles)}</span>
         </div>
       </div>
 
       <div style={details}>
-        {user.avatar_url && <button type="button" onClick={removeAvatar} style={removeAvatarBtn} disabled={uploading}>إزالة الصورة</button>}
         {user.email && <span style={detailItem} title={user.email}><i className="fas fa-envelope" /> {user.email}</span>}
         {user.phone && <span style={detailItem}><i className="fas fa-phone" /> {user.phone}</span>}
+
+        {/* وسوم أسفل البطاقة — نفس رقاقات بطاقة العميل تمامًا: ذهبية + زرقاء */}
+        <div style={tagsRow}>
+          <span style={tagGold}><i className="fas fa-star" style={{ fontSize: '8px' }} /> فريق معمار</span>
+          {sinceYear && <span style={tagBlue}><i className="fas fa-calendar-check" style={{ fontSize: '8px' }} /> منذ {sinceYear}</span>}
+        </div>
+        {user.avatar_url && <button type="button" onClick={removeAvatar} style={removeAvatarBtn} disabled={uploading}>إزالة الصورة</button>}
 
       {/* كود الإحالة (اقترحنا لأصدقائك) — للمبيعات مع بونص على العملاء القادمين عبره */}
       <div style={referralBox}>
@@ -141,20 +151,27 @@ export function SidebarUserCard() {
 // + مسمّى بلون accent + كود حساب برقاقة بنفسجية، ثم تفاصيل (بريد + كود إحالة).
 // flexShrink:0 يمنع حاوية السايدبار (flex عمودي) من ضغط البطاقة إلى صفر عند
 // امتلاء القائمة — فتبقى بكامل ارتفاعها ويُمرَّر السايدبار بدلها.
+// القيم مطابقة تمامًا لبطاقة العميل (‎.mcp-root .sb-client-*‎ في clientPortalV2.css)،
+// منقولة كأنماط سطرية لأن قواعد بطاقة العميل مُقيَّدة بجذر .mcp-root ولا تسري في شِلّ الموظف.
 const card: CSSProperties = { flexShrink: 0, margin: '0 12px 10px', borderRadius: '14px', background: '#fff', border: '1px solid #E7ECF3', boxShadow: '0 2px 10px rgba(39,74,120,.06)', overflow: 'hidden' };
-const header: CSSProperties = { display: 'flex', alignItems: 'center', gap: '14px', padding: '20px 14px 16px', background: 'linear-gradient(145deg, rgba(26,31,54,.05) 0%, rgba(45,53,97,.04) 50%, rgba(27,108,168,.06) 100%)', borderBottom: '1px solid rgba(27,108,168,.08)' };
-const avatarWrap: CSSProperties = { position: 'relative', width: '72px', height: '72px', flexShrink: 0 };
-const avatarImg: CSSProperties = { width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #1B6CA8', boxShadow: '0 4px 14px rgba(27,108,168,.18)' };
-const avatarFallback: CSSProperties = { width: '72px', height: '72px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg,#274A78,#1B6CA8)', color: '#fff', fontSize: '26px', fontWeight: 800, border: '3px solid #1B6CA8', boxShadow: '0 4px 14px rgba(27,108,168,.18)' };
-const statusDot: CSSProperties = { position: 'absolute', bottom: '2px', insetInlineEnd: '2px', width: '13px', height: '13px', borderRadius: '50%', background: '#2D9B6F', border: '2.5px solid #fff' };
-const avatarOverlay: CSSProperties = { position: 'absolute', insetInlineStart: -1, bottom: -1, width: '20px', height: '20px', borderRadius: '50%', background: '#E8A838', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '9px', border: '2px solid #fff' };
+const header: CSSProperties = { display: 'flex', alignItems: 'center', gap: '16px', padding: '28px 18px 22px', background: 'linear-gradient(145deg, rgba(26,31,54,.06) 0%, rgba(45,53,97,.04) 50%, rgba(27,108,168,.06) 100%)', borderBottom: '1px solid rgba(27,108,168,.08)' };
+const avatarWrap: CSSProperties = { position: 'relative', width: '78px', height: '78px', flexShrink: 0 };
+const avatarImg: CSSProperties = { width: '78px', height: '78px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #1B6CA8', boxShadow: '0 4px 14px rgba(27,108,168,.18)' };
+const avatarFallback: CSSProperties = { width: '78px', height: '78px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg,#274A78,#1B6CA8)', color: '#fff', fontSize: '27px', fontWeight: 800, border: '3px solid #1B6CA8', boxShadow: '0 4px 14px rgba(27,108,168,.18)' };
+const statusDot: CSSProperties = { position: 'absolute', bottom: '1px', insetInlineEnd: '1px', width: '12px', height: '12px', borderRadius: '50%', background: '#10B981', border: '2.5px solid #fff' };
+const avatarOverlay: CSSProperties = { position: 'absolute', insetInlineStart: -1, bottom: -1, width: '22px', height: '22px', borderRadius: '50%', background: '#E8A838', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '9px', border: '2px solid #fff' };
 const info: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1, textAlign: 'right' };
-const name: CSSProperties = { display: 'block', fontSize: '14.5px', color: '#1E293B', fontWeight: 800, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+const name: CSSProperties = { display: 'block', fontSize: '14.5px', color: '#0F172A', fontWeight: 800, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 const role: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: '#7C3AED', fontWeight: 700 };
-const memberChip: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', alignSelf: 'flex-start', marginTop: '3px', fontSize: '11px', fontWeight: 700, color: '#7C3AED', background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.15)', padding: '3px 10px', borderRadius: '12px', letterSpacing: '.5px', whiteSpace: 'nowrap', maxWidth: '100%' };
-const details: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px 14px 14px' };
+const memberChip: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', alignSelf: 'flex-start', marginTop: '3px', fontSize: '11px', fontWeight: 700, color: '#7C3AED', background: '#F3EEFF', border: '1px solid rgba(124,58,237,.15)', padding: '3px 10px', borderRadius: '12px', letterSpacing: '.5px', whiteSpace: 'nowrap', maxWidth: '100%' };
+const details: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '12px', padding: '14px 16px 16px' };
 const removeAvatarBtn: CSSProperties = { alignSelf: 'flex-start', padding: 0, border: 'none', background: 'none', color: '#B0483C', fontSize: '10.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
 const detailItem: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' };
+// وسوم أسفل البطاقة — مطابقة لـ ‎.sb-tag / .sb-tag-gold / .sb-tag-blue‎
+const tagsRow: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap' };
+const tagBase: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 700 };
+const tagGold: CSSProperties = { ...tagBase, background: 'rgba(232,168,56,.1)', color: '#b8860b', border: '1px solid rgba(232,168,56,.2)' };
+const tagBlue: CSSProperties = { ...tagBase, background: 'rgba(27,108,168,.08)', color: '#1B6CA8', border: '1px solid rgba(27,108,168,.15)' };
 const referralBox: CSSProperties = { background: 'rgba(232,168,56,.08)', border: '1px dashed rgba(232,168,56,.5)', borderRadius: '10px', padding: '9px 10px' };
 const referralLabel: CSSProperties = { fontSize: '10.5px', fontWeight: 700, color: '#9A6B12', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' };
 const referralValue: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#fff', border: '1px solid rgba(232,168,56,.4)', borderRadius: '8px', padding: '5px 8px 5px 5px' };

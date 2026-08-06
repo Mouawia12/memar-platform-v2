@@ -27,6 +27,8 @@ class RolesAndAdminSeeder extends Seeder
             'users.view', 'users.manage', 'users.delete',
             'roles.view', 'roles.manage', 'roles.delete',
             'crm.view', 'crm.manage', 'crm.delete',
+            'clients.view', // زيارة بروفيل العميل الداخلي (اجتماع 2026-08-05) — صلاحية منفصلة يمنحها الأدمن
+
             'requests.view', 'requests.manage', 'requests.delete',
             'projects.view', 'projects.manage', 'projects.delete',
             'tasks.view', 'tasks.manage', 'tasks.delete',
@@ -46,12 +48,12 @@ class RolesAndAdminSeeder extends Seeder
         // ── الأدوار ──
         $roles = [
             'super_admin' => $permissions, // كل الصلاحيات
-            'manager' => ['crm.view', 'crm.manage', 'requests.view', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view', 'forum.view', 'forum.manage'],
+            'manager' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view', 'forum.view', 'forum.manage'],
             'architect' => ['projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'crm.view'],
             'accountant' => ['finance.view', 'finance.manage', 'pricing.view'],
             'hr_manager' => ['hr.view', 'hr.manage'],
             // أدوار فريق معمار كما ذكرها العميل (اجتماع 3) — قوالب مبدئية قابلة للتعديل من صفحة الصلاحيات
-            'sales' => ['crm.view', 'crm.manage', 'requests.view', 'requests.manage', 'appointments.view', 'appointments.manage', 'tasks.view'],
+            'sales' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.manage', 'appointments.view', 'appointments.manage', 'tasks.view'],
             'secretary' => ['appointments.view', 'appointments.manage', 'requests.view', 'requests.manage', 'crm.view', 'tasks.view', 'documents.view'],
             'client' => [],
         ];

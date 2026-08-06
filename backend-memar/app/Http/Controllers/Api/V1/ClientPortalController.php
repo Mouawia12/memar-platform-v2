@@ -45,10 +45,10 @@ class ClientPortalController extends ApiController
 {
     public function index(Request $request): JsonResponse
     {
-        $contactId = $request->user()?->contact_id;
+        $contact = $request->user()?->contact;
 
         // حساب غير مرتبط بسجل عميل — نُرجع حالة واضحة بدل خطأ
-        if (! $contactId) {
+        if (! $contact) {
             return $this->ok([
                 'linked' => false,
                 'client' => null,
@@ -60,6 +60,29 @@ class ClientPortalController extends ApiController
                 'appointments' => [],
             ]);
         }
+
+        return $this->ok($this->portalPayload($contact));
+    }
+
+    /**
+     * بروفيل العميل للموظف/الأدمن (اجتماع 2026-08-05): نفس بيانات صفحة العميل تمامًا
+     * + قسم داخلي (تقييم/ملاحظات) لا يراه العميل. يُقيَّد بصلاحية clients.view من الأدمن.
+     */
+    public function staffProfile(Contact $contact): JsonResponse
+    {
+        $payload = $this->portalPayload($contact);
+        $payload['internal'] = [
+            'rating' => $contact->internal_rating !== null ? (int) $contact->internal_rating : null,
+            'notes' => $contact->internal_notes,
+        ];
+
+        return $this->ok($payload);
+    }
+
+    /** حمولة بوابة العميل لجهة اتصال — مصدر موحّد لصفحة العميل ولبروفيل الموظف. */
+    private function portalPayload(Contact $contact): array
+    {
+        $contactId = $contact->id;
 
         $projectIds = Project::where('client_id', $contactId)->pluck('id');
 
@@ -96,10 +119,9 @@ class ClientPortalController extends ApiController
 
         $totalDue = (float) $invoices->sum(fn (Invoice $i) => (float) $i->total_kwd - (float) $i->paid_kwd);
 
-        $contact = $request->user()?->contact;
         $doneProjects = $projects->where('status', 'done')->count();
 
-        return $this->ok([
+        return [
             'linked' => true,
             'client' => [
                 'id' => $contactId,
@@ -134,7 +156,7 @@ class ClientPortalController extends ApiController
             'contracts' => ContractResource::collection($contracts),
             'documents' => GeneratedDocumentResource::collection($documents),
             'appointments' => AppointmentResource::collection($appointments),
-        ]);
+        ];
     }
 
     /**

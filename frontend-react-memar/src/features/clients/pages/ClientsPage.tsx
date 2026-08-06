@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { contactsApi } from '../api/contactsApi';
 import { ContactFormModal } from '../components/ContactFormModal';
 import { ContactsTable } from '../components/ContactsTable';
@@ -8,6 +10,8 @@ import { useContacts, useDeleteContact } from '../hooks/useContacts';
 import { CONTACT_TYPE_LABELS, type Contact, type ContactType } from '../types';
 
 export function ClientsPage() {
+  const navigate = useNavigate();
+  const canViewProfile = usePermission('clients.view');
   const [search, setSearch] = useState('');
   const [type, setType] = useState<'' | ContactType>('');
   const [page, setPage] = useState(1);
@@ -71,7 +75,14 @@ export function ClientsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-        {data && <ContactsTable contacts={data.data} onEdit={openEdit} onDelete={handleDelete} />}
+        {data && (
+          <ContactsTable
+            contacts={data.data}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+            onViewProfile={canViewProfile ? (c) => navigate(`/clients/${c.id}/profile`) : undefined}
+          />
+        )}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

@@ -6,6 +6,7 @@ interface Props {
   contacts: Contact[];
   onEdit: (c: Contact) => void;
   onDelete: (c: Contact) => void;
+  onViewProfile?: (c: Contact) => void;
 }
 
 const typeColor: Record<string, string> = {
@@ -14,7 +15,7 @@ const typeColor: Record<string, string> = {
   contact: '#274A78',
 };
 
-export function ContactsTable({ contacts, onEdit, onDelete }: Props) {
+export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile }: Props) {
   if (contacts.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا يوجد عملاء.</p>;
   }
@@ -47,6 +48,13 @@ export function ContactsTable({ contacts, onEdit, onDelete }: Props) {
               </td>
               <td style={td}>{c.owner?.name ?? '—'}</td>
               <td style={td}>
+                {onViewProfile && (
+                  <>
+                    <button className="btn btn-sm" onClick={() => onViewProfile(c)} type="button" style={{ color: '#1B6CA8' }} title="زيارة بروفيل العميل داخل الداشبورد">
+                      <i className="fas fa-eye" /> بروفيل
+                    </button>{' '}
+                  </>
+                )}
                 <button className="btn btn-sm" onClick={() => onEdit(c)} type="button">تعديل</button>{' '}
                 <button className="btn btn-sm" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>
               </td>

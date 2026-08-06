@@ -7,6 +7,7 @@ import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage';
 import { HomePage } from './features/public/HomePage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { ClientsPage } from './features/clients/pages/ClientsPage';
+import { StaffClientProfilePage } from './features/clients/pages/StaffClientProfilePage';
 import { ChatbotPage } from './features/chatbot/pages/ChatbotPage';
 import { CompaniesPage } from './features/companies/pages/CompaniesPage';
 import { ContractsPage } from './features/contracts/pages/ContractsPage';
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/user-logs" element={<UsersPage />} />
           <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/clients/:id/profile" element={<StaffClientProfilePage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />

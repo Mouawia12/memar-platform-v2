@@ -266,8 +266,15 @@ export interface TeamMember {
   member_code: string | null;
 }
 
+/** بروفيل العميل كما يراه الموظف/الأدمن = بيانات بوابة العميل + قسم داخلي. */
+export interface StaffClientProfile extends ClientPortalData {
+  internal: { rating: number | null; notes: string | null };
+}
+
 export const clientPortalApi = {
   get: () => apiGet<ClientPortalData>('/client-portal'),
+  /** بروفيل عميل محدّد للموظف (اجتماع 2026-08-05) — بصلاحية crm.view من الأدمن. */
+  staffProfile: (contactId: number) => apiGet<StaffClientProfile>(`/clients/${contactId}/portal`),
   loyalty: () => apiGet<LoyaltyData>('/client-portal/loyalty'),
   recordShare: () => apiPost<{ code: string; shares: number; points_granted: number }>('/client-portal/loyalty/share', {}),
   redeemLoyalty: (points: number) => apiPost<RedeemResult>('/client-portal/loyalty/redeem', { points }),

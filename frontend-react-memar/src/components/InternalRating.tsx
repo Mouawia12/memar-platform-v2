@@ -11,9 +11,11 @@ interface Props {
   onSave?: (rating: number, notes: string) => void;    // حفظ مستقلّ
   busy?: boolean;
   placeholder?: string;
+  /** عرض فقط — لمن يملك زيارة البروفيل دون صلاحية التعديل (crm.manage). */
+  readOnly?: boolean;
 }
 
-export function InternalRating({ rating, notes, onChange, onSave, busy, placeholder }: Props) {
+export function InternalRating({ rating, notes, onChange, onSave, busy, placeholder, readOnly }: Props) {
   const controlled = !!onChange;
   const [r, setR] = useState(rating);
   const [n, setN] = useState(notes);
@@ -30,18 +32,22 @@ export function InternalRating({ rating, notes, onChange, onSave, busy, placehol
       <div style={hint}><i className="fas fa-lock" /> خاص بالفريق — لا يراه العميل</div>
       <div style={starsRow}>
         {[1, 2, 3, 4, 5].map((s) => (
-          <button key={s} type="button" onClick={() => setRating(s === curR ? 0 : s)} style={{ ...star, color: s <= curR ? '#E8A838' : '#D1D5DB' }} title={`${s} نجوم`}>★</button>
+          <button key={s} type="button" disabled={readOnly} onClick={() => setRating(s === curR ? 0 : s)} style={{ ...star, color: s <= curR ? '#E8A838' : '#D1D5DB', cursor: readOnly ? 'default' : 'pointer' }} title={`${s} نجوم`}>★</button>
         ))}
         {curR > 0 && <span style={{ fontSize: '12.5px', color: '#8A93A3', marginInlineStart: '6px' }}>{curR}/5</span>}
       </div>
-      <textarea
-        value={curN}
-        onChange={(e) => setNotes(e.target.value)}
-        placeholder={placeholder ?? 'ملاحظات داخلية (سرعة الاستجابة، ملاحظات حسابية…)'}
-        rows={3}
-        style={textarea}
-      />
-      {onSave && dirty && (
+      {readOnly ? (
+        <p style={{ ...textarea, margin: 0, minHeight: '54px', whiteSpace: 'pre-wrap', color: curN ? '#334155' : '#9AA3B2', background: '#F8FAFC' }}>{curN || 'لا ملاحظات داخلية.'}</p>
+      ) : (
+        <textarea
+          value={curN}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={placeholder ?? 'ملاحظات داخلية (سرعة الاستجابة، ملاحظات حسابية…)'}
+          rows={3}
+          style={textarea}
+        />
+      )}
+      {!readOnly && onSave && dirty && (
         <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => onSave(r, n)} style={{ marginTop: '8px' }}>
           <i className="fas fa-floppy-disk" /> حفظ التقييم الداخلي
         </button>

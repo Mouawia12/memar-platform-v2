@@ -28,6 +28,12 @@ class EmployeeController extends ApiController
         return $this->paginated($paginator, EmployeeResource::class);
     }
 
+    /** إحصاءات الموظفين الحقيقية (إجماليات من قاعدة البيانات) لبطاقات المؤشّرات. */
+    public function stats(): JsonResponse
+    {
+        return $this->ok($this->employees->stats());
+    }
+
     public function store(StoreEmployeeRequest $request): JsonResponse
     {
         $employee = $this->employees->create($request->validated());

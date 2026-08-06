@@ -6,7 +6,7 @@ import { ExportCsvButton } from '../../../components/ExportCsvButton';
 import { employeesApi } from '../api/employeesApi';
 import { EmployeeCards } from '../components/EmployeeCards';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
-import { useDeleteEmployee, useEmployees } from '../hooks/useEmployees';
+import { useDeleteEmployee, useEmployees, useEmployeeStats } from '../hooks/useEmployees';
 import { STATUS_LABELS, type Employee, type EmployeeStatus } from '../types';
 
 export function EmployeesPage() {
@@ -17,6 +17,7 @@ export function EmployeesPage() {
   const [editing, setEditing] = useState<Employee | null>(null);
 
   const { data, isLoading, isError } = useEmployees({ search: search || undefined, status: status || undefined, page });
+  const { data: stats } = useEmployeeStats();
   const del = useDeleteEmployee();
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
@@ -24,11 +25,6 @@ export function EmployeesPage() {
   const handleDelete = (e: Employee) => { if (confirm(`حذف "${e.full_name}"؟`)) del.mutate(e.id); };
 
   const meta = data?.meta;
-  const rows = data?.data ?? [];
-  // ملخّص سريع أعلى الصفحة (من الصفحة الحالية — البيانات صغيرة الحجم).
-  const activeCount = rows.filter((r) => r.status === 'active').length;
-  const deptCount = new Set(rows.map((r) => r.department).filter(Boolean)).size;
-  const payroll = rows.reduce((s, r) => s + Number(r.base_salary_kwd || 0), 0);
 
   /** يجلب كل الموظفين المطابقين للفلاتر الحالية لتصديرهم. */
   const fetchAllEmployees = async () => {
@@ -59,12 +55,12 @@ export function EmployeesPage() {
         </div>
       </div>
 
-      {/* ملخّص الفريق — بطاقات مؤشّرات */}
+      {/* ملخّص الفريق — بطاقات مؤشّرات (إجماليات حقيقية من قاعدة البيانات) */}
       <div style={kpiRow}>
-        <div style={{ ...kpi, borderColor: '#1B6CA8' }}><div style={kpiIcon('#1B6CA8')}><i className="fas fa-users" /></div><div><div style={kpiVal}>{meta?.total ?? rows.length}</div><div style={kpiLbl}>إجمالي الموظفين</div></div></div>
-        <div style={{ ...kpi, borderColor: '#2D9B6F' }}><div style={kpiIcon('#2D9B6F')}><i className="fas fa-user-check" /></div><div><div style={kpiVal}>{activeCount}</div><div style={kpiLbl}>موظفون نشطون</div></div></div>
-        <div style={{ ...kpi, borderColor: '#7C3AED' }}><div style={kpiIcon('#7C3AED')}><i className="fas fa-sitemap" /></div><div><div style={kpiVal}>{deptCount}</div><div style={kpiLbl}>الأقسام</div></div></div>
-        <div style={{ ...kpi, borderColor: '#E8A838' }}><div style={kpiIcon('#E8A838')}><i className="fas fa-sack-dollar" /></div><div><div style={kpiVal}>{payroll.toLocaleString('ar')} <span style={{ fontSize: '12px', color: '#64748B' }}>د.ك</span></div><div style={kpiLbl}>رواتب الصفحة</div></div></div>
+        <div style={{ ...kpi, borderColor: '#1B6CA8' }}><div style={kpiIcon('#1B6CA8')}><i className="fas fa-users" /></div><div><div style={kpiVal}>{stats?.total ?? '—'}</div><div style={kpiLbl}>إجمالي الموظفين</div></div></div>
+        <div style={{ ...kpi, borderColor: '#2D9B6F' }}><div style={kpiIcon('#2D9B6F')}><i className="fas fa-user-check" /></div><div><div style={kpiVal}>{stats?.active ?? '—'}</div><div style={kpiLbl}>موظفون نشطون</div></div></div>
+        <div style={{ ...kpi, borderColor: '#7C3AED' }}><div style={kpiIcon('#7C3AED')}><i className="fas fa-sitemap" /></div><div><div style={kpiVal}>{stats?.departments ?? '—'}</div><div style={kpiLbl}>الأقسام</div></div></div>
+        <div style={{ ...kpi, borderColor: '#E8A838' }}><div style={kpiIcon('#E8A838')}><i className="fas fa-sack-dollar" /></div><div><div style={kpiVal}>{stats ? stats.total_payroll_kwd.toLocaleString('ar') : '—'} <span style={{ fontSize: '12px', color: '#64748B' }}>د.ك</span></div><div style={kpiLbl}>إجمالي الرواتب الشهرية</div></div></div>
       </div>
 
       <div className="card" style={{ padding: '16px' }}>

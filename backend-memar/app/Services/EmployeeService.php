@@ -29,6 +29,37 @@ class EmployeeService
     }
 
     /**
+     * إحصاءات حقيقية محسوبة على كامل الجدول (لا على صفحة واحدة) — لبطاقات المؤشّرات.
+     *
+     * @return array{total:int, active:int, left:int, departments:int, total_payroll_kwd:float, by_department:array<int, array{department:string, count:int, payroll:float}>}
+     */
+    public function stats(): array
+    {
+        $byDept = Employee::query()
+            ->where('status', 'active')
+            ->whereNotNull('department')
+            ->selectRaw('department, COUNT(*) as count, SUM(base_salary_kwd) as payroll')
+            ->groupBy('department')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($r) => [
+                'department' => (string) $r->department,
+                'count' => (int) $r->count,
+                'payroll' => (float) $r->payroll,
+            ])
+            ->all();
+
+        return [
+            'total' => Employee::query()->count(),
+            'active' => Employee::query()->where('status', 'active')->count(),
+            'left' => Employee::query()->where('status', 'left')->count(),
+            'departments' => (int) Employee::query()->whereNotNull('department')->distinct()->count('department'),
+            'total_payroll_kwd' => (float) Employee::query()->where('status', 'active')->sum('base_salary_kwd'),
+            'by_department' => $byDept,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function create(array $data): Employee

@@ -13,6 +13,14 @@ export function useEmployees(params: EmployeesQuery) {
   });
 }
 
+/** إحصاءات حقيقية من قاعدة البيانات (إجماليات على كامل الجدول) لبطاقات المؤشّرات. */
+export function useEmployeeStats() {
+  return useQuery({
+    queryKey: [...KEY, 'stats'],
+    queryFn: () => employeesApi.stats(),
+  });
+}
+
 export function useSaveEmployee() {
   const qc = useQueryClient();
   return useMutation({

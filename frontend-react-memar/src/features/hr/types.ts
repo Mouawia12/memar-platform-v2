@@ -15,6 +15,15 @@ export interface Employee {
   created_at: string | null;
 }
 
+export interface EmployeeStats {
+  total: number;
+  active: number;
+  left: number;
+  departments: number;
+  total_payroll_kwd: number;
+  by_department: { department: string; count: number; payroll: number }[];
+}
+
 export interface EmployeeFormData {
   full_name: string;
   job_title: string;

@@ -104,6 +104,45 @@ class EmployeesTest extends TestCase
         $this->assertSoftDeleted('employees', ['id' => $employee->id]);
     }
 
+    public function test_stats_requires_hr_view_permission(): void
+    {
+        $this->actingAsUserWith([]);
+
+        $this->getJson('/api/v1/employees/stats')->assertForbidden();
+    }
+
+    public function test_stats_returns_real_aggregates_over_whole_table(): void
+    {
+        $this->actingAsUserWith(['hr.view']);
+
+        Employee::factory()->create(['status' => 'active', 'department' => 'التصميم', 'base_salary_kwd' => 900]);
+        Employee::factory()->create(['status' => 'active', 'department' => 'التصميم', 'base_salary_kwd' => 800]);
+        Employee::factory()->create(['status' => 'active', 'department' => 'الإدارة', 'base_salary_kwd' => 1200]);
+        Employee::factory()->left()->create(['department' => 'المالية', 'base_salary_kwd' => 700]); // مغادر لا يُحتسب في الرواتب
+
+        $res = $this->getJson('/api/v1/employees/stats')->assertOk();
+
+        $res->assertJsonPath('data.total', 4)
+            ->assertJsonPath('data.active', 3)
+            ->assertJsonPath('data.left', 1)
+            ->assertJsonPath('data.departments', 3)               // التصميم + الإدارة + المالية
+            ->assertJsonPath('data.total_payroll_kwd', 2900);      // رواتب النشطين فقط: 900+800+1200
+    }
+
+    public function test_stats_by_department_breakdown(): void
+    {
+        $this->actingAsUserWith(['hr.view']);
+        Employee::factory()->count(2)->create(['status' => 'active', 'department' => 'التصميم', 'base_salary_kwd' => 500]);
+        Employee::factory()->create(['status' => 'active', 'department' => 'الإدارة', 'base_salary_kwd' => 1000]);
+
+        $res = $this->getJson('/api/v1/employees/stats')->assertOk();
+
+        // القسم الأكبر أولاً (ترتيب تنازلي بالعدد)
+        $res->assertJsonPath('data.by_department.0.department', 'التصميم')
+            ->assertJsonPath('data.by_department.0.count', 2)
+            ->assertJsonPath('data.by_department.0.payroll', 1000);
+    }
+
     public function test_seeder_creates_full_roster_and_is_idempotent(): void
     {
         (new EmployeesSeeder())->run();

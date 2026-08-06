@@ -20,6 +20,7 @@ export function TasksPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [detail, setDetail] = useState<Task | null>(null);
+  const [confirming, setConfirming] = useState<Task | null>(null); // تأكيد الإكمال قبل النقل لـ«مكتملة»
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
@@ -37,7 +38,15 @@ export function TasksPage() {
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const handleDelete = (t: Task) => { if (confirm(`حذف مهمة "${t.title}"؟`)) del.mutate(t.id); };
   const handleMove = (t: Task, payload: { due_date?: string; status?: TaskStatus }) => move.mutate({ id: t.id, payload });
-  const handleToggle = (t: Task) => toggle.mutate({ id: t.id, done: !isDone(t) });
+  // إكمال المهمة يتطلّب تأكيدًا (طلب العميل) — لا يُنقل مباشرة لـ«مكتملة». إعادة الفتح فورية.
+  const handleToggle = (t: Task) => {
+    if (!isDone(t)) { setConfirming(t); return; }
+    toggle.mutate({ id: t.id, done: false });
+  };
+  const confirmComplete = () => {
+    if (confirming) toggle.mutate({ id: confirming.id, done: true });
+    setConfirming(null);
+  };
 
   return (
     <div>
@@ -91,6 +100,25 @@ export function TasksPage() {
           onSetNotExecuted={(t) => { move.mutate({ id: t.id, payload: { status: 'cancelled' } }); setDetail(null); }}
         />
       )}
+
+      {/* تأكيد إكمال المهمة — يمنع النقل المباشر لـ«مكتملة» (طلب العميل) */}
+      {confirming && (
+        <div style={confirmOverlay} onClick={() => setConfirming(null)}>
+          <div style={confirmDialog} onClick={(e) => e.stopPropagation()}>
+            <div style={confirmIcon}>✅</div>
+            <h3 style={{ margin: '4px 0 6px', fontSize: '17px', color: '#0F2A4A' }}>تأكيد إكمال المهمة</h3>
+            <p style={{ margin: '0 0 20px', fontSize: '13.5px', color: '#64748B', lineHeight: 1.7 }}>
+              هل أنت متأكد من تحديد المهمة «<b style={{ color: '#334155' }}>{confirming.title}</b>» كمكتملة؟
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button type="button" className="btn" onClick={() => setConfirming(null)} style={{ minWidth: '96px' }}>إلغاء</button>
+              <button type="button" className="btn btn-primary" onClick={confirmComplete} style={{ minWidth: '120px', background: '#059669', borderColor: '#059669' }} disabled={toggle.isPending}>
+                {toggle.isPending ? 'جارٍ…' : 'نعم، إكمال ✓'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -105,3 +133,6 @@ function Kpi({ icon, color, label, value }: { icon: string; color: string; label
 }
 
 const pageHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' };
+const confirmOverlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,25,45,0.45)', backdropFilter: 'blur(2px)', display: 'grid', placeItems: 'center', zIndex: 11000, padding: '20px' };
+const confirmDialog: CSSProperties = { background: '#fff', borderRadius: '16px', padding: '26px 24px 22px', width: '380px', maxWidth: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.28)' };
+const confirmIcon: CSSProperties = { width: '56px', height: '56px', margin: '0 auto 12px', borderRadius: '50%', background: '#E6F6EE', display: 'grid', placeItems: 'center', fontSize: '26px' };

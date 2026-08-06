@@ -27,6 +27,7 @@ class StoreServiceRequestRequest extends FormRequest
             'priority' => ['required', Rule::in(['low', 'normal', 'high', 'urgent'])],
             'status' => ['required', Rule::in(['open', 'in_progress', 'resolved', 'closed'])],
             'description' => ['nullable', 'string'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 }

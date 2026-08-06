@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { Appointment } from '../../appointments/types';
+import { ForumBoard } from '../../forum/components/ForumBoard';
 import type { Project, ProjectStatus } from '../../projects/types';
 import { clientAccountCode, type ClientInfo, type LoyaltyData, type NotificationPrefs } from '../api/clientPortalApi';
 import { useAddTeamMember, useAddThreadParticipant, useChatThreads, useClientNotifications, useCreateChatThread, useCreateForumThread, useDeleteAvatar, useForumThreads, useMyRequests, useRemoveTeamMember, useRemoveThreadParticipant, useRenameChatThread, useSendThreadMessage, useTeamMembers, useThreadMessages, useUpdateClientPreferences, useUpdateClientProfile, useUploadAvatar } from '../hooks/useClientPortal';
@@ -12,23 +13,6 @@ const dayOf = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('a
 const monthOf = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { month: 'long' }) : '');
 const timeOf = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' }) : '');
 const yearOf = (iso: string | null) => (iso ? String(new Date(iso).getFullYear()) : '');
-/** وقت نسبي عربي (منذ 3 أيام…) — مطابق لعرض المنتدى في Atoms. */
-const relTime = (iso: string | null): string => {
-  if (!iso) return '';
-  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (d <= 0) return 'اليوم';
-  if (d === 1) return 'منذ يوم';
-  if (d === 2) return 'منذ يومين';
-  if (d < 7) return `منذ ${d} أيام`;
-  const w = Math.floor(d / 7);
-  if (w === 1) return 'منذ أسبوع';
-  if (w === 2) return 'منذ أسبوعين';
-  if (d < 30) return `منذ ${w} أسابيع`;
-  const mo = Math.floor(d / 30);
-  return mo === 1 ? 'منذ شهر' : `منذ ${mo} أشهر`;
-};
-/** أيقونة المرفق حسب النوع (مطابقة Atoms). */
-const ATTACH_ICON: Record<string, string> = { pdf: 'fa-file-pdf', video: 'fa-video', image: 'fa-image', file: 'fa-paperclip' };
 
 /** طلباتي — طبق الأصل: section-header + قائمة request-item ببياناتك الحقيقية. */
 const REQ_STATUS: Record<string, { cls: string; icon: string }> = {
@@ -529,117 +513,17 @@ export function ChatSection() {
 export function ForumSection() {
   const { data: threads, isLoading } = useForumThreads();
   const create = useCreateForumThread();
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
   const [sent, setSent] = useState(false);
 
-  const submit = () => {
-    const t = title.trim();
-    if (t.length < 2 || create.isPending) return;
-    create.mutate({ title: t, body: body.trim() }, { onSuccess: () => { setTitle(''); setBody(''); setSent(true); setTimeout(() => setSent(false), 3000); } });
-  };
-
-  const initialOf = (name: string | null) => (name ?? 'أنا').trim().charAt(0) || 'أ';
-  const titleRef = useRef<HTMLInputElement>(null);
-  const focusForm = () => { titleRef.current?.focus(); titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
-  const totalThreads = threads?.length ?? 0;
-  const answeredThreads = threads?.filter((t) => t.status === 'answered').length ?? 0;
-
+  // نفس لوحة المنتدى المشتركة المستخدمة في لوحة الموظف — منتدى واحد موحّد على جدول مشترك.
   return (
-    <>
-      {/* هيرو المنتدى (يبقى بطلب أيمن) — منتدى معمار بالإحصاءات + زر طرح سؤال جديد */}
-      <div className="company-hero hero-type-individual">
-        <div className="company-hero-bg" />
-        <div className="company-hero-layout">
-          <div className="company-hero-content">
-            <div className="company-logo"><i className="fas fa-users-rectangle" /></div>
-            <div className="company-hero-info">
-              <h2>منتدى معمار</h2>
-              <p>اطرح أسئلتك واطّلع على إجابات وخبرات فريق مجموعة معمار</p>
-              <div className="company-hero-stats">
-                <div className="company-stat"><span className="company-stat-value">{totalThreads}</span><span className="company-stat-label">سؤال</span></div>
-                <div className="company-stat"><span className="company-stat-value">{answeredThreads}</span><span className="company-stat-label">مُجاب عنه</span></div>
-              </div>
-            </div>
-          </div>
-          <div className="company-hero-ad">
-            <div className="company-ad-content">
-              <span className="company-ad-badge"><i className="fas fa-circle-question" /> لديك سؤال؟</span>
-              <h3>اطرح سؤالك على فريق معمار</h3>
-              <p>سيجيبك مهندسو المشروع بالتفصيل مع المرفقات اللازمة.</p>
-              <button className="btn company-ad-btn" type="button" onClick={focusForm}><i className="fas fa-plus" /> طرح سؤال جديد</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="forum-threads">
-        {isLoading && <p style={{ color: '#64748B', padding: 8 }}>جارٍ التحميل…</p>}
-        {threads && threads.length === 0 && (
-          <div className="forum-thread" style={{ textAlign: 'center' }}>
-            <div style={{ padding: 24, color: '#64748B' }}>
-              <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
-              <p>لا أسئلة بعد — اطرح سؤالك أدناه وسيجيبك فريق معمار.</p>
-            </div>
-          </div>
-        )}
-        {threads?.map((th) => (
-          <div key={th.id} className="forum-thread">
-            <div className="forum-thread-header">
-              <div className="forum-thread-avatar">{initialOf(th.author)}</div>
-              <div className="forum-thread-meta">
-                <strong>{th.author ?? 'سؤالي'}</strong>
-                <span className="forum-thread-date">{relTime(th.created_at)}</span>
-              </div>
-              <span className={`forum-thread-tag ${th.status === 'answered' ? 'tag-answered' : 'tag-question'}`}>{th.status_label}</span>
-            </div>
-            <h4 className="forum-thread-title">{th.title}</h4>
-            {th.body && th.body !== th.title && <p className="forum-thread-body">{th.body}</p>}
-            <div className="forum-thread-footer">
-              <span className="forum-replies-count"><i className="fas fa-comments" /> {th.replies.length} {th.replies.length === 1 ? 'رد' : 'ردود'}</span>
-              {(() => { const n = th.replies.reduce((s, r) => s + (r.attachments?.length ?? 0), 0); return n > 0 ? <span className="forum-attachments"><i className="fas fa-paperclip" /> {n} {n === 1 ? 'مرفق' : 'مرفقات'}</span> : null; })()}
-            </div>
-            {th.replies.length > 0 && (
-              <div className="forum-replies">
-                {th.replies.map((r) => (
-                  <div key={r.id} className="forum-reply">
-                    <div className="forum-reply-header">
-                      <div className={`forum-reply-avatar${r.from_staff ? ' staff' : ''}`}>{initialOf(r.author)}</div>
-                      <div className="forum-reply-meta">
-                        <strong>{r.author ?? (r.from_staff ? 'فريق معمار' : 'أنا')}</strong>
-                        {r.from_staff && <span className="forum-staff-badge"><i className="fas fa-shield-halved" /> فريق معمار</span>}
-                        <span className="forum-reply-date">{relTime(r.at)}</span>
-                      </div>
-                    </div>
-                    <p className="forum-reply-body">{r.body}</p>
-                    {r.attachments && r.attachments.length > 0 && (
-                      <div className="forum-reply-attachments">
-                        {r.attachments.map((a, i) => (
-                          <span key={i} className={`forum-attachment-item${a.kind === 'video' ? ' video' : ''}`}>
-                            <i className={`fas ${ATTACH_ICON[a.kind] ?? 'fa-paperclip'}`} /> {a.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div className="forum-new-reply-box">
-        <div className="forum-reply-input-header"><span><i className="fas fa-pen" /> اطرح سؤالاً جديدًا</span></div>
-        <input ref={titleRef} className="form-input" style={{ marginBottom: 10 }} placeholder="عنوان السؤال…" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea className="forum-reply-textarea" placeholder="تفاصيل السؤال (اختياري)…" value={body} onChange={(e) => setBody(e.target.value)} />
-        <div className="forum-reply-input-actions">
-          <div />
-          <button className="btn btn-primary" onClick={submit} disabled={create.isPending || title.trim().length < 2}><i className="fas fa-paper-plane" /> نشر السؤال</button>
-        </div>
-      </div>
-      {sent && <p style={{ color: 'var(--success)', fontWeight: 700, marginTop: 10 }}>✓ نُشر سؤالك — سيجيبك الفريق قريباً.</p>}
-    </>
+    <ForumBoard
+      threads={threads}
+      isLoading={isLoading}
+      posting={create.isPending}
+      sent={sent}
+      onPost={(title, body) => create.mutate({ title, body }, { onSuccess: () => { setSent(true); setTimeout(() => setSent(false), 3000); } })}
+    />
   );
 }
 

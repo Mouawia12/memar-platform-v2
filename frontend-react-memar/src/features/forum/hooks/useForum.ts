@@ -10,6 +10,19 @@ export function useForumCategories() {
   return useQuery({ queryKey: ['forum-categories'], queryFn: () => forumApi.categories(), staleTime: 5 * 60_000 });
 }
 
+/** لوحة المنتدى الموحّدة — نفس بيانات وتصميم بوابة العميل. */
+export function useForumBoard() {
+  return useQuery({ queryKey: ['forum-board'], queryFn: () => forumApi.board() });
+}
+
+export function useCreateBoardTopic() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ title, body }: { title: string; body: string }) => forumApi.createBoardTopic(title, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forum-board'] }),
+  });
+}
+
 export function useTopics(params: { category_id?: number; search?: string; page?: number }) {
   return useQuery({ queryKey: [...TOPICS, params], queryFn: () => forumApi.topics(params) });
 }

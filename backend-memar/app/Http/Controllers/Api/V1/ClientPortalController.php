@@ -27,6 +27,7 @@ use App\Models\Referral;
 use App\Models\ServiceRequest;
 use App\Models\StoredFile;
 use App\Models\TeamMember;
+use App\Models\User;
 use App\Models\LoyaltyRedemption;
 use App\Models\LoyaltyTransaction;
 use App\Services\FileStorageService;
@@ -165,7 +166,10 @@ class ClientPortalController extends ApiController
      */
     public function project(Request $request, Project $project): JsonResponse
     {
-        $contactId = $request->user()?->contact_id;
+        $user = $request->user();
+        // عرض إداري «كأنه العميل»: يسمح لمن يملك clients.view برؤية تفاصيل مشروع عميل محدّد.
+        $asContact = $request->integer('as_contact') ?: null;
+        $contactId = ($asContact && $user?->can('clients.view')) ? $asContact : $user?->contact_id;
         abort_unless($contactId !== null && $project->client_id === $contactId, 403, 'لا صلاحية لك على هذا المشروع.');
 
         // المراحل بلا محادثة (لا نُحمّل comments) — العميل يرى التقدّم فقط.
@@ -1021,33 +1025,48 @@ class ClientPortalController extends ApiController
         return $this->ok(null, 'تمت إزالة العضو');
     }
 
-    /** المنتدى — أسئلة العميل (مواضيعه) وردود طاقم معمار عليها. */
+    /**
+     * المنتدى — **موحّد لكل المستخدمين** (اجتماع 2026-08-03): يعرض المواضيع العامة المعتمدة
+     * (is_public) المشتركة بين جميع المستخدمين + مواضيع العميل نفسه (حتى قبل اعتمادها).
+     * لا تُعرَض مواضيع عملاء آخرين غير المعتمدة (تبقى خاصة). ردود الطاقم = مستخدم بلا سجل عميل.
+     */
     public function forum(Request $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user?->contact_id !== null, 403, 'الحساب غير مرتبط بسجل عميل.');
 
-        $topics = ForumTopic::where('user_id', $user->id)
-            ->with(['replies' => fn ($q) => $q->with('user:id,name')->oldest()])
+        // اسم مختصر (الاسم الأول) لأصحاب الأسئلة الآخرين حفاظًا على الخصوصية.
+        $firstName = fn (?string $name): string => $name ? trim(explode(' ', trim($name))[0]) : 'عضو';
+        // هل المستخدم طاقم معمار؟ (لا سجل عميل مرتبط) — لتمييز ردود الطاقم عن العملاء.
+        $isStaff = fn (?User $u): bool => $u !== null && $u->contact_id === null;
+
+        $topics = ForumTopic::where(fn ($q) => $q->where('is_public', true)->orWhere('user_id', $user->id))
+            ->with(['user:id,name,contact_id', 'replies' => fn ($q) => $q->with('user:id,name,contact_id')->oldest()])
             ->latest()
             ->limit(50)
             ->get()
-            ->map(function (ForumTopic $t) use ($user): array {
-                $replies = $t->replies->map(fn (ForumReply $r): array => [
-                    'id' => $r->id,
-                    'from_staff' => $r->user_id !== $user->id,
-                    'author' => $r->user_id !== $user->id ? ($r->user?->name ?? 'فريق معمار') : $user->name,
-                    'body' => $r->body,
-                    'attachments' => $r->attachments ?? [],
-                    'at' => $r->created_at?->toIso8601String(),
-                ])->all();
+            ->map(function (ForumTopic $t) use ($user, $firstName, $isStaff): array {
+                $mine = $t->user_id === $user->id;
+                $replies = $t->replies->map(function (ForumReply $r) use ($user, $firstName, $isStaff): array {
+                    $staff = $isStaff($r->user);
+
+                    return [
+                        'id' => $r->id,
+                        'from_staff' => $staff,
+                        'author' => $staff ? ($r->user?->name ?? 'فريق معمار') : ($r->user_id === $user->id ? 'أنت' : $firstName($r->user?->name)),
+                        'body' => $r->body,
+                        'attachments' => $r->attachments ?? [],
+                        'at' => $r->created_at?->toIso8601String(),
+                    ];
+                })->all();
                 $answered = collect($replies)->contains('from_staff', true);
 
                 return [
                     'id' => $t->id,
                     'title' => $t->title,
                     'body' => $t->body,
-                    'author' => $user->name,
+                    'author' => $mine ? 'أنت' : ($isStaff($t->user) ? ($t->user?->name ?? 'فريق معمار') : $firstName($t->user?->name)),
+                    'is_mine' => $mine,
                     'status' => $answered ? 'answered' : 'open',
                     'status_label' => $answered ? 'تمت الإجابة' : 'سؤال',
                     'created_at' => $t->created_at?->toIso8601String(),

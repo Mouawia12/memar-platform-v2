@@ -6,6 +6,7 @@ interface Props {
   companies: Company[];
   onEdit: (c: Company) => void;
   onDelete: (c: Company) => void;
+  onOpen: (c: Company) => void;
 }
 
 const typeColor: Record<string, string> = {
@@ -15,7 +16,7 @@ const typeColor: Record<string, string> = {
   partner: '#274A78',
 };
 
-export function CompaniesTable({ companies, onEdit, onDelete }: Props) {
+export function CompaniesTable({ companies, onEdit, onDelete, onOpen }: Props) {
   if (companies.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد شركات.</p>;
   }
@@ -35,8 +36,8 @@ export function CompaniesTable({ companies, onEdit, onDelete }: Props) {
         </thead>
         <tbody>
           {companies.map((c) => (
-            <tr key={c.id}>
-              <td style={td}><b>{c.name}</b></td>
+            <tr key={c.id} onClick={() => onOpen(c)} style={{ cursor: 'pointer' }} title="فتح صفحة الشركة">
+              <td style={td}><b style={{ color: '#274A78' }}>{c.name}</b></td>
               <td style={td}>
                 <span style={{ ...badge, background: `${typeColor[c.type]}1a`, color: typeColor[c.type] }}>
                   {COMPANY_TYPE_LABELS[c.type]}
@@ -45,7 +46,8 @@ export function CompaniesTable({ companies, onEdit, onDelete }: Props) {
               <td style={td}>{c.industry ?? '—'}</td>
               <td style={td}>{c.phone ?? '—'}</td>
               <td style={td}>{c.email ?? '—'}</td>
-              <td style={td}>
+              <td style={td} onClick={(e) => e.stopPropagation()}>
+                <button className="btn btn-sm" onClick={() => onOpen(c)} type="button">عرض</button>{' '}
                 <button className="btn btn-sm" onClick={() => onEdit(c)} type="button">تعديل</button>{' '}
                 <button className="btn btn-sm" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>
               </td>

@@ -26,6 +26,32 @@ class ClientPortalProjectTest extends TestCase
         return $user;
     }
 
+    public function test_admin_can_view_client_project_via_as_contact(): void
+    {
+        // أدمن يملك clients.view يعرض تفاصيل مشروع عميل آخر (عرض إداري «كأنه العميل»).
+        $this->actingAsUserWith(['clients.view']);
+        $clientContact = Contact::factory()->create();
+        $project = Project::factory()->create(['client_id' => $clientContact->id]);
+        ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'تصميم', 'status' => 'done', 'position' => 0]);
+
+        $this->getJson("/api/v1/client-portal/projects/{$project->id}?as_contact={$clientContact->id}")
+            ->assertOk()
+            ->assertJsonPath('data.project.id', $project->id)
+            ->assertJsonCount(1, 'data.stages');
+    }
+
+    public function test_user_without_clients_view_cannot_impersonate_via_as_contact(): void
+    {
+        // مستخدم بلا صلاحية: تُتجاهل as_contact ويُعامل بسجله هو → 403 على مشروع غيره.
+        $mine = Contact::factory()->create();
+        $this->actingAsClient($mine);
+        $otherContact = Contact::factory()->create();
+        $project = Project::factory()->create(['client_id' => $otherContact->id]);
+
+        $this->getJson("/api/v1/client-portal/projects/{$project->id}?as_contact={$otherContact->id}")
+            ->assertForbidden();
+    }
+
     public function test_client_sees_own_project_stages_and_payment_summary(): void
     {
         $contact = Contact::factory()->create();

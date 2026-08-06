@@ -12,6 +12,8 @@ export interface ServiceRequest {
   status: RequestStatus;
   description: string | null;
   requester: { id: number; name: string } | null;
+  assigned_to: number | null;
+  assignee: { id: number; name: string } | null;
   created_at: string | null;
 }
 
@@ -23,6 +25,7 @@ export interface ServiceRequestFormData {
   priority: Priority;
   status: RequestStatus;
   description: string;
+  assigned_to: number | null;
 }
 
 export const TYPE_LABELS: Record<RequestType, string> = {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\ServiceRequest;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -12,13 +13,25 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class ServiceRequestService
 {
-    public function list(?string $search, ?string $status, ?string $priority, int $perPage = 20): LengthAwarePaginator
+    /**
+     * قائمة الطلبات — مُقيَّدة بصلاحية المُشاهِد:
+     * من يملك «requests.view.all» (الأدمن/المدير) يرى كل الطلبات؛
+     * غيره (موظف مُسنَد) يرى فقط الطلبات المُسنَدة إليه أو التي أنشأها.
+     */
+    public function list(?string $search, ?string $status, ?string $priority, int $perPage = 20, ?User $viewer = null): LengthAwarePaginator
     {
         return ServiceRequest::query()
-            ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%")->orWhere('client_name', 'like', "%{$s}%"))
+            ->when($viewer !== null && ! $viewer->can('requests.view.all'), function ($q) use ($viewer): void {
+                $q->where(function ($sub) use ($viewer): void {
+                    $sub->where('assigned_to', $viewer->id)->orWhere('requested_by', $viewer->id);
+                });
+            })
+            ->when($search, fn ($q, string $s) => $q->where(function ($sub) use ($s): void {
+                $sub->where('title', 'like', "%{$s}%")->orWhere('client_name', 'like', "%{$s}%");
+            }))
             ->when($status, fn ($q, string $st) => $q->where('status', $st))
             ->when($priority, fn ($q, string $p) => $q->where('priority', $p))
-            ->with('requester:id,name')
+            ->with(['requester:id,name', 'assignee:id,name'])
             ->latest()
             ->paginate($perPage);
     }
@@ -38,7 +51,7 @@ class ServiceRequestService
     {
         $serviceRequest->update($data);
 
-        return $serviceRequest->load('requester:id,name');
+        return $serviceRequest->load(['requester:id,name', 'assignee:id,name']);
     }
 
     public function delete(ServiceRequest $serviceRequest): void

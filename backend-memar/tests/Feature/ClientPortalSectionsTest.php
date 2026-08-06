@@ -152,19 +152,26 @@ class ClientPortalSectionsTest extends TestCase
         $this->assertSame(1, $contact->fresh()->referral_shares);
     }
 
-    public function test_forum_lists_only_own_threads_with_staff_replies(): void
+    public function test_forum_is_unified_shows_public_threads_and_own(): void
     {
+        // منتدى موحّد لكل المستخدمين: يعرض مواضيع العميل نفسه + المواضيع العامة المعتمدة،
+        // ويُخفي مواضيع العملاء الآخرين غير المعتمدة (الخاصة).
         $user = $this->actingAsClient();
         $topic = ForumTopic::create(['category_id' => 1, 'user_id' => $user->id, 'title' => 'كم يستغرق التصميم؟', 'body' => 'تفاصيل']);
         $staff = User::factory()->create();
         ForumReply::create(['topic_id' => $topic->id, 'user_id' => $staff->id, 'body' => 'من ٤ إلى ٦ أسابيع']);
-        ForumTopic::create(['category_id' => 1, 'user_id' => User::factory()->create()->id, 'title' => 'سؤال عميل آخر', 'body' => 'خاص']);
+        // موضوع عميل آخر معتمد (عام) → يظهر في المنتدى الموحّد.
+        ForumTopic::create(['category_id' => 1, 'user_id' => User::factory()->create()->id, 'is_public' => true, 'title' => 'سؤال عام مشترك', 'body' => 'مشترك']);
+        // موضوع عميل آخر غير معتمد (خاص) → لا يظهر.
+        ForumTopic::create(['category_id' => 1, 'user_id' => User::factory()->create()->id, 'is_public' => false, 'title' => 'سؤال عميل آخر خاص', 'body' => 'خاص']);
 
         $res = $this->getJson('/api/v1/client-portal/forum');
 
-        $res->assertOk()->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.status', 'answered')
-            ->assertJsonPath('data.0.replies.0.from_staff', true);
+        $res->assertOk()->assertJsonCount(2, 'data');
+        $titles = collect($res->json('data'))->pluck('title')->all();
+        $this->assertContains('كم يستغرق التصميم؟', $titles);
+        $this->assertContains('سؤال عام مشترك', $titles);
+        $this->assertNotContains('سؤال عميل آخر خاص', $titles);
     }
 
     public function test_client_can_post_forum_question(): void

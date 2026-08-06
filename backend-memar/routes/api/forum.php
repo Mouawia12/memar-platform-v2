@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/public/forum', [ForumController::class, 'publicFeed']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    // ── لوحة المنتدى الموحّدة (نفس تصميم بوابة العميل، جدول مشترك، لكل الأدوار) ──
+    Route::get('/forum/board', [ForumController::class, 'board']);
+    Route::post('/forum/board', [ForumController::class, 'storeBoardTopic']);
     Route::get('/forum/categories', [ForumController::class, 'categories']);
     Route::get('/forum/topics', [ForumController::class, 'topics']);
     Route::post('/forum/topics', [ForumController::class, 'storeTopic']);

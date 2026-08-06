@@ -57,8 +57,8 @@ const initials2 = (name: string): string => {
  * عرض للقراءة فقط بلا أي بيانات داخلية. تُحفَظ استثناءات أيمن المقصودة:
  * زر عودة بارز، طايمر العمل (بند 11)، عملة الدينار الكويتي، بيانات backend الحقيقية.
  */
-export function ProjectDetailSection({ projectId }: { projectId: number }) {
-  const { data, isLoading, isError } = useClientProject(projectId);
+export function ProjectDetailSection({ projectId, asContact }: { projectId: number; asContact?: number }) {
+  const { data, isLoading, isError } = useClientProject(projectId, asContact);
 
   if (isLoading) return <p style={{ padding: 40 }}>جارٍ التحميل…</p>;
   if (isError || !data)

@@ -252,6 +252,7 @@ export interface ForumThread {
   title: string;
   body: string | null;
   author: string | null;
+  is_mine?: boolean;
   status: 'open' | 'answered';
   status_label: string;
   created_at: string | null;
@@ -293,7 +294,7 @@ export const clientPortalApi = {
   team: () => apiGet<TeamMember[]>('/client-portal/team'),
   addTeamMember: (name: string, role: string) => apiPost<TeamMember>('/client-portal/team', { name, role }),
   removeTeamMember: (id: number) => apiDelete<{ id: number }>(`/client-portal/team/${id}`),
-  project: (id: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`),
+  project: (id: number, asContact?: number) => apiGet<ClientProjectDetail>(`/client-portal/projects/${id}`, asContact ? { params: { as_contact: asContact } } : undefined),
   submitRequest: (payload: ClientRequestPayload) => apiPost<{ id: number }>('/client-portal/requests', payload),
   uploadRequestAttachment: (requestId: number, file: File) => {
     const fd = new FormData();

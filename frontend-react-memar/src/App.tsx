@@ -67,11 +67,12 @@ export default function App() {
         <Route path="/client-portal" element={<ClientPortalV2Page />} />
         {/* صفحة مشروع العميل — داخل سياق البوابة (لا قالب لوحة الموظفين) حتى لا يخرج العميل من بوابته */}
         <Route path="/client-portal/projects/:id" element={<ClientProjectDetailPage />} />
+        {/* بروفيل العميل للأدمن = «عرض إداري» بنفس واجهة البوابة كاملةً (خارج قالب لوحة التحكم لتفادي تداخل الشِلّين) */}
+        <Route path="/clients/:id/profile" element={<StaffClientProfilePage />} />
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/user-logs" element={<UsersPage />} />
           <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/clients/:id/profile" element={<StaffClientProfilePage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/my-projects" element={<MyProjectsPage />} />

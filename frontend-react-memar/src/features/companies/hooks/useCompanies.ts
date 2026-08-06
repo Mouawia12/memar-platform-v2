@@ -28,3 +28,25 @@ export function useDeleteCompany() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+/** صفحة الشركة الكاملة للطاقم (أعضاء + مشاريع + تقييم داخلي). */
+export function useCompanyOverview(id: number | null) {
+  return useQuery({
+    queryKey: [...KEY, 'overview', id],
+    queryFn: () => companiesApi.overview(id as number),
+    enabled: id !== null,
+  });
+}
+
+/** حفظ التقييم الداخلي للشركة (يظهر للإدارة فقط). */
+export function useSaveCompanyRating(id: number | null) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { internal_rating: number; internal_notes: string }) => companiesApi.update(id as number, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'overview', id] });
+      qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
+}

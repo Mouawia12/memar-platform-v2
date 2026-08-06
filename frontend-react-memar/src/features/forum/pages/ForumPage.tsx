@@ -1,62 +1,37 @@
-import { type CSSProperties, useState } from 'react';
+import { useState } from 'react';
 
-import { NewTopicModal } from '../components/NewTopicModal';
-import { TopicViewModal } from '../components/TopicViewModal';
-import { useForumCategories, useTopics } from '../hooks/useForum';
+import { queryClient } from '../../../lib/queryClient';
+import { forumApi } from '../api/forumApi';
+import { ForumBoard } from '../components/ForumBoard';
+import { useCreateBoardTopic, useForumBoard } from '../hooks/useForum';
+import { useMutation } from '@tanstack/react-query';
 
+/**
+ * منتدى لوحة الموظف — **نفس لوحة منتدى بوابة العميل تمامًا** (تصميم واحد، جدول مشترك،
+ * موحّد لكل الأدوار). ردود الإدارة مميّزة بوسم «فريق معمار · الإدارة». طلب أيمن (اجتماع 2026-08-03).
+ */
 export function ForumPage() {
-  const [categoryId, setCategoryId] = useState<number | ''>('');
-  const [newOpen, setNewOpen] = useState(false);
-  const [viewId, setViewId] = useState<number | null>(null);
-
-  const { data: categories } = useForumCategories();
-  const { data, isLoading } = useTopics({ category_id: categoryId === '' ? undefined : categoryId });
+  const { data: threads, isLoading } = useForumBoard();
+  const create = useCreateBoardTopic();
+  const [sent, setSent] = useState(false);
+  // الطاقم يردّ على المواضيع مباشرة من اللوحة الموحّدة — الردود تظهر موسومة كـ«الإدارة».
+  const reply = useMutation({
+    mutationFn: ({ threadId, body }: { threadId: number; body: string }) => forumApi.addReply(threadId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['forum-board'] }),
+  });
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>المنتدى</h1>
-        <button className="btn btn-primary" onClick={() => setNewOpen(true)} type="button">🗨️ موضوع جديد</button>
-      </div>
-
-      {/* أقسام كشرائح */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <button type="button" style={chip(categoryId === '')} onClick={() => setCategoryId('')}>الكل</button>
-        {categories?.map((c) => (
-          <button key={c.id} type="button" style={chip(categoryId === c.id)} onClick={() => setCategoryId(c.id)}>
-            {c.name} <span style={{ opacity: 0.6 }}>({c.topics_count})</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="card" style={{ padding: '8px' }}>
-        {isLoading && <p style={{ padding: '16px' }}>جارٍ التحميل…</p>}
-        {data && data.data.length === 0 && <p style={{ padding: '16px', opacity: 0.6 }}>لا توجد مواضيع — ابدأ نقاشًا جديدًا.</p>}
-        {data?.data.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setViewId(t.id)}
-            style={{ display: 'block', width: '100%', textAlign: 'inherit', background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', padding: '14px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '15px' }}>{t.is_pinned && '📌 '}{t.title}</div>
-                <div style={{ fontSize: '12px', opacity: 0.6, marginTop: '4px' }}>{t.category?.name} · 👤 {t.author}</div>
-              </div>
-              <div style={{ fontSize: '13px', opacity: 0.7, whiteSpace: 'nowrap' }}>💬 {t.replies_count ?? 0} · 👁️ {t.views}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {newOpen && <NewTopicModal onClose={() => setNewOpen(false)} />}
-      {viewId !== null && <TopicViewModal topicId={viewId} onClose={() => setViewId(null)} />}
+    <div className="mcp-root">
+      <ForumBoard
+        threads={threads}
+        isLoading={isLoading}
+        posting={create.isPending}
+        sent={sent}
+        subtitle="منتدى واحد لكل فريق ومستخدمي معمار — أسئلة وإجابات على منصّة مشتركة"
+        onPost={(title, body) => create.mutate({ title, body }, { onSuccess: () => { setSent(true); setTimeout(() => setSent(false), 3000); } })}
+        onReply={(threadId, body) => reply.mutate({ threadId, body })}
+        replying={reply.isPending}
+      />
     </div>
   );
 }
-
-const chip = (active: boolean): CSSProperties => ({
-  padding: '6px 16px', borderRadius: '999px', border: '1px solid', borderColor: active ? '#274A78' : '#e2e8f0',
-  background: active ? '#274A78' : '#fff', color: active ? '#fff' : '#475569', fontFamily: 'inherit', fontSize: '13px', cursor: 'pointer',
-});

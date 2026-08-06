@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Forum\StoreTopicRequest;
 use App\Http\Resources\ForumTopicResource;
+use App\Models\ForumCategory;
 use App\Models\ForumReply;
 use App\Models\ForumTopic;
+use App\Models\User;
 use App\Services\ForumService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -110,6 +112,71 @@ class ForumController extends ApiController
             })->all();
 
         return $this->ok($topics);
+    }
+
+    /**
+     * لوحة المنتدى الموحّدة (لكل الأدوار) — نفس شكل بيانات بوابة العميل وعلى الجدول المشترك،
+     * بعرض كل المواضيع. ردود الإدارة (مستخدم بلا سجل عميل) مميّزة بـ from_staff.
+     */
+    public function board(Request $request): JsonResponse
+    {
+        $viewerId = $request->user()?->id;
+        $isStaff = fn (?User $u): bool => $u !== null && $u->contact_id === null;
+
+        $topics = ForumTopic::with(['user:id,name,contact_id', 'replies' => fn ($q) => $q->with('user:id,name,contact_id')->oldest()])
+            ->latest()
+            ->limit(100)
+            ->get()
+            ->map(function (ForumTopic $t) use ($viewerId, $isStaff): array {
+                $replies = $t->replies->map(function (ForumReply $r) use ($isStaff): array {
+                    $staff = $isStaff($r->user);
+
+                    return [
+                        'id' => $r->id,
+                        'from_staff' => $staff,
+                        'author' => $r->user?->name ?? ($staff ? 'فريق معمار' : 'عضو'),
+                        'body' => $r->body,
+                        'attachments' => $r->attachments ?? [],
+                        'at' => $r->created_at?->toIso8601String(),
+                    ];
+                })->all();
+                $answered = collect($replies)->contains('from_staff', true);
+
+                return [
+                    'id' => $t->id,
+                    'title' => $t->title,
+                    'body' => $t->body,
+                    'author' => $t->user?->name ?? 'عضو',
+                    'is_mine' => $t->user_id === $viewerId,
+                    'status' => $answered ? 'answered' : 'open',
+                    'status_label' => $answered ? 'تمت الإجابة' : 'سؤال',
+                    'created_at' => $t->created_at?->toIso8601String(),
+                    'replies' => $replies,
+                ];
+            })->all();
+
+        return $this->ok($topics);
+    }
+
+    /** نشر موضوع من لوحة المنتدى الموحّدة (عنوان + تفاصيل، بلا اختيار قسم). */
+    public function storeBoardTopic(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'body' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $categoryId = ForumCategory::query()->orderBy('order')->value('id')
+            ?? ForumCategory::create(['name' => 'عام', 'slug' => 'general', 'order' => 1])->id;
+
+        $topic = ForumTopic::create([
+            'category_id' => $categoryId,
+            'user_id' => $request->user()->id,
+            'title' => $data['title'],
+            'body' => ($data['body'] ?? '') ?: $data['title'],
+        ]);
+
+        return $this->created(['id' => $topic->id], 'تم نشر الموضوع');
     }
 
     /** اعتماد/إلغاء اعتماد موضوع للعرض العام على اللاندنج (للطاقم). */

@@ -2,8 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { clientPortalApi, type ClientProfilePayload, type ClientRequestPayload, type NotificationPrefs } from '../api/clientPortalApi';
 
-export function useClientPortal() {
-  return useQuery({ queryKey: ['client-portal'], queryFn: () => clientPortalApi.get() });
+/**
+ * بيانات البوابة. بلا وسيط = بيانات العميل الحالي (self).
+ * مع asContact = عرض إداري «كأنه العميل» عبر نقطة الطاقم (يتطلّب صلاحية clients.view)،
+ * ويعيد نفس الشكل مضافًا إليه التقييم الداخلي.
+ */
+export function useClientPortal(asContact?: number) {
+  return useQuery({
+    queryKey: asContact ? ['staff-client-profile', asContact] : ['client-portal'],
+    queryFn: () => (asContact ? clientPortalApi.staffProfile(asContact) : clientPortalApi.get()),
+  });
 }
 
 /** إرسال طلب من العميل: مشروع/اجتماع/استفسار (CLIENT-2). */
@@ -24,9 +32,9 @@ export function useMyRequests() {
   return useQuery({ queryKey: ['client-requests'], queryFn: () => clientPortalApi.myRequests() });
 }
 
-/** إشعارات العميل. */
-export function useClientNotifications() {
-  return useQuery({ queryKey: ['client-notifications'], queryFn: () => clientPortalApi.notifications() });
+/** إشعارات العميل. (تُعطَّل في العرض الإداري كي لا تُخلط بإشعارات الأدمن) */
+export function useClientNotifications(enabled = true) {
+  return useQuery({ queryKey: ['client-notifications'], queryFn: () => clientPortalApi.notifications(), enabled });
 }
 
 /** تحديث بيانات العميل (الإعدادات). */
@@ -69,9 +77,9 @@ export function useUpdateClientPreferences() {
   });
 }
 
-/** برنامج الولاء — كود الإحالة + الإحصاءات + السجل. */
-export function useLoyalty() {
-  return useQuery({ queryKey: ['client-loyalty'], queryFn: () => clientPortalApi.loyalty() });
+/** برنامج الولاء — كود الإحالة + الإحصاءات + السجل. (يُعطَّل في العرض الإداري) */
+export function useLoyalty(enabled = true) {
+  return useQuery({ queryKey: ['client-loyalty'], queryFn: () => clientPortalApi.loyalty(), enabled });
 }
 
 /** تسجيل مشاركة كود الإحالة (عدّاد حقيقي). */
@@ -216,11 +224,11 @@ export function useRemoveTeamMember() {
   });
 }
 
-/** تفاصيل مشروع للعميل (CLIENT-4): مراحله وتقدّمه ودفعاته. */
-export function useClientProject(id: number) {
+/** تفاصيل مشروع للعميل (CLIENT-4): مراحله وتقدّمه ودفعاته. asContact للعرض الإداري. */
+export function useClientProject(id: number, asContact?: number) {
   return useQuery({
-    queryKey: ['client-portal-project', id],
-    queryFn: () => clientPortalApi.project(id),
+    queryKey: ['client-portal-project', id, asContact ?? null],
+    queryFn: () => clientPortalApi.project(id, asContact),
     enabled: Number.isFinite(id) && id > 0,
   });
 }

@@ -24,6 +24,7 @@ class ServiceRequestController extends ApiController
             $request->string('status')->toString() ?: null,
             $request->string('priority')->toString() ?: null,
             $this->perPage($request, 20),
+            $request->user(),
         );
 
         return $this->paginated($paginator, ServiceRequestResource::class);
@@ -41,7 +42,7 @@ class ServiceRequestController extends ApiController
 
     public function show(ServiceRequest $serviceRequest): JsonResponse
     {
-        return $this->ok(new ServiceRequestResource($serviceRequest->load('requester:id,name')));
+        return $this->ok(new ServiceRequestResource($serviceRequest->load(['requester:id,name', 'assignee:id,name'])));
     }
 
     public function update(UpdateServiceRequestRequest $request, ServiceRequest $serviceRequest): JsonResponse

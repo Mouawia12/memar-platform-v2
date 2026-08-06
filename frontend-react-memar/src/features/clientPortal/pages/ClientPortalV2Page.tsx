@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
+import { InternalRating } from '../../../components/InternalRating';
+import { apiPatch } from '../../../lib/api';
 import { useLogout } from '../../auth/hooks/useAuth';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
-import { clientAccountCode } from '../api/clientPortalApi';
+import { clientAccountCode, type StaffClientProfile } from '../api/clientPortalApi';
 import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
 import { NewProjectRequestSection } from '../components/NewProjectRequestSection';
 import { NewRequestSection } from '../components/NewRequestSection';
@@ -37,12 +41,25 @@ const HERO_SLIDES = [
  * بوابة العميل — طبق الأصل من تصميم atoms («تحسين صفحة العميل») بكامل عناصره،
  * موصولة ببياناتك الحقيقية (اسم العميل، شركته، مشاريعه، مواعيده، فواتيره، الإعلانات).
  */
-export function ClientPortalV2Page() {
+/**
+ * @param adminContactId عند تمريره: «عرض إداري» — يعرض بوابة العميل المحدّد كما يراها العميل
+ * (بيانات من نقطة الطاقم)، مع شريط إداري + تقييم داخلي، وتعطيل إجراءات العميل الكتابية.
+ */
+export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number } = {}) {
+  const adminMode = adminContactId != null;
   const navigate = useNavigate();
   const logout = useLogout();
-  const { data, isLoading, isError } = useClientPortal();
+  const qc = useQueryClient();
+  const canRate = usePermission('crm.manage');
+  const { data, isLoading, isError } = useClientPortal(adminContactId);
   const submitReq = useSubmitClientRequest();
   const updateProfile = useUpdateClientProfile();
+
+  // حفظ التقييم الداخلي (الإضافة الوحيدة في العرض الإداري) — يُحفظ على جهة الاتصال.
+  const saveRating = useMutation({
+    mutationFn: (p: { internal_rating: number; internal_notes: string }) => apiPatch(`/contacts/${adminContactId}`, p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['staff-client-profile', adminContactId] }),
+  });
   const [editingKunya, setEditingKunya] = useState(false);
   const [kunyaDraft, setKunyaDraft] = useState('');
 
@@ -66,8 +83,8 @@ export function ClientPortalV2Page() {
   const [heroPaused, setHeroPaused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const { data: notif } = useClientNotifications();
-  const { data: loyalty } = useLoyalty();
+  const { data: notif } = useClientNotifications(!adminMode);
+  const { data: loyalty } = useLoyalty(!adminMode);
   const recordShare = useRecordReferralShare();
   const redeemLoyalty = useRedeemLoyalty();
   const applyCredit = useApplyLoyaltyCredit();
@@ -108,6 +125,8 @@ export function ClientPortalV2Page() {
   const invoices = data?.invoices ?? [];
   const stats = data?.stats;
   const client = data?.client;
+  // التقييم الداخلي — يصل فقط في العرض الإداري (StaffClientProfile).
+  const internal = adminMode ? (data as StaffClientProfile | undefined)?.internal : undefined;
   const clientName = client?.name ?? 'عميلنا';
   const initial = clientName.trim().charAt(0) || 'ع';
   const memberCode = client ? clientAccountCode(client) : '…';
@@ -144,6 +163,7 @@ export function ClientPortalV2Page() {
   }
 
   const doRequest = (type: 'project' | 'meeting') => {
+    if (adminMode) { showToast('👁️ عرض إداري — لا تُرسل الطلبات نيابةً عن العميل'); return; }
     // طلب المشروع الجديد ينتقل لصفحة كاملة لتعبئة البيانات (طبق الأصل)؛ طلب الاجتماع يُرسل مباشرة.
     if (type === 'project') { go('new-project-request'); return; }
     submitReq.mutate({ type }, { onSuccess: () => showToast('تم إرسال طلبك — سنتواصل معك قريبًا ✓') });
@@ -244,7 +264,7 @@ export function ClientPortalV2Page() {
               <div className="sb-client-info">
                 <strong className="sb-client-name">{clientName}</strong>
                 {/* الكنية (منفصلة عن الاسم واسم الشركة) — قابلة للتعديل بالنقر */}
-                <div className="sb-client-title-editable" onClick={(e) => { e.stopPropagation(); if (!editingKunya) startEditKunya(); }} title="انقر لتعديل الكنية">
+                <div className="sb-client-title-editable" onClick={(e) => { e.stopPropagation(); if (!adminMode && !editingKunya) startEditKunya(); }} title={adminMode ? undefined : 'انقر لتعديل الكنية'}>
                   {editingKunya ? (
                     <input
                       className="sb-client-title-input"
@@ -257,8 +277,8 @@ export function ClientPortalV2Page() {
                     />
                   ) : (
                     <>
-                      <span className="sb-client-title-text" style={client?.kunya ? undefined : { opacity: 0.6 }}>{client?.kunya || 'أضِف كنيتك'}</span>
-                      <i className="fas fa-pen-to-square sb-title-edit-icon" />
+                      <span className="sb-client-title-text" style={client?.kunya ? undefined : { opacity: 0.6 }}>{client?.kunya || (adminMode ? '' : 'أضِف كنيتك')}</span>
+                      {!adminMode && <i className="fas fa-pen-to-square sb-title-edit-icon" />}
                     </>
                   )}
                 </div>
@@ -283,16 +303,18 @@ export function ClientPortalV2Page() {
                 <span className="sb-tag sb-tag-gold"><i className="fas fa-star" /> عميل مميز</span>
                 {client?.since && <span className="sb-tag sb-tag-blue"><i className="fas fa-calendar-check" /> منذ {client.since}</span>}
               </div>
-              <button className="btn sb-new-request-btn" onClick={(e) => { e.stopPropagation(); doRequest('project'); }} disabled={submitReq.isPending}>
-                <i className="fas fa-diagram-project" /> اطلب مشروع جديد
-              </button>
+              {!adminMode && (
+                <button className="btn sb-new-request-btn" onClick={(e) => { e.stopPropagation(); doRequest('project'); }} disabled={submitReq.isPending}>
+                  <i className="fas fa-diagram-project" /> اطلب مشروع جديد
+                </button>
+              )}
             </div>
           </div>
 
           <nav className="sb-nav">
             <div className="nav-section-label">الرئيسية</div>
             <div className={`nav-item${page === 'dashboard' ? ' active' : ''}`} onClick={() => go('dashboard')}><i className="fas fa-table-cells-large" /><span>نظرة عامة</span></div>
-            <div className={`nav-item${page === 'notifications' ? ' active' : ''}`} onClick={() => go('notifications')}><i className="fas fa-bell" /><span>الإشعارات</span>{notifCount > 0 && <span className="nav-badge danger">{notifCount}</span>}</div>
+            {!adminMode && <div className={`nav-item${page === 'notifications' ? ' active' : ''}`} onClick={() => go('notifications')}><i className="fas fa-bell" /><span>الإشعارات</span>{notifCount > 0 && <span className="nav-badge danger">{notifCount}</span>}</div>}
 
             <div className="nav-section-label">المشاريع</div>
             <div className="nav-sub-items">
@@ -305,29 +327,37 @@ export function ClientPortalV2Page() {
               ))}
             </div>
 
-            <div className="nav-section-label">الطلبات</div>
-            <div className={`nav-item${page === 'requests' ? ' active' : ''}`} onClick={() => go('requests')}><i className="fas fa-clipboard-list" /><span>طلباتي</span></div>
-            <div className={`nav-item${page === 'new-request' ? ' active' : ''}`} onClick={() => go('new-request')}><i className="fas fa-plus-circle" /><span>طلب جديد</span></div>
+            {!adminMode && <>
+              <div className="nav-section-label">الطلبات</div>
+              <div className={`nav-item${page === 'requests' ? ' active' : ''}`} onClick={() => go('requests')}><i className="fas fa-clipboard-list" /><span>طلباتي</span></div>
+              <div className={`nav-item${page === 'new-request' ? ' active' : ''}`} onClick={() => go('new-request')}><i className="fas fa-plus-circle" /><span>طلب جديد</span></div>
+            </>}
 
             <div className="nav-section-label">التواصل</div>
             <div className={`nav-item${page === 'meetings' ? ' active' : ''}`} onClick={() => go('meetings')}><i className="fas fa-video" /><span>الاجتماعات</span>{upcomingAppts.length > 0 && <span className="nav-badge">{upcomingAppts.length}</span>}</div>
-            <div className={`nav-item${page === 'chat' ? ' active' : ''}`} onClick={() => go('chat')}><i className="fas fa-comments" /><span>المحادثات</span></div>
-            <div className={`nav-item${page === 'forum' ? ' active' : ''}`} onClick={() => go('forum')}><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>
+            {!adminMode && <div className={`nav-item${page === 'chat' ? ' active' : ''}`} onClick={() => go('chat')}><i className="fas fa-comments" /><span>المحادثات</span></div>}
+            {!adminMode && <div className={`nav-item${page === 'forum' ? ' active' : ''}`} onClick={() => go('forum')}><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>}
 
-            <div className="nav-section-label sb-loyalty-section-label">اقترحنا لصديق</div>
-            <div className={`nav-item nav-item-loyalty${page === 'loyalty' ? ' active' : ''}`} onClick={() => go('loyalty')}><i className="fas fa-handshake-angle" /><span>اقترحنا لصديق</span><span className="nav-badge loyalty">10%</span></div>
+            {!adminMode && <>
+              <div className="nav-section-label sb-loyalty-section-label">اقترحنا لصديق</div>
+              <div className={`nav-item nav-item-loyalty${page === 'loyalty' ? ' active' : ''}`} onClick={() => go('loyalty')}><i className="fas fa-handshake-angle" /><span>اقترحنا لصديق</span><span className="nav-badge loyalty">10%</span></div>
+            </>}
 
             <div className="nav-section-label">الشركة</div>
             <div className={`nav-item${page === 'company' ? ' active' : ''}`} onClick={() => go('company')}><i className="fas fa-building-columns" /><span>صفحة الشركة</span></div>
 
-            <div className="nav-section-label">أخرى</div>
-            <div className={`nav-item${page === 'settings' ? ' active' : ''}`} onClick={() => go('settings')}><i className="fas fa-gear" /><span>الإعدادات</span></div>
+            {!adminMode && <>
+              <div className="nav-section-label">أخرى</div>
+              <div className={`nav-item${page === 'settings' ? ' active' : ''}`} onClick={() => go('settings')}><i className="fas fa-gear" /><span>الإعدادات</span></div>
+            </>}
           </nav>
 
           <div className="sb-user">
             <div className="sb-avatar">{client?.avatar_url ? <img src={client.avatar_url} alt={clientName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <span>{initial}</span>}</div>
-            <div className="sb-user-info"><strong>{clientName}</strong><span>عميل مميز</span></div>
-            <button className="sb-logout" title="تسجيل خروج" onClick={() => logout.mutate()}><i className="fas fa-arrow-right-from-bracket" /></button>
+            <div className="sb-user-info"><strong>{clientName}</strong><span>{adminMode ? 'عرض إداري' : 'عميل مميز'}</span></div>
+            {adminMode
+              ? <button className="sb-logout" title="عودة لسجل العملاء" onClick={() => navigate('/clients')}><i className="fas fa-arrow-right-from-bracket" /></button>
+              : <button className="sb-logout" title="تسجيل خروج" onClick={() => logout.mutate()}><i className="fas fa-arrow-right-from-bracket" /></button>}
           </div>
         </aside>
 
@@ -348,22 +378,38 @@ export function ClientPortalV2Page() {
               <div className="topbar-user-menu">
                 <button className="topbar-user-btn" onClick={() => setUserMenuOpen((o) => !o)}><div className="topbar-user-avatar">{client?.avatar_url ? <img src={client.avatar_url} alt={clientName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : initial}</div><span>{clientName.split(' ')[0]}</span><i className="fas fa-chevron-down" /></button>
                 <div className={`topbar-user-dropdown${userMenuOpen ? '' : ' hidden'}`}>
-                  {/* «صفحة الموقع الرئيسي» بدل «الملف الشخصي» (طلب أيمن، اجتماع 4): تعيد للموقع العام الذي سجّل منه الدخول */}
-                  <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); navigate('/'); }}><i className="fas fa-house" /> صفحة الموقع الرئيسي</a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); go('settings'); }}><i className="fas fa-gear" /> الإعدادات</a>
-                  <hr />
-                  <a href="#" className="danger" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); logout.mutate(); }}><i className="fas fa-arrow-right-from-bracket" /> تسجيل خروج</a>
+                  {adminMode ? (
+                    <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); navigate('/clients'); }}><i className="fas fa-arrow-right-from-bracket" /> العودة لسجل العملاء</a>
+                  ) : (
+                    <>
+                      {/* «صفحة الموقع الرئيسي» بدل «الملف الشخصي» (طلب أيمن، اجتماع 4): تعيد للموقع العام الذي سجّل منه الدخول */}
+                      <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); navigate('/'); }}><i className="fas fa-house" /> صفحة الموقع الرئيسي</a>
+                      <a href="#" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); go('settings'); }}><i className="fas fa-gear" /> الإعدادات</a>
+                      <hr />
+                      <a href="#" className="danger" onClick={(e) => { e.preventDefault(); setUserMenuOpen(false); logout.mutate(); }}><i className="fas fa-arrow-right-from-bracket" /> تسجيل خروج</a>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </header>
 
           <div className="content">
+            {/* شريط العرض الإداري — يوضّح أن الأدمن يرى بوابة العميل «كأنه العميل». */}
+            {adminMode && (
+              <div style={adminRibbon}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="fas fa-user-shield" />
+                  <span>عرض إداري — أنت ترى بوابة <b>{clientName}</b> كما يراها العميل. الإجراءات معطّلة، والإضافة الوحيدة تقييم الإدارة.</span>
+                </span>
+                <Link to="/clients" style={adminRibbonBtn}><i className="fas fa-arrow-right" /> سجل العملاء</Link>
+              </div>
+            )}
             <div className="page active">
               {page === 'requests' && <RequestsSection onNew={() => go('new-request')} />}
               {page === 'new-request' && <NewRequestSection projects={projects.map((p) => ({ id: p.id, name: p.name }))} onBack={() => go('requests')} />}
               {page === 'new-project-request' && <NewProjectRequestSection onBack={() => go('dashboard')} />}
-              {page === 'project-detail' && selectedProjectId != null && <ProjectDetailSection projectId={selectedProjectId} />}
+              {page === 'project-detail' && selectedProjectId != null && <ProjectDetailSection projectId={selectedProjectId} asContact={adminContactId} />}
               {page === 'notifications' && <NotificationsSection />}
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} onToast={showToast} />}
               {page === 'chat' && <ChatSection />}
@@ -406,8 +452,22 @@ export function ClientPortalV2Page() {
                 <Kpi icon="fa-calendar-check" cls="purple" value={String(upcomingAppts.length)} label="اجتماع قادم" trend={{ cls: 'neutral', icon: 'fa-clock', txt: upcomingAppts.length ? 'قريبًا' : '—' }} />
               </div>
 
-              {/* برنامج الولاء والإحالة — بطاقة الداشبورد: إحالة ثنائية واضحة + نقاطي.
-                  تحلّ لبس الفيديو: «شارك» = خصم لصديقك + نقاط لك · «استبدل نقاطي» = خصم لك. */}
+              {/* في العرض الإداري: بطاقة «تقييم الإدارة للعميل» مكان بطاقة الولاء (الإضافة الوحيدة). */}
+              {adminMode ? (
+                <div className="card" style={ratingCard}>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800 }}>⭐ تقييم الإدارة للعميل</h3>
+                  <p style={{ margin: '0 0 12px', fontSize: '12.5px', color: '#8A6D1B' }}>تقييم داخلي خاص بالفريق لا يظهر للعميل إطلاقًا.</p>
+                  <InternalRating
+                    rating={internal?.rating ?? 0}
+                    notes={internal?.notes ?? ''}
+                    busy={saveRating.isPending}
+                    readOnly={!canRate}
+                    onSave={canRate ? (r, n) => saveRating.mutate({ internal_rating: r, internal_notes: n }, { onSuccess: () => showToast('تم حفظ تقييم الإدارة ✓') }) : undefined}
+                  />
+                </div>
+              ) : (
+              /* برنامج الولاء والإحالة — بطاقة الداشبورد: إحالة ثنائية واضحة + نقاطي.
+                  تحلّ لبس الفيديو: «شارك» = خصم لصديقك + نقاط لك · «استبدل نقاطي» = خصم لك. */
               <div className="loyalty-section-featured">
                 <div className="loyalty-featured-card">
                   <div className="loyalty-featured-bg" />
@@ -435,6 +495,7 @@ export function ClientPortalV2Page() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* الشبكة */}
               <div className="dashboard-grid">
@@ -520,6 +581,10 @@ export function ClientPortalV2Page() {
     </div>
   );
 }
+
+const adminRibbon: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', background: 'linear-gradient(135deg,#7C3AED,#4F46E5)', color: '#fff', borderRadius: '12px', padding: '11px 16px', marginBottom: '16px', fontSize: '13px', fontWeight: 600, boxShadow: '0 4px 14px rgba(79,70,229,.25)' };
+const adminRibbonBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,.2)', color: '#fff', textDecoration: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: 700, whiteSpace: 'nowrap' };
+const ratingCard: CSSProperties = { padding: '18px 20px', marginBottom: '20px', border: '1px solid #FCD34D', background: 'linear-gradient(135deg, rgba(232,168,56,.06), rgba(232,168,56,.02))' };
 
 function Kpi({ icon, cls, value, label, trend }: { icon: string; cls: string; value: string; label: string; trend: { cls: string; icon: string; txt: string } }) {
   return (

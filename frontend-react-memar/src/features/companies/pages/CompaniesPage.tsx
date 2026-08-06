@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { CompaniesTable } from '../components/CompaniesTable';
 import { CompanyFormModal } from '../components/CompanyFormModal';
+import { CompanyDetailPage } from './CompanyDetailPage';
 import { useCompanies, useDeleteCompany } from '../hooks/useCompanies';
 import { COMPANY_TYPE_LABELS, type Company, type CompanyType } from '../types';
 
@@ -11,9 +12,15 @@ export function CompaniesPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const { data, isLoading, isError } = useCompanies({ search: search || undefined, type: type || undefined, page });
   const del = useDeleteCompany();
+
+  // فتح صفحة الشركة الكاملة (بنفس تصميم بوابة العميل + التقييم الداخلي).
+  if (selectedId !== null) {
+    return <CompanyDetailPage id={selectedId} onBack={() => setSelectedId(null)} />;
+  }
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (c: Company) => { setEditing(c); setModalOpen(true); };
@@ -47,7 +54,7 @@ export function CompaniesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الشركات.</p>}
-        {data && <CompaniesTable companies={data.data} onEdit={openEdit} onDelete={handleDelete} />}
+        {data && <CompaniesTable companies={data.data} onEdit={openEdit} onDelete={handleDelete} onOpen={(c) => setSelectedId(c.id)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

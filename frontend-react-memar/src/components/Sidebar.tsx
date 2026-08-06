@@ -119,13 +119,6 @@ export function Sidebar({ open, onNavigate }: Props) {
       </button>
       {editing && <div style={editHint}>حدِّد الروابط التي تريد إظهارها؛ أزِل التحديد لإخفائها.</div>}
 
-      {/* وضع المدير: يُخفي الروابط الاختيارية (الباهتة) تمامًا لعرض نظيف، أو يُظهرها. */}
-      {!editing && (
-        <button type="button" onClick={toggleHideOptional} style={{ ...managerBtn, ...(hideOptional ? managerOn : null) }} title="إخفاء/إظهار الروابط الاختيارية الباهتة">
-          {hideOptional ? '👁️ إظهار كل الروابط' : '🎯 وضع المدير — إخفاء الاختيارية'}
-        </button>
-      )}
-
       <nav id="sidebar-nav">
         {sections.map((section) => {
           // في وضع المدير (خارج التحرير) نستبعد الروابط الباهتة كليًّا، ونُخفي القسم إن فرغ.
@@ -177,13 +170,21 @@ export function Sidebar({ open, onNavigate }: Props) {
           );
         })}
       </nav>
+
+      {/* وضع المدير — آخر عنصر في السايدبار: يُخفي الروابط الاختيارية (الباهتة) لعرض نظيف، أو يُظهرها. */}
+      {!editing && (
+        <button type="button" onClick={toggleHideOptional} style={{ ...managerBtn, ...(hideOptional ? managerOn : null) }} title="إخفاء/إظهار الروابط الاختيارية الباهتة">
+          {hideOptional ? '👁️ إظهار كل الروابط' : '🎯 وضع المدير — إخفاء الاختيارية'}
+        </button>
+      )}
     </aside>
   );
 }
 
 const customizeBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '4px 12px 8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F0F4F8', color: '#274A78', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, textAlign: 'center' };
 const customizeOn: CSSProperties = { background: '#2D9B6F', borderColor: '#2D9B6F', color: '#fff' };
-const managerBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '0 12px 10px', padding: '7px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center' };
+// margin-top:auto يدفعه لأسفل السايدبار (حاوية flex عمودية)، مع فاصل علوي وحد أدنى للمسافة.
+const managerBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: 'auto 12px 10px', marginTop: 'auto', padding: '7px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center', flexShrink: 0 };
 const managerOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
 const editHint: CSSProperties = { margin: '0 12px 8px', fontSize: '10.5px', color: '#64748B', lineHeight: 1.6, textAlign: 'center' };
 const editRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer', color: '#334155', fontSize: '13px' };

@@ -1,5 +1,7 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
+import { useUsers } from '../../users/hooks/useUsers';
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveRequest } from '../hooks/useRequests';
 import {
@@ -13,12 +15,15 @@ interface Props {
 }
 
 const empty: ServiceRequestFormData = {
-  title: '', type: 'inquiry', client_name: '', contact_phone: '', priority: 'normal', status: 'open', description: '',
+  title: '', type: 'inquiry', client_name: '', contact_phone: '', priority: 'normal', status: 'open', description: '', assigned_to: null,
 };
 
 export function ServiceRequestFormModal({ request, onClose }: Props) {
   const save = useSaveRequest();
   const [form, setForm] = useState<ServiceRequestFormData>(empty);
+  // قائمة الموظفين للإسناد — تُجلب فقط لمن يملك صلاحية عرض المستخدمين.
+  const canViewUsers = usePermission('users.view');
+  const { data: usersData } = useUsers({ per_page: 100 }, canViewUsers);
 
   useEffect(() => {
     if (request) {
@@ -30,6 +35,7 @@ export function ServiceRequestFormModal({ request, onClose }: Props) {
         priority: request.priority,
         status: request.status,
         description: request.description ?? '',
+        assigned_to: request.assigned_to ?? null,
       });
     } else {
       setForm(empty);
@@ -69,11 +75,21 @@ export function ServiceRequestFormModal({ request, onClose }: Props) {
             <input className="input" style={input} value={form.contact_phone} onChange={(e) => set('contact_phone', e.target.value)} dir="ltr" />
           </label>
         </div>
-        <label style={label}>الحالة
-          <select className="input" style={input} value={form.status} onChange={(e) => set('status', e.target.value as RequestStatus)}>
-            {(Object.keys(STATUS_LABELS) as RequestStatus[]).map((k) => <option key={k} value={k}>{STATUS_LABELS[k]}</option>)}
-          </select>
-        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: canViewUsers ? '1fr 1fr' : '1fr', gap: '10px' }}>
+          <label style={label}>الحالة
+            <select className="input" style={input} value={form.status} onChange={(e) => set('status', e.target.value as RequestStatus)}>
+              {(Object.keys(STATUS_LABELS) as RequestStatus[]).map((k) => <option key={k} value={k}>{STATUS_LABELS[k]}</option>)}
+            </select>
+          </label>
+          {canViewUsers && (
+            <label style={label}>المسؤول (إسناد لموظف)
+              <select className="input" style={input} value={form.assigned_to ?? ''} onChange={(e) => set('assigned_to', e.target.value ? Number(e.target.value) : null)}>
+                <option value="">— غير مُسنَد —</option>
+                {usersData?.data.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
         <label style={label}>التفاصيل
           <textarea className="input" style={{ ...input, minHeight: '60px' }} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </label>

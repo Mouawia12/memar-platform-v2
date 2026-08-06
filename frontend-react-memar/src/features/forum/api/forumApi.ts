@@ -1,7 +1,11 @@
 import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
+import type { BoardThread } from '../components/ForumBoard';
 import type { ForumCategory, ForumTopic } from '../types';
 
 export const forumApi = {
+  // لوحة المنتدى الموحّدة (نفس تصميم بوابة العميل، جدول مشترك)
+  board: () => apiGet<BoardThread[]>('/forum/board'),
+  createBoardTopic: (title: string, body: string) => apiPost<{ id: number }>('/forum/board', { title, body }),
   categories: () => apiGet<ForumCategory[]>('/forum/categories'),
   topics: (params: { category_id?: number; search?: string; page?: number }) => apiGetPaginated<ForumTopic>('/forum/topics', { params }),
   topic: (id: number) => apiGet<ForumTopic>(`/forum/topics/${id}`),

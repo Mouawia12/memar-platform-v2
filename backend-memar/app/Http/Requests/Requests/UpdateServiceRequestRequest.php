@@ -27,6 +27,7 @@ class UpdateServiceRequestRequest extends FormRequest
             'priority' => ['sometimes', 'required', Rule::in(['low', 'normal', 'high', 'urgent'])],
             'status' => ['sometimes', 'required', Rule::in(['open', 'in_progress', 'resolved', 'closed'])],
             'description' => ['nullable', 'string'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 }

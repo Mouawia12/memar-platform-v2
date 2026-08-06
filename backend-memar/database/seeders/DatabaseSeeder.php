@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             HeroSlidesSeeder::class,      // شرائح كاروسيل الصفحة الرئيسية
             JobOpeningsSeeder::class,     // الوظائف المعروضة في صفحة /jobs
             EmployeesSeeder::class,       // فريق معمار (HR) — بيانات موظفين حقيقية
+            ServiceRequestsSeeder::class, // الطلبات الواردة الثابتة (/requests) + إسناد لمهندسين
         ]);
     }
 }

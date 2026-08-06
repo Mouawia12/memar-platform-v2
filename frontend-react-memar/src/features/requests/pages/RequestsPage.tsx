@@ -61,6 +61,7 @@ export function RequestsPage() {
                   <th style={th}>العميل</th>
                   <th style={th}>الأولوية</th>
                   <th style={th}>الحالة</th>
+                  <th style={th}>المسؤول</th>
                   <th style={th}>إجراءات</th>
                 </tr>
               </thead>
@@ -75,13 +76,14 @@ export function RequestsPage() {
                     </td>
                     <td style={td}><span style={{ ...badge, background: `${PRIORITY_COLORS[r.priority]}1a`, color: PRIORITY_COLORS[r.priority] }}>{PRIORITY_LABELS[r.priority]}</span></td>
                     <td style={td}><span style={{ ...badge, background: `${STATUS_COLORS[r.status]}1a`, color: STATUS_COLORS[r.status] }}>{STATUS_LABELS[r.status]}</span></td>
+                    <td style={td}>{r.assignee ? r.assignee.name : <span style={{ opacity: 0.5 }}>— غير مُسنَد —</span>}</td>
                     <td style={{ ...td, whiteSpace: 'nowrap' }}>
                       <button className="btn btn-sm" onClick={() => openEdit(r)} type="button">تعديل</button>{' '}
                       <button className="btn btn-sm" onClick={() => handleDelete(r)} type="button" style={{ color: '#ef4444' }}>حذف</button>
                     </td>
                   </tr>
                 ))}
-                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={6}>لا توجد طلبات.</td></tr>}
+                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={7}>لا توجد طلبات.</td></tr>}
               </tbody>
             </table>
           </div>

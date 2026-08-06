@@ -18,12 +18,18 @@ class ServiceRequest extends Model
 
     protected $fillable = [
         'title', 'type', 'client_name', 'contact_phone',
-        'priority', 'status', 'description', 'requested_by', 'project_id',
+        'priority', 'status', 'description', 'requested_by', 'assigned_to', 'project_id',
     ];
 
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /** الموظف المُسنَد إليه الطلب (يراه صاحب الإسناد إلى جانب الأدمن). */
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     /** المشروع المرتبط بالطلب (لطلبات التعديل/الإضافة على مشروع قائم). */
@@ -41,7 +47,7 @@ class ServiceRequest extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['title', 'type', 'status', 'priority'])
+            ->logOnly(['title', 'type', 'status', 'priority', 'assigned_to'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

@@ -1,15 +1,19 @@
 import { type CSSProperties, useState } from 'react';
 
+import { LiveChatPanel } from '../../liveChat/LiveChatPanel';
+import { useChatUnread } from '../../liveChat/useLiveChat';
 import { CommunicationFormModal } from '../components/CommunicationFormModal';
 import { useCommunications, useDeleteCommunication } from '../hooks/useCommunications';
 import { CHANNEL_ICONS, CHANNEL_LABELS, CONTACT_TYPE_LABELS, DIRECTION_LABELS, type Channel, type Communication, type ContactType } from '../types';
 
 type ChannelFilter = '' | Channel;
+type View = 'log' | 'chat';
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
 const waLink = (phone: string) => `https://wa.me/${phone.replace(/[^0-9]/g, '')}`;
 
 export function CommunicationsPage() {
+  const [view, setView] = useState<View>('log');
   const [search, setSearch] = useState('');
   const [channel, setChannel] = useState<ChannelFilter>('');
   const [contactType, setContactType] = useState<'' | ContactType>('');
@@ -19,6 +23,8 @@ export function CommunicationsPage() {
 
   const { data, isLoading, isError } = useCommunications({ search: search || undefined, channel: channel || undefined, contact_type: contactType || undefined, page });
   const del = useDeleteCommunication();
+  const { data: unread } = useChatUnread();
+  const chatBadge = (unread?.internal ?? 0) + (unread?.client_awaiting ?? 0);
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (c: Communication) => { setEditing(c); setModalOpen(true); };
@@ -30,10 +36,22 @@ export function CommunicationsPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>التواصل مع العملاء</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ تسجيل تواصل</button>
+        <h1 style={{ margin: 0 }}>التواصل</h1>
+        {view === 'log' && <button className="btn btn-primary" onClick={openCreate} type="button">+ تسجيل تواصل</button>}
       </div>
 
+      {/* مبدّل العرض: سجل التواصل / الشات المباشر */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => setView('log')} style={{ ...viewTab, ...(view === 'log' ? viewTabOn : null) }}>📋 سجل التواصل</button>
+        <button type="button" onClick={() => setView('chat')} style={{ ...viewTab, ...(view === 'chat' ? viewTabOn : null) }}>
+          💬 الشات المباشر
+          {chatBadge > 0 && <span style={chatBadgeStyle}>{chatBadge}</span>}
+        </button>
+      </div>
+
+      {view === 'chat' && <LiveChatPanel />}
+
+      {view === 'log' && (
       <div className="card" style={{ padding: '16px' }}>
         {/* فلتر نوع الجهة (بند 36): موظفين / عملاء / شركات */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -103,6 +121,7 @@ export function CommunicationsPage() {
           </div>
         )}
       </div>
+      )}
 
       {modalOpen && <CommunicationFormModal communication={editing} onClose={() => setModalOpen(false)} />}
     </div>
@@ -115,3 +134,6 @@ const badge: CSSProperties = { display: 'inline-block', padding: '2px 10px', bor
 const typeTab: CSSProperties = { padding: '6px 16px', borderRadius: '999px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700 };
 const typeTabOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
 const typeChip: CSSProperties = { fontSize: '10.5px', fontWeight: 700, color: '#7C3AED', background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.15)', borderRadius: '999px', padding: '1px 8px', marginInlineStart: '4px' };
+const viewTab: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 20px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 700 };
+const viewTabOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
+const chatBadgeStyle: CSSProperties = { background: '#DC4A3D', color: '#fff', borderRadius: '999px', minWidth: '20px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, padding: '0 6px' };

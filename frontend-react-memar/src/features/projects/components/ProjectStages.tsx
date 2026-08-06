@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
-import { useAddStage, useAddStageComment, useAdvanceStage, useRemoveStage, useSeedStages, useStageDetail } from '../hooks/useProjectStages';
+import { useActivateStage, useAddStage, useAddStageComment, useAdvanceStage, useRemoveStage, useSeedStages, useStageDetail } from '../hooks/useProjectStages';
 import { STAGE_STATUS_LABELS, type ProjectStage, type StageStatus } from '../types';
 
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
@@ -30,6 +30,7 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
   const advance = useAdvanceStage(projectId);
   const remove = useRemoveStage(projectId);
   const addStage = useAddStage(projectId);
+  const activate = useActivateStage(projectId);
 
   // ترتيب حسب position لضمان التدفّق الصحيح (الأقدم يمينًا في RTL).
   const ordered = useMemo(() => [...stages].sort((a, b) => a.position - b.position), [stages]);
@@ -48,9 +49,10 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
   const submitNewStage = () => {
     const name = newName.trim();
     if (name.length < 2) return;
+    // تُدرَج بعد المرحلة المختارة (التي يقف عليها المستخدم)؛ وإن لا تحديد تُلحَق في النهاية.
     addStage.mutate(
-      { name, expected_days: newDays ? Number(newDays) : null },
-      { onSuccess: () => { setNewName(''); setNewDays(''); setAdding(false); } },
+      { name, expected_days: newDays ? Number(newDays) : null, after_stage_id: selectedId ?? null },
+      { onSuccess: (created) => { setNewName(''); setNewDays(''); setAdding(false); setSelectedId(created.id); } },
     );
   };
 
@@ -141,24 +143,34 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
               total={ordered.length}
               nextName={ordered.find((s) => s.status === 'pending' && s.position > selected.position)?.name ?? null}
               canManage={canManage}
+              canStart={canManage && !activeStage && selected.status === 'pending'}
               advancing={advance.isPending}
+              starting={activate.isPending}
               onAdvance={() => advance.mutate(selected.id)}
+              onStart={() => activate.mutate(selected.id)}
               onRemove={() => { if (confirm(`حذف المرحلة "${selected.name}"؟`)) remove.mutate(selected.id, { onSuccess: () => setSelectedId(activeStage?.id ?? null) }); }}
             />
           )}
 
-          {/* إضافة مرحلة */}
+          {/* إضافة مرحلة — تُدرَج بعد المرحلة المختارة (التي يقف عليها المستخدم) */}
           {canManage && (
             <div style={{ marginTop: '14px' }}>
               {adding ? (
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <input className="input" placeholder="اسم المرحلة" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '160px' }} autoFocus />
-                  <input className="input" placeholder="أيام متوقعة" type="number" min={0} value={newDays} onChange={(e) => setNewDays(e.target.value)} style={{ width: '120px' }} />
-                  <button className="btn btn-primary btn-sm" type="button" disabled={addStage.isPending || newName.trim().length < 2} onClick={submitNewStage}>حفظ</button>
-                  <button className="btn btn-sm" type="button" onClick={() => { setAdding(false); setNewName(''); setNewDays(''); }}>إلغاء</button>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#5A6478', marginBottom: '8px' }}>
+                    {selected ? <>ستُضاف بعد <b style={{ color: '#1B6CA8' }}>«{selected.name}»</b>.</> : <>ستُضاف في نهاية القائمة.</>}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input className="input" placeholder="اسم المرحلة" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '160px' }} autoFocus />
+                    <input className="input" placeholder="أيام متوقعة" type="number" min={0} value={newDays} onChange={(e) => setNewDays(e.target.value)} style={{ width: '120px' }} />
+                    <button className="btn btn-primary btn-sm" type="button" disabled={addStage.isPending || newName.trim().length < 2} onClick={submitNewStage}>حفظ</button>
+                    <button className="btn btn-sm" type="button" onClick={() => { setAdding(false); setNewName(''); setNewDays(''); }}>إلغاء</button>
+                  </div>
                 </div>
               ) : (
-                <button className="btn btn-sm" type="button" onClick={() => setAdding(true)}>+ إضافة مرحلة</button>
+                <button className="btn btn-sm" type="button" onClick={() => setAdding(true)}>
+                  {selected ? `+ إضافة مرحلة بعد «${selected.name}»` : '+ إضافة مرحلة'}
+                </button>
               )}
             </div>
           )}
@@ -169,15 +181,18 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
 }
 
 /** لوحة تفاصيل المرحلة المختارة: عنوان + حالة + تواريخ + إجراءات + نقاش المرحلة. */
-function StagePanel({ projectId, stage, index, total, nextName, canManage, advancing, onAdvance, onRemove }: {
+function StagePanel({ projectId, stage, index, total, nextName, canManage, canStart, advancing, starting, onAdvance, onStart, onRemove }: {
   projectId: number;
   stage: ProjectStage;
   index: number;
   total: number;
   nextName: string | null;
   canManage: boolean;
+  canStart: boolean;
   advancing: boolean;
+  starting: boolean;
   onAdvance: () => void;
+  onStart: () => void;
   onRemove: () => void;
 }) {
   const pal = PALETTE[stage.status];
@@ -207,6 +222,11 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, advan
                 {advancing ? '…' : 'إنهاء وتقديم ←'}
               </button>
             )}
+            {canStart && (
+              <button className="btn btn-primary" type="button" disabled={starting} onClick={onStart}>
+                {starting ? '…' : '▶ بدء المرحلة'}
+              </button>
+            )}
             {stage.status === 'pending' && (
               <button className="btn btn-sm" type="button" onClick={onRemove} style={{ color: '#DC2626' }}>🗑 حذف</button>
             )}
@@ -221,8 +241,10 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, advan
         </div>
       )}
       {stage.status === 'pending' && (
-        <div style={{ ...advanceHint, background: '#fff', borderColor: pal.border, color: '#8A93A3' }}>
-          <span>⏳ مرحلة قادمة — تبدأ تلقائيًا عند إتمام المرحلة التي قبلها.</span>
+        <div style={{ ...advanceHint, background: '#fff', borderColor: pal.border, color: canStart ? '#1B6CA8' : '#8A93A3' }}>
+          <span>{canStart
+            ? <>▶ لا توجد مرحلة جارية حاليًا — اضغط <b>«بدء المرحلة»</b> لتفعيل هذه المرحلة والبدء بها.</>
+            : <>⏳ مرحلة قادمة — تبدأ تلقائيًا عند إتمام المرحلة الجارية التي قبلها.</>}</span>
         </div>
       )}
 

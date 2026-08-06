@@ -34,7 +34,7 @@ export function useAddStage(projectId: number) {
   const invalidate = useInvalidateOverview(projectId);
 
   return useMutation({
-    mutationFn: (payload: { name: string; expected_days?: number | null }) => projectsApi.addStage(projectId, payload),
+    mutationFn: (payload: { name: string; expected_days?: number | null; after_stage_id?: number | null }) => projectsApi.addStage(projectId, payload),
     onSuccess: invalidate,
   });
 }
@@ -44,6 +44,16 @@ export function useAdvanceStage(projectId: number) {
 
   return useMutation({
     mutationFn: (stageId: number) => projectsApi.advanceStage(projectId, stageId),
+    onSuccess: invalidate,
+  });
+}
+
+/** بدء مرحلة منتظرة (تصبح «جارية») — لحلّ حالة عدم وجود مرحلة جارية. */
+export function useActivateStage(projectId: number) {
+  const invalidate = useInvalidateOverview(projectId);
+
+  return useMutation({
+    mutationFn: (stageId: number) => projectsApi.activateStage(projectId, stageId),
     onSuccess: invalidate,
   });
 }

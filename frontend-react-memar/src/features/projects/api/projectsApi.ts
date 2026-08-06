@@ -31,12 +31,14 @@ export const projectsApi = {
   stages: (projectId: number) => apiGet<ProjectStage[]>(`/projects/${projectId}/stages`),
   stage: (projectId: number, stageId: number) => apiGet<ProjectStage>(`/projects/${projectId}/stages/${stageId}`),
   seedStages: (projectId: number) => apiPost<ProjectStage[]>(`/projects/${projectId}/stages/seed-defaults`, {}),
-  addStage: (projectId: number, payload: { name: string; expected_days?: number | null }) =>
+  addStage: (projectId: number, payload: { name: string; expected_days?: number | null; after_stage_id?: number | null }) =>
     apiPost<ProjectStage>(`/projects/${projectId}/stages`, payload),
   updateStage: (projectId: number, stageId: number, payload: { name?: string; expected_days?: number | null }) =>
     apiPatch<ProjectStage>(`/projects/${projectId}/stages/${stageId}`, payload),
   advanceStage: (projectId: number, stageId: number) =>
     apiPost<ProjectStage>(`/projects/${projectId}/stages/${stageId}/advance`, {}),
+  activateStage: (projectId: number, stageId: number) =>
+    apiPost<ProjectStage>(`/projects/${projectId}/stages/${stageId}/activate`, {}),
   removeStage: (projectId: number, stageId: number) => apiDelete<null>(`/projects/${projectId}/stages/${stageId}`),
   addStageComment: (projectId: number, stageId: number, body: string) =>
     apiPost<StageComment>(`/projects/${projectId}/stages/${stageId}/comments`, { body }),

@@ -55,18 +55,48 @@ class ProjectStageService
     }
 
     /**
-     * @param  array{name: string, expected_days?: int|null}  $data
+     * يضيف مرحلة جديدة. إن مُرّر after_stage_id (وينتمي للمشروع) تُدرَج المرحلة
+     * مباشرةً بعده مع إزاحة ترتيب ما يليها؛ وإلا تُلحَق في نهاية المراحل.
+     *
+     * @param  array{name: string, expected_days?: int|null, after_stage_id?: int|null}  $data
      */
     public function add(Project $project, array $data): ProjectStage
     {
-        $position = (int) $project->stages()->max('position');
+        return DB::transaction(function () use ($project, $data): ProjectStage {
+            $after = null;
+            if (! empty($data['after_stage_id'])) {
+                $after = $project->stages()->whereKey($data['after_stage_id'])->first();
+            }
 
-        return $project->stages()->create([
-            'name' => $data['name'],
-            'expected_days' => $data['expected_days'] ?? null,
-            'position' => $project->stages()->exists() ? $position + 1 : 0,
-            'status' => 'pending',
-        ]);
+            if ($after) {
+                // إدراج بعد المرحلة المحدّدة: إزاحة كل ما ترتيبه أكبر منها لإفساح مكان.
+                $newPosition = $after->position + 1;
+                $project->stages()->where('position', '>=', $newPosition)->increment('position');
+            } else {
+                $newPosition = $project->stages()->exists() ? (int) $project->stages()->max('position') + 1 : 0;
+            }
+
+            return $project->stages()->create([
+                'name' => $data['name'],
+                'expected_days' => $data['expected_days'] ?? null,
+                'position' => $newPosition,
+                'status' => 'pending',
+            ]);
+        });
+    }
+
+    /**
+     * يُفعّل مرحلة منتظرة (يجعلها «جارية») — يحلّ مأزق عدم وجود مرحلة جارية
+     * (مثلًا بعد اكتمال كل المراحل ثم إضافة مرحلة). يفترض المستدعي عدم وجود مرحلة جارية أخرى.
+     */
+    public function activate(ProjectStage $stage): ProjectStage
+    {
+        $stage->status = 'active';
+        $stage->started_at = $stage->started_at ?? now();
+        $stage->completed_at = null;
+        $stage->save();
+
+        return $stage->refresh();
     }
 
     /**

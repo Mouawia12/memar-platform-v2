@@ -68,6 +68,23 @@ class ProjectStageController extends ApiController
         return $this->ok(new ProjectStageResource($stage), 'تم تقديم المشروع للمرحلة التالية');
     }
 
+    /** بدء مرحلة منتظرة (تصبح «جارية») — يُسمح به فقط إن لم توجد مرحلة جارية أخرى. */
+    public function activate(Project $project, ProjectStage $stage): JsonResponse
+    {
+        if ($stage->status !== 'pending') {
+            return $this->fail('لا يمكن بدء إلا مرحلة منتظرة.', 422);
+        }
+
+        $activeExists = $project->stages()->where('status', 'active')->where('id', '!=', $stage->id)->exists();
+        if ($activeExists) {
+            return $this->fail('هناك مرحلة جارية بالفعل — أنهِها أولًا قبل بدء مرحلة أخرى.', 422);
+        }
+
+        $stage = $this->stages->activate($stage);
+
+        return $this->ok(new ProjectStageResource($stage), 'تم بدء المرحلة');
+    }
+
     public function destroy(Project $project, ProjectStage $stage): JsonResponse
     {
         $this->stages->delete($stage);

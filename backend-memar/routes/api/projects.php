@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/projects/{project}/stages', [ProjectStageController::class, 'store'])->middleware('permission:projects.manage');
         Route::match(['put', 'patch'], '/projects/{project}/stages/{stage}', [ProjectStageController::class, 'update'])->middleware('permission:projects.manage');
         Route::post('/projects/{project}/stages/{stage}/advance', [ProjectStageController::class, 'advance'])->middleware('permission:projects.manage');
+        Route::post('/projects/{project}/stages/{stage}/activate', [ProjectStageController::class, 'activate'])->middleware('permission:projects.manage');
         Route::delete('/projects/{project}/stages/{stage}', [ProjectStageController::class, 'destroy'])->middleware('permission:projects.manage');
         // المحادثة متاحة لكل من يطّلع على المشروع (تعاون الفريق).
         Route::post('/projects/{project}/stages/{stage}/comments', [ProjectStageController::class, 'addComment'])->middleware('permission:projects.view');

@@ -147,4 +147,66 @@ class ProjectStagesTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('name');
     }
+
+    public function test_add_stage_after_a_given_stage_inserts_and_reindexes(): void
+    {
+        $this->actingAsUserWith([self::VIEW, self::MANAGE]);
+        $project = Project::factory()->create();
+        $this->postJson("/api/v1/projects/{$project->id}/stages/seed-defaults");
+        // الإدراج بعد المرحلة الثانية (position=1) → المرحلة الجديدة تأخذ position=2
+        $after = $project->stages()->orderBy('position')->skip(1)->first();
+        $originalThird = $project->stages()->where('position', 2)->first();
+
+        $res = $this->postJson("/api/v1/projects/{$project->id}/stages", [
+            'name' => 'مراجعة مع العميل',
+            'expected_days' => 5,
+            'after_stage_id' => $after->id,
+        ]);
+
+        $res->assertCreated()
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.position', 2);
+        // ما بعد نقطة الإدراج أُزيح: المرحلة الثالثة الأصلية صارت position=3
+        $this->assertSame(3, $originalThird->refresh()->position);
+        $this->assertSame(8, $project->stages()->count());
+        // لا تكرار في الترتيب
+        $this->assertSame(8, $project->stages()->distinct()->count('position'));
+    }
+
+    public function test_activate_starts_a_pending_stage_when_none_active(): void
+    {
+        $this->actingAsUserWith([self::VIEW, self::MANAGE]);
+        $project = Project::factory()->create();
+        // كل المراحل منتهية (لا جارية) ثم مرحلة منتظرة مضافة — سيناريو المأزق
+        ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'أولى', 'status' => 'done', 'position' => 0]);
+        $pending = ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'جديدة', 'status' => 'pending', 'position' => 1]);
+
+        $res = $this->postJson("/api/v1/projects/{$project->id}/stages/{$pending->id}/activate");
+
+        $res->assertOk()->assertJsonPath('data.status', 'active');
+        $pending->refresh();
+        $this->assertNotNull($pending->started_at);
+    }
+
+    public function test_activate_is_rejected_when_another_stage_is_active(): void
+    {
+        $this->actingAsUserWith([self::VIEW, self::MANAGE]);
+        $project = Project::factory()->create();
+        ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'جارية', 'status' => 'active', 'position' => 0, 'started_at' => now()]);
+        $pending = ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'منتظرة', 'status' => 'pending', 'position' => 1]);
+
+        $this->postJson("/api/v1/projects/{$project->id}/stages/{$pending->id}/activate")
+            ->assertStatus(422);
+        $this->assertSame('pending', $pending->refresh()->status);
+    }
+
+    public function test_activate_requires_manage_permission(): void
+    {
+        $this->actingAsUserWith([self::VIEW]); // عرض فقط
+        $project = Project::factory()->create();
+        $pending = ProjectStage::query()->create(['project_id' => $project->id, 'name' => 'x', 'status' => 'pending', 'position' => 0]);
+
+        $this->postJson("/api/v1/projects/{$project->id}/stages/{$pending->id}/activate")
+            ->assertForbidden();
+    }
 }

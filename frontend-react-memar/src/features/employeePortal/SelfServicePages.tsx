@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiErrorMessage } from '../../lib/api';
@@ -414,6 +414,25 @@ export function ProfileEp() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // الصورة الشخصية — رفع/حذف.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const onPickAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { setProfileMsg({ ok: false, text: 'حجم الصورة يجب أن يكون أقل من 3 ميجابايت.' }); return; }
+    setUploadingAvatar(true); setProfileMsg(null);
+    authApi.uploadAvatar(file)
+      .then((updated) => { setUser(updated); setProfileMsg({ ok: true, text: '✓ تم تحديث الصورة الشخصية' }); })
+      .catch(() => setProfileMsg({ ok: false, text: 'تعذّر رفع الصورة — جرّب JPG أو PNG أصغر.' }))
+      .finally(() => setUploadingAvatar(false));
+  };
+  const removeAvatar = () => {
+    setUploadingAvatar(true);
+    authApi.deleteAvatar().then((updated) => setUser(updated)).catch(() => {}).finally(() => setUploadingAvatar(false));
+  };
+
   // تغيير كلمة المرور.
   const [curPw, setCurPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -461,6 +480,25 @@ export function ProfileEp() {
         <div className="ep-card">
           <div className="ep-card-header"><div className="ep-card-title">📋 البيانات الشخصية</div></div>
           <div className="ep-card-body">
+            {/* الصورة الشخصية — رفع/تغيير/حذف */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+              <div
+                onClick={() => !uploadingAvatar && fileRef.current?.click()}
+                title="انقر لتغيير صورتك"
+                style={{ position: 'relative', width: 72, height: 72, borderRadius: '50%', cursor: uploadingAvatar ? 'wait' : 'pointer', flexShrink: 0 }}
+              >
+                {user?.avatar_url
+                  ? <img src={user.avatar_url} alt={user.name} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '3px solid #1B6CA8' }} />
+                  : <div style={{ width: 72, height: 72, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg,#274A78,#1B6CA8)', color: '#fff', fontSize: 26, fontWeight: 800, border: '3px solid #1B6CA8' }}>{(user?.name ?? 'م').trim().charAt(0)}</div>}
+                <span style={{ position: 'absolute', insetInlineStart: -2, bottom: -2, width: 24, height: 24, borderRadius: '50%', background: '#E8A838', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 11, border: '2px solid #fff' }}>{uploadingAvatar ? '…' : '📷'}</span>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPickAvatar} style={{ display: 'none' }} />
+              </div>
+              <div>
+                <button className="ep-btn ep-btn-xs ep-btn-outline" disabled={uploadingAvatar} onClick={() => fileRef.current?.click()}>⬆️ تغيير الصورة</button>
+                {user?.avatar_url && <button className="ep-btn ep-btn-xs ep-btn-outline" disabled={uploadingAvatar} onClick={removeAvatar} style={{ marginInlineStart: 8, color: '#DC4A3D' }}>إزالة</button>}
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: '#94A3B8' }}>JPG أو PNG · أقل من 3 ميجابايت</p>
+              </div>
+            </div>
             <div className="ep-profile-form">
               <div className="ep-form-group"><label>الاسم الكامل</label><input type="text" className="ep-form-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
               <div className="ep-form-group"><label>البريد الإلكتروني (غير قابل للتعديل)</label><input type="email" className="ep-form-input" value={user?.email ?? ''} disabled /></div>

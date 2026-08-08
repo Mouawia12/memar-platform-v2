@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../store/auth';
 import { useLiveSync } from '../../hooks/useLiveSync';
+import { SidebarUserCard } from '../../components/SidebarUserCard';
 import { ROLE_AR } from './SelfServicePages';
 import { ForumPage } from '../forum/pages/ForumPage';
 import { LiveChatPanel } from '../liveChat/LiveChatPanel';
@@ -141,6 +142,10 @@ export function EmployeePortalPage() {
           </div>
         </div>
 
+        {/* كرت هوية الموظف الغني (طبق أصل كرت العميل): صورة قابلة للرفع + اسم + مسمّى +
+            رقم حساب + وسوم + كود إحالة — يقرأ المستخدم الحالي. طلب أيمن 2026-08-09. */}
+        <SidebarUserCard />
+
         <nav className="ep-sb-nav">
           <div className="ep-sb-section-label">القائمة الرئيسية</div>
           {/* نظرة عامة — عنصر مفرد أعلى القائمة */}
@@ -177,15 +182,6 @@ export function EmployeePortalPage() {
           ))}
         </nav>
 
-        <div className="ep-sb-footer">
-          <div className="ep-sb-user">
-            <div className="ep-sb-user-avatar">{userInitials}</div>
-            <div className="ep-sb-user-info">
-              <div className="ep-sb-user-name">{userName}</div>
-              <div className="ep-sb-user-role">{userRole}</div>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* ═══ TOPBAR ═══ */}

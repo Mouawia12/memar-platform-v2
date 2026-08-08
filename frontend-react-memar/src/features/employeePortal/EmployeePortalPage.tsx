@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
+import { ForumPage } from '../forum/pages/ForumPage';
+import { LiveChatPanel } from '../liveChat/LiveChatPanel';
+import { MeetingsPage } from '../appointments/pages/MeetingsPage';
 import './employeePortal.css';
 
 /**
@@ -36,6 +39,7 @@ const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
   {
     id: 'g-comm', icon: '💬', title: 'التواصل',
     links: [
+      { id: 'ep-meetings', icon: '📹', text: 'الاجتماعات' },
       { id: 'ep-chat', icon: '💬', text: 'المحادثات', badge: '3' },
       { id: 'ep-forum', icon: '🗨️', text: 'المنتدى' },
       { id: 'ep-notifications', icon: '🔔', text: 'الإشعارات', badge: '2', badgeRed: true },
@@ -57,6 +61,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   'ep-salary': { title: '💰 كشف الراتب', subtitle: 'تفاصيل راتبك الشهري' },
   'ep-reports': { title: '📝 التقارير اليومية', subtitle: 'ارفع تقريرك اليومي' },
   'ep-documents': { title: '📄 المستندات', subtitle: 'مستنداتك ووثائقك' },
+  'ep-meetings': { title: '📹 الاجتماعات', subtitle: 'اجتماعاتك ومواعيدك' },
   'ep-chat': { title: '💬 المحادثات', subtitle: 'تواصل مع الفريق' },
   'ep-forum': { title: '🗨️ المنتدى', subtitle: 'نقاشات الفريق الداخلية' },
   'ep-notifications': { title: '🔔 الإشعارات', subtitle: 'كل إشعاراتك' },
@@ -164,7 +169,11 @@ export function EmployeePortalPage() {
 
       {/* ═══ MAIN ═══ */}
       <main className="ep-main">
-        {active === 'ep-dashboard' ? <Dashboard onGo={go} /> : <ComingSoon page={active} />}
+        {active === 'ep-dashboard' ? <Dashboard onGo={go} />
+          : active === 'ep-forum' ? <SharedPage title="🗨️ المنتدى" subtitle="منتدى واحد لكل فريق ومستخدمي معمار"><ForumPage /></SharedPage>
+          : active === 'ep-chat' ? <SharedPage title="💬 المحادثات" subtitle="تواصل مباشر مع الفريق والإدارة"><LiveChatPanel /></SharedPage>
+          : active === 'ep-meetings' ? <SharedPage title="📹 الاجتماعات" subtitle="اجتماعاتك ومواعيدك"><MeetingsPage /></SharedPage>
+          : <ComingSoon page={active} />}
       </main>
     </div>
   );
@@ -315,6 +324,18 @@ function Dashboard({ onGo }: { onGo: (id: string) => void }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** غلاف صفحة مشتركة (تُنقل كما هي، مثل المنتدى) داخل بوابة الموظف — بترويسة موحّدة. */
+function SharedPage({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  return (
+    <div className="ep-page ep-active">
+      <div className="ep-page-header">
+        <div><h1 className="ep-page-title">{title}</h1>{subtitle && <p className="ep-page-subtitle">{subtitle}</p>}</div>
+      </div>
+      {children}
     </div>
   );
 }

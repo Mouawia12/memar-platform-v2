@@ -194,9 +194,10 @@ export function EmployeePortalPage() {
       {/* ═══ MAIN ═══ */}
       <main className="ep-main">
         {active === 'ep-dashboard' ? <Dashboard onGo={go} />
-          : active === 'ep-forum' ? <SharedPage title="🗨️ المنتدى" subtitle="منتدى واحد لكل فريق ومستخدمي معمار"><ForumPage /></SharedPage>
+          // المنتدى والاجتماعات يحملان ترويسة/بانر خاصًّا بهما → غلاف مجرّد بلا ترويسة مكرّرة
+          : active === 'ep-forum' ? <Bare><ForumPage /></Bare>
           : active === 'ep-chat' ? <SharedPage title="💬 المحادثات" subtitle="تواصل مباشر مع الفريق والإدارة"><LiveChatPanel /></SharedPage>
-          : active === 'ep-meetings' ? <SharedPage title="📹 الاجتماعات" subtitle="اجتماعاتك ومواعيدك"><MeetingsPage /></SharedPage>
+          : active === 'ep-meetings' ? <Bare><MeetingsPage /></Bare>
           // صفحات مشتركة تحمل ترويسة خاصة بها → غلاف مجرّد بلا ترويسة مكرّرة
           : active === 'ep-appointments' ? <Bare><AppointmentsPage /></Bare>
           : active === 'ep-tasks' ? <Bare><TasksPage /></Bare>

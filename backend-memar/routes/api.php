@@ -22,6 +22,9 @@ Route::prefix('v1')->group(function (): void {
         'time' => now()->toIso8601String(),
     ], 'الخدمة تعمل'));
 
+    // نبضة التزامن اللحظي — طوابع تغيّر لكل نطاق (تُبطل الواجهة الكاش عند تغيّرها).
+    Route::middleware('auth:sanctum')->get('/sync/pulse', [\App\Http\Controllers\Api\V1\SyncController::class, 'pulse']);
+
     // ── وحدات الـAPI ─────────────────────────────
     require __DIR__.'/api/auth.php';
     require __DIR__.'/api/users.php';

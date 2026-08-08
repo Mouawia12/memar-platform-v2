@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../store/auth';
+import { useLiveSync } from '../../hooks/useLiveSync';
 import { ROLE_AR } from './SelfServicePages';
 import { ForumPage } from '../forum/pages/ForumPage';
 import { LiveChatPanel } from '../liveChat/LiveChatPanel';
@@ -104,6 +105,7 @@ const initialsOf = (n?: string | null) => {
 };
 
 export function EmployeePortalPage() {
+  useLiveSync(); // تزامن لحظي مع الأدوار الأخرى (اجتماع 2026-08-07)
   const user = useAuthStore((s) => s.user);
   const userName = user?.name ?? 'موظف';
   const userRole = user?.roles?.[0] ? ROLE_AR[user.roles[0]] ?? user.roles[0] : 'موظف';

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { InternalRating } from '../../../components/InternalRating';
+import { useLiveSync } from '../../../hooks/useLiveSync';
 import { apiPatch } from '../../../lib/api';
 import { useLogout } from '../../auth/hooks/useAuth';
 import { usePermission } from '../../auth/hooks/usePermission';
@@ -46,6 +47,7 @@ const HERO_SLIDES = [
  * (بيانات من نقطة الطاقم)، مع شريط إداري + تقييم داخلي، وتعطيل إجراءات العميل الكتابية.
  */
 export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number } = {}) {
+  useLiveSync(); // تزامن لحظي بين العميل والموظف والإدارة (اجتماع 2026-08-07)
   const adminMode = adminContactId != null;
   const navigate = useNavigate();
   const logout = useLogout();

@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { Topbar } from '../components/Topbar';
 import { ChatWidget } from '../features/chatbot/components/ChatWidget';
+import { useLiveSync } from '../hooks/useLiveSync';
 import './staffShell.css';
 
 const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
@@ -13,6 +14,7 @@ const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
  * زر ☰ يطوي الشريط الجانبي على سطح المكتب (CRM-1) ويفتح الدرج على الموبايل.
  */
 export function DashboardLayout() {
+  useLiveSync(); // تزامن لحظي بين الأدوار (اجتماع 2026-08-07)
   const [sidebarOpen, setSidebarOpen] = useState(false); // درج الموبايل
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('memar_sidebar_collapsed') === '1'); // طيّ سطح المكتب
 

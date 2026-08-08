@@ -7,6 +7,7 @@ import { MeetingsPage } from '../appointments/pages/MeetingsPage';
 import { AppointmentsPage } from '../appointments/pages/AppointmentsPage';
 import { CrmPage } from '../crm/pages/CrmPage';
 import { MyProjectsPage } from '../myProjects/pages/MyProjectsPage';
+import { TasksPage } from '../tasks/pages/TasksPage';
 import { useNotifications } from '../workspace/hooks/useWorkspace';
 import './employeePortal.css';
 
@@ -180,6 +181,7 @@ export function EmployeePortalPage() {
           : active === 'ep-meetings' ? <SharedPage title="📹 الاجتماعات" subtitle="اجتماعاتك ومواعيدك"><MeetingsPage /></SharedPage>
           // صفحات مشتركة تحمل ترويسة خاصة بها → غلاف مجرّد بلا ترويسة مكرّرة
           : active === 'ep-appointments' ? <Bare><AppointmentsPage /></Bare>
+          : active === 'ep-tasks' ? <Bare><TasksPage /></Bare>
           : active === 'ep-crm' ? <Bare><CrmPage /></Bare>
           : active === 'ep-projects' ? <Bare><MyProjectsPage /></Bare>
           : active === 'ep-notifications' ? <SharedPage title="🔔 الإشعارات" subtitle="كل البنود التي تحتاج إجراءً — محسوبة من بياناتك الحيّة"><NotificationsPanel /></SharedPage>

@@ -2,7 +2,7 @@ import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
-import { isClientOnly } from '../../config/nav';
+import { landingPath } from '../../config/nav';
 import { useAuthStore } from '../../store/auth';
 import { LoginView } from '../auth/components/LoginView';
 import { ChatWidget } from '../chatbot/components/ChatWidget';
@@ -33,7 +33,7 @@ export function HomePage() {
     // زر الدخول واعٍ بالجلسة: المسجَّل يُوجَّه للوحته، وغير المسجَّل تُفتح له نافذة الدخول.
     const openAuthOrPortal = () => {
       const a = useAuthStore.getState();
-      if (a.token && a.user) navigate(isClientOnly(a.user.roles) ? '/client-portal' : '/dashboard');
+      if (a.token && a.user) navigate(landingPath(a.user.roles));
       else setAuthOpen(true);
     };
     const cleanupInteractions = initHomepage((path) => navigate(path), openAuthOrPortal);
@@ -66,7 +66,7 @@ export function HomePage() {
   useEffect(() => {
     const root = ref.current;
     if (!root || !token || !user) return;
-    const dest = isClientOnly(user.roles) ? '/client-portal' : '/dashboard';
+    const dest = landingPath(user.roles);
     const apply = () => {
       root.querySelectorAll<HTMLButtonElement>('#btn-login').forEach((btn) => {
         if (btn.dataset.authAware !== '1') { btn.textContent = '🏠 الدخول إلى لوحتي'; btn.dataset.authAware = '1'; }

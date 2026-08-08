@@ -24,6 +24,19 @@ export function isClientOnly(roles: string[] | undefined | null): boolean {
 }
 
 /**
+ * أدوار الإدارة التي تدخل لوحة التحكم الكاملة (إشراف/موارد بشرية/مالية).
+ * بقيّة أدوار الطاقم موظفون → يدخلون «بوابة الموظف». يضبطها أيمن بسهولة.
+ */
+const ADMIN_ROLES = new Set(['super_admin', 'manager', 'hr_manager', 'accountant']);
+
+/** مسار الهبوط بعد الدخول: عميل→بوابته، إدارة→لوحة التحكم، بقيّة الموظفين→بوابة الموظف. */
+export function landingPath(roles: string[] | undefined | null): string {
+  if (isClientOnly(roles)) return '/client-portal';
+  if ((roles ?? []).some((r) => ADMIN_ROLES.has(r))) return '/dashboard';
+  return '/employee-portal';
+}
+
+/**
  * الأقسام والعناصر الظاهرة لمستخدم حسب صلاحياته ودوره (AUTH-1).
  * العميل يرى بوابته فقط؛ بقية المستخدمين يرون ما يملكون صلاحيته (بلا صلاحية = للجميع).
  */

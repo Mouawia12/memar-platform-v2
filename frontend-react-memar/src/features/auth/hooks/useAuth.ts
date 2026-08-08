@@ -1,15 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
+import { landingPath } from '../../../config/nav';
 import { useAuthStore } from '../../../store/auth';
 import { authApi, type LoginPayload, type RegisterPayload, type ResetPayload } from '../api/authApi';
 import type { AuthUser } from '../../../types/api';
 
-/** الوجهة بعد المصادقة: العميل لبوابته، وبقية الأدوار للوحة التحكم. */
+/** الوجهة بعد المصادقة حسب الدور: عميل→بوابته، إدارة→لوحة التحكم، موظف→بوابة الموظف. */
 function landingFor(user: AuthUser): string {
-  const isClientOnly = user.roles?.includes('client') && !user.roles.some((r) => r !== 'client');
-
-  return isClientOnly ? '/client-portal' : '/dashboard';
+  return landingPath(user.roles);
 }
 
 /** تسجيل الدخول — عند النجاح يحفظ التوكن ويوجّه حسب الدور. */

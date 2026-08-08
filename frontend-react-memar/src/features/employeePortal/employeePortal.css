@@ -33,7 +33,14 @@
   --topbar-h: 64px !important;
 }
 
-.ep-root * { margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
+/* box-sizing عام آمن للجميع. أما تصفير الهوامش/الحشو فمقصور على عناصر النص/التدفّق
+   وبلا !important — حتى لا يطغى على حشو الصفحات المشتركة المنقولة من الأدمن (أزرار/بطاقات/حقول)
+   فتبقى بمسافاتها الأصلية تمامًا. صفحات Atoms (ep-) تضبط حشوها بنفسها بـ!important. طلب أيمن (2026-08-08). */
+.ep-root * { box-sizing: border-box !important; }
+.ep-root h1, .ep-root h2, .ep-root h3, .ep-root h4, .ep-root h5, .ep-root h6,
+.ep-root p, .ep-root ul, .ep-root ol, .ep-root figure, .ep-root blockquote, .ep-root pre, .ep-root dl, .ep-root dd {
+  margin: 0; padding: 0;
+}
 .ep-root {
   font-family: 'Cairo', sans-serif !important;
   background: var(--bg) !important;

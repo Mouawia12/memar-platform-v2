@@ -1,4 +1,4 @@
-import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
+import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveLead } from '../hooks/useCrm';
@@ -19,28 +19,24 @@ const empty: LeadFormData = {
 export function LeadFormModal({ lead, onClose }: Props) {
   const save = useSaveLead();
   const { data: stages } = usePipelineStages();
-  const [form, setForm] = useState<LeadFormData>(empty);
+  // القيمة الأصلية (فارغة للجديد أو من الفرصة عند التعديل) — مرجع للمقارنة وكشف التعديل.
+  const initialForm = useMemo<LeadFormData>(() => (lead ? {
+    full_name: lead.full_name,
+    email: lead.email ?? '',
+    phone: lead.phone ?? '',
+    company: lead.company ?? '',
+    position: lead.position ?? '',
+    type: lead.type,
+    stage: lead.stage,
+    temperature: lead.temperature,
+    deal_value_kwd: Number(lead.deal_value_kwd) ? String(lead.deal_value_kwd) : '',
+    notes: lead.notes ?? '',
+    project_name: lead.project_name ?? '',
+    project_details: lead.project_details ?? '',
+  } : empty), [lead]);
 
-  useEffect(() => {
-    if (lead) {
-      setForm({
-        full_name: lead.full_name,
-        email: lead.email ?? '',
-        phone: lead.phone ?? '',
-        company: lead.company ?? '',
-        position: lead.position ?? '',
-        type: lead.type,
-        stage: lead.stage,
-        temperature: lead.temperature,
-        deal_value_kwd: Number(lead.deal_value_kwd) ? String(lead.deal_value_kwd) : '',
-        notes: lead.notes ?? '',
-        project_name: lead.project_name ?? '',
-        project_details: lead.project_details ?? '',
-      });
-    } else {
-      setForm(empty);
-    }
-  }, [lead]);
+  const [form, setForm] = useState<LeadFormData>(initialForm);
+  useEffect(() => setForm(initialForm), [initialForm]);
 
   const set = <K extends keyof LeadFormData>(key: K, value: LeadFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -49,8 +45,16 @@ export function LeadFormModal({ lead, onClose }: Props) {
     save.mutate({ id: lead?.id, data: form }, { onSuccess: onClose });
   };
 
+  // النقر خارج النموذج مع وجود بيانات غير محفوظة يطلب تأكيدًا — حتى لا تُفقد الداتا
+  // بنقرة عرضية (طلب أيمن 2026-08-07).
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const handleBackdrop = () => {
+    if (isDirty && !window.confirm('لديك بيانات غير محفوظة في هذا النموذج — إغلاقه وتجاهلها؟')) return;
+    onClose();
+  };
+
   return (
-    <div style={overlay} onClick={onClose}>
+    <div style={overlay} onClick={handleBackdrop}>
       <form className="card" style={modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <h2 style={{ marginTop: 0 }}>{lead ? 'تعديل عميل محتمل' : 'عميل محتمل جديد'}</h2>
 

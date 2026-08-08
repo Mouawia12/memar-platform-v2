@@ -66,8 +66,8 @@ export function CrmPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ margin: 0 }}>إدارة الفرص والمبيعات</h1>
-          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px', direction: 'ltr', textAlign: 'right' }}>Pipeline &amp; Deals CRM</div>
+          <h1 style={{ margin: 0 }}>العملاء والفرص</h1>
+          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px' }}>مجموعة معمار للاستشارات الهندسية — إدارة العملاء المحتملين والفرص</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {canManage && <button className="btn" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}

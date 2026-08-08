@@ -27,7 +27,7 @@ export function LeadCard({ lead, onOpen, stageColor }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ ...avatar, background: avatarColor }}>{lead.full_name.trim().charAt(0)}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <b style={{ fontSize: '13.5px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.full_name}</b>
+          <b style={{ fontSize: '15px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.full_name}</b>
           {/* المنصب داخل الشركة (مالك/مدير تنفيذي/مهندس…) — يوضّح مَن جهة الاتصال، والشركة تُذكر بجانبه */}
           {(lead.position || lead.company) && (
             <div style={subtitle} title={[lead.position, lead.company].filter(Boolean).join(' · ')}>
@@ -45,13 +45,15 @@ export function LeadCard({ lead, onOpen, stageColor }: Props) {
         </div>
       )}
 
-      <div style={metaRow}>
-        {lead.phone && <span dir="ltr" style={{ ...metaItem, direction: 'ltr' }}>📞 {lead.phone}</span>}
-        {lead.owner && <span style={metaItem} title={`المسؤول: ${lead.owner.name}`}>👤 {lead.owner.name}</span>}
-        {lead.reminder && !lead.reminder.due && (
-          <span style={upcomingPill} title={lead.reminder.note ?? 'تذكير قادم'}><i className="fas fa-clock" /> {fmtReminder(lead.reminder.remind_at)}</span>
-        )}
-      </div>
+      {/* رقم الهاتف أُزيل من واجهة الكرت (طلب أيمن 2026-08-07) — يظهر عند فتح التفاصيل. */}
+      {(lead.owner || (lead.reminder && !lead.reminder.due)) && (
+        <div style={metaRow}>
+          {lead.owner && <span style={metaItem} title={`المسؤول: ${lead.owner.name}`}>👤 {lead.owner.name}</span>}
+          {lead.reminder && !lead.reminder.due && (
+            <span style={upcomingPill} title={lead.reminder.note ?? 'تذكير قادم'}><i className="fas fa-clock" /> {fmtReminder(lead.reminder.remind_at)}</span>
+          )}
+        </div>
+      )}
 
       <div style={footer}>
         <span style={{ ...tempPill, background: `${temp.color}18`, color: temp.color }}>{temp.icon} {temp.label}</span>
@@ -61,14 +63,14 @@ export function LeadCard({ lead, onOpen, stageColor }: Props) {
   );
 }
 
-const card: CSSProperties = { padding: '10px 11px', marginBottom: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', cursor: 'pointer' };
+const card: CSSProperties = { padding: '13px 14px', marginBottom: '9px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', cursor: 'pointer' };
 const cardDue: CSSProperties = { border: '1px solid #FCA5A5', boxShadow: '0 0 0 3px rgba(220,38,38,.10)' };
 const dueBar: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', margin: '-10px -11px 8px', padding: '5px 11px', background: 'linear-gradient(90deg,#DC2626,#EF4444)', color: '#fff', fontSize: '11.5px', fontWeight: 800, borderRadius: '8px 8px 0 0' };
 const upcomingPill: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#B45309', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '999px', padding: '1px 8px', fontSize: '10.5px', fontWeight: 700 };
 const avatar: CSSProperties = { width: '32px', height: '32px', borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '14px', flexShrink: 0 };
 const tempPill: CSSProperties = { fontSize: '11px', fontWeight: 700, padding: '2px 9px', borderRadius: '999px' };
 const subtitle: CSSProperties = { fontSize: '11px', color: '#8A93A3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
-const projectTag: CSSProperties = { marginTop: '6px', fontSize: '11.5px', color: '#274A78', background: '#EEF3FA', borderRadius: '6px', padding: '3px 8px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const projectTag: CSSProperties = { marginTop: '8px', fontSize: '13px', color: '#274A78', background: '#EEF3FA', borderRadius: '7px', padding: '5px 10px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 // صفّ بيانات مضغوط: هاتف + المسؤول جنبًا إلى جنب لملء الكارت بمعلومات مفيدة.
 const metaRow: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: '6px', fontSize: '11.5px', color: '#5A6478' };
 const metaItem: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' };

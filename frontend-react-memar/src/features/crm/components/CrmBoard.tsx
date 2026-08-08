@@ -99,7 +99,9 @@ function DraggableCard({ lead, children }: { lead: Lead; children: ReactNode }) 
 export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
   const [active, setActive] = useState<Lead | null>(null);
   const [expanded, setExpanded] = useState<PipelineStage | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // سحب بالضغط المطوّل (طلب أيمن 2026-08-07): يبدأ السحب بعد ثبات ~200ms، فالنقرة
+  // السريعة تفتح الكرت والتمرير باللمس لا يبدأ سحبًا بالخطأ (مهم للتابلت).
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 8 } }));
   const collapsedMap = useCollapsedStages();
   const hiddenMap = useHiddenStages();
   const visibleStages = stages.filter((s) => !hiddenMap[s.key]);
@@ -122,7 +124,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div style={board}>
+      <div className="crm-hscroll" style={board}>
         {visibleStages.map((stage) => {
           const colLeads = leads.filter((l) => l.stage === stage.key);
           const total = colLeads.reduce((sum, l) => sum + Number(l.deal_value_kwd), 0);
@@ -162,8 +164,8 @@ export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
   );
 }
 
-const board: CSSProperties = { display: 'flex', gap: '10px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '8px' };
-const column: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '8px', minHeight: '140px', flex: '1 1 232px', minWidth: '232px', transition: 'background 0.15s ease, outline 0.15s ease' };
+const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '14px', scrollbarWidth: 'thin', scrollbarColor: '#274A78 #E4EAF1' };
+const column: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '9px', minHeight: '140px', flex: '1 1 268px', minWidth: '268px', transition: 'background 0.15s ease, outline 0.15s ease' };
 const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78' };
 // رأس المرحلة ككارت أبيض واضح: نقطة لون + العنوان + العدّاد + الإجمالي + زر الطيّ.
 const colHeader: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };

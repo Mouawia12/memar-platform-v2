@@ -255,3 +255,9 @@ table {
 @media (prefers-reduced-motion: reduce) {
   .task-bell-ring { animation: taskBellGlow 2.6s ease-in-out infinite; }
 }
+
+/* ═══ شريط تمرير أفقي ظاهر للوحة CRM (طلب أيمن 2026-08-07 — مهم للتابلت) ═══ */
+.crm-hscroll::-webkit-scrollbar { height: 12px; }
+.crm-hscroll::-webkit-scrollbar-track { background: #E4EAF1; border-radius: 999px; }
+.crm-hscroll::-webkit-scrollbar-thumb { background: #274A78; border-radius: 999px; border: 3px solid #E4EAF1; }
+.crm-hscroll::-webkit-scrollbar-thumb:hover { background: #1B3B66; }

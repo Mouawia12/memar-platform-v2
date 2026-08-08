@@ -633,3 +633,29 @@
 
 /* تحويم عناصر قوائم الشريط العلوي المنسدلة (إشعارات/حساب) */
 .ep-root .ep-menu-item:hover { background: #F5F7FB !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   سايدبار أبيض (طلب أيمن 2026-08-09): خلفية بيضاء بدل التدرّج الأزرق، مع تلوين
+   النصوص/الروابط داكنةً لتبقى واضحة على الأبيض. تأتي بعد القواعد الأصلية فتغلبها.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ep-root .ep-sidebar {
+  background: #FFFFFF !important;
+  border-left: 1px solid #E7ECF3 !important;
+  box-shadow: -1px 0 3px rgba(15,23,42,.03) !important;
+}
+.ep-root .ep-sb-header { border-bottom: 1px solid #EEF2F7 !important; }
+.ep-root .ep-sb-logo-title { color: #1E293B !important; }
+.ep-root .ep-sb-logo-sub { color: #64748B !important; }
+.ep-root .ep-sb-section-label { color: #94A3B8 !important; }
+
+.ep-root .ep-sb-link { color: #334155 !important; }
+.ep-root .ep-sb-link:hover { background: #F1F5F9 !important; color: #1B6CA8 !important; }
+.ep-root .ep-sb-link.ep-active {
+  background: #EBF5FF !important;
+  color: #1B6CA8 !important;
+  border-right: 3px solid #1B6CA8 !important;
+}
+
+.ep-root .ep-sb-group-header { color: #334155 !important; }
+.ep-root .ep-sb-group-header:hover { background: #F1F5F9 !important; color: #1B6CA8 !important; }
+.ep-root .ep-sb-group-arrow { opacity: 0.55 !important; }

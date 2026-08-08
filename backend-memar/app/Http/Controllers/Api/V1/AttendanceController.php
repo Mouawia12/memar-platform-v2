@@ -75,4 +75,31 @@ class AttendanceController extends ApiController
             $request->string('to')->toString() ?: null,
         ));
     }
+
+    /** سجل حضور الموظف الحالي (خدمة ذاتية بلا صلاحية hr) — لصفحة «الحضور» في بوابته. */
+    public function mine(Request $request): JsonResponse
+    {
+        $paginator = $this->attendance->list(
+            $request->user()->id,
+            $request->string('from')->toString() ?: null,
+            $request->string('to')->toString() ?: null,
+            $this->perPage($request, 40),
+        );
+
+        return $this->paginated($paginator, AttendanceResource::class);
+    }
+
+    /** ملخّص حضور الموظف الحالي (حضور/غياب/تأخير/ساعات) — لبطاقات KPI. */
+    public function mineSummary(Request $request): JsonResponse
+    {
+        $rows = $this->attendance->summary(
+            $request->user()->id,
+            $request->string('from')->toString() ?: null,
+            $request->string('to')->toString() ?: null,
+        );
+
+        return $this->ok($rows[0] ?? [
+            'present' => 0, 'late' => 0, 'absent' => 0, 'leave' => 0, 'work_minutes' => 0,
+        ]);
+    }
 }

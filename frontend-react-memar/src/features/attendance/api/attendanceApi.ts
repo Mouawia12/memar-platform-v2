@@ -17,4 +17,7 @@ export const attendanceApi = {
   list: (params: AttendanceQuery) => apiGetPaginated<Attendance>('/attendance', { params }),
   summary: (params: AttendanceQuery) => apiGet<AttendanceSummary[]>('/attendance/summary', { params }),
   record: (payload: Record<string, unknown>) => apiPost<Attendance>('/attendance', payload),
+  // خدمة ذاتية للموظف الحالي (بلا صلاحية hr) — لصفحة الحضور في بوابته.
+  mine: (params: AttendanceQuery = {}) => apiGetPaginated<Attendance>('/attendance/mine', { params }),
+  mineSummary: (params: AttendanceQuery = {}) => apiGet<AttendanceSummary>('/attendance/mine/summary', { params }),
 };

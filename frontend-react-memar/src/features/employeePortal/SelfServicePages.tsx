@@ -5,6 +5,9 @@ import { apiErrorMessage } from '../../lib/api';
 import { useAuthStore } from '../../store/auth';
 import { authApi } from '../auth/api/authApi';
 import { useToday, useCheckIn, useCheckOut } from '../attendance/hooks/useAttendance';
+import { attendanceApi } from '../attendance/api/attendanceApi';
+import { STATUS_LABELS, STATUS_COLORS } from '../attendance/types';
+import { salariesApi } from '../payroll/api/salariesApi';
 
 /**
  * صفحات «شؤوني» + «حسابي» في بوابة الموظف — منقولة طبق الأصل من مرجع Atoms
@@ -34,6 +37,15 @@ export function AttendanceEp() {
   const checkOut = useCheckOut();
   const checkedIn = !!today?.check_in_at;
   const checkedOut = !!today?.check_out_at;
+
+  // سجل وملخّص الموظف الحالي — بيانات حيّة (خدمة ذاتية).
+  const { data: summary } = useQuery({ queryKey: ['attendance-mine-summary'], queryFn: () => attendanceApi.mineSummary() });
+  const { data: log } = useQuery({ queryKey: ['attendance-mine'], queryFn: () => attendanceApi.mine() });
+  const rows = log?.data ?? [];
+  const hours = summary ? Math.round((summary.work_minutes ?? 0) / 60) : 0;
+  const dayName = (d: string | null) => (d ? new Date(d).toLocaleDateString('ar', { weekday: 'long' }) : '—');
+  const dayDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('ar', { day: 'numeric', month: 'long' }) : '—');
+  const hm = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString('ar-KW', { hour: '2-digit', minute: '2-digit', hour12: false }) : '—');
 
   return (
     <div className="ep-page ep-active">
@@ -69,28 +81,33 @@ export function AttendanceEp() {
         </div>
       </div>
 
-      {/* إحصاءات الشهر — طبق أصل Atoms */}
+      {/* إحصاءات الشهر — حيّة */}
       <div className="ep-kpi-grid ep-sm">
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-green">✅</div><div className="ep-kpi-body"><div className="ep-kpi-value">22</div><div className="ep-kpi-label">أيام حضور</div></div></div>
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-red">❌</div><div className="ep-kpi-body"><div className="ep-kpi-value">1</div><div className="ep-kpi-label">غياب</div></div></div>
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-orange">⏰</div><div className="ep-kpi-body"><div className="ep-kpi-value">2</div><div className="ep-kpi-label">تأخير</div></div></div>
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-blue">🕐</div><div className="ep-kpi-body"><div className="ep-kpi-value">176h</div><div className="ep-kpi-label">ساعات العمل</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-green">✅</div><div className="ep-kpi-body"><div className="ep-kpi-value">{summary?.present ?? 0}</div><div className="ep-kpi-label">أيام حضور</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-red">❌</div><div className="ep-kpi-body"><div className="ep-kpi-value">{summary?.absent ?? 0}</div><div className="ep-kpi-label">غياب</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-orange">⏰</div><div className="ep-kpi-body"><div className="ep-kpi-value">{summary?.late ?? 0}</div><div className="ep-kpi-label">تأخير</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-blue">🕐</div><div className="ep-kpi-body"><div className="ep-kpi-value">{hours}h</div><div className="ep-kpi-label">ساعات العمل</div></div></div>
       </div>
 
-      {/* سجل الحضور — طبق أصل Atoms */}
+      {/* سجل الحضور — حيّ */}
       <div className="ep-card">
-        <div className="ep-card-header"><div className="ep-card-title">📋 سجل الحضور — أغسطس 2026</div></div>
+        <div className="ep-card-header"><div className="ep-card-title">📋 سجل الحضور</div></div>
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
               <thead><tr><th>اليوم</th><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th></tr></thead>
               <tbody>
-                <tr><td>الخميس</td><td>7 أغسطس</td><td className="ep-td-bold">08:02</td><td className="ep-td-muted">—</td><td>—</td><td><span className="ep-badge ep-badge-green">حاضر ✓</span></td></tr>
-                <tr><td>الأربعاء</td><td>6 أغسطس</td><td className="ep-td-bold">07:58</td><td>04:30</td><td>8.5h</td><td><span className="ep-badge ep-badge-green">حاضر ✓</span></td></tr>
-                <tr><td>الثلاثاء</td><td>5 أغسطس</td><td className="ep-td-bold">08:15</td><td>04:45</td><td>8.5h</td><td><span className="ep-badge ep-badge-orange">تأخير 15د</span></td></tr>
-                <tr><td>الاثنين</td><td>4 أغسطس</td><td className="ep-td-bold">07:55</td><td>05:00</td><td>9h</td><td><span className="ep-badge ep-badge-green">حاضر ✓</span></td></tr>
-                <tr><td>الأحد</td><td>3 أغسطس</td><td className="ep-td-bold">08:00</td><td>04:30</td><td>8.5h</td><td><span className="ep-badge ep-badge-green">حاضر ✓</span></td></tr>
-                <tr><td>السبت</td><td>2 أغسطس</td><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-3)' }}>— عطلة نهاية الأسبوع —</td></tr>
+                {rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا سجلّات حضور بعد.</td></tr>}
+                {rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>{dayName(r.date)}</td>
+                    <td>{dayDate(r.date)}</td>
+                    <td className="ep-td-bold">{hm(r.check_in_at)}</td>
+                    <td>{hm(r.check_out_at)}</td>
+                    <td>{r.work_minutes ? `${(r.work_minutes / 60).toFixed(1)}h` : '—'}</td>
+                    <td><span className="ep-badge" style={{ background: `${STATUS_COLORS[r.status]}1a`, color: STATUS_COLORS[r.status] }}>{STATUS_LABELS[r.status]}</span></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -138,40 +155,57 @@ export function LeavesEp() {
 
 /* ═══════════════════ كشف الراتب — طبق أصل Atoms ═══════════════════ */
 export function SalaryEp() {
+  const { data: salaries, isLoading } = useQuery({ queryKey: ['salaries-mine'], queryFn: () => salariesApi.mine() });
+  const list = salaries ?? [];
+  const latest = list[0];
+  const kwd = (v: string | number) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
+  const num = (v: string | number) => Number(v).toLocaleString('ar');
+  const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const monthAr = (m: string) => { const [y, mo] = m.split('-'); return `${MONTHS[Number(mo) - 1] ?? mo} ${y}`; };
+  const paid = (s?: string) => s === 'paid';
+
   return (
     <div className="ep-page ep-active">
       <div className="ep-page-header">
         <div><h1 className="ep-page-title">💰 كشف الراتب</h1><p className="ep-page-subtitle">تفاصيل الراتب الشهري والسجل</p></div>
       </div>
 
-      <div className="ep-salary-card">
-        <div className="ep-salary-header">
-          <h3>كشف راتب — أغسطس 2026</h3>
-          <span className="ep-badge ep-badge-green">تم الصرف ✓</span>
+      {isLoading && <div className="ep-card"><div className="ep-card-body" style={{ textAlign: 'center', padding: '32px', color: '#94A3B8' }}>جارٍ التحميل…</div></div>}
+      {!isLoading && !latest && <div className="ep-card"><div className="ep-card-body" style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>لا كشوف راتب مسجّلة بعد.</div></div>}
+
+      {latest && (
+        <div className="ep-salary-card">
+          <div className="ep-salary-header">
+            <h3>كشف راتب — {monthAr(latest.month)}</h3>
+            <span className={`ep-badge ${paid(latest.status) ? 'ep-badge-green' : 'ep-badge-orange'}`}>{paid(latest.status) ? 'تم الصرف ✓' : 'مسودّة'}</span>
+          </div>
+          <div className="ep-salary-grid">
+            <div className="ep-salary-item"><span className="ep-salary-label">الراتب الأساسي</span><span className="ep-salary-val">{kwd(latest.base_kwd)}</span></div>
+            <div className="ep-salary-item ep-add"><span className="ep-salary-label">البدلات</span><span className="ep-salary-val ep-green">+{kwd(latest.allowances_kwd)}</span></div>
+            <div className="ep-salary-item ep-deduct"><span className="ep-salary-label">الخصومات</span><span className="ep-salary-val ep-red">-{kwd(latest.deductions_kwd)}</span></div>
+            <div className="ep-salary-total"><span className="ep-salary-label">صافي الراتب</span><span className="ep-salary-val ep-total">{kwd(latest.net_kwd)}</span></div>
+          </div>
         </div>
-        <div className="ep-salary-grid">
-          <div className="ep-salary-item"><span className="ep-salary-label">الراتب الأساسي</span><span className="ep-salary-val">1,200 د.ك</span></div>
-          <div className="ep-salary-item"><span className="ep-salary-label">بدل سكن</span><span className="ep-salary-val">250 د.ك</span></div>
-          <div className="ep-salary-item"><span className="ep-salary-label">بدل مواصلات</span><span className="ep-salary-val">100 د.ك</span></div>
-          <div className="ep-salary-item"><span className="ep-salary-label">بدل هاتف</span><span className="ep-salary-val">30 د.ك</span></div>
-          <div className="ep-salary-item ep-add"><span className="ep-salary-label">مكافأة أداء</span><span className="ep-salary-val ep-green">+150 د.ك</span></div>
-          <div className="ep-salary-item ep-deduct"><span className="ep-salary-label">خصم تأمينات</span><span className="ep-salary-val ep-red">-86 د.ك</span></div>
-          <div className="ep-salary-item ep-deduct"><span className="ep-salary-label">خصم تأخير (2 مرة)</span><span className="ep-salary-val ep-red">-15 د.ك</span></div>
-          <div className="ep-salary-total"><span className="ep-salary-label">صافي الراتب</span><span className="ep-salary-val ep-total">1,629 د.ك</span></div>
-        </div>
-      </div>
+      )}
 
       <div className="ep-card">
         <div className="ep-card-header"><div className="ep-card-title">📊 سجل الرواتب</div></div>
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>الشهر</th><th>الأساسي</th><th>البدلات</th><th>المكافآت</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead>
+              <thead><tr><th>الشهر</th><th>الأساسي</th><th>البدلات</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead>
               <tbody>
-                <tr><td className="ep-td-bold">أغسطس 2026</td><td>1,200</td><td>380</td><td>150</td><td>-101</td><td className="ep-td-bold">1,629</td><td><span className="ep-badge ep-badge-green">مصروف ✓</span></td></tr>
-                <tr><td className="ep-td-bold">يوليو 2026</td><td>1,200</td><td>380</td><td>100</td><td>-86</td><td className="ep-td-bold">1,594</td><td><span className="ep-badge ep-badge-green">مصروف ✓</span></td></tr>
-                <tr><td className="ep-td-bold">يونيو 2026</td><td>1,200</td><td>380</td><td>200</td><td>-86</td><td className="ep-td-bold">1,694</td><td><span className="ep-badge ep-badge-green">مصروف ✓</span></td></tr>
-                <tr><td className="ep-td-bold">مايو 2026</td><td>1,200</td><td>380</td><td>0</td><td>-86</td><td className="ep-td-bold">1,494</td><td><span className="ep-badge ep-badge-green">مصروف ✓</span></td></tr>
+                {list.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا سجلّات.</td></tr>}
+                {list.map((s) => (
+                  <tr key={s.id}>
+                    <td className="ep-td-bold">{monthAr(s.month)}</td>
+                    <td>{num(s.base_kwd)}</td>
+                    <td>{num(s.allowances_kwd)}</td>
+                    <td>-{num(s.deductions_kwd)}</td>
+                    <td className="ep-td-bold">{num(s.net_kwd)}</td>
+                    <td><span className={`ep-badge ${paid(s.status) ? 'ep-badge-green' : 'ep-badge-orange'}`}>{paid(s.status) ? 'مصروف ✓' : 'مسودّة'}</span></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

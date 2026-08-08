@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Salaries\StoreSalaryRequest;
 use App\Http\Requests\Salaries\UpdateSalaryRequest;
 use App\Http\Resources\SalaryResource;
+use App\Models\Employee;
 use App\Models\Salary;
 use App\Services\PayrollService;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,19 @@ use Illuminate\Http\Request;
 class SalaryController extends ApiController
 {
     public function __construct(private readonly PayrollService $payroll) {}
+
+    /** كشوف راتب الموظف الحالي (خدمة ذاتية بلا صلاحية hr) — لصفحة «كشف الراتب» في بوابته. */
+    public function mine(Request $request): JsonResponse
+    {
+        $employee = Employee::where('user_id', $request->user()->id)->first();
+        if ($employee === null) {
+            return $this->ok([]);
+        }
+
+        $salaries = Salary::where('employee_id', $employee->id)->orderByDesc('month')->get();
+
+        return $this->ok(SalaryResource::collection($salaries));
+    }
 
     public function index(Request $request): JsonResponse
     {

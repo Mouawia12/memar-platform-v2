@@ -13,6 +13,8 @@ import type { Lead, Stage } from '../types';
 
 export function CrmPage() {
   const [search, setSearch] = useState('');
+  // فلتر زمني حسب تاريخ الإضافة/التواصل — لعرض القدامى ضمن فترة (طلب أيمن 2026-08-07).
+  const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
@@ -54,12 +56,19 @@ export function CrmPage() {
   };
 
   const leads = data?.data ?? [];
-  // الصفقة المعروضة تُشتقّ من القائمة الحيّة — فتحديث المرحلة/الحرارة ينعكس فورًا
+  // القائمة المعروضة بعد تطبيق الفلتر الزمني (حسب created_at). القدامى خارج الفترة يُخفَون.
+  const visibleLeads = useMemo(() => {
+    if (period === 'all') return leads;
+    const cutoff = Date.now() - Number(period) * 86_400_000;
+    return leads.filter((l) => l.created_at && new Date(l.created_at).getTime() >= cutoff);
+  }, [leads, period]);
+  const hiddenByPeriod = leads.length - visibleLeads.length;
+  // الصفقة المعروضة تُشتقّ من القائمة الحيّة الكاملة — فتحديث المرحلة/الحرارة ينعكس فورًا
   const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
-  const wonCount = leads.filter((l) => wonKeys.has(l.stage)).length;
-  const expectedValue = leads.filter((l) => !terminalKeys.has(l.stage)).reduce((s, l) => s + Number(l.deal_value_kwd), 0);
-  const hotCount = leads.filter((l) => l.temperature === 'hot').length;
-  const activeCount = leads.filter((l) => !terminalKeys.has(l.stage)).length;
+  const wonCount = visibleLeads.filter((l) => wonKeys.has(l.stage)).length;
+  const expectedValue = visibleLeads.filter((l) => !terminalKeys.has(l.stage)).reduce((s, l) => s + Number(l.deal_value_kwd), 0);
+  const hotCount = visibleLeads.filter((l) => l.temperature === 'hot').length;
+  const activeCount = visibleLeads.filter((l) => !terminalKeys.has(l.stage)).length;
   const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
 
   return (
@@ -96,11 +105,24 @@ export function CrmPage() {
         )}
       </div>
 
-      <input className="input" placeholder="بحث بالاسم أو الشركة أو الهاتف…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', maxWidth: '360px', marginBottom: '16px' }} />
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
+        <input className="input" placeholder="بحث بالاسم أو الشركة أو الهاتف…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '220px', maxWidth: '360px' }} />
+        {/* فلتر زمني: عرض من تواصل خلال فترة (القدامى يُخفَون تلقائيًا) — طلب أيمن 2026-08-07 */}
+        <select className="input" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)} title="عرض حسب فترة التواصل" style={{ width: 'auto', minWidth: '150px' }}>
+          <option value="all">🕒 كل الفترات</option>
+          <option value="7">آخر أسبوع</option>
+          <option value="30">آخر شهر</option>
+          <option value="90">آخر 3 أشهر</option>
+          <option value="365">آخر سنة</option>
+        </select>
+        {period !== 'all' && hiddenByPeriod > 0 && (
+          <span style={{ fontSize: '12.5px', color: '#8A93A3' }}>عرض {visibleLeads.length} — أُخفي {hiddenByPeriod} قديم</span>
+        )}
+      </div>
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={leads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} />}
 
       {detailLead && (
         <LeadDetailModal

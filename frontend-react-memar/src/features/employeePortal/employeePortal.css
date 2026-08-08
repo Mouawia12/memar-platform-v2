@@ -150,7 +150,7 @@
 .ep-root .ep-main {
   margin-right: var(--sidebar-w) !important;
   margin-top: var(--topbar-h) !important;
-  padding: 28px 32px !important;
+  padding: 24px !important;
   min-height: calc(100vh - var(--topbar-h)) !important;
 }
 .ep-root .ep-page { display: none !important; }
@@ -619,15 +619,7 @@
 .ep-root .ep-sb-group-links .ep-sb-link { padding-inline-start: 20px !important; font-size: 12.5px !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   راحة الصفحات المشتركة المنقولة من بوابة العميل (mcp-root) داخل بوابة الموظف
-   — البانر company-hero مصمّم أصلاً ليخرج للحواف ويختبئ تحت شريط بوابة العميل
-   (هوامش سالبة + ارتفاع 422px). داخل .ep-main نحتويه كبطاقة مريحة بحواف مدوّرة
-   لتتطابق راحته مع صفحات Atoms. طلب أيمن (2026-08-08). */
-.ep-root .mcp-root { background: transparent !important; }
-.ep-root .mcp-root .company-hero {
-  margin: 0 0 20px 0 !important;
-  padding: 30px 32px !important;
-  min-height: 0 !important;
-  border-radius: 18px !important;
-  max-width: 100% !important;
-}
+   الصفحات المشتركة المنقولة من داشبورد الأدمن (mcp-root: منتدى/محادثات) تُعرض
+   طبق الأصل تمامًا كما في الأدمن — نفس الأبعاد والستايل. حاوية .ep-main بحشو 24px
+   يطابق حشو محتوى الأدمن، فيخرج بانر company-hero (بهوامشه السالبة -26px) إلى
+   الحواف ويختبئ تحت الشريط تمامًا مثل الأدمن. لا نضيف أي تجاوز عليه. طلب أيمن (2026-08-08). */

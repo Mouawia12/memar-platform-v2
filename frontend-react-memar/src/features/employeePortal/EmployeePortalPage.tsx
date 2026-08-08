@@ -11,6 +11,7 @@ import { CrmPage } from '../crm/pages/CrmPage';
 import { MyProjectsPage } from '../myProjects/pages/MyProjectsPage';
 import { TasksPage } from '../tasks/pages/TasksPage';
 import { AttendanceEp, LeavesEp, SalaryEp, ReportsEp, DocumentsEp, ProfileEp, ReferralEp } from './SelfServicePages';
+import { EpNotifBell, EpUserMenu } from './EmployeeTopbarMenus';
 import { useNotifications } from '../workspace/hooks/useWorkspace';
 import './employeePortal.css';
 
@@ -183,11 +184,9 @@ export function EmployeePortalPage() {
           </div>
         </div>
         <div className="ep-topbar-left">
-          <button className="ep-topbar-btn" onClick={() => go('ep-notifications')}>🔔<span className="ep-notif-dot" /></button>
-          <button className="ep-topbar-btn" onClick={() => go('ep-chat')}>💬</button>
-          <div className="ep-topbar-user" onClick={() => go('ep-profile')}>
-            <div className="ep-topbar-avatar">{userInitials}</div>
-          </div>
+          <EpNotifBell onSeeAll={() => go('ep-notifications')} />
+          <button className="ep-topbar-btn" title="المحادثات" onClick={() => go('ep-chat')}>💬</button>
+          <EpUserMenu initials={userInitials} name={userName} role={userRole} onProfile={() => go('ep-profile')} />
         </div>
       </header>
 

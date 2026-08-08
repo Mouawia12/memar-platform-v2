@@ -2,6 +2,8 @@ import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
+import { isClientOnly } from '../../config/nav';
+import { useAuthStore } from '../../store/auth';
 import { LoginView } from '../auth/components/LoginView';
 import { ChatWidget } from '../chatbot/components/ChatWidget';
 import animCssText from './homepageAnimations.css?raw';
@@ -19,6 +21,8 @@ export function HomePage() {
   const ref = useRef<HTMLDivElement>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [forumMount, setForumMount] = useState<HTMLElement | null>(null);
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -26,7 +30,13 @@ export function HomePage() {
     style.textContent = cssText + '\n' + animCssText;
     document.head.appendChild(style);
 
-    const cleanupInteractions = initHomepage((path) => navigate(path), () => setAuthOpen(true));
+    // زر الدخول واعٍ بالجلسة: المسجَّل يُوجَّه للوحته، وغير المسجَّل تُفتح له نافذة الدخول.
+    const openAuthOrPortal = () => {
+      const a = useAuthStore.getState();
+      if (a.token && a.user) navigate(isClientOnly(a.user.roles) ? '/client-portal' : '/dashboard');
+      else setAuthOpen(true);
+    };
+    const cleanupInteractions = initHomepage((path) => navigate(path), openAuthOrPortal);
 
     // نقطة تثبيت قسم المنتدى العام داخل الـHTML المحقون (بند 9)
     setForumMount(ref.current?.querySelector<HTMLElement>('#public-forum-mount') ?? null);
@@ -49,6 +59,26 @@ export function HomePage() {
       document.getElementById('homepage-legacy-css')?.remove();
     };
   }, [navigate]);
+
+  // إصلاح خلل الجلسة (طلب أيمن 2026-08-07): الزائر المسجَّل يجب ألّا يرى «تسجيل الدخول»
+  // كأنه خرج. نبدّل نصّ الزر ووجهته للوحته، ونعيد التطبيق عبر MutationObserver لأن سكربت
+  // اللاندنغ القديم قد يعيد بناء الهيدر. يعمل فور توفّر بيانات المستخدم (بعد الترطيب).
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !token || !user) return;
+    const dest = isClientOnly(user.roles) ? '/client-portal' : '/dashboard';
+    const apply = () => {
+      root.querySelectorAll<HTMLButtonElement>('#btn-login').forEach((btn) => {
+        if (btn.dataset.authAware !== '1') { btn.textContent = '🏠 الدخول إلى لوحتي'; btn.dataset.authAware = '1'; }
+      });
+      root.querySelectorAll<HTMLAnchorElement>('a[href="/login"]').forEach((a) => { a.href = dest; });
+    };
+    apply();
+    const obs = new MutationObserver(apply);
+    obs.observe(root, { childList: true, subtree: true });
+    const t = window.setTimeout(() => obs.disconnect(), 3000); // يكفي لاستقرار الحقن
+    return () => { obs.disconnect(); window.clearTimeout(t); };
+  }, [token, user]);
 
   return (
     <>

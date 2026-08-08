@@ -3988,10 +3988,14 @@ html:has(.mcp-root) { overflow-y: scroll; scrollbar-gutter: stable; }
 .mcp-root .loyalty-dual-side i { font-size: 20px; margin-bottom: 2px; }
 .mcp-root .loyalty-dual-side strong { font-size: 13px; color: var(--text); }
 .mcp-root .loyalty-dual-side span { font-size: 12px; color: var(--text-3); line-height: 1.5; }
-.mcp-root .loyalty-dual-side.friend { background: rgba(232,168,56,0.08); border-color: rgba(232,168,56,0.3); }
-.mcp-root .loyalty-dual-side.friend i { color: #D99A16; }
-.mcp-root .loyalty-dual-side.you { background: rgba(27,108,168,0.07); border-color: rgba(27,108,168,0.25); }
+/* الجانب الأصفر «صديقك يربح» — كان نصّه فاتحًا غير واضح؛ نجعله برتقاليًا مقروءًا (طلب أيمن 2026-08-07). */
+.mcp-root .loyalty-dual-side.friend { background: rgba(232,168,56,0.15); border-color: rgba(232,168,56,0.5); }
+.mcp-root .loyalty-dual-side.friend i { color: #C2740A; }
+.mcp-root .loyalty-dual-side.friend strong { color: #92400E; }
+.mcp-root .loyalty-dual-side.friend span { color: #B45309; font-weight: 600; }
+.mcp-root .loyalty-dual-side.you { background: rgba(27,108,168,0.08); border-color: rgba(27,108,168,0.3); }
 .mcp-root .loyalty-dual-side.you i { color: var(--primary); }
+.mcp-root .loyalty-dual-side.you span { color: #1B5A8A; font-weight: 600; }
 .mcp-root .loyalty-dual-plus { display: flex; align-items: center; font-size: 20px; font-weight: 800; color: var(--text-3); }
 .mcp-root .loyalty-code-box,
 .mcp-root .loyalty-featured-code-box + .loyalty-code-box {

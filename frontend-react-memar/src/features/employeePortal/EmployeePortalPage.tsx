@@ -1,8 +1,13 @@
 import { useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { ForumPage } from '../forum/pages/ForumPage';
 import { LiveChatPanel } from '../liveChat/LiveChatPanel';
 import { MeetingsPage } from '../appointments/pages/MeetingsPage';
+import { AppointmentsPage } from '../appointments/pages/AppointmentsPage';
+import { CrmPage } from '../crm/pages/CrmPage';
+import { MyProjectsPage } from '../myProjects/pages/MyProjectsPage';
+import { useNotifications } from '../workspace/hooks/useWorkspace';
 import './employeePortal.css';
 
 /**
@@ -173,6 +178,11 @@ export function EmployeePortalPage() {
           : active === 'ep-forum' ? <SharedPage title="🗨️ المنتدى" subtitle="منتدى واحد لكل فريق ومستخدمي معمار"><ForumPage /></SharedPage>
           : active === 'ep-chat' ? <SharedPage title="💬 المحادثات" subtitle="تواصل مباشر مع الفريق والإدارة"><LiveChatPanel /></SharedPage>
           : active === 'ep-meetings' ? <SharedPage title="📹 الاجتماعات" subtitle="اجتماعاتك ومواعيدك"><MeetingsPage /></SharedPage>
+          // صفحات مشتركة تحمل ترويسة خاصة بها → غلاف مجرّد بلا ترويسة مكرّرة
+          : active === 'ep-appointments' ? <Bare><AppointmentsPage /></Bare>
+          : active === 'ep-crm' ? <Bare><CrmPage /></Bare>
+          : active === 'ep-projects' ? <Bare><MyProjectsPage /></Bare>
+          : active === 'ep-notifications' ? <SharedPage title="🔔 الإشعارات" subtitle="كل البنود التي تحتاج إجراءً — محسوبة من بياناتك الحيّة"><NotificationsPanel /></SharedPage>
           : <ComingSoon page={active} />}
       </main>
     </div>
@@ -336,6 +346,40 @@ function SharedPage({ title, subtitle, children }: { title: string; subtitle?: s
         <div><h1 className="ep-page-title">{title}</h1>{subtitle && <p className="ep-page-subtitle">{subtitle}</p>}</div>
       </div>
       {children}
+    </div>
+  );
+}
+
+/** غلاف مجرّد: صفحة مشتركة تحمل ترويستها الخاصة (مشاريعي/المواعيد/CRM) بلا ترويسة مكرّرة. */
+function Bare({ children }: { children: ReactNode }) {
+  return <div className="ep-page ep-active">{children}</div>;
+}
+
+/** الإشعارات — بنود حيّة تحتاج إجراءً (نفس محرّك جرس التوب‌بار)، بتصميم البوابة. */
+function NotificationsPanel() {
+  const navigate = useNavigate();
+  const { data } = useNotifications();
+  const items = data?.items ?? [];
+  return (
+    <div className="ep-card">
+      <div className="ep-card-header"><div className="ep-card-title">🔔 كل الإشعارات{data?.total ? ` (${data.total})` : ''}</div></div>
+      <div className="ep-card-body">
+        {items.length === 0
+          ? <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94A3B8' }}>🎉 لا توجد بنود تحتاج إجراءً حاليًا.</div>
+          : (
+            <div className="ep-notif-list">
+              {items.map((n) => (
+                <div key={n.title} className="ep-notif-item ep-unread" style={{ cursor: 'pointer' }} onClick={() => navigate(n.path)}>
+                  <span className="ep-notif-icon">{n.icon}</span>
+                  <div className="ep-notif-content">
+                    <div className="ep-notif-text"><b>{n.title}</b> — {n.subtitle}</div>
+                    <div className="ep-notif-time">{n.count} عنصر</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+      </div>
     </div>
   );
 }

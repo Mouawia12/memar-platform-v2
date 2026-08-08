@@ -9,6 +9,8 @@ import { attendanceApi } from '../attendance/api/attendanceApi';
 import { STATUS_LABELS, STATUS_COLORS } from '../attendance/types';
 import { salariesApi } from '../payroll/api/salariesApi';
 import { leavesApi } from '../leaves/leavesApi';
+import { dailyReportsApi } from '../dailyReports/dailyReportsApi';
+import { myProjectsApi } from '../myProjects/api/myProjectsApi';
 
 /**
  * صفحات «شؤوني» + «حسابي» في بوابة الموظف — منقولة طبق الأصل من مرجع Atoms
@@ -270,31 +272,56 @@ export function SalaryEp() {
 
 /* ═══════════════════ التقارير اليومية — طبق أصل Atoms ═══════════════════ */
 export function ReportsEp() {
+  const qc = useQueryClient();
+  const { data: reports } = useQuery({ queryKey: ['daily-reports-mine'], queryFn: () => dailyReportsApi.mine() });
+  const { data: myProj } = useQuery({ queryKey: ['my-projects'], queryFn: () => myProjectsApi.mine() });
+  const [form, setForm] = useState({ project_id: '', accomplished: '', challenges: '', tomorrow_plan: '' });
+  const create = useMutation({
+    mutationFn: () => dailyReportsApi.create({
+      project_id: form.project_id ? Number(form.project_id) : null,
+      accomplished: form.accomplished,
+      challenges: form.challenges || undefined,
+      tomorrow_plan: form.tomorrow_plan || undefined,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['daily-reports-mine'] }); setForm({ project_id: '', accomplished: '', challenges: '', tomorrow_plan: '' }); },
+  });
+  const projects = myProj?.projects ?? [];
+  const rows = reports ?? [];
+  const todayLabel = new Date().toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString('ar', { day: 'numeric', month: 'long' }) : '—');
+  const canSubmit = form.accomplished.trim().length > 0 && !create.isPending;
+
   return (
     <div className="ep-page ep-active">
       <div className="ep-page-header">
         <div><h1 className="ep-page-title">📝 التقارير اليومية</h1><p className="ep-page-subtitle">كتابة وإرسال التقارير اليومية</p></div>
       </div>
 
+      {/* نموذج التقرير — حيّ */}
       <div className="ep-card" style={{ marginBottom: 20 }}>
-        <div className="ep-card-header"><div className="ep-card-title">✍️ تقرير اليوم — 7 أغسطس 2026</div></div>
+        <div className="ep-card-header"><div className="ep-card-title">✍️ تقرير اليوم — {todayLabel}</div></div>
         <div className="ep-card-body">
           <div className="ep-report-form">
             <div className="ep-form-group">
               <label>المشروع</label>
-              <select className="ep-form-input"><option>فيلا المنصور</option><option>مبنى العليا</option><option>مجمع تجاري — الري</option></select>
+              <select className="ep-form-input" value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))}>
+                <option value="">— بلا مشروع —</option>
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
             </div>
-            <div className="ep-form-group"><label>ما تم إنجازه اليوم</label><textarea className="ep-form-input" rows={3} placeholder="اكتب ما أنجزته اليوم..." /></div>
-            <div className="ep-form-group"><label>التحديات / الملاحظات</label><textarea className="ep-form-input" rows={2} placeholder="أي تحديات واجهتها..." /></div>
-            <div className="ep-form-group"><label>خطة الغد</label><textarea className="ep-form-input" rows={2} placeholder="ما تخطط لإنجازه غداً..." /></div>
+            <div className="ep-form-group"><label>ما تم إنجازه اليوم</label><textarea className="ep-form-input" rows={3} value={form.accomplished} onChange={(e) => setForm((f) => ({ ...f, accomplished: e.target.value }))} placeholder="اكتب ما أنجزته اليوم..." /></div>
+            <div className="ep-form-group"><label>التحديات / الملاحظات</label><textarea className="ep-form-input" rows={2} value={form.challenges} onChange={(e) => setForm((f) => ({ ...f, challenges: e.target.value }))} placeholder="أي تحديات واجهتها..." /></div>
+            <div className="ep-form-group"><label>خطة الغد</label><textarea className="ep-form-input" rows={2} value={form.tomorrow_plan} onChange={(e) => setForm((f) => ({ ...f, tomorrow_plan: e.target.value }))} placeholder="ما تخطط لإنجازه غداً..." /></div>
             <div className="ep-form-actions">
-              <button className="ep-btn ep-btn-primary">📤 إرسال التقرير</button>
-              <button className="ep-btn ep-btn-outline">💾 حفظ مسودة</button>
+              <button className="ep-btn ep-btn-primary" disabled={!canSubmit} onClick={() => create.mutate()}>{create.isPending ? '…جارٍ الإرسال' : '📤 إرسال التقرير'}</button>
             </div>
+            {create.isSuccess && <div style={{ color: '#2D9B6F', fontWeight: 700, fontSize: 12.5, marginTop: 8 }}>✓ تم إرسال التقرير.</div>}
+            {create.isError && <div style={{ color: '#DC4A3D', fontSize: 12.5, marginTop: 8 }}>{apiErrorMessage(create.error) || 'تعذّر الإرسال.'}</div>}
           </div>
         </div>
       </div>
 
+      {/* تقاريري السابقة — حيّ */}
       <div className="ep-card">
         <div className="ep-card-header"><div className="ep-card-title">📋 تقاريري السابقة</div></div>
         <div className="ep-card-body">
@@ -302,10 +329,15 @@ export function ReportsEp() {
             <table>
               <thead><tr><th>التاريخ</th><th>المشروع</th><th>ملخص</th><th>الحالة</th></tr></thead>
               <tbody>
-                <tr><td className="ep-td-bold">6 أغسطس</td><td>فيلا المنصور</td><td>رفع مخططات الإنشائي + تنسيق مع المقاول</td><td><span className="ep-badge ep-badge-green">مقبول ✓</span></td></tr>
-                <tr><td className="ep-td-bold">5 أغسطس</td><td>مبنى العليا</td><td>تحديث BIM Model الطابق 2 + زيارة موقع</td><td><span className="ep-badge ep-badge-green">مقبول ✓</span></td></tr>
-                <tr><td className="ep-td-bold">4 أغسطس</td><td>مجمع تجاري</td><td>تصميم المسقط الأفقي — الطابق الأرضي</td><td><span className="ep-badge ep-badge-green">مقبول ✓</span></td></tr>
-                <tr><td className="ep-td-bold">3 أغسطس</td><td>فيلا المنصور</td><td>مراجعة ملاحظات العميل + تعديل الواجهة</td><td><span className="ep-badge ep-badge-green">مقبول ✓</span></td></tr>
+                {rows.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا تقارير بعد — اكتب أول تقرير أعلاه.</td></tr>}
+                {rows.map((r) => (
+                  <tr key={r.id}>
+                    <td className="ep-td-bold">{fmt(r.report_date)}</td>
+                    <td>{r.project ?? '—'}</td>
+                    <td>{r.accomplished.length > 60 ? `${r.accomplished.slice(0, 60)}…` : r.accomplished}</td>
+                    <td><span className={`ep-badge ${r.status === 'accepted' ? 'ep-badge-green' : 'ep-badge-blue'}`}>{r.status_label}</span></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

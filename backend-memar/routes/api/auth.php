@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\EmployeeLoyaltyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,6 +26,9 @@ Route::prefix('auth')->group(function (): void {
         // الصورة الشخصية للموظف (رفع/حذف) — بالنقر على دائرة كارت السايدبار.
         Route::post('/me/avatar', [AuthController::class, 'uploadAvatar']);
         Route::delete('/me/avatar', [AuthController::class, 'deleteAvatar']);
+        // محفظة نقاط الموظف واقتصادها (إحالة→نقاط→راتب) — اجتماع 2026-08-07.
+        Route::get('/me/points', [EmployeeLoyaltyController::class, 'points']);
+        Route::post('/me/points/convert', [EmployeeLoyaltyController::class, 'convert']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });

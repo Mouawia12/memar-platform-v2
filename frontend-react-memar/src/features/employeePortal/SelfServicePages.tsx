@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiErrorMessage } from '../../lib/api';
 import { useAuthStore } from '../../store/auth';
@@ -364,79 +365,85 @@ export function ProfileEp() {
 
 /* ═══════════════════ كود الإحالة — طبق أصل Atoms ═══════════════════ */
 export function ReferralEp() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ['employee-points'], queryFn: () => authApi.getPoints() });
+  const convert = useMutation({
+    mutationFn: (points: number) => authApi.convertPoints(points),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['employee-points'] }),
+  });
+
+  const rate = data?.rate_points_per_kwd ?? 50;
+  const maxConvertPoints = data ? Math.floor(data.balance / rate) * rate : 0;
+  const perDeal = data?.points_per_deal ?? 500;
+  const copyCode = () => { if (data?.code) navigator.clipboard?.writeText(data.code); };
+  const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'short' }) : '—');
+
   return (
     <div className="ep-page ep-active">
       <div className="ep-page-header">
-        <div><h1 className="ep-page-title">🎁 كود الإحالة</h1><p className="ep-page-subtitle">اكسب نقاطًا على كل مشروع يتم توقيعه من خلال كود الإحالة الخاص بك</p></div>
+        <div><h1 className="ep-page-title">🎁 كود الإحالة</h1><p className="ep-page-subtitle">اكسب {perDeal} نقطة على كل عميل يتعاقد عبر كودك — وحوّلها إلى راتب</p></div>
       </div>
 
+      {/* البطل — كود ونقاط حيّة */}
       <div className="ep-referral-hero">
         <div className="ep-ref-code-box">
           <div className="ep-ref-label">كود الإحالة الخاص بك</div>
-          <div className="ep-ref-code">AHMED-MEM-2023</div>
-          <button className="ep-btn ep-btn-primary">📋 نسخ الكود</button>
+          <div className="ep-ref-code">{data?.code ?? '—'}</div>
+          <button className="ep-btn ep-btn-primary" onClick={copyCode}>📋 نسخ الكود</button>
         </div>
         <div className="ep-ref-stats">
-          <div className="ep-ref-stat"><span className="ep-ref-num">850</span><span className="ep-ref-label">نقاطي الحالية</span></div>
-          <div className="ep-ref-stat"><span className="ep-ref-num">6</span><span className="ep-ref-label">إحالات ناجحة</span></div>
-          <div className="ep-ref-stat"><span className="ep-ref-num">2</span><span className="ep-ref-label">بانتظار التوقيع</span></div>
+          <div className="ep-ref-stat"><span className="ep-ref-num">{data?.balance ?? 0}</span><span className="ep-ref-label">نقاطي الحالية</span></div>
+          <div className="ep-ref-stat"><span className="ep-ref-num">{data?.deals_won ?? 0}</span><span className="ep-ref-label">صفقات ناجحة</span></div>
+          <div className="ep-ref-stat"><span className="ep-ref-num">{data?.pending_count ?? 0}</span><span className="ep-ref-label">فرص بانتظار الفوز</span></div>
         </div>
       </div>
 
+      {/* تحويل النقاط إلى راتب — حيّ */}
+      <div className="ep-card" style={{ marginBottom: 20 }}>
+        <div className="ep-card-header"><div className="ep-card-title">💰 تحويل النقاط إلى راتب</div></div>
+        <div className="ep-card-body">
+          <p style={{ margin: '0 0 12px', color: '#475569', fontSize: 13 }}>
+            المعدّل <b>{rate} نقطة = 1 د.ك</b>. رصيدك <b>{data?.balance ?? 0}</b> نقطة ≈ <b style={{ color: '#2D9B6F' }}>{data?.convertible_kwd ?? 0} د.ك</b> قابلة للتحويل الآن.
+          </p>
+          <button className="ep-btn ep-btn-primary" disabled={!maxConvertPoints || convert.isPending} onClick={() => convert.mutate(maxConvertPoints)}>
+            {convert.isPending ? '…جارٍ التحويل' : `تحويل ${maxConvertPoints} نقطة ← ${data?.convertible_kwd ?? 0} د.ك`}
+          </button>
+          {convert.isSuccess && <div style={{ marginTop: 8, color: '#2D9B6F', fontWeight: 700, fontSize: 12.5 }}>✓ تم التحويل — ستُضاف لراتبك.</div>}
+          {convert.isError && <div style={{ marginTop: 8, color: '#DC4A3D', fontWeight: 700, fontSize: 12.5 }}>{apiErrorMessage(convert.error) || 'تعذّر التحويل.'}</div>}
+        </div>
+      </div>
+
+      {/* كيف يعمل النظام (شرح ثابت) */}
       <div className="ep-card" style={{ marginBottom: 20 }}>
         <div className="ep-card-header"><div className="ep-card-title">📖 كيف يعمل النظام؟</div></div>
         <div className="ep-card-body">
           <div className="ep-ref-steps">
             <div className="ep-ref-step"><div className="ep-ref-step-num">1</div><div className="ep-ref-step-info"><h4>شارك الكود</h4><p>أرسل كود الإحالة الخاص بك للعملاء المحتملين</p></div></div>
-            <div className="ep-ref-step"><div className="ep-ref-step-num">2</div><div className="ep-ref-step-info"><h4>العميل يتواصل</h4><p>عندما يتواصل العميل ويذكر كود الإحالة</p></div></div>
-            <div className="ep-ref-step"><div className="ep-ref-step-num">3</div><div className="ep-ref-step-info"><h4>توقيع العقد</h4><p>عند توقيع عقد المشروع تحصل على النقاط</p></div></div>
-            <div className="ep-ref-step"><div className="ep-ref-step-num">4</div><div className="ep-ref-step-info"><h4>اكسب المكافآت</h4><p>استبدل النقاط بمكافآت مالية أو إجازات</p></div></div>
+            <div className="ep-ref-step"><div className="ep-ref-step-num">2</div><div className="ep-ref-step-info"><h4>العميل يتواصل</h4><p>يُسجَّل العميل كفرصة باسمك (مسؤول الفرصة)</p></div></div>
+            <div className="ep-ref-step"><div className="ep-ref-step-num">3</div><div className="ep-ref-step-info"><h4>فوز الصفقة</h4><p>عند تحويل الفرصة لمشروع تحصل على {perDeal} نقطة تلقائيًا</p></div></div>
+            <div className="ep-ref-step"><div className="ep-ref-step-num">4</div><div className="ep-ref-step-info"><h4>حوّلها لراتب</h4><p>كل {rate} نقطة = 1 د.ك تُضاف لراتبك</p></div></div>
           </div>
         </div>
       </div>
 
-      <div className="ep-grid-2">
-        <div className="ep-card">
-          <div className="ep-card-header"><div className="ep-card-title">📊 سجل النقاط</div></div>
-          <div className="ep-card-body">
-            <div className="ep-table-wrap">
-              <table>
-                <thead><tr><th>التاريخ</th><th>العميل</th><th>المشروع</th><th>النقاط</th></tr></thead>
-                <tbody>
-                  <tr><td>6 أغسطس</td><td className="ep-td-bold">خالد الصباح</td><td>فيلا سكنية</td><td><span className="ep-badge ep-badge-green">+150</span></td></tr>
-                  <tr><td>20 يوليو</td><td className="ep-td-bold">سارة العلي</td><td>تصميم داخلي</td><td><span className="ep-badge ep-badge-green">+100</span></td></tr>
-                  <tr><td>5 يوليو</td><td className="ep-td-bold">فهد المطيري</td><td>ملحق سكني</td><td><span className="ep-badge ep-badge-green">+100</span></td></tr>
-                  <tr><td>15 يونيو</td><td className="ep-td-bold">مؤسسة الأمل</td><td>مبنى إداري</td><td><span className="ep-badge ep-badge-green">+200</span></td></tr>
-                  <tr><td>1 يونيو</td><td className="ep-td-bold">عبدالله النور</td><td>فيلا سكنية</td><td><span className="ep-badge ep-badge-green">+150</span></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div className="ep-card">
-          <div className="ep-card-header"><div className="ep-card-title">🎁 المكافآت المتاحة</div></div>
-          <div className="ep-card-body">
-            <div className="ep-rewards-list">
-              <div className="ep-reward-item"><div className="ep-reward-icon">💰</div><div className="ep-reward-info"><div className="ep-reward-name">مكافأة 50 د.ك</div><div className="ep-reward-cost">500 نقطة</div></div><button className="ep-btn ep-btn-xs ep-btn-primary">استبدال</button></div>
-              <div className="ep-reward-item"><div className="ep-reward-icon">💰</div><div className="ep-reward-info"><div className="ep-reward-name">مكافأة 100 د.ك</div><div className="ep-reward-cost">900 نقطة</div></div><button className="ep-btn ep-btn-xs ep-btn-outline" disabled>غير كافٍ</button></div>
-              <div className="ep-reward-item"><div className="ep-reward-icon">🏖️</div><div className="ep-reward-info"><div className="ep-reward-name">يوم إجازة إضافي</div><div className="ep-reward-cost">300 نقطة</div></div><button className="ep-btn ep-btn-xs ep-btn-primary">استبدال</button></div>
-              <div className="ep-reward-item"><div className="ep-reward-icon">🎓</div><div className="ep-reward-info"><div className="ep-reward-name">دورة تدريبية مجانية</div><div className="ep-reward-cost">600 نقطة</div></div><button className="ep-btn ep-btn-xs ep-btn-primary">استبدال</button></div>
-              <div className="ep-reward-item"><div className="ep-reward-icon">📱</div><div className="ep-reward-info"><div className="ep-reward-name">بدل هاتف إضافي (شهر)</div><div className="ep-reward-cost">200 نقطة</div></div><button className="ep-btn ep-btn-xs ep-btn-primary">استبدال</button></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* سجل النقاط — حيّ */}
       <div className="ep-card">
-        <div className="ep-card-header"><div className="ep-card-title">⏳ إحالات بانتظار التوقيع</div></div>
+        <div className="ep-card-header"><div className="ep-card-title">📊 سجل النقاط</div></div>
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>العميل</th><th>تاريخ الإحالة</th><th>نوع المشروع</th><th>الحالة</th><th>النقاط المتوقعة</th></tr></thead>
+              <thead><tr><th>التاريخ</th><th>الحركة</th><th>النقاط</th><th>الرصيد</th></tr></thead>
               <tbody>
-                <tr><td className="ep-td-bold">ناصر الحربي</td><td>1 أغسطس</td><td>فيلا سكنية</td><td><span className="ep-badge ep-badge-orange">عرض سعر مرسل</span></td><td>150</td></tr>
-                <tr><td className="ep-td-bold">شركة المستقبل</td><td>28 يوليو</td><td>مبنى تجاري</td><td><span className="ep-badge ep-badge-blue">قيد التفاوض</span></td><td>200</td></tr>
+                {isLoading && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94A3B8' }}>جارٍ التحميل…</td></tr>}
+                {data && data.transactions.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا حركات بعد — شارك كودك وابدأ بكسب النقاط.</td></tr>}
+                {data?.transactions.map((t) => (
+                  <tr key={t.id}>
+                    <td>{fmtDate(t.created_at)}</td>
+                    <td className="ep-td-bold">{t.description ?? t.source}</td>
+                    <td><span className={`ep-badge ${t.points >= 0 ? 'ep-badge-green' : 'ep-badge-orange'}`}>{t.points >= 0 ? '+' : ''}{t.points}</span></td>
+                    <td>{t.balance_after}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

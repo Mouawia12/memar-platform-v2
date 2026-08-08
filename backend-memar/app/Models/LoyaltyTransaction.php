@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class LoyaltyTransaction extends Model
 {
     protected $fillable = [
-        'contact_id', 'points', 'balance_after', 'source', 'description',
+        'contact_id', 'user_id', 'points', 'balance_after', 'source', 'description',
         'reference_type', 'reference_id',
     ];
 
@@ -31,6 +31,12 @@ class LoyaltyTransaction extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /** المُكتَسِب حين تكون الحركة لموظف (لا عميل). @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /** @return MorphTo<Model, $this> */

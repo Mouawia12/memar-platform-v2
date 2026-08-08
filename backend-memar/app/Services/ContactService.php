@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Contact;
 use App\Models\PipelineStage;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -13,7 +14,10 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class ContactService
 {
-    public function __construct(private readonly ProjectService $projects) {}
+    public function __construct(
+        private readonly ProjectService $projects,
+        private readonly LoyaltyService $loyalty,
+    ) {}
 
     public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
     {
@@ -85,5 +89,20 @@ class ContactService
         ]);
 
         $contact->forceFill(['converted_project_id' => $project->id])->saveQuietly();
+
+        // اقتصاد نقاط الموظف (اجتماع 2026-08-07): صاحب الفرصة (owner) يكسب نقاطًا عند
+        // فوزها بالتعاقد — 500 نقطة من config. تُحوَّل لاحقًا إلى رصيد راتب.
+        if ($contact->owner_id !== null) {
+            $owner = User::find($contact->owner_id);
+            if ($owner !== null) {
+                $this->loyalty->awardUser(
+                    $owner,
+                    (int) config('loyalty.earn.referral_contracted', 500),
+                    'referral_contracted',
+                    $project,
+                    "نقاط إحالة: فوز الفرصة «{$contact->full_name}» والتعاقد",
+                );
+            }
+        }
     }
 }

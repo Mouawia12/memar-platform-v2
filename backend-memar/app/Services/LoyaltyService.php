@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\LoyaltyRedemption;
 use App\Models\LoyaltyTransaction;
 use App\Models\Referral;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -43,6 +44,81 @@ class LoyaltyService
             ])->save();
 
             return $this->writeLedger($contact, $points, $balance, $source, $reference, $description);
+        });
+    }
+
+    /* ═══════════════ نقاط الموظفين (users) — الرصيد يُحسب من السجل مباشرة ═══════════════ */
+
+    /** رصيد نقاط الموظف الحالي (مجموع حركاته). */
+    public function userBalance(User $user): int
+    {
+        return (int) LoyaltyTransaction::where('user_id', $user->id)->sum('points');
+    }
+
+    /** نقاط الموظف مدى الحياة (الموجبة فقط). */
+    public function userLifetime(User $user): int
+    {
+        return (int) LoyaltyTransaction::where('user_id', $user->id)->where('points', '>', 0)->sum('points');
+    }
+
+    /** منح الموظف نقاطًا وتسجيل الحركة (contact_id = NULL كي لا تختلط برصيد عميل). */
+    public function awardUser(User $user, int $points, string $source, ?Model $reference = null, ?string $description = null): ?LoyaltyTransaction
+    {
+        if ($points <= 0) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($user, $points, $source, $reference, $description): LoyaltyTransaction {
+            $balance = $this->userBalance($user) + $points;
+
+            return LoyaltyTransaction::create([
+                'user_id' => $user->id,
+                'contact_id' => null,
+                'points' => $points,
+                'balance_after' => $balance,
+                'source' => $source,
+                'description' => $description,
+                'reference_type' => $reference ? $reference::class : null,
+                'reference_id' => $reference?->getKey(),
+            ]);
+        });
+    }
+
+    /**
+     * تحويل نقاط الموظف إلى رصيد راتب (config: 50 نقطة = 1 د.ك). يخصم النقاط ويعيد المبلغ.
+     *
+     * @return array{points:int, kwd:float, balance:int}
+     *
+     * @throws RuntimeException تحت الحدّ الأدنى أو عند نقص الرصيد
+     */
+    public function convertUserPointsToSalary(User $user, int $points): array
+    {
+        $rate = (int) config('loyalty.salary.points_per_kwd', 50);
+        $min = (int) config('loyalty.salary.min_points', 50);
+
+        return DB::transaction(function () use ($user, $points, $rate, $min): array {
+            $balance = $this->userBalance($user);
+            if ($points > $balance) {
+                throw new RuntimeException('النقاط غير كافية.');
+            }
+            // نحوّل مضاعفات السعر فقط كي لا تضيع كسور النقاط.
+            $convertible = intdiv($points, $rate) * $rate;
+            if ($convertible < $min) {
+                throw new RuntimeException("أقل تحويل {$min} نقطة.");
+            }
+            $kwd = $convertible / $rate;
+            $newBalance = $balance - $convertible;
+
+            LoyaltyTransaction::create([
+                'user_id' => $user->id,
+                'contact_id' => null,
+                'points' => -$convertible,
+                'balance_after' => $newBalance,
+                'source' => 'salary_conversion',
+                'description' => "تحويل {$convertible} نقطة إلى رصيد راتب: " . number_format($kwd, 3) . ' د.ك',
+            ]);
+
+            return ['points' => $convertible, 'kwd' => $kwd, 'balance' => $newBalance];
         });
     }
 

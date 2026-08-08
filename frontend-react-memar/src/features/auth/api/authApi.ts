@@ -29,6 +29,28 @@ export interface ResetPayload {
   password_confirmation: string;
 }
 
+/** محفظة نقاط الموظف (إحالة→نقاط→راتب). */
+export interface EmployeePointsTx {
+  id: number;
+  points: number;
+  balance_after: number;
+  source: string;
+  description: string | null;
+  created_at: string | null;
+}
+export interface EmployeePoints {
+  code: string;
+  balance: number;
+  lifetime: number;
+  rate_points_per_kwd: number;
+  convertible_kwd: number;
+  min_points: number;
+  points_per_deal: number;
+  deals_won: number;
+  pending_count: number;
+  transactions: EmployeePointsTx[];
+}
+
 /** استدعاءات وحدة المصادقة. */
 export const authApi = {
   login: (payload: LoginPayload) => apiPost<LoginResult>('/auth/login', payload),
@@ -41,6 +63,9 @@ export const authApi = {
   /** تغيير كلمة المرور من داخل الجلسة (بالتحقق من الحالية). */
   changePassword: (payload: { current_password: string; password: string; password_confirmation: string }) =>
     apiPost<null>('/auth/me/password', payload),
+  /** محفظة نقاط الموظف. */
+  getPoints: () => apiGet<EmployeePoints>('/auth/me/points'),
+  convertPoints: (points: number) => apiPost<{ points: number; kwd: number; balance: number }>('/auth/me/points/convert', { points }),
   updateUiPrefs: (prefs: UiPrefs) => apiPatch<UiPrefs>('/auth/me/ui-prefs', prefs),
   /** رفع الصورة الشخصية للموظف — تُعيد بيانات المستخدم المحدّثة (تتضمّن avatar_url). */
   uploadAvatar: (file: File) => {

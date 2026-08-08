@@ -40,6 +40,7 @@ import { ProjectDetailPage } from './features/projects/pages/ProjectDetailPage';
 import { ProjectsPage } from './features/projects/pages/ProjectsPage';
 import { MyProjectsPage } from './features/myProjects/pages/MyProjectsPage';
 import { TeamProjectsPage } from './features/myProjects/pages/TeamProjectsPage';
+import { EmployeePortalPage } from './features/employeePortal/EmployeePortalPage';
 import { QuotationsPage } from './features/quotations/pages/QuotationsPage';
 import { ServicesPage } from './features/services/pages/ServicesPage';
 import { TasksPage } from './features/tasks/pages/TasksPage';
@@ -65,6 +66,8 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         {/* بوابة العميل — بواجهتها الكاملة الخاصة (طبق أصل تصميم atoms)، خارج قالب لوحة التحكم */}
         <Route path="/client-portal" element={<ClientPortalV2Page />} />
+        {/* بوابة الموظف — واجهة مستقلّة طبق أصل Atoms (سايدبار وتوب‌بار خاصّان، خارج شِلّ لوحة التحكم) */}
+        <Route path="/employee-portal" element={<EmployeePortalPage />} />
         {/* صفحة مشروع العميل — داخل سياق البوابة (لا قالب لوحة الموظفين) حتى لا يخرج العميل من بوابته */}
         <Route path="/client-portal/projects/:id" element={<ClientProjectDetailPage />} />
         {/* بروفيل العميل للأدمن = «عرض إداري» بنفس واجهة البوابة كاملةً (خارج قالب لوحة التحكم لتفادي تداخل الشِلّين) */}

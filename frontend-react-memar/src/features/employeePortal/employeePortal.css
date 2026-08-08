@@ -1,0 +1,619 @@
+/* بوابة الموظف — طبق الأصل من مرجع Atoms. أصنافها مسبوقة بـ ep- ومُنطّقة تحت .ep-root + !important لعزلها تمامًا عن سكِن التطبيق. المصدر: «بوابة عملاء معمار». */
+/* ═══════════════════════════════════════════════════════════════════
+   EMPLOYEE PORTAL — مجموعة معمار للاستشارات الهندسية
+   Design System: Same as Admin ERP (Memar Blue/Purple)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ep-root {
+  --primary: #1B6CA8 !important;
+  --primary-dark: #145A8A !important;
+  --primary-50: #EBF5FF;
+  --secondary: #7C3AED !important;
+  --secondary-50: #F3E8FF;
+  --success: #2D9B6F !important;
+  --success-50: #ECFDF5;
+  --warning: #E8A838 !important;
+  --warning-50: #FFFBEB;
+  --danger: #DC4A3D !important;
+  --danger-50: #FEF2F2;
+  --text-1: #1E293B;
+  --text-2: #475569;
+  --text-3: #94A3B8;
+  --bg: #F8FAFC !important;
+  --bg-2: #F1F5F9;
+  --border: #E2E8F0 !important;
+  --white: #FFFFFF !important;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06) !important;
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08) !important;
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12) !important;
+  --r-sm: 8px !important;
+  --r-md: 12px !important;
+  --r-lg: 16px !important;
+  --sidebar-w: 260px !important;
+  --topbar-h: 64px !important;
+}
+
+.ep-root * { margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
+.ep-root {
+  font-family: 'Cairo', sans-serif !important;
+  background: var(--bg) !important;
+  color: var(--text-1) !important;
+  direction: rtl !important;
+  min-height: 100vh !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-sidebar {
+  position: fixed !important;
+  top: 0 !important; right: 0 !important;
+  width: var(--sidebar-w) !important;
+  height: 100vh !important;
+  background: linear-gradient(180deg, #0F2A4A 0%, #1B4B7A 50%, #1B6CA8 100%) !important;
+  display: flex !important; flex-direction: column !important;
+  z-index: 1000 !important;
+  transition: transform 0.3s !important;
+  overflow-y: auto !important;
+}
+.ep-root .ep-sb-header { padding: 20px 16px !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; }
+.ep-root .ep-sb-logo { display: flex !important; align-items: center !important; gap: 10px !important; }
+.ep-root .ep-sb-logo-icon {
+  width: 40px !important; height: 40px !important; border-radius: 10px !important;
+  background: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
+  color: #fff !important; display: flex !important; align-items: center !important; justify-content: center !important;
+  font-weight: 900 !important; font-size: 18px !important;
+}
+.ep-root .ep-sb-logo-title { color: #fff !important; font-size: 14px !important; font-weight: 800 !important; }
+.ep-root .ep-sb-logo-sub { color: rgba(255,255,255,0.6) !important; font-size: 10px !important; }
+
+.ep-root .ep-sb-nav { flex: 1 !important; padding: 12px 10px !important; }
+.ep-root .ep-sb-section-label {
+  font-size: 10px !important; font-weight: 700 !important; color: rgba(255,255,255,0.4) !important;
+  padding: 12px 12px 6px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;
+}
+.ep-root .ep-sb-link {
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  padding: 10px 12px !important; border-radius: var(--r-sm) !important;
+  color: rgba(255,255,255,0.75) !important; font-size: 13px !important; font-weight: 500 !important;
+  cursor: pointer !important; transition: all 0.2s !important; text-decoration: none !important;
+  position: relative !important;
+}
+.ep-root .ep-sb-link:hover { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
+.ep-root .ep-sb-link.ep-active {
+  background: rgba(255,255,255,0.15) !important; color: #fff !important; font-weight: 700 !important;
+  border-right: 3px solid var(--secondary) !important;
+}
+.ep-root .ep-sb-icon { font-size: 16px !important; width: 24px !important; text-align: center !important; }
+.ep-root .ep-sb-text { flex: 1 !important; }
+.ep-root .ep-sb-badge {
+  background: var(--secondary) !important; color: #fff !important;
+  font-size: 10px !important; font-weight: 700 !important; padding: 2px 7px !important;
+  border-radius: 10px !important; min-width: 20px !important; text-align: center !important;
+}
+.ep-root .ep-sb-badge.ep-red { background: var(--danger) !important; }
+
+.ep-root .ep-sb-footer { padding: 16px !important; border-top: 1px solid rgba(255,255,255,0.1) !important; }
+.ep-root .ep-sb-user { display: flex !important; align-items: center !important; gap: 10px !important; }
+.ep-root .ep-sb-user-avatar {
+  width: 36px !important; height: 36px !important; border-radius: 50% !important;
+  background: linear-gradient(135deg, var(--secondary), #A855F7) !important;
+  color: #fff !important; display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 11px !important; font-weight: 700 !important;
+}
+.ep-root .ep-sb-user-name { color: #fff !important; font-size: 12px !important; font-weight: 700 !important; }
+.ep-root .ep-sb-user-role { color: rgba(255,255,255,0.5) !important; font-size: 10px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-topbar {
+  position: fixed !important;
+  top: 0 !important; right: var(--sidebar-w) !important; left: 0 !important;
+  height: var(--topbar-h) !important;
+  background: var(--white) !important;
+  border-bottom: 1px solid var(--border) !important;
+  display: flex !important; align-items: center !important; justify-content: space-between !important;
+  padding: 0 24px !important;
+  z-index: 999 !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.ep-root .ep-topbar-right, .ep-root .ep-topbar-left { display: flex !important; align-items: center !important; gap: 12px !important; }
+.ep-root .ep-menu-toggle {
+  display: none !important; background: none !important; border: none !important;
+  font-size: 22px !important; cursor: pointer !important; color: var(--text-1) !important;
+}
+.ep-root .ep-greeting-text { font-size: 14px !important; font-weight: 700 !important; color: var(--text-1) !important; display: block !important; }
+.ep-root .ep-greeting-date { font-size: 11px !important; color: var(--text-3) !important; }
+.ep-root .ep-topbar-btn {
+  width: 38px !important; height: 38px !important; border-radius: 50% !important;
+  background: var(--bg-2) !important; border: none !important; font-size: 16px !important;
+  cursor: pointer !important; position: relative !important; transition: all 0.2s !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+}
+.ep-root .ep-topbar-btn:hover { background: var(--primary-50) !important; }
+.ep-root .ep-notif-dot {
+  position: absolute !important; top: 6px !important; left: 6px !important;
+  width: 8px !important; height: 8px !important; border-radius: 50% !important;
+  background: var(--danger) !important; border: 2px solid var(--white) !important;
+}
+.ep-root .ep-topbar-avatar {
+  width: 36px !important; height: 36px !important; border-radius: 50% !important;
+  background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+  color: #fff !important; display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 11px !important; font-weight: 700 !important; cursor: pointer !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-main {
+  margin-right: var(--sidebar-w) !important;
+  margin-top: var(--topbar-h) !important;
+  padding: 24px !important;
+  min-height: calc(100vh - var(--topbar-h)) !important;
+}
+.ep-root .ep-page { display: none !important; }
+.ep-root .ep-page.ep-active { display: block !important; }
+
+/* ═══════════════════════════════════════════════════════
+   WELCOME CARD
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-welcome-card {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+  border-radius: var(--r-lg) !important; padding: 28px 32px !important;
+  color: #fff !important; display: flex !important; align-items: center !important;
+  justify-content: space-between !important; margin-bottom: 24px !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.ep-root .ep-welcome-content h2 { font-size: 22px !important; font-weight: 800 !important; margin-bottom: 4px !important; }
+.ep-root .ep-welcome-content p { font-size: 13px !important; opacity: 0.85 !important; margin-bottom: 16px !important; }
+.ep-root .ep-welcome-stats { display: flex !important; gap: 24px !important; }
+.ep-root .ep-ws-item { display: flex !important; flex-direction: column !important; align-items: center !important; }
+.ep-root .ep-ws-num { font-size: 22px !important; font-weight: 900 !important; }
+.ep-root .ep-ws-label { font-size: 10px !important; opacity: 0.8 !important; }
+.ep-root .ep-welcome-visual { font-size: 64px !important; opacity: 0.3 !important; }
+
+/* ═══════════════════════════════════════════════════════
+   QUICK ACTIONS
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-quick-actions {
+  display: grid !important; grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px !important; margin-bottom: 24px !important;
+}
+.ep-root .ep-qa-btn {
+  display: flex !important; align-items: center !important; gap: 8px !important;
+  padding: 14px 16px !important; border-radius: var(--r-md) !important;
+  background: var(--white) !important; border: 1px solid var(--border) !important;
+  font-size: 13px !important; font-weight: 600 !important; color: var(--text-1) !important;
+  cursor: pointer !important; transition: all 0.2s !important; font-family: inherit !important;
+}
+.ep-root .ep-qa-btn:hover { border-color: var(--primary) !important; background: var(--primary-50) !important; transform: translateY(-2px) !important; box-shadow: var(--shadow-md) !important; }
+.ep-root .ep-qa-icon { font-size: 20px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-kpi-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; margin-bottom: 24px !important; }
+.ep-root .ep-kpi-grid.ep-sm { margin-bottom: 20px !important; }
+.ep-root .ep-kpi-card {
+  background: var(--white) !important; border-radius: var(--r-md) !important;
+  padding: 16px !important; display: flex !important; align-items: flex-start !important; gap: 12px !important;
+  border: 1px solid var(--border) !important; transition: all 0.2s !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.ep-root .ep-kpi-card:hover { transform: translateY(-2px) !important; box-shadow: var(--shadow-md) !important; }
+.ep-root .ep-kpi-card.ep-mini { padding: 12px !important; }
+.ep-root .ep-kpi-icon {
+  width: 42px !important; height: 42px !important; border-radius: 10px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 18px !important; flex-shrink: 0 !important;
+}
+.ep-root .ep-kpi-icon.ep-blue { background: var(--primary-50) !important; }
+.ep-root .ep-kpi-icon.ep-green { background: var(--success-50) !important; }
+.ep-root .ep-kpi-icon.ep-orange { background: var(--warning-50) !important; }
+.ep-root .ep-kpi-icon.ep-purple { background: var(--secondary-50) !important; }
+.ep-root .ep-kpi-icon.ep-red { background: var(--danger-50) !important; }
+.ep-root .ep-kpi-body { flex: 1 !important; }
+.ep-root .ep-kpi-label { font-size: 11px !important; color: var(--text-3) !important; margin-bottom: 2px !important; }
+.ep-root .ep-kpi-value { font-size: 20px !important; font-weight: 800 !important; color: var(--text-1) !important; }
+.ep-root .ep-kpi-sub { font-size: 10px !important; color: var(--text-3) !important; margin-top: 2px !important; }
+.ep-root .ep-kpi-bar { height: 4px !important; background: var(--bg-2) !important; border-radius: 2px !important; margin-top: 6px !important; }
+.ep-root .ep-kpi-bar-fill { height: 100% !important; border-radius: 2px !important; background: var(--primary) !important; transition: width 0.5s !important; }
+.ep-root .ep-kpi-bar-fill.ep-green { background: var(--success) !important; }
+.ep-root .ep-kpi-bar-fill.ep-orange { background: var(--warning) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-card {
+  background: var(--white) !important; border-radius: var(--r-md) !important;
+  border: 1px solid var(--border) !important; box-shadow: var(--shadow-sm) !important;
+  margin-bottom: 20px !important; overflow: hidden !important;
+}
+.ep-root .ep-card-header {
+  padding: 16px 20px !important; border-bottom: 1px solid var(--border) !important;
+  display: flex !important; align-items: center !important; justify-content: space-between !important;
+}
+.ep-root .ep-card-title { font-size: 14px !important; font-weight: 700 !important; color: var(--text-1) !important; }
+.ep-root .ep-card-subtitle { font-size: 11px !important; color: var(--text-3) !important; margin-top: 2px !important; }
+.ep-root .ep-card-body { padding: 16px 20px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   GRID LAYOUTS
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-grid-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; margin-bottom: 20px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   PAGE HEADER
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-page-header {
+  display: flex !important; align-items: center !important; justify-content: space-between !important;
+  margin-bottom: 24px !important;
+}
+.ep-root .ep-page-title { font-size: 20px !important; font-weight: 800 !important; color: var(--text-1) !important; }
+.ep-root .ep-page-subtitle { font-size: 12px !important; color: var(--text-3) !important; margin-top: 2px !important; }
+.ep-root .ep-page-actions { display: flex !important; gap: 8px !important; align-items: center !important; }
+
+/* ═══════════════════════════════════════════════════════
+   TABLES
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-table-wrap { overflow-x: auto !important; }
+.ep-root table { width: 100% !important; border-collapse: collapse !important; font-size: 12px !important; }
+.ep-root thead { background: var(--bg-2) !important; }
+.ep-root th { padding: 10px 12px !important; text-align: right !important; font-weight: 700 !important; color: var(--text-2) !important; font-size: 11px !important; white-space: nowrap !important; }
+.ep-root td { padding: 10px 12px !important; border-bottom: 1px solid var(--border) !important; color: var(--text-2) !important; }
+.ep-root tr:hover { background: var(--bg) !important; }
+.ep-root .ep-td-bold { font-weight: 700 !important; color: var(--text-1) !important; }
+.ep-root .ep-td-muted { color: var(--text-3) !important; }
+.ep-root .ep-td-muted.ep-red { color: var(--danger) !important; font-weight: 600 !important; }
+.ep-root .ep-row-done { opacity: 0.5 !important; }
+
+/* ═══════════════════════════════════════════════════════
+   BADGES
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-badge {
+  display: inline-block !important; padding: 3px 8px !important; border-radius: 6px !important;
+  font-size: 10px !important; font-weight: 700 !important; white-space: nowrap !important;
+}
+.ep-root .ep-badge-green { background: var(--success-50) !important; color: var(--success) !important; }
+.ep-root .ep-badge-blue { background: var(--primary-50) !important; color: var(--primary) !important; }
+.ep-root .ep-badge-orange { background: var(--warning-50) !important; color: var(--warning) !important; }
+.ep-root .ep-badge-red { background: var(--danger-50) !important; color: var(--danger) !important; }
+.ep-root .ep-badge-purple { background: var(--secondary-50) !important; color: var(--secondary) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-btn {
+  display: inline-flex !important; align-items: center !important; gap: 6px !important;
+  padding: 8px 16px !important; border-radius: var(--r-sm) !important;
+  font-size: 12px !important; font-weight: 600 !important; cursor: pointer !important;
+  border: none !important; font-family: inherit !important; transition: all 0.2s !important;
+}
+.ep-root .ep-btn-primary { background: var(--primary) !important; color: #fff !important; }
+.ep-root .ep-btn-primary:hover { background: var(--primary-dark) !important; transform: translateY(-1px) !important; }
+.ep-root .ep-btn-danger { background: var(--danger) !important; color: #fff !important; }
+.ep-root .ep-btn-outline { background: transparent !important; border: 1px solid var(--border) !important; color: var(--text-2) !important; }
+.ep-root .ep-btn-outline:hover { border-color: var(--primary) !important; color: var(--primary) !important; }
+.ep-root .ep-btn-sm { padding: 6px 12px !important; font-size: 11px !important; }
+.ep-root .ep-btn-lg { padding: 12px 24px !important; font-size: 14px !important; }
+.ep-root .ep-btn-xs { padding: 4px 8px !important; font-size: 10px !important; }
+.ep-root .ep-btn:disabled { opacity: 0.5 !important; cursor: not-allowed !important; }
+
+/* ═══════════════════════════════════════════════════════
+   FORMS
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-form-group { margin-bottom: 14px !important; }
+.ep-root .ep-form-group label { display: block !important; font-size: 11px !important; font-weight: 600 !important; color: var(--text-2) !important; margin-bottom: 4px !important; }
+.ep-root .ep-form-input {
+  width: 100% !important; padding: 10px 14px !important; border: 1px solid var(--border) !important;
+  border-radius: var(--r-sm) !important; font-size: 13px !important; font-family: inherit !important;
+  transition: border-color 0.2s !important; background: var(--white) !important; color: var(--text-1) !important;
+}
+.ep-root .ep-form-input:focus { outline: none !important; border-color: var(--primary) !important; box-shadow: 0 0 0 3px var(--primary-50) !important; }
+.ep-root .ep-form-input:disabled { background: var(--bg-2) !important; color: var(--text-3) !important; }
+.ep-root textarea.ep-form-input { resize: vertical !important; min-height: 60px !important; }
+.ep-root select.ep-form-input { cursor: pointer !important; }
+.ep-root .ep-form-actions { display: flex !important; gap: 10px !important; margin-top: 16px !important; }
+.ep-root .ep-filter-select {
+  padding: 8px 14px !important; border: 1px solid var(--border) !important; border-radius: var(--r-sm) !important;
+  font-size: 12px !important; font-family: inherit !important; cursor: pointer !important; background: var(--white) !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TASK LIST (Dashboard)
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-task-list { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+.ep-root .ep-task-item {
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  padding: 10px 12px !important; border-radius: var(--r-sm) !important;
+  border: 1px solid var(--border) !important; transition: all 0.2s !important;
+}
+.ep-root .ep-task-item:hover { border-color: var(--primary) !important; background: var(--primary-50) !important; }
+.ep-root .ep-task-item.ep-urgent { border-color: var(--danger) !important; background: var(--danger-50) !important; }
+.ep-root .ep-task-item.ep-done { opacity: 0.5 !important; }
+.ep-root .ep-task-check {
+  width: 20px !important; height: 20px !important; border-radius: 50% !important;
+  border: 2px solid var(--border) !important; flex-shrink: 0 !important;
+}
+.ep-root .ep-task-check.ep-checked { background: var(--success) !important; border-color: var(--success) !important; color: #fff !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 10px !important; }
+.ep-root .ep-task-info { flex: 1 !important; }
+.ep-root .ep-task-name { font-size: 12px !important; font-weight: 600 !important; color: var(--text-1) !important; }
+.ep-root .ep-task-meta { display: flex !important; gap: 12px !important; margin-top: 3px !important; }
+.ep-root .ep-task-project { font-size: 10px !important; color: var(--text-3) !important; }
+.ep-root .ep-task-due { font-size: 10px !important; color: var(--text-3) !important; }
+.ep-root .ep-task-due.ep-red { color: var(--danger) !important; font-weight: 600 !important; }
+.ep-root .ep-task-due.ep-green { color: var(--success) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   SCHEDULE LIST
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-schedule-list { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+.ep-root .ep-sched-item {
+  display: flex !important; align-items: center !important; gap: 12px !important;
+  padding: 10px 12px !important; border-radius: var(--r-sm) !important;
+  border: 1px solid var(--border) !important; transition: all 0.2s !important;
+}
+.ep-root .ep-sched-item.ep-now { border-color: var(--primary) !important; background: var(--primary-50) !important; }
+.ep-root .ep-sched-time { font-size: 12px !important; font-weight: 700 !important; color: var(--primary) !important; min-width: 50px !important; }
+.ep-root .ep-sched-content { flex: 1 !important; }
+.ep-root .ep-sched-title { font-size: 12px !important; font-weight: 600 !important; color: var(--text-1) !important; }
+.ep-root .ep-sched-loc { font-size: 10px !important; color: var(--text-3) !important; margin-top: 2px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   NOTIFICATIONS
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-notif-list, .ep-root .ep-notif-full-list { display: flex !important; flex-direction: column !important; }
+.ep-root .ep-notif-item {
+  display: flex !important; align-items: flex-start !important; gap: 10px !important;
+  padding: 12px 16px !important; border-bottom: 1px solid var(--border) !important;
+  transition: background 0.2s !important;
+}
+.ep-root .ep-notif-item:last-child { border-bottom: none !important; }
+.ep-root .ep-notif-item.ep-unread { background: var(--primary-50) !important; }
+.ep-root .ep-notif-item:hover { background: var(--bg-2) !important; }
+.ep-root .ep-notif-icon { font-size: 18px !important; flex-shrink: 0 !important; margin-top: 2px !important; }
+.ep-root .ep-notif-content { flex: 1 !important; }
+.ep-root .ep-notif-text { font-size: 12px !important; color: var(--text-1) !important; line-height: 1.6 !important; }
+.ep-root .ep-notif-time { font-size: 10px !important; color: var(--text-3) !important; margin-top: 3px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   PROJECTS GRID
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-projects-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; }
+.ep-root .ep-project-card {
+  background: var(--white) !important; border-radius: var(--r-md) !important;
+  border: 1px solid var(--border) !important; padding: 20px !important;
+  transition: all 0.2s !important; box-shadow: var(--shadow-sm) !important;
+}
+.ep-root .ep-project-card:hover { transform: translateY(-3px) !important; box-shadow: var(--shadow-md) !important; }
+.ep-root .ep-proj-header { display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 10px !important; }
+.ep-root .ep-proj-type { font-size: 11px !important; color: var(--text-3) !important; }
+.ep-root .ep-proj-name { font-size: 16px !important; font-weight: 800 !important; color: var(--text-1) !important; margin-bottom: 4px !important; }
+.ep-root .ep-proj-client { font-size: 11px !important; color: var(--text-3) !important; margin-bottom: 12px !important; }
+.ep-root .ep-proj-progress { display: flex !important; align-items: center !important; gap: 10px !important; margin-bottom: 12px !important; }
+.ep-root .ep-proj-prog-bar { flex: 1 !important; height: 6px !important; background: var(--bg-2) !important; border-radius: 3px !important; }
+.ep-root .ep-proj-prog-fill { height: 100% !important; border-radius: 3px !important; background: linear-gradient(90deg, var(--primary), var(--secondary)) !important; transition: width 0.5s !important; }
+.ep-root .ep-proj-prog-text { font-size: 12px !important; font-weight: 700 !important; color: var(--primary) !important; }
+.ep-root .ep-proj-meta { font-size: 10px !important; color: var(--text-3) !important; display: flex !important; flex-direction: column !important; gap: 3px !important; margin-bottom: 8px !important; }
+.ep-root .ep-proj-dates { font-size: 10px !important; color: var(--text-3) !important; display: flex !important; flex-direction: column !important; gap: 2px !important; }
+
+/* ═══════════════════════════════════════════════════════
+   CHECK-IN CARD
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-checkin-card {
+  background: linear-gradient(135deg, var(--success) 0%, #34D399 100%) !important;
+  border-radius: var(--r-lg) !important; padding: 24px 28px !important;
+  color: #fff !important; display: flex !important; align-items: center !important;
+  justify-content: space-between !important; margin-bottom: 24px !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.ep-root .ep-checkin-status { display: flex !important; align-items: center !important; gap: 16px !important; }
+.ep-root .ep-checkin-icon { font-size: 40px !important; }
+.ep-root .ep-checkin-info h3 { font-size: 18px !important; font-weight: 800 !important; }
+.ep-root .ep-checkin-info p { font-size: 12px !important; opacity: 0.9 !important; }
+.ep-root .ep-checkin-actions .ep-btn { background: rgba(255,255,255,0.2) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.4) !important; }
+.ep-root .ep-checkin-actions .ep-btn:hover { background: rgba(255,255,255,0.3) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   SALARY CARD
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-salary-card {
+  background: var(--white) !important; border-radius: var(--r-md) !important;
+  border: 1px solid var(--border) !important; padding: 24px !important;
+  margin-bottom: 20px !important; box-shadow: var(--shadow-sm) !important;
+}
+.ep-root .ep-salary-header { display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 20px !important; }
+.ep-root .ep-salary-header h3 { font-size: 16px !important; font-weight: 700 !important; }
+.ep-root .ep-salary-grid { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+.ep-root .ep-salary-item {
+  display: flex !important; justify-content: space-between !important; align-items: center !important;
+  padding: 8px 12px !important; border-radius: var(--r-sm) !important;
+}
+.ep-root .ep-salary-item.ep-add { background: var(--success-50) !important; }
+.ep-root .ep-salary-item.ep-deduct { background: var(--danger-50) !important; }
+.ep-root .ep-salary-label { font-size: 13px !important; color: var(--text-2) !important; }
+.ep-root .ep-salary-val { font-size: 13px !important; font-weight: 700 !important; color: var(--text-1) !important; }
+.ep-root .ep-salary-val.ep-green { color: var(--success) !important; }
+.ep-root .ep-salary-val.ep-red { color: var(--danger) !important; }
+.ep-root .ep-salary-total {
+  display: flex !important; justify-content: space-between !important; align-items: center !important;
+  padding: 12px !important; border-radius: var(--r-sm) !important;
+  background: linear-gradient(135deg, var(--primary-50), var(--secondary-50)) !important;
+  border: 1px solid var(--primary) !important; margin-top: 8px !important;
+}
+.ep-root .ep-salary-val.ep-total { font-size: 18px !important; font-weight: 900 !important; color: var(--primary) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   REPORT FORM
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-report-form { max-width: 700px !important; }
+.ep-root .ep-profile-form { display: flex !important; flex-direction: column !important; gap: 0 !important; }
+
+/* ═══════════════════════════════════════════════════════
+   CHAT LAYOUT
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-chat-layout { display: grid !important; grid-template-columns: 300px 1fr !important; gap: 0 !important; border-radius: var(--r-md) !important; overflow: hidden !important; border: 1px solid var(--border) !important; background: var(--white) !important; box-shadow: var(--shadow-sm) !important; min-height: 500px !important; }
+.ep-root .ep-chat-list { border-left: 1px solid var(--border) !important; overflow-y: auto !important; }
+.ep-root .ep-chat-item {
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  padding: 12px 14px !important; border-bottom: 1px solid var(--border) !important;
+  cursor: pointer !important; transition: background 0.2s !important;
+}
+.ep-root .ep-chat-item:hover, .ep-root .ep-chat-item.ep-active { background: var(--primary-50) !important; }
+.ep-root .ep-chat-avatar {
+  width: 38px !important; height: 38px !important; border-radius: 50% !important;
+  background: var(--primary) !important; color: #fff !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-weight: 700 !important; font-size: 13px !important; flex-shrink: 0 !important;
+}
+.ep-root .ep-chat-avatar.ep-sm { width: 32px !important; height: 32px !important; font-size: 11px !important; }
+.ep-root .ep-chat-info { flex: 1 !important; min-width: 0 !important; }
+.ep-root .ep-chat-name { font-size: 12px !important; font-weight: 700 !important; color: var(--text-1) !important; }
+.ep-root .ep-chat-last { font-size: 10px !important; color: var(--text-3) !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+.ep-root .ep-chat-status { font-size: 10px !important; color: var(--success) !important; }
+.ep-root .ep-chat-meta { display: flex !important; flex-direction: column !important; align-items: flex-end !important; gap: 4px !important; }
+.ep-root .ep-chat-time { font-size: 10px !important; color: var(--text-3) !important; }
+.ep-root .ep-chat-unread {
+  width: 18px !important; height: 18px !important; border-radius: 50% !important;
+  background: var(--danger) !important; color: #fff !important;
+  font-size: 9px !important; font-weight: 700 !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+}
+
+.ep-root .ep-chat-window { display: flex !important; flex-direction: column !important; }
+.ep-root .ep-chat-window-header {
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  padding: 12px 16px !important; border-bottom: 1px solid var(--border) !important;
+  background: var(--bg) !important;
+}
+.ep-root .ep-chat-messages { flex: 1 !important; padding: 16px !important; overflow-y: auto !important; display: flex !important; flex-direction: column !important; gap: 10px !important; background: var(--bg) !important; }
+.ep-root .ep-msg { display: flex !important; flex-direction: column !important; max-width: 70% !important; }
+.ep-root .ep-msg.ep-sent { align-self: flex-start !important; }
+.ep-root .ep-msg.ep-received { align-self: flex-end !important; }
+.ep-root .ep-msg-bubble {
+  padding: 10px 14px !important; border-radius: 12px !important;
+  font-size: 12px !important; line-height: 1.6 !important;
+}
+.ep-root .ep-msg.ep-sent .ep-msg-bubble { background: var(--primary) !important; color: #fff !important; border-bottom-left-radius: 4px !important; }
+.ep-root .ep-msg.ep-received .ep-msg-bubble { background: var(--white) !important; border: 1px solid var(--border) !important; color: var(--text-1) !important; border-bottom-right-radius: 4px !important; }
+.ep-root .ep-msg-time { font-size: 9px !important; color: var(--text-3) !important; margin-top: 3px !important; padding: 0 4px !important; }
+.ep-root .ep-msg.ep-sent .ep-msg-time { text-align: left !important; }
+.ep-root .ep-msg.ep-received .ep-msg-time { text-align: right !important; }
+
+.ep-root .ep-chat-input {
+  display: flex !important; gap: 8px !important; padding: 12px 16px !important;
+  border-top: 1px solid var(--border) !important; background: var(--white) !important;
+}
+.ep-root .ep-chat-input .ep-form-input { flex: 1 !important; }
+
+/* ═══════════════════════════════════════════════════════
+   REFERRAL SECTION
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-referral-hero {
+  background: linear-gradient(135deg, var(--secondary) 0%, #A855F7 50%, var(--primary) 100%) !important;
+  border-radius: var(--r-lg) !important; padding: 32px !important;
+  color: #fff !important; display: flex !important; align-items: center !important;
+  justify-content: space-between !important; margin-bottom: 24px !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.ep-root .ep-ref-code-box { text-align: center !important; }
+.ep-root .ep-ref-code-box .ep-ref-label { font-size: 12px !important; opacity: 0.8 !important; margin-bottom: 8px !important; }
+.ep-root .ep-ref-code {
+  font-size: 28px !important; font-weight: 900 !important; letter-spacing: 2px !important;
+  background: rgba(255,255,255,0.15) !important; padding: 12px 24px !important;
+  border-radius: var(--r-md) !important; margin-bottom: 12px !important;
+  border: 2px dashed rgba(255,255,255,0.4) !important;
+}
+.ep-root .ep-ref-stats { display: flex !important; gap: 32px !important; }
+.ep-root .ep-ref-stat { text-align: center !important; }
+.ep-root .ep-ref-num { display: block !important; font-size: 28px !important; font-weight: 900 !important; }
+.ep-root .ep-ref-stat .ep-ref-label { font-size: 11px !important; opacity: 0.8 !important; }
+
+.ep-root .ep-ref-steps { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; }
+.ep-root .ep-ref-step { display: flex !important; align-items: flex-start !important; gap: 10px !important; }
+.ep-root .ep-ref-step-num {
+  width: 32px !important; height: 32px !important; border-radius: 50% !important;
+  background: var(--primary) !important; color: #fff !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-weight: 800 !important; font-size: 14px !important; flex-shrink: 0 !important;
+}
+.ep-root .ep-ref-step-info h4 { font-size: 12px !important; font-weight: 700 !important; color: var(--text-1) !important; margin-bottom: 3px !important; }
+.ep-root .ep-ref-step-info p { font-size: 10px !important; color: var(--text-3) !important; line-height: 1.5 !important; }
+
+.ep-root .ep-rewards-list { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+.ep-root .ep-reward-item {
+  display: flex !important; align-items: center !important; gap: 12px !important;
+  padding: 10px 12px !important; border-radius: var(--r-sm) !important;
+  border: 1px solid var(--border) !important; transition: all 0.2s !important;
+}
+.ep-root .ep-reward-item:hover { border-color: var(--primary) !important; background: var(--primary-50) !important; }
+.ep-root .ep-reward-icon { font-size: 24px !important; }
+.ep-root .ep-reward-info { flex: 1 !important; }
+.ep-root .ep-reward-name { font-size: 12px !important; font-weight: 700 !important; color: var(--text-1) !important; }
+.ep-root .ep-reward-cost { font-size: 10px !important; color: var(--text-3) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
+.ep-root .ep-toast {
+  position: fixed !important; bottom: 24px !important; left: 50% !important; transform: translateX(-50%) !important;
+  background: var(--text-1) !important; color: #fff !important; padding: 12px 24px !important;
+  border-radius: var(--r-md) !important; font-size: 13px !important; font-weight: 600 !important;
+  box-shadow: var(--shadow-lg) !important; z-index: 9999 !important;
+  opacity: 0 !important; transition: opacity 0.3s !important; pointer-events: none !important;
+}
+.ep-root .ep-toast.ep-show { opacity: 1 !important; pointer-events: auto !important; }
+.ep-root .ep-toast.ep-success { background: var(--success) !important; }
+.ep-root .ep-toast.ep-info { background: var(--primary) !important; }
+.ep-root .ep-toast.ep-error { background: var(--danger) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+.ep-root .ep-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+.ep-root .ep-projects-grid { grid-template-columns: repeat(2, 1fr) !important; }
+.ep-root .ep-quick-actions { grid-template-columns: repeat(2, 1fr) !important; }
+.ep-root .ep-ref-steps { grid-template-columns: repeat(2, 1fr) !important; }
+.ep-root .ep-grid-2 { grid-template-columns: 1fr !important; }
+.ep-root .ep-chat-layout { grid-template-columns: 1fr !important; }
+.ep-root .ep-chat-list { max-height: 200px !important; border-left: none !important; border-bottom: 1px solid var(--border) !important; }
+}
+
+@media (max-width: 768px) {
+.ep-root .ep-sidebar { transform: translateX(100%) !important; }
+.ep-root .ep-sidebar.ep-open { transform: translateX(0) !important; }
+.ep-root .ep-topbar { right: 0 !important; }
+.ep-root .ep-main { margin-right: 0 !important; }
+.ep-root .ep-menu-toggle { display: block !important; }
+.ep-root .ep-kpi-grid { grid-template-columns: 1fr 1fr !important; }
+.ep-root .ep-projects-grid { grid-template-columns: 1fr !important; }
+.ep-root .ep-quick-actions { grid-template-columns: 1fr 1fr !important; }
+.ep-root .ep-welcome-card { flex-direction: column !important; text-align: center !important; }
+.ep-root .ep-welcome-visual { display: none !important; }
+.ep-root .ep-welcome-stats { justify-content: center !important; }
+.ep-root .ep-checkin-card { flex-direction: column !important; gap: 16px !important; text-align: center !important; }
+.ep-root .ep-referral-hero { flex-direction: column !important; gap: 24px !important; text-align: center !important; }
+.ep-root .ep-ref-stats { gap: 16px !important; }
+.ep-root .ep-ref-steps { grid-template-columns: 1fr !important; }
+.ep-root .ep-page-header { flex-direction: column !important; gap: 12px !important; align-items: flex-start !important; }
+.ep-root .ep-salary-card { padding: 16px !important; }
+}
+
+@media print {
+.ep-root .ep-sidebar, .ep-root .ep-topbar { display: none !important; }
+.ep-root .ep-main { margin-right: 0 !important; }
+.ep-root .ep-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
+/* ── مجموعات السايدبار القابلة للطي (دروب-داون) — طلب اجتماع 2026-08-07 ── */
+.ep-root .ep-sb-group-header { display: flex !important; align-items: center !important; gap: 10px !important; padding: 10px 12px !important; margin-top: 4px !important; border-radius: 8px !important; color: rgba(255,255,255,0.85) !important; font-size: 12px !important; font-weight: 700 !important; cursor: pointer !important; transition: background 0.2s !important; }
+.ep-root .ep-sb-group-header:hover { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
+.ep-root .ep-sb-group-icon { font-size: 16px !important; width: 24px !important; text-align: center !important; }
+.ep-root .ep-sb-group-title { flex: 1 !important; }
+.ep-root .ep-sb-group-arrow { font-size: 10px !important; transition: transform 0.25s !important; opacity: 0.7 !important; }
+.ep-root .ep-sb-group.ep-open .ep-sb-group-arrow { transform: rotate(180deg) !important; }
+.ep-root .ep-sb-group-links { overflow: hidden !important; max-height: 0 !important; transition: max-height 0.3s ease !important; }
+.ep-root .ep-sb-group.ep-open .ep-sb-group-links { max-height: 600px !important; }
+.ep-root .ep-sb-group-links .ep-sb-link { padding-inline-start: 20px !important; font-size: 12.5px !important; }

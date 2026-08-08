@@ -25,17 +25,21 @@ use Spatie\Permission\Models\Role;
  */
 class DemoUsersSeeder extends Seeder
 {
-    /** حساب واحد لكل دور: [البريد, كلمة المرور, الاسم, الدور] */
+    /**
+     * حساب واحد لكل دور: [البريد, كلمة المرور, الاسم, الدور].
+     * كلمات مرور قوية (تُخزَّن مُجزَّأة Hash) — دخول حقيقي بالبريد وكلمة السر فقط،
+     * بلا أي دخول سريع من الواجهة (طلب أيمن 2026-08-08).
+     */
     private const ACCOUNTS = [
-        ['admin@memar.kw', 'admin123', 'م. أيمن الطوخي', 'super_admin'],
-        ['pm@memar.kw', 'pm123', 'م. عبدالله', 'manager'],
-        ['arch1@memar.kw', 'arch123', 'م. دعاء', 'architect'],
-        ['acc@memar.kw', 'acc123', 'أ. وليد', 'accountant'],
-        ['hr@memar.kw', 'hr123', 'أ. منى الهاجري', 'hr_manager'],
-        ['rep@memar.kw', 'rep123', 'مندوب أبو علي', 'sales'],
-        ['sec@memar.kw', 'sec123', 'أ. رنا', 'secretary'],
+        ['admin@memar.kw', 'Admin@Memar2026', 'م. أيمن الطوخي', 'super_admin'],
+        ['pm@memar.kw', 'Manager@Memar2026', 'م. عبدالله', 'manager'],
+        ['arch1@memar.kw', 'Architect@Memar2026', 'م. دعاء', 'architect'],
+        ['acc@memar.kw', 'Account@Memar2026', 'أ. وليد', 'accountant'],
+        ['hr@memar.kw', 'HR@Memar2026', 'أ. منى الهاجري', 'hr_manager'],
+        ['rep@memar.kw', 'Sales@Memar2026', 'مندوب أبو علي', 'sales'],
+        ['sec@memar.kw', 'Secretary@Memar2026', 'أ. رنا', 'secretary'],
         // العميل الرئيسي الغني (شركة المنصور) — يربطه AtomsDemoSeeder ببوابته
-        ['client1@memar.kw', 'client123', 'أحمد بن عبدالله المنصور', 'client'],
+        ['client1@memar.kw', 'Client@Memar2026', 'أحمد بن عبدالله المنصور', 'client'],
     ];
 
     /** حسابات دخول قديمة زائدة تُحذف (أبقينا واحدًا لكل دور). */

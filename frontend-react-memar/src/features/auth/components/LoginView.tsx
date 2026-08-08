@@ -2,9 +2,7 @@ import { type CSSProperties, type FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { apiErrorMessage } from '../../../lib/api';
-import { SHOW_DEMO_ACCOUNTS, type DemoAccount } from '../demoAccounts';
 import { useLogin } from '../hooks/useAuth';
-import { DemoAccountsPanel } from './DemoAccountsPanel';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { RegisterForm } from './RegisterForm';
 
@@ -36,12 +34,6 @@ export function LoginView({ onClose }: Props) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     login.mutate({ email: id.trim(), password: pass });
-  };
-
-  const pickDemo = (account: DemoAccount) => {
-    setId(account.email);
-    setPass(account.password);
-    login.mutate({ email: account.email, password: account.password });
   };
 
   return (
@@ -132,8 +124,6 @@ export function LoginView({ onClose }: Props) {
                   <button type="button" className="ml-soc" style={socBtn} onClick={() => alert('تسجيل الدخول عبر واتساب — قريباً.')}>💬 واتساب OTP</button>
                 </div>
               </form>
-
-              {SHOW_DEMO_ACCOUNTS && <DemoAccountsPanel onPick={pickDemo} disabled={login.isPending} />}
             </>
           ) : (
             <RegisterForm onSwitchToLogin={() => setTab('login')} />

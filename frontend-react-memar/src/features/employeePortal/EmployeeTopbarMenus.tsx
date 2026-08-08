@@ -1,8 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { isClientOnly } from '../../config/nav';
-import { useAuthStore } from '../../store/auth';
 import { useLogout } from '../auth/hooks/useAuth';
 import { useNotifications } from '../workspace/hooks/useWorkspace';
 import type { NotificationTone } from '../workspace/api/workspaceApi';
@@ -65,10 +63,8 @@ export function EpNotifBell({ onSeeAll }: { onSeeAll: () => void }) {
 export function EpUserMenu({ initials, name, role, onProfile }: { initials: string; name: string; role: string; onProfile: () => void }) {
   const navigate = useNavigate();
   const logout = useLogout();
-  const user = useAuthStore((s) => s.user);
   const [open, setOpen] = useState(false);
   const ref = useClickOutside(open, () => setOpen(false));
-  const staff = !isClientOnly(user?.roles);
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -86,7 +82,6 @@ export function EpUserMenu({ initials, name, role, onProfile }: { initials: stri
           </div>
           <button type="button" className="ep-menu-item" style={mrow} onClick={() => { setOpen(false); onProfile(); }}>👤 ملفي الشخصي</button>
           <button type="button" className="ep-menu-item" style={mrow} onClick={() => { setOpen(false); navigate('/'); }}>🌐 صفحة الموقع الرئيسي</button>
-          {staff && <button type="button" className="ep-menu-item" style={mrow} onClick={() => { setOpen(false); navigate('/dashboard'); }}>🏢 لوحة تحكم الإدارة</button>}
           <div style={divider} />
           <button
             type="button"

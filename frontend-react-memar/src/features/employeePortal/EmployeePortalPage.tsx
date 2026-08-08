@@ -10,6 +10,9 @@ import { AppointmentsPage } from '../appointments/pages/AppointmentsPage';
 import { CrmPage } from '../crm/pages/CrmPage';
 import { MyProjectsPage } from '../myProjects/pages/MyProjectsPage';
 import { TasksPage } from '../tasks/pages/TasksPage';
+import { ProjectsPage } from '../projects/pages/ProjectsPage';
+import { ClientsPage } from '../clients/pages/ClientsPage';
+import { CompaniesPage } from '../companies/pages/CompaniesPage';
 import { AttendanceEp, LeavesEp, SalaryEp, ReportsEp, DocumentsEp, ProfileEp, ReferralEp } from './SelfServicePages';
 import { EpNotifBell, EpUserMenu } from './EmployeeTopbarMenus';
 import { useNotifications } from '../workspace/hooks/useWorkspace';
@@ -34,6 +37,15 @@ const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
       { id: 'ep-tasks', icon: '✅', text: 'المهام والمتابعة', badge: '5' },
       { id: 'ep-crm', icon: '🎯', text: 'العملاء المحتملون' },
       { id: 'ep-projects', icon: '📁', text: 'مشاريعي' },
+    ],
+  },
+  {
+    // السجلات المكتبية العامة (اجتماع 2026-08-07) — منفصلة عن «مشاريعي»/«العملاء المحتملون».
+    id: 'g-records', icon: '🗄️', title: 'السجلات',
+    links: [
+      { id: 'ep-rec-projects', icon: '📚', text: 'سجل المشاريع' },
+      { id: 'ep-rec-clients', icon: '👥', text: 'سجل العملاء' },
+      { id: 'ep-rec-companies', icon: '🏢', text: 'سجل الشركات' },
     ],
   },
   {
@@ -202,6 +214,10 @@ export function EmployeePortalPage() {
           : active === 'ep-tasks' ? <Bare><TasksPage /></Bare>
           : active === 'ep-crm' ? <Bare><CrmPage /></Bare>
           : active === 'ep-projects' ? <Bare><MyProjectsPage /></Bare>
+          // السجلات المكتبية العامة (كل المشاريع/العملاء/الشركات)
+          : active === 'ep-rec-projects' ? <Bare><ProjectsPage /></Bare>
+          : active === 'ep-rec-clients' ? <Bare><ClientsPage /></Bare>
+          : active === 'ep-rec-companies' ? <Bare><CompaniesPage /></Bare>
           : active === 'ep-notifications' ? <SharedPage title="🔔 الإشعارات" subtitle="كل البنود التي تحتاج إجراءً — محسوبة من بياناتك الحيّة"><NotificationsPanel /></SharedPage>
           // شؤوني + حسابي — طبق أصل Atoms (الحضور والملف الشخصي ببيانات حيّة)
           : active === 'ep-attendance' ? <AttendanceEp />

@@ -11,6 +11,7 @@ import { salariesApi } from '../payroll/api/salariesApi';
 import { leavesApi } from '../leaves/leavesApi';
 import { dailyReportsApi } from '../dailyReports/dailyReportsApi';
 import { myProjectsApi } from '../myProjects/api/myProjectsApi';
+import { employeeDocumentsApi } from '../documents/employeeDocumentsApi';
 
 /**
  * صفحات «شؤوني» + «حسابي» في بوابة الموظف — منقولة طبق الأصل من مرجع Atoms
@@ -349,27 +350,49 @@ export function ReportsEp() {
 
 /* ═══════════════════ المستندات — طبق أصل Atoms ═══════════════════ */
 export function DocumentsEp() {
+  const { data: docs, isLoading } = useQuery({ queryKey: ['employee-documents'], queryFn: () => employeeDocumentsApi.mine() });
+  const rows = docs ?? [];
+  const [busy, setBusy] = useState<number | null>(null);
+  const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString('ar', { day: 'numeric', month: 'long' }) : '—');
+
+  // تنزيل مُصادَق: نجلب الملف بترويسة التوكن ثم نطلق تنزيلًا في المتصفح.
+  const download = async (id: number, name: string) => {
+    setBusy(id);
+    try {
+      const token = useAuthStore.getState().token;
+      const res = await fetch(`/api/v1/me/documents/${id}/download`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* تجاهل */ } finally { setBusy(null); }
+  };
+
   return (
     <div className="ep-page ep-active">
       <div className="ep-page-header">
-        <div><h1 className="ep-page-title">📄 المستندات</h1><p className="ep-page-subtitle">الوصول لمستندات المشاريع المسموح بها</p></div>
-        <div className="ep-page-actions">
-          <select className="ep-filter-select"><option>جميع المشاريع</option><option>فيلا المنصور</option><option>مبنى العليا</option><option>مجمع تجاري</option></select>
-        </div>
+        <div><h1 className="ep-page-title">📄 المستندات</h1><p className="ep-page-subtitle">الوصول لمستندات مشاريعك</p></div>
       </div>
 
       <div className="ep-card">
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>المستند</th><th>المشروع</th><th>النوع</th><th>الإصدار</th><th>آخر تحديث</th><th>إجراء</th></tr></thead>
+              <thead><tr><th>المستند</th><th>المشروع</th><th>النوع</th><th>آخر تحديث</th><th>إجراء</th></tr></thead>
               <tbody>
-                <tr><td className="ep-td-bold">📐 مخطط الواجهة الرئيسية</td><td>فيلا المنصور</td><td>DWG</td><td>v3.2</td><td className="ep-td-muted">6 أغسطس</td><td><button className="ep-btn ep-btn-xs ep-btn-outline">⬇️ تحميل</button></td></tr>
-                <tr><td className="ep-td-bold">📐 المسقط الأفقي — أرضي</td><td>فيلا المنصور</td><td>DWG</td><td>v2.1</td><td className="ep-td-muted">5 أغسطس</td><td><button className="ep-btn ep-btn-xs ep-btn-outline">⬇️ تحميل</button></td></tr>
-                <tr><td className="ep-td-bold">📄 مخطط BIM — الطابق 3</td><td>مبنى العليا</td><td>IFC</td><td>v1.4</td><td className="ep-td-muted">4 أغسطس</td><td><button className="ep-btn ep-btn-xs ep-btn-outline">⬇️ تحميل</button></td></tr>
-                <tr><td className="ep-td-bold">📋 تقرير إشراف أسبوعي</td><td>مبنى العليا</td><td>PDF</td><td>v1.0</td><td className="ep-td-muted">3 أغسطس</td><td><button className="ep-btn ep-btn-xs ep-btn-outline">⬇️ تحميل</button></td></tr>
-                <tr><td className="ep-td-bold">📐 تصميم مبدئي — الواجهات</td><td>مجمع تجاري</td><td>DWG</td><td>v1.0</td><td className="ep-td-muted">1 أغسطس</td><td><button className="ep-btn ep-btn-xs ep-btn-outline">⬇️ تحميل</button></td></tr>
-                <tr><td className="ep-td-bold">📄 عقد المشروع</td><td>فيلا المنصور</td><td>PDF</td><td>v1.0</td><td className="ep-td-muted">1 مارس</td><td><button className="ep-btn ep-btn-xs ep-btn-outline">⬇️ تحميل</button></td></tr>
+                {isLoading && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>جارٍ التحميل…</td></tr>}
+                {!isLoading && rows.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا مستندات في مشاريعك بعد.</td></tr>}
+                {rows.map((f) => (
+                  <tr key={f.id}>
+                    <td className="ep-td-bold">📄 {f.name}{f.folder ? ` — ${f.folder}` : ''}</td>
+                    <td>{f.project ?? '—'}</td>
+                    <td>{f.extension || '—'}</td>
+                    <td className="ep-td-muted">{fmt(f.created_at)}</td>
+                    <td><button className="ep-btn ep-btn-xs ep-btn-outline" disabled={busy === f.id} onClick={() => download(f.id, f.original_name)}>{busy === f.id ? '…' : '⬇️ تحميل'}</button></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

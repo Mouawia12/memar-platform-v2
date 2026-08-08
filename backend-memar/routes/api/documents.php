@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     // القوالب
+    // مستندات مشاريع الموظف (خدمة ذاتية)
+    Route::get('/me/documents', [\App\Http\Controllers\Api\V1\EmployeeDocumentsController::class, 'mine']);
+    Route::get('/me/documents/{file}/download', [\App\Http\Controllers\Api\V1\EmployeeDocumentsController::class, 'download']);
     Route::get('/document-templates', [DocumentTemplateController::class, 'index'])->middleware('permission:documents.view');
     Route::post('/document-templates', [DocumentTemplateController::class, 'store'])->middleware('permission:documents.manage');
     Route::get('/document-templates/{documentTemplate}', [DocumentTemplateController::class, 'show'])->middleware('permission:documents.view');

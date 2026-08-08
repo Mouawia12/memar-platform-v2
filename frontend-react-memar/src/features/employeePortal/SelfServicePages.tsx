@@ -8,6 +8,7 @@ import { useToday, useCheckIn, useCheckOut } from '../attendance/hooks/useAttend
 import { attendanceApi } from '../attendance/api/attendanceApi';
 import { STATUS_LABELS, STATUS_COLORS } from '../attendance/types';
 import { salariesApi } from '../payroll/api/salariesApi';
+import { leavesApi } from '../leaves/leavesApi';
 
 /**
  * صفحات «شؤوني» + «حسابي» في بوابة الموظف — منقولة طبق الأصل من مرجع Atoms
@@ -119,20 +120,65 @@ export function AttendanceEp() {
 
 /* ═══════════════════ الإجازات — طبق أصل Atoms ═══════════════════ */
 export function LeavesEp() {
+  const qc = useQueryClient();
+  const { data: balance } = useQuery({ queryKey: ['leaves-balance'], queryFn: () => leavesApi.balance() });
+  const { data: mine } = useQuery({ queryKey: ['leaves-mine'], queryFn: () => leavesApi.mine() });
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ type: 'annual', from_date: '', to_date: '', reason: '' });
+  const create = useMutation({
+    mutationFn: () => leavesApi.create(form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leaves-mine'] });
+      qc.invalidateQueries({ queryKey: ['leaves-balance'] });
+      setOpen(false);
+      setForm({ type: 'annual', from_date: '', to_date: '', reason: '' });
+    },
+  });
+  const rows = mine ?? [];
+  const used = (balance?.annual_used ?? 0) + (balance?.sick_used ?? 0);
+  const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString('ar', { day: 'numeric', month: 'long' }) : '—');
+  const badgeClass = (s: string) => (s === 'approved' ? 'ep-badge-green' : s === 'rejected' ? 'ep-badge-red' : 'ep-badge-orange');
+  const canSubmit = !!form.from_date && !!form.to_date && !create.isPending;
+
   return (
     <div className="ep-page ep-active">
       <div className="ep-page-header">
         <div><h1 className="ep-page-title">🏖️ طلبات الإجازات</h1><p className="ep-page-subtitle">تقديم ومتابعة طلبات الإجازة</p></div>
-        <button className="ep-btn ep-btn-primary">+ طلب إجازة جديد</button>
+        <button className="ep-btn ep-btn-primary" onClick={() => setOpen((o) => !o)}>{open ? '✕ إلغاء' : '+ طلب إجازة جديد'}</button>
       </div>
 
+      {/* رصيد الإجازات — حيّ */}
       <div className="ep-kpi-grid ep-sm">
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-green">🌴</div><div className="ep-kpi-body"><div className="ep-kpi-value">18</div><div className="ep-kpi-label">رصيد سنوي</div></div></div>
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-blue">🤒</div><div className="ep-kpi-body"><div className="ep-kpi-value">10</div><div className="ep-kpi-label">رصيد مرضي</div></div></div>
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-orange">✈️</div><div className="ep-kpi-body"><div className="ep-kpi-value">5</div><div className="ep-kpi-label">مستخدمة</div></div></div>
-        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-purple">📅</div><div className="ep-kpi-body"><div className="ep-kpi-value">13</div><div className="ep-kpi-label">متبقية</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-green">🌴</div><div className="ep-kpi-body"><div className="ep-kpi-value">{balance?.annual_remaining ?? 0}</div><div className="ep-kpi-label">رصيد سنوي متبقٍّ</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-blue">🤒</div><div className="ep-kpi-body"><div className="ep-kpi-value">{balance?.sick_remaining ?? 0}</div><div className="ep-kpi-label">رصيد مرضي متبقٍّ</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-orange">✈️</div><div className="ep-kpi-body"><div className="ep-kpi-value">{used}</div><div className="ep-kpi-label">مستخدمة</div></div></div>
+        <div className="ep-kpi-card ep-mini"><div className="ep-kpi-icon ep-purple">📅</div><div className="ep-kpi-body"><div className="ep-kpi-value">{balance?.annual_entitlement ?? 0}</div><div className="ep-kpi-label">الرصيد السنوي</div></div></div>
       </div>
 
+      {/* نموذج طلب إجازة — حيّ */}
+      {open && (
+        <div className="ep-card" style={{ marginBottom: 20 }}>
+          <div className="ep-card-header"><div className="ep-card-title">📝 طلب إجازة جديد</div></div>
+          <div className="ep-card-body">
+            <div className="ep-report-form">
+              <div className="ep-form-group"><label>النوع</label>
+                <select className="ep-form-input" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>
+                  <option value="annual">سنوية</option><option value="sick">مرضية</option><option value="unpaid">بدون راتب</option>
+                </select>
+              </div>
+              <div className="ep-form-group"><label>من</label><input type="date" className="ep-form-input" value={form.from_date} onChange={(e) => setForm((f) => ({ ...f, from_date: e.target.value }))} /></div>
+              <div className="ep-form-group"><label>إلى</label><input type="date" className="ep-form-input" value={form.to_date} onChange={(e) => setForm((f) => ({ ...f, to_date: e.target.value }))} /></div>
+              <div className="ep-form-group"><label>السبب</label><textarea className="ep-form-input" rows={2} value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} placeholder="سبب الإجازة (اختياري)" /></div>
+              <div className="ep-form-actions">
+                <button className="ep-btn ep-btn-primary" disabled={!canSubmit} onClick={() => create.mutate()}>{create.isPending ? '…جارٍ الإرسال' : '📤 إرسال الطلب'}</button>
+              </div>
+              {create.isError && <div style={{ color: '#DC4A3D', fontSize: 12.5, marginTop: 8 }}>{apiErrorMessage(create.error) || 'تعذّر الإرسال.'}</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* طلباتي — حيّ */}
       <div className="ep-card">
         <div className="ep-card-header"><div className="ep-card-title">📋 طلباتي</div></div>
         <div className="ep-card-body">
@@ -140,10 +186,17 @@ export function LeavesEp() {
             <table>
               <thead><tr><th>النوع</th><th>من</th><th>إلى</th><th>المدة</th><th>السبب</th><th>الحالة</th></tr></thead>
               <tbody>
-                <tr><td><span className="ep-badge ep-badge-green">سنوية</span></td><td>15 أغسطس</td><td>15 أغسطس</td><td>1 يوم</td><td>أمور شخصية</td><td><span className="ep-badge ep-badge-green">موافق عليها ✓</span></td></tr>
-                <tr><td><span className="ep-badge ep-badge-blue">مرضية</span></td><td>20 يوليو</td><td>21 يوليو</td><td>2 يوم</td><td>مراجعة طبية</td><td><span className="ep-badge ep-badge-green">موافق عليها ✓</span></td></tr>
-                <tr><td><span className="ep-badge ep-badge-green">سنوية</span></td><td>1 سبتمبر</td><td>5 سبتمبر</td><td>5 أيام</td><td>إجازة عائلية</td><td><span className="ep-badge ep-badge-orange">بانتظار الموافقة</span></td></tr>
-                <tr><td><span className="ep-badge ep-badge-green">سنوية</span></td><td>10 يونيو</td><td>12 يونيو</td><td>3 أيام</td><td>سفر</td><td><span className="ep-badge ep-badge-green">موافق عليها ✓</span></td></tr>
+                {rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا طلبات إجازة بعد.</td></tr>}
+                {rows.map((l) => (
+                  <tr key={l.id}>
+                    <td><span className="ep-badge ep-badge-blue">{l.type_label}</span></td>
+                    <td>{fmt(l.from_date)}</td>
+                    <td>{fmt(l.to_date)}</td>
+                    <td>{l.days} يوم</td>
+                    <td>{l.reason ?? '—'}</td>
+                    <td><span className={`ep-badge ${badgeClass(l.status)}`}>{l.status_label}</span></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

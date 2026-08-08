@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useAuthStore } from '../../store/auth';
+import { ROLE_AR } from './SelfServicePages';
 import { ForumPage } from '../forum/pages/ForumPage';
 import { LiveChatPanel } from '../liveChat/LiveChatPanel';
 import { MeetingsPage } from '../appointments/pages/MeetingsPage';
@@ -8,6 +10,7 @@ import { AppointmentsPage } from '../appointments/pages/AppointmentsPage';
 import { CrmPage } from '../crm/pages/CrmPage';
 import { MyProjectsPage } from '../myProjects/pages/MyProjectsPage';
 import { TasksPage } from '../tasks/pages/TasksPage';
+import { AttendanceEp, LeavesEp, SalaryEp, ReportsEp, DocumentsEp, ProfileEp, ReferralEp } from './SelfServicePages';
 import { useNotifications } from '../workspace/hooks/useWorkspace';
 import './employeePortal.css';
 
@@ -78,7 +81,22 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
 /** المجموعة التي تحوي صفحةً ما (لإبقائها مفتوحة). */
 const groupOf = (pageId: string) => GROUPS.find((g) => g.links.some((l) => l.id === pageId))?.id;
 
+/** الأحرف الأولى للأڤاتار من اسم المستخدم الحقيقي. */
+const initialsOf = (n?: string | null) => {
+  const parts = (n ?? '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'م';
+  const a = parts[0][0] ?? '';
+  const b = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
+  return (a + b) || 'م';
+};
+
 export function EmployeePortalPage() {
+  const user = useAuthStore((s) => s.user);
+  const userName = user?.name ?? 'موظف';
+  const userRole = user?.roles?.[0] ? ROLE_AR[user.roles[0]] ?? user.roles[0] : 'موظف';
+  const userInitials = initialsOf(user?.name);
+  const firstName = (user?.name ?? '').trim().split(/\s+/).slice(0, 2).join(' ') || 'زميلنا';
+
   const [active, setActive] = useState('ep-dashboard');
   const [sbOpen, setSbOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(GROUPS.map((g) => g.id)));
@@ -146,10 +164,10 @@ export function EmployeePortalPage() {
 
         <div className="ep-sb-footer">
           <div className="ep-sb-user">
-            <div className="ep-sb-user-avatar">م.أ</div>
+            <div className="ep-sb-user-avatar">{userInitials}</div>
             <div className="ep-sb-user-info">
-              <div className="ep-sb-user-name">م. أحمد الراشد</div>
-              <div className="ep-sb-user-role">مهندس معماري أول</div>
+              <div className="ep-sb-user-name">{userName}</div>
+              <div className="ep-sb-user-role">{userRole}</div>
             </div>
           </div>
         </div>
@@ -160,7 +178,7 @@ export function EmployeePortalPage() {
         <div className="ep-topbar-right">
           <button className="ep-menu-toggle" onClick={() => setSbOpen((o) => !o)}>☰</button>
           <div className="ep-topbar-greeting">
-            <span className="ep-greeting-text">صباح الخير، م. أحمد 👋</span>
+            <span className="ep-greeting-text">صباح الخير، {firstName} 👋</span>
             <span className="ep-greeting-date">الخميس 7 أغسطس 2026</span>
           </div>
         </div>
@@ -168,7 +186,7 @@ export function EmployeePortalPage() {
           <button className="ep-topbar-btn" onClick={() => go('ep-notifications')}>🔔<span className="ep-notif-dot" /></button>
           <button className="ep-topbar-btn" onClick={() => go('ep-chat')}>💬</button>
           <div className="ep-topbar-user" onClick={() => go('ep-profile')}>
-            <div className="ep-topbar-avatar">م.أ</div>
+            <div className="ep-topbar-avatar">{userInitials}</div>
           </div>
         </div>
       </header>
@@ -185,6 +203,14 @@ export function EmployeePortalPage() {
           : active === 'ep-crm' ? <Bare><CrmPage /></Bare>
           : active === 'ep-projects' ? <Bare><MyProjectsPage /></Bare>
           : active === 'ep-notifications' ? <SharedPage title="🔔 الإشعارات" subtitle="كل البنود التي تحتاج إجراءً — محسوبة من بياناتك الحيّة"><NotificationsPanel /></SharedPage>
+          // شؤوني + حسابي — طبق أصل Atoms (الحضور والملف الشخصي ببيانات حيّة)
+          : active === 'ep-attendance' ? <AttendanceEp />
+          : active === 'ep-leaves' ? <LeavesEp />
+          : active === 'ep-salary' ? <SalaryEp />
+          : active === 'ep-reports' ? <ReportsEp />
+          : active === 'ep-documents' ? <DocumentsEp />
+          : active === 'ep-profile' ? <ProfileEp />
+          : active === 'ep-referral' ? <ReferralEp />
           : <ComingSoon page={active} />}
       </main>
     </div>
@@ -192,13 +218,16 @@ export function EmployeePortalPage() {
 }
 
 function Dashboard({ onGo }: { onGo: (id: string) => void }) {
+  const user = useAuthStore((s) => s.user);
+  const name = user?.name ?? 'زميلنا';
+  const role = user?.roles?.[0] ? ROLE_AR[user.roles[0]] ?? user.roles[0] : 'فريق معمار';
   return (
     <div className="ep-page ep-active">
       {/* Welcome */}
       <div className="ep-welcome-card">
         <div className="ep-welcome-content">
-          <h2>مرحباً م. أحمد الراشد 👋</h2>
-          <p>مهندس معماري أول — قسم التصميم المعماري</p>
+          <h2>مرحباً {name} 👋</h2>
+          <p>{role} — مجموعة معمار</p>
           <div className="ep-welcome-stats">
             <div className="ep-ws-item"><span className="ep-ws-num">5</span><span className="ep-ws-label">مهام نشطة</span></div>
             <div className="ep-ws-item"><span className="ep-ws-num">3</span><span className="ep-ws-label">مشاريع</span></div>

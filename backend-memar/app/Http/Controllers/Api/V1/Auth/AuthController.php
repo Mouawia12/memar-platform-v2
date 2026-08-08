@@ -15,6 +15,7 @@ use App\Services\AuthService;
 use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 
 class AuthController extends ApiController
@@ -73,6 +74,39 @@ class AuthController extends ApiController
         $user = $request->user();
 
         return $this->ok(new UserResource($user));
+    }
+
+    /** تحديث بيانات الملف الشخصي (الاسم والهاتف). البريد والرقم التعريفي مقفلان (طلب أيمن 2026-08-07). */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:120'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:32'],
+        ]);
+        $user->fill($data)->save();
+
+        return $this->ok(new UserResource($user->fresh()), 'تم حفظ التعديلات');
+    }
+
+    /** تغيير كلمة المرور من داخل الجلسة — يتطلّب كلمة المرور الحالية للتحقق. */
+    public function changePassword(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (! Hash::check($data['current_password'], (string) $user->password)) {
+            return $this->fail('كلمة المرور الحالية غير صحيحة.', 422);
+        }
+
+        $user->forceFill(['password' => Hash::make($data['password'])])->save();
+
+        return $this->ok(null, 'تم تغيير كلمة المرور بنجاح');
     }
 
     /** رفع/تغيير الصورة الشخصية للموظف (بالنقر على دائرة كارت السايدبار). */

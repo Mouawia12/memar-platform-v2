@@ -36,6 +36,11 @@ export const authApi = {
   forgotPassword: (email: string) => apiPost<null>('/auth/forgot-password', { email }),
   resetPassword: (payload: ResetPayload) => apiPost<null>('/auth/reset-password', payload),
   me: () => apiGet<AuthUser>('/auth/me'),
+  /** تحديث الملف الشخصي (الاسم/الهاتف) — تُعيد المستخدم المحدَّث. */
+  updateProfile: (payload: { name?: string; phone?: string | null }) => apiPatch<AuthUser>('/auth/me', payload),
+  /** تغيير كلمة المرور من داخل الجلسة (بالتحقق من الحالية). */
+  changePassword: (payload: { current_password: string; password: string; password_confirmation: string }) =>
+    apiPost<null>('/auth/me/password', payload),
   updateUiPrefs: (prefs: UiPrefs) => apiPatch<UiPrefs>('/auth/me/ui-prefs', prefs),
   /** رفع الصورة الشخصية للموظف — تُعيد بيانات المستخدم المحدّثة (تتضمّن avatar_url). */
   uploadAvatar: (file: File) => {

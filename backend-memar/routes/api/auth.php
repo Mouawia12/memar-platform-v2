@@ -19,6 +19,8 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
+        Route::match(['put', 'patch'], '/me', [AuthController::class, 'updateProfile']);
+        Route::post('/me/password', [AuthController::class, 'changePassword']);
         Route::match(['put', 'patch'], '/me/ui-prefs', [AuthController::class, 'updateUiPrefs']);
         // الصورة الشخصية للموظف (رفع/حذف) — بالنقر على دائرة كارت السايدبار.
         Route::post('/me/avatar', [AuthController::class, 'uploadAvatar']);

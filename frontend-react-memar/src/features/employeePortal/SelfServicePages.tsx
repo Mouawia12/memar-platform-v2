@@ -1,4 +1,8 @@
+import { useState } from 'react';
+
+import { apiErrorMessage } from '../../lib/api';
 import { useAuthStore } from '../../store/auth';
+import { authApi } from '../auth/api/authApi';
 import { useToday, useCheckIn, useCheckOut } from '../attendance/hooks/useAttendance';
 
 /**
@@ -258,13 +262,56 @@ export function DocumentsEp() {
 /* ═══════════════════ ملفي الشخصي — بيانات المستخدم الحيّة ═══════════════════ */
 export function ProfileEp() {
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
   const roleAr = user?.roles?.[0] ? (ROLE_AR[user.roles[0]] ?? user.roles[0]) : 'موظف';
+
+  // بيانات قابلة للتعديل — الاسم والهاتف (البريد والرقم التعريفي مقفلان).
+  const [name, setName] = useState(user?.name ?? '');
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // تغيير كلمة المرور.
+  const [curPw, setCurPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confPw, setConfPw] = useState('');
+  const [savingPw, setSavingPw] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const saveProfile = async () => {
+    setSavingProfile(true); setProfileMsg(null);
+    try {
+      const updated = await authApi.updateProfile({ name: name.trim(), phone: phone.trim() || null });
+      setUser(updated);
+      setProfileMsg({ ok: true, text: '✓ تم حفظ التعديلات' });
+    } catch (e) {
+      setProfileMsg({ ok: false, text: apiErrorMessage(e) || 'تعذّر الحفظ — تحقّق من البيانات.' });
+    } finally { setSavingProfile(false); }
+  };
+
+  const changePassword = async () => {
+    setPwMsg(null);
+    if (newPw.length < 8) { setPwMsg({ ok: false, text: 'كلمة المرور الجديدة 8 أحرف على الأقل.' }); return; }
+    if (newPw !== confPw) { setPwMsg({ ok: false, text: 'كلمتا المرور غير متطابقتين.' }); return; }
+    setSavingPw(true);
+    try {
+      await authApi.changePassword({ current_password: curPw, password: newPw, password_confirmation: confPw });
+      setCurPw(''); setNewPw(''); setConfPw('');
+      setPwMsg({ ok: true, text: '✓ تم تغيير كلمة المرور بنجاح' });
+    } catch (e) {
+      setPwMsg({ ok: false, text: apiErrorMessage(e) || 'تعذّر تغيير كلمة المرور — تحقّق من الحالية.' });
+    } finally { setSavingPw(false); }
+  };
+
+  const msgStyle = (ok: boolean) => ({ fontSize: '12.5px', fontWeight: 700 as const, color: ok ? '#2D9B6F' : '#DC4A3D', marginTop: '4px' });
 
   return (
     <div className="ep-page ep-active">
       <div className="ep-page-header">
         <div><h1 className="ep-page-title">👤 ملفي الشخصي</h1><p className="ep-page-subtitle">عرض وتعديل البيانات الشخصية</p></div>
-        <button className="ep-btn ep-btn-primary">💾 حفظ التعديلات</button>
+        <button className="ep-btn ep-btn-primary" disabled={savingProfile} onClick={saveProfile}>
+          {savingProfile ? '…جارٍ الحفظ' : '💾 حفظ التعديلات'}
+        </button>
       </div>
 
       <div className="ep-grid-2">
@@ -272,10 +319,11 @@ export function ProfileEp() {
           <div className="ep-card-header"><div className="ep-card-title">📋 البيانات الشخصية</div></div>
           <div className="ep-card-body">
             <div className="ep-profile-form">
-              <div className="ep-form-group"><label>الاسم الكامل</label><input type="text" className="ep-form-input" defaultValue={user?.name ?? ''} /></div>
-              <div className="ep-form-group"><label>البريد الإلكتروني</label><input type="email" className="ep-form-input" defaultValue={user?.email ?? ''} /></div>
-              <div className="ep-form-group"><label>الهاتف</label><input type="tel" className="ep-form-input" defaultValue={user?.phone ?? ''} placeholder="—" /></div>
-              <div className="ep-form-group"><label>الرقم التعريفي</label><input type="text" className="ep-form-input" defaultValue={user?.id ? `USR-${user.id}` : ''} disabled /></div>
+              <div className="ep-form-group"><label>الاسم الكامل</label><input type="text" className="ep-form-input" value={name} onChange={(e) => setName(e.target.value)} /></div>
+              <div className="ep-form-group"><label>البريد الإلكتروني (غير قابل للتعديل)</label><input type="email" className="ep-form-input" value={user?.email ?? ''} disabled /></div>
+              <div className="ep-form-group"><label>الهاتف</label><input type="tel" className="ep-form-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="—" /></div>
+              <div className="ep-form-group"><label>الرقم التعريفي (غير قابل للتعديل)</label><input type="text" className="ep-form-input" value={user?.id ? `USR-${user.id}` : ''} disabled /></div>
+              {profileMsg && <div style={msgStyle(profileMsg.ok)}>{profileMsg.text}</div>}
             </div>
           </div>
         </div>
@@ -288,6 +336,24 @@ export function ProfileEp() {
               <div className="ep-form-group"><label>الأدوار الممنوحة</label><input type="text" className="ep-form-input" value={(user?.roles ?? []).map((r) => ROLE_AR[r] ?? r).join('، ') || '—'} disabled /></div>
               <div className="ep-form-group"><label>عدد الصلاحيات</label><input type="text" className="ep-form-input" value={`${user?.permissions?.length ?? 0} صلاحية`} disabled /></div>
               <div className="ep-form-group"><label>الحساب</label><input type="text" className="ep-form-input" value="نشِط ✓" disabled /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* تغيير كلمة المرور */}
+      <div className="ep-card" style={{ marginTop: 20, maxWidth: 560 }}>
+        <div className="ep-card-header"><div className="ep-card-title">🔒 تغيير كلمة المرور</div></div>
+        <div className="ep-card-body">
+          <div className="ep-profile-form">
+            <div className="ep-form-group"><label>كلمة المرور الحالية</label><input type="password" className="ep-form-input" value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></div>
+            <div className="ep-form-group"><label>كلمة المرور الجديدة (8 أحرف على الأقل)</label><input type="password" className="ep-form-input" value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></div>
+            <div className="ep-form-group"><label>تأكيد كلمة المرور الجديدة</label><input type="password" className="ep-form-input" value={confPw} onChange={(e) => setConfPw(e.target.value)} autoComplete="new-password" /></div>
+            {pwMsg && <div style={msgStyle(pwMsg.ok)}>{pwMsg.text}</div>}
+            <div style={{ marginTop: 6 }}>
+              <button className="ep-btn ep-btn-primary" disabled={savingPw || !curPw || !newPw} onClick={changePassword}>
+                {savingPw ? '…جارٍ التغيير' : '🔒 تغيير كلمة المرور'}
+              </button>
             </div>
           </div>
         </div>

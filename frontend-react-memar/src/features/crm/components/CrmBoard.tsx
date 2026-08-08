@@ -90,7 +90,7 @@ function StageExpand({ stage, leads, onOpen, onClose }: { stage: PipelineStage; 
 function DraggableCard({ lead, children }: { lead: Lead; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: lead.id });
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners} style={{ cursor: 'grab', opacity: isDragging ? 0.4 : 1, touchAction: 'pan-y' }}>
+    <div ref={setNodeRef} {...attributes} {...listeners} style={{ cursor: 'grab', opacity: isDragging ? 0.4 : 1, touchAction: 'pan-x pan-y' }}>
       {children}
     </div>
   );
@@ -101,7 +101,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
   const [expanded, setExpanded] = useState<PipelineStage | null>(null);
   // سحب بالضغط المطوّل (طلب أيمن): يبدأ السحب بعد ثبات ~250ms فقط. النقرة السريعة تفتح
   // الكرت، والتمرير باللمس (تحرّك الإصبع قبل ربع الثانية) يُلغي السحب — فلا يتحرّك الكرت
-  // بالخطأ أثناء التمرير على التابلت. مع touch-action: pan-y يظلّ التمرير العمودي طبيعيًا.
+  // بالخطأ أثناء التمرير على التابلت. مع touch-action: pan-x pan-y يظلّ التمرير أفقيًا وعموديًا طبيعيًا.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
   const collapsedMap = useCollapsedStages();
   const hiddenMap = useHiddenStages();

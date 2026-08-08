@@ -73,7 +73,7 @@ function DraggableCard({ id, children }: { id: number; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
 
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners} style={{ opacity: isDragging ? 0.4 : 1, touchAction: 'pan-y' }}>
+    <div ref={setNodeRef} {...attributes} {...listeners} style={{ opacity: isDragging ? 0.4 : 1, touchAction: 'pan-x pan-y' }}>
       {children}
     </div>
   );
@@ -84,7 +84,7 @@ export function FollowUpBoard({ tasks, canDelete, onOpen, onToggle, onDelete, on
   // فلتر الفترة المختار لكل عمود
   const [filters, setFilters] = useState<Record<string, string>>({ overdue: 'all', upcoming: 'all', done: 'all' });
   // سحب بالضغط المطوّل (طلب أيمن): لا يبدأ السحب إلا بثبات ~250ms، فالنقرة تفتح المهمة
-  // والتمرير باللمس لا يحرّك الكرت بالخطأ (مهم للتابلت). مع touch-action: pan-y أدناه.
+  // والتمرير باللمس لا يحرّك الكرت بالخطأ (مهم للتابلت). مع touch-action: pan-x pan-y أدناه.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
 
   const grouped: Record<FollowUpColumn, Task[]> = { overdue: [], today: [], upcoming: [], done: [] };

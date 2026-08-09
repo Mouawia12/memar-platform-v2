@@ -191,7 +191,7 @@ export function EmployeePortalPage() {
           <button className="ep-menu-toggle" onClick={() => setSbOpen((o) => !o)}>☰</button>
           <div className="ep-topbar-greeting">
             <span className="ep-greeting-text">صباح الخير، {firstName} 👋</span>
-            <span className="ep-greeting-date">الخميس 7 أغسطس 2026</span>
+            <span className="ep-greeting-date">{new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </div>
         </div>
         <div className="ep-topbar-left">

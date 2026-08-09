@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../store/auth';
 import { appointmentsApi } from '../appointments/api/appointmentsApi';
 import { attendanceApi } from '../attendance/api/attendanceApi';
 import { authApi } from '../auth/api/authApi';
+import { AssignedProjectCard } from '../myProjects/components/AssignedProjectCard';
 import { myProjectsApi } from '../myProjects/api/myProjectsApi';
 import { tasksApi } from '../tasks/api/tasksApi';
 import { isDone, PRIORITY_LABELS, taskColumn, type Task } from '../tasks/types';
@@ -37,6 +39,7 @@ const SCHED_BADGE: Record<string, { cls: string; label: string }> = {
 };
 
 export function EmployeeDashboard({ onGo }: { onGo: (id: string) => void }) {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const name = user?.name ?? 'زميلنا';
   const role = user?.roles?.[0] ? ROLE_AR[user.roles[0]] ?? user.roles[0] : 'فريق معمار';
@@ -128,6 +131,25 @@ export function EmployeeDashboard({ onGo }: { onGo: (id: string) => void }) {
             <div className="ep-kpi-value">{pointsBal}</div>
             <div className="ep-kpi-sub">من {points?.deals_won ?? 0} صفقة ناجحة</div>
           </div>
+        </div>
+      </div>
+
+      {/* مشاريعي — كروت المشاريع بشريط تقدّم (طبق أصل Atoms) */}
+      <div className="ep-card" style={{ marginBottom: 20 }}>
+        <div className="ep-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="ep-card-title">🏗️ مشاريعي {(proj?.projects.length ?? 0) > 0 && <span style={{ color: '#8A93A3', fontWeight: 600 }}>({proj?.projects.length})</span>}</div>
+          <button className="ep-btn ep-btn-xs ep-btn-outline" onClick={() => onGo('ep-projects')}>عرض الكل ←</button>
+        </div>
+        <div className="ep-card-body">
+          {(proj?.projects.length ?? 0) === 0
+            ? <p style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا مشاريع مُسنَدة إليك بعد.</p>
+            : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+                {(proj?.projects ?? []).slice(0, 6).map((c) => (
+                  <AssignedProjectCard key={c.id} card={c} onOpen={(id) => navigate(`/projects/${id}`)} />
+                ))}
+              </div>
+            )}
         </div>
       </div>
 

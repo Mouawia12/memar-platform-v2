@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import { useLiveSync } from '../../hooks/useLiveSync';
 import { SidebarUserCard } from '../../components/SidebarUserCard';
+import { EmployeeDashboard } from './EmployeeDashboard';
 import { ROLE_AR } from './SelfServicePages';
 import { ForumPage } from '../forum/pages/ForumPage';
 import { LiveChatPanel } from '../liveChat/LiveChatPanel';
@@ -202,7 +203,7 @@ export function EmployeePortalPage() {
 
       {/* ═══ MAIN ═══ */}
       <main className="ep-main">
-        {active === 'ep-dashboard' ? <Dashboard onGo={go} />
+        {active === 'ep-dashboard' ? <EmployeeDashboard onGo={go} />
           // المنتدى والاجتماعات يحملان ترويسة/بانر خاصًّا بهما → غلاف مجرّد بلا ترويسة مكرّرة
           : active === 'ep-forum' ? <Bare><ForumPage /></Bare>
           : active === 'ep-chat' ? <SharedPage title="💬 المحادثات" subtitle="تواصل مباشر مع الفريق والإدارة"><LiveChatPanel /></SharedPage>
@@ -227,158 +228,6 @@ export function EmployeePortalPage() {
           : active === 'ep-referral' ? <ReferralEp />
           : <ComingSoon page={active} />}
       </main>
-    </div>
-  );
-}
-
-function Dashboard({ onGo }: { onGo: (id: string) => void }) {
-  const user = useAuthStore((s) => s.user);
-  const name = user?.name ?? 'زميلنا';
-  const role = user?.roles?.[0] ? ROLE_AR[user.roles[0]] ?? user.roles[0] : 'فريق معمار';
-  return (
-    <div className="ep-page ep-active">
-      {/* Welcome */}
-      <div className="ep-welcome-card">
-        <div className="ep-welcome-content">
-          <h2>مرحباً {name} 👋</h2>
-          <p>{role} — مجموعة معمار</p>
-          <div className="ep-welcome-stats">
-            <div className="ep-ws-item"><span className="ep-ws-num">5</span><span className="ep-ws-label">مهام نشطة</span></div>
-            <div className="ep-ws-item"><span className="ep-ws-num">3</span><span className="ep-ws-label">مشاريع</span></div>
-            <div className="ep-ws-item"><span className="ep-ws-num">22</span><span className="ep-ws-label">يوم حضور</span></div>
-            <div className="ep-ws-item"><span className="ep-ws-num">850</span><span className="ep-ws-label">نقاط الإحالة</span></div>
-          </div>
-        </div>
-        <div className="ep-welcome-visual">🏗️</div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="ep-quick-actions">
-        <button className="ep-qa-btn" onClick={() => onGo('ep-attendance')}><span className="ep-qa-icon">⏰</span>تسجيل حضور</button>
-        <button className="ep-qa-btn" onClick={() => onGo('ep-reports')}><span className="ep-qa-icon">📝</span>تقرير يومي</button>
-        <button className="ep-qa-btn" onClick={() => onGo('ep-leaves')}><span className="ep-qa-icon">🏖️</span>طلب إجازة</button>
-        <button className="ep-qa-btn" onClick={() => onGo('ep-tasks')}><span className="ep-qa-icon">✅</span>مهامي</button>
-      </div>
-
-      {/* KPIs */}
-      <div className="ep-kpi-grid">
-        <div className="ep-kpi-card">
-          <div className="ep-kpi-icon ep-blue">✅</div>
-          <div className="ep-kpi-body">
-            <div className="ep-kpi-label">المهام المكتملة</div>
-            <div className="ep-kpi-value">18/23</div>
-            <div className="ep-kpi-bar"><div className="ep-kpi-bar-fill" style={{ width: '78%' }} /></div>
-          </div>
-        </div>
-        <div className="ep-kpi-card">
-          <div className="ep-kpi-icon ep-green">⏰</div>
-          <div className="ep-kpi-body">
-            <div className="ep-kpi-label">نسبة الحضور</div>
-            <div className="ep-kpi-value">96%</div>
-            <div className="ep-kpi-bar"><div className="ep-kpi-bar-fill ep-green" style={{ width: '96%' }} /></div>
-          </div>
-        </div>
-        <div className="ep-kpi-card">
-          <div className="ep-kpi-icon ep-orange">📊</div>
-          <div className="ep-kpi-body">
-            <div className="ep-kpi-label">تقييم الأداء</div>
-            <div className="ep-kpi-value">4.5/5</div>
-            <div className="ep-kpi-bar"><div className="ep-kpi-bar-fill ep-orange" style={{ width: '90%' }} /></div>
-          </div>
-        </div>
-        <div className="ep-kpi-card">
-          <div className="ep-kpi-icon ep-purple">🎁</div>
-          <div className="ep-kpi-body">
-            <div className="ep-kpi-label">نقاط الإحالة</div>
-            <div className="ep-kpi-value">850</div>
-            <div className="ep-kpi-sub">+150 هذا الشهر</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tasks + Schedule */}
-      <div className="ep-grid-2">
-        <div className="ep-card">
-          <div className="ep-card-header"><div className="ep-card-title">✅ مهام اليوم</div></div>
-          <div className="ep-card-body">
-            <div className="ep-task-list">
-              <div className="ep-task-item ep-urgent">
-                <div className="ep-task-check" />
-                <div className="ep-task-info">
-                  <div className="ep-task-name">مراجعة مخططات الواجهة — فيلا المنصور</div>
-                  <div className="ep-task-meta"><span className="ep-task-project">🏠 فيلا المنصور</span><span className="ep-task-due ep-red">⏰ اليوم</span></div>
-                </div>
-                <span className="ep-badge ep-badge-red">عاجل</span>
-              </div>
-              <div className="ep-task-item">
-                <div className="ep-task-check" />
-                <div className="ep-task-info">
-                  <div className="ep-task-name">تحديث BIM Model — الطابق الثالث</div>
-                  <div className="ep-task-meta"><span className="ep-task-project">🏢 مبنى العليا</span><span className="ep-task-due">⏰ غداً</span></div>
-                </div>
-                <span className="ep-badge ep-badge-orange">متوسط</span>
-              </div>
-              <div className="ep-task-item">
-                <div className="ep-task-check" />
-                <div className="ep-task-info">
-                  <div className="ep-task-name">إعداد عرض تقديمي للعميل</div>
-                  <div className="ep-task-meta"><span className="ep-task-project">🏢 مجمع تجاري</span><span className="ep-task-due">⏰ 9 أغسطس</span></div>
-                </div>
-                <span className="ep-badge ep-badge-blue">عادي</span>
-              </div>
-              <div className="ep-task-item ep-done">
-                <div className="ep-task-check ep-checked">✓</div>
-                <div className="ep-task-info">
-                  <div className="ep-task-name">رفع مخططات الإنشائي للمراجعة</div>
-                  <div className="ep-task-meta"><span className="ep-task-project">🏠 فيلا المنصور</span><span className="ep-task-due ep-green">✓ مكتمل</span></div>
-                </div>
-                <span className="ep-badge ep-badge-green">مكتمل</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="ep-card">
-          <div className="ep-card-header"><div className="ep-card-title">📅 جدول اليوم</div></div>
-          <div className="ep-card-body">
-            <div className="ep-schedule-list">
-              <div className="ep-sched-item ep-now">
-                <div className="ep-sched-time">09:00</div>
-                <div className="ep-sched-content"><div className="ep-sched-title">اجتماع مراجعة أسبوعي</div><div className="ep-sched-loc">📍 قاعة المؤتمرات A</div></div>
-                <span className="ep-badge ep-badge-blue">جاري</span>
-              </div>
-              <div className="ep-sched-item">
-                <div className="ep-sched-time">11:00</div>
-                <div className="ep-sched-content"><div className="ep-sched-title">زيارة موقع — مبنى العليا</div><div className="ep-sched-loc">📍 موقع المشروع</div></div>
-                <span className="ep-badge ep-badge-green">مؤكد</span>
-              </div>
-              <div className="ep-sched-item">
-                <div className="ep-sched-time">14:00</div>
-                <div className="ep-sched-content"><div className="ep-sched-title">عرض تصميم للعميل</div><div className="ep-sched-loc">📍 غرفة العروض</div></div>
-                <span className="ep-badge ep-badge-green">مؤكد</span>
-              </div>
-              <div className="ep-sched-item">
-                <div className="ep-sched-time">16:30</div>
-                <div className="ep-sched-content"><div className="ep-sched-title">تسليم تقرير يومي</div><div className="ep-sched-loc">📍 عبر النظام</div></div>
-                <span className="ep-badge ep-badge-orange">معلق</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Notifications */}
-      <div className="ep-card">
-        <div className="ep-card-header"><div className="ep-card-title">🔔 آخر الإشعارات</div></div>
-        <div className="ep-card-body">
-          <div className="ep-notif-list">
-            <div className="ep-notif-item ep-unread"><span className="ep-notif-icon">⚠️</span><div className="ep-notif-content"><div className="ep-notif-text">تم تعيين مهمة جديدة لك: «مراجعة مخططات الواجهة»</div><div className="ep-notif-time">منذ 30 دقيقة</div></div></div>
-            <div className="ep-notif-item ep-unread"><span className="ep-notif-icon">✅</span><div className="ep-notif-content"><div className="ep-notif-text">تمت الموافقة على طلب إجازتك ليوم 15 أغسطس</div><div className="ep-notif-time">منذ ساعة</div></div></div>
-            <div className="ep-notif-item"><span className="ep-notif-icon">💬</span><div className="ep-notif-content"><div className="ep-notif-text">رسالة جديدة من م. سارة في مشروع «مبنى العليا»</div><div className="ep-notif-time">منذ 3 ساعات</div></div></div>
-            <div className="ep-notif-item"><span className="ep-notif-icon">🎁</span><div className="ep-notif-content"><div className="ep-notif-text">تهانينا! حصلت على 50 نقطة إحالة من مشروع جديد</div><div className="ep-notif-time">أمس</div></div></div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Models\Project;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -39,6 +40,26 @@ class ContractService
         }
 
         return $contract->load(['project', 'client', 'quotation']);
+    }
+
+    /**
+     * ينشئ «مسودة عقد» تلقائيًا لمشروع جديد بحيث يظهر كل مشروع في سجل العقود — لأنه أصلًا
+     * عقد. القيمة تُنسخ من ميزانية المشروع إن وُجدت (تحويل فرصة رابحة)، وإلا تبقى فارغة
+     * ليدخلها المحاسب لاحقًا في سجل العقود. لا تُطلق مكافأة الإحالة (المسودة ليست تعاقدًا
+     * فعليًا بعد). طلب أيمن 2026-08-09.
+     */
+    public function createDraftForProject(Project $project): Contract
+    {
+        $contract = Contract::create([
+            'project_id' => $project->id,
+            'client_id' => $project->client_id,
+            'value_kwd' => $project->budget_kwd ?? 0, // 0 = لم تُسعَّر بعد؛ يملؤها المحاسب في سجل العقود
+            'status' => 'draft',
+        ]);
+        $contract->number = 'CT-'.str_pad((string) $contract->id, 4, '0', STR_PAD_LEFT);
+        $contract->save();
+
+        return $contract;
     }
 
     /**

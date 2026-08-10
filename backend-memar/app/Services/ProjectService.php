@@ -12,6 +12,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class ProjectService
 {
+    public function __construct(private readonly ContractService $contracts) {}
+
     public function list(?string $search, ?string $status, int $perPage = 15): LengthAwarePaginator
     {
         return Project::query()
@@ -37,6 +39,9 @@ class ProjectService
         // ترقيم تلقائي: PRJ-0001
         $project->code = 'PRJ-'.str_pad((string) $project->id, 4, '0', STR_PAD_LEFT);
         $project->save();
+
+        // كل مشروع أصلًا عقد: نُنشئ له مسودة عقد في سجل العقود تلقائيًا (طلب أيمن 2026-08-09).
+        $this->contracts->createDraftForProject($project);
 
         return $project->load(['client', 'manager']);
     }

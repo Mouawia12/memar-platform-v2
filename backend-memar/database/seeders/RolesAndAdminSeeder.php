@@ -51,7 +51,9 @@ class RolesAndAdminSeeder extends Seeder
             'manager' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.view.all', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view', 'forum.view', 'forum.manage'],
             // المهندس يرى الطلبات المُسنَدة إليه فقط (requests.view بلا view.all)
             'architect' => ['projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'crm.view', 'requests.view'],
-            'accountant' => ['finance.view', 'finance.manage', 'pricing.view'],
+            // المحاسب يدير سجل العقود (السعر والتفاصيل المالية) بعد أن يُنشئ المهندس المشروع
+            // بلا قيمة — هناك تعيش الجزئية المالية. طلب أيمن 2026-08-09.
+            'accountant' => ['finance.view', 'finance.manage', 'pricing.view', 'contracts.view', 'contracts.manage'],
             'hr_manager' => ['hr.view', 'hr.manage'],
             // أدوار فريق معمار كما ذكرها العميل (اجتماع 3) — قوالب مبدئية قابلة للتعديل من صفحة الصلاحيات
             'sales' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.view.all', 'requests.manage', 'appointments.view', 'appointments.manage', 'tasks.view'],

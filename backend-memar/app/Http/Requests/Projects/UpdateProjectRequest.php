@@ -9,6 +9,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateProjectRequest extends FormRequest
 {
+    use StripsBudgetForNonFinance;
+
     public function authorize(): bool
     {
         return true;

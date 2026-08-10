@@ -7,12 +7,13 @@ interface Props {
   projects: Project[];
   onEdit: (p: Project) => void;
   onDelete: (p: Project) => void;
+  showBudget?: boolean; // قيمة المشروع تُعرض فقط لمن يملك finance.view (طلب أيمن 2026-08-09)
 }
 
-const fmtMoney = (v: string | null) =>
-  v === null ? '—' : `${Number(v).toLocaleString('ar')} د.ك`;
+const fmtMoney = (v: string | null | undefined) =>
+  v === null || v === undefined ? '—' : `${Number(v).toLocaleString('ar')} د.ك`;
 
-export function ProjectsTable({ projects, onEdit, onDelete }: Props) {
+export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true }: Props) {
   if (projects.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد مشاريع.</p>;
   }
@@ -27,7 +28,7 @@ export function ProjectsTable({ projects, onEdit, onDelete }: Props) {
             <th style={th}>العميل</th>
             <th style={th}>المدير</th>
             <th style={th}>الحالة</th>
-            <th style={th}>الميزانية</th>
+            {showBudget && <th style={th}>الميزانية</th>}
             <th style={th}>إجراءات</th>
           </tr>
         </thead>
@@ -43,7 +44,7 @@ export function ProjectsTable({ projects, onEdit, onDelete }: Props) {
                   {PROJECT_STATUS_LABELS[p.status]}
                 </span>
               </td>
-              <td style={td}>{fmtMoney(p.budget_kwd)}</td>
+              {showBudget && <td style={td}>{fmtMoney(p.budget_kwd)}</td>}
               <td style={td}>
                 <button className="btn btn-sm" onClick={() => onEdit(p)} type="button">تعديل</button>{' '}
                 <button className="btn btn-sm" onClick={() => onDelete(p)} type="button" style={{ color: '#ef4444' }}>حذف</button>

@@ -21,7 +21,9 @@ class ContractResource extends JsonResource
         return [
             'id' => $this->id,
             'number' => $this->number,
-            'value_kwd' => $this->value_kwd,
+            // قيمة العقد بيانات مالية سرّية — تظهر فقط لمن يملك finance.view (محاسب/مدير/أدمن).
+            // تُخفى عن المهندسين حتى في تبويب عقد المشروع؛ سجل العقود يعرضها للحسابات. طلب أيمن 2026-08-09.
+            'value_kwd' => $this->when((bool) $request->user()?->can('finance.view'), fn () => $this->value_kwd),
             'status' => $this->status,
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),

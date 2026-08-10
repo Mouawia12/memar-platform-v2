@@ -24,7 +24,9 @@ class ProjectResource extends JsonResource
             'name' => $this->name,
             'status' => $this->status,
             'progress' => $this->progress,
-            'budget_kwd' => $this->budget_kwd,
+            // قيمة المشروع/العقد مالية سرّية — تظهر فقط لمن يملك finance.view (محاسب/مدير/أدمن)،
+            // وتُخفى عن المهندسين في سجل المشاريع. القيمة الكاملة في سجل العقود. طلب أيمن 2026-08-09.
+            'budget_kwd' => $this->when((bool) $request->user()?->can('finance.view'), fn () => $this->budget_kwd),
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
             'description' => $this->description,

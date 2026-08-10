@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { projectsApi } from '../api/projectsApi';
 import { ProjectFormModal } from '../components/ProjectFormModal';
 import { ProjectsTable } from '../components/ProjectsTable';
@@ -13,6 +14,8 @@ export function ProjectsPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
+  // قيمة المشروع تُعرض فقط لأصحاب الصلاحية المالية (محاسب/مدير/أدمن). المهندسون يديرون المشاريع بلا سعر. طلب أيمن 2026-08-09.
+  const canFinance = usePermission('finance.view');
 
   const { data, isLoading, isError } = useProjects({ search: search || undefined, status: status || undefined, page });
   const allQuery = useProjects({ per_page: 500 });
@@ -55,7 +58,7 @@ export function ProjectsPage() {
                 { header: 'العميل', value: (r: Project) => r.client?.name },
                 { header: 'مدير المشروع', value: (r: Project) => r.manager?.name },
                 { header: 'الحالة', value: (r: Project) => PROJECT_STATUS_LABELS[r.status] },
-                { header: 'الميزانية (د.ك)', value: (r: Project) => r.budget_kwd },
+                ...(canFinance ? [{ header: 'الميزانية (د.ك)', value: (r: Project) => r.budget_kwd }] : []),
                 { header: 'البداية', value: (r: Project) => r.start_date },
                 { header: 'النهاية', value: (r: Project) => r.end_date },
               ]}
@@ -71,7 +74,7 @@ export function ProjectsPage() {
           <Kpi label="معلّقة" value={String(count('on_hold'))} accent="#FCD34D" />
           <Kpi label="منجزة" value={String(count('done'))} accent="#93C5FD" />
           <Kpi label="عملاء VIP" value={String(vipCount)} accent="#FDBA74" />
-          <Kpi label="إجمالي الميزانيات" value={`${totalBudget.toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`} />
+          {canFinance && <Kpi label="إجمالي الميزانيات" value={`${totalBudget.toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`} />}
         </div>
       </div>
 
@@ -94,7 +97,7 @@ export function ProjectsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المشاريع.</p>}
-        {data && <ProjectsTable projects={data.data} onEdit={openEdit} onDelete={handleDelete} />}
+        {data && <ProjectsTable projects={data.data} onEdit={openEdit} onDelete={handleDelete} showBudget={canFinance} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

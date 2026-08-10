@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import type { ContractStatus, ProjectDocFile } from '../api/projectsApi';
 import { useProjectDocuments } from '../hooks/useProjectDocuments';
 
@@ -34,6 +35,8 @@ const CONTRACT_STATUS: Record<ContractStatus, { label: string; color: string }> 
 /** تبويب العقد (PROJ-3): عقود المشروع وتفاصيلها. */
 export function ProjectContractTab({ projectId }: { projectId: number }) {
   const { data, isLoading, isError } = useProjectDocuments(projectId);
+  // قيمة العقد المالية تظهر فقط لأصحاب finance.view — تُخفى عن المهندسين. طلب أيمن 2026-08-09.
+  const canFinance = usePermission('finance.view');
 
   if (isLoading) return <div className="card" style={card}>جارٍ التحميل…</div>;
   if (isError || !data) return <div className="card" style={card}>تعذّر تحميل العقد.</div>;
@@ -57,7 +60,7 @@ export function ProjectContractTab({ projectId }: { projectId: number }) {
               <span style={{ ...pill, background: `${st.color}1a`, color: st.color }}>{st.label}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginTop: '14px' }}>
-              <Meta label="قيمة العقد" value={money(c.value_kwd)} />
+              {canFinance && <Meta label="قيمة العقد" value={money(c.value_kwd)} />}
               <Meta label="تاريخ البداية" value={shortDate(c.start_date)} />
               <Meta label="تاريخ الانتهاء" value={shortDate(c.end_date)} />
             </div>

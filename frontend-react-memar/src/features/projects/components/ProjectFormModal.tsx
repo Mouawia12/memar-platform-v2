@@ -1,6 +1,7 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { useContacts } from '../../clients/hooks/useContacts';
 import { useUsers } from '../../users/hooks/useUsers';
 import { useSaveProject } from '../hooks/useProjects';
@@ -18,6 +19,8 @@ const empty: ProjectFormData = {
 
 export function ProjectFormModal({ project, onClose }: Props) {
   const save = useSaveProject();
+  // القيمة المالية تظهر وتُحرَّر فقط لأصحاب صلاحية finance.view. طلب أيمن 2026-08-09.
+  const canFinance = usePermission('finance.view');
   const { data: clientsData } = useContacts({ type: 'client', per_page: 100 });
   const { data: usersData } = useUsers({ per_page: 100 });
   const [form, setForm] = useState<ProjectFormData>(empty);
@@ -43,6 +46,8 @@ export function ProjectFormModal({ project, onClose }: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    // القيمة المالية محميّة من جهة الخادم: يُزال budget_kwd من البيانات المعتمدة لمن لا يملك
+    // finance.view، فلا يُضبط ولا يُكتب فوق القيمة المخزّنة — والحقل مخفيّ أصلًا في الواجهة.
     save.mutate({ id: project?.id, data: form }, { onSuccess: onClose });
   };
 
@@ -75,9 +80,11 @@ export function ProjectFormModal({ project, onClose }: Props) {
               ))}
             </select>
           </label>
-          <label style={label}>الميزانية (د.ك)
-            <input className="input" style={input} type="number" step="0.001" min="0" value={form.budget_kwd} onChange={(e) => set('budget_kwd', e.target.value)} />
-          </label>
+          {canFinance && (
+            <label style={label}>الميزانية (د.ك)
+              <input className="input" style={input} type="number" step="0.001" min="0" value={form.budget_kwd} onChange={(e) => set('budget_kwd', e.target.value)} />
+            </label>
+          )}
           <label style={label}>تاريخ البدء
             <input className="input" style={input} type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} />
           </label>

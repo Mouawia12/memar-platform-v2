@@ -28,6 +28,8 @@ export interface AuthUser {
   phone?: string | null;
   roles?: string[];
   permissions?: string[];
+  /** نوع اللوحة التي يهبط عليها المستخدم حسب دوره: admin | employee | client. */
+  dashboard?: 'admin' | 'employee' | 'client';
   ui_prefs?: UiPrefs;
   /** رقم حساب الموظف الثابت (MEM-YYYY-NNN) — من الباك اند. */
   account_number?: string | null;

@@ -8,7 +8,7 @@ import type { AuthUser } from '../../../types/api';
 
 /** الوجهة بعد المصادقة حسب الدور: عميل→بوابته، إدارة→لوحة التحكم، موظف→بوابة الموظف. */
 function landingFor(user: AuthUser): string {
-  return landingPath(user.roles);
+  return landingPath(user);
 }
 
 /** تسجيل الدخول — عند النجاح يحفظ التوكن ويوجّه حسب الدور. */

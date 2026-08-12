@@ -18,21 +18,31 @@ export interface NavSection {
 /** العناصر الوحيدة التي يراها العميل (AUTH-1): بوابته والمنتدى فقط — لا قوائم الطاقم. */
 const CLIENT_ONLY_NAV_KEYS = new Set(['client_portal', 'forum']);
 
-/** هل المستخدم عميل فقط (دوره «client» ولا دور طاقم آخر معه)؟ */
-export function isClientOnly(roles: string[] | undefined | null): boolean {
+/** سياق التوجيه: نوع لوحة المستخدم (المصدر الأساسي) مع الأدوار كاحتياط. */
+export type LandingCtx = { dashboard?: string | null; roles?: string[] | null } | null | undefined;
+
+/** أدوار نظامية تدخل لوحة الإدارة — تُستخدم كاحتياط فقط إن غاب حقل dashboard. */
+const ADMIN_ROLES = new Set(['super_admin', 'admin']);
+
+/** هل المستخدم عميل فقط؟ يعتمد نوع اللوحة (client)، ويحتاط بالأدوار. */
+export function isClientOnly(u: LandingCtx): boolean {
+  if (u?.dashboard) return u.dashboard === 'client';
+  const roles = u?.roles;
   return !!roles && roles.length > 0 && roles.every((r) => r === 'client');
 }
 
 /**
- * أدوار الإدارة التي تدخل لوحة التحكم الكاملة (إشراف/موارد بشرية/مالية).
- * بقيّة أدوار الطاقم موظفون → يدخلون «بوابة الموظف». يضبطها أيمن بسهولة.
+ * مسار الهبوط بعد الدخول حسب نوع لوحة الدور: admin→لوحة التحكم، employee→بوابة الموظف،
+ * client→بوابة العميل. يحدّده الدور وحده (طلب أيمن 2026-08-12)؛ والاحتياط بالأدوار إن غاب.
  */
-const ADMIN_ROLES = new Set(['super_admin', 'manager', 'hr_manager', 'accountant']);
-
-/** مسار الهبوط بعد الدخول: عميل→بوابته، إدارة→لوحة التحكم، بقيّة الموظفين→بوابة الموظف. */
-export function landingPath(roles: string[] | undefined | null): string {
-  if (isClientOnly(roles)) return '/client-portal';
-  if ((roles ?? []).some((r) => ADMIN_ROLES.has(r))) return '/dashboard';
+export function landingPath(u: LandingCtx): string {
+  const d = u?.dashboard;
+  if (d === 'client') return '/client-portal';
+  if (d === 'admin') return '/dashboard';
+  if (d === 'employee') return '/employee-portal';
+  // احتياط: لا نوع لوحة — نستنتج من الأدوار
+  if (isClientOnly(u)) return '/client-portal';
+  if ((u?.roles ?? []).some((r) => ADMIN_ROLES.has(r))) return '/dashboard';
   return '/employee-portal';
 }
 
@@ -42,9 +52,9 @@ export function landingPath(roles: string[] | undefined | null): string {
  */
 export function visibleNavSections(
   sections: NavSection[],
-  ctx: { permissions?: string[] | null; roles?: string[] | null },
+  ctx: { permissions?: string[] | null; roles?: string[] | null; dashboard?: string | null },
 ): NavSection[] {
-  if (isClientOnly(ctx.roles)) {
+  if (isClientOnly(ctx)) {
     return sections
       .map((s) => ({ ...s, items: s.items.filter((i) => CLIENT_ONLY_NAV_KEYS.has(i.key)) }))
       .filter((s) => s.items.length > 0);

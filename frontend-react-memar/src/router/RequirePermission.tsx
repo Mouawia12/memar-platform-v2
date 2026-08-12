@@ -23,7 +23,7 @@ export function RequirePermission({ perm, children }: Props) {
 
   const allowed = !perm || !!user?.permissions?.includes(perm);
   if (!allowed) {
-    return <Navigate to={landingPath(user?.roles)} replace />;
+    return <Navigate to={landingPath(user)} replace />;
   }
 
   return <>{children}</>;
@@ -35,7 +35,7 @@ export function RequirePermission({ perm, children }: Props) {
  */
 export function RequireDashboardHome({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
-  const home = landingPath(user?.roles);
+  const home = landingPath(user);
   if (home !== '/dashboard') {
     return <Navigate to={home} replace />;
   }
@@ -46,7 +46,7 @@ export function RequireDashboardHome({ children }: { children: ReactNode }) {
 /** حارس بوابات الطاقم (موظف/مهندس): يمنع العميل من الدخول ويعيده لبوابته. */
 export function RequireStaff({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
-  if (isClientOnly(user?.roles)) {
+  if (isClientOnly(user)) {
     return <Navigate to="/client-portal" replace />;
   }
 
@@ -64,5 +64,5 @@ export function LandingRedirect() {
     return <Navigate to="/login" replace />;
   }
 
-  return <Navigate to={landingPath(user?.roles)} replace />;
+  return <Navigate to={landingPath(user)} replace />;
 }

@@ -14,17 +14,27 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends ApiController
 {
-    /** تسميات عربية للأدوار المعروفة. */
+    /** الأدوار النظامية الأربعة الثابتة (لا تُحذف). */
+    private const SYSTEM_ROLES = ['super_admin', 'admin', 'employee', 'client'];
+
+    /** تسميات عربية للأدوار النظامية؛ الأدوار المخصّصة تُعرض باسمها كما هو. */
     private const ROLE_LABELS = [
         'super_admin' => 'مدير عام',
-        'manager' => 'مدير',
-        'architect' => 'مهندس / مصمم',
-        'accountant' => 'محاسب',
-        'hr_manager' => 'مدير موارد بشرية',
-        'sales' => 'مبيعات',
-        'secretary' => 'سكرتارية',
+        'admin' => 'أدمن',
+        'employee' => 'موظف',
         'client' => 'عميل',
     ];
+
+    /** نوع لوحة كل دور نظامي. */
+    private const SYSTEM_DASHBOARDS = [
+        'super_admin' => 'admin',
+        'admin' => 'admin',
+        'employee' => 'employee',
+        'client' => 'client',
+    ];
+
+    /** أنواع اللوحات المتاحة + تسمياتها. */
+    public const DASHBOARDS = ['admin' => 'لوحة الإدارة', 'employee' => 'بوابة الموظف', 'client' => 'بوابة العميل'];
 
     /** تسميات عربية لمجموعات الصلاحيات. */
     private const GROUP_LABELS = [
@@ -44,12 +54,38 @@ class RoleController extends ApiController
         'roles' => 'الأدوار',
     ];
 
+    /**
+     * أي أنواع اللوحات يخصّها كل مجموعة صلاحيات. لوحة العميل بلا صلاحيات طاقم (الوصول
+     * يُدار من ملف العميل). ما لا يُذكر هنا يخصّ الأدمن فقط.
+     */
+    private const GROUP_DASHBOARDS = [
+        'crm' => ['admin', 'employee'],
+        'requests' => ['admin', 'employee'],
+        'projects' => ['admin', 'employee'],
+        'tasks' => ['admin', 'employee'],
+        'appointments' => ['admin', 'employee'],
+        'documents' => ['admin', 'employee'],
+        'forum' => ['admin', 'employee'],
+    ];
+
+    private function dashboardOf(Role $role): string
+    {
+        return self::SYSTEM_DASHBOARDS[$role->name] ?? ($role->getAttribute('dashboard') ?: 'employee');
+    }
+
+    /** الأنواع التي تُتاح لها مجموعة صلاحية (الافتراضي: الأدمن فقط). */
+    private function groupDashboards(string $group): array
+    {
+        return self::GROUP_DASHBOARDS[$group] ?? ['admin'];
+    }
+
     /** قائمة الأدوار (للاختيار في نماذج المستخدمين). */
     public function index(): JsonResponse
     {
         $roles = Role::orderBy('id')->get()->map(fn (Role $role): array => [
             'name' => $role->name,
             'label' => self::ROLE_LABELS[$role->name] ?? $role->name,
+            'dashboard' => $this->dashboardOf($role),
         ]);
 
         return $this->ok($roles);
@@ -71,7 +107,8 @@ class RoleController extends ApiController
                 'id' => $role->id,
                 'name' => $role->name,
                 'label' => self::ROLE_LABELS[$role->name] ?? $role->name,
-                'is_system' => array_key_exists($role->name, self::ROLE_LABELS),
+                'dashboard' => $this->dashboardOf($role),
+                'is_system' => in_array($role->name, self::SYSTEM_ROLES, true),
                 'users_count' => (int) ($counts[$role->id] ?? 0),
                 'permissions' => $role->permissions->pluck('name')->all(),
             ]);
@@ -79,7 +116,7 @@ class RoleController extends ApiController
         return $this->ok($roles);
     }
 
-    /** كل الصلاحيات مجمّعة حسب الوحدة. */
+    /** كل الصلاحيات مجمّعة حسب الوحدة، وكل مجموعة موسومة بالأنواع التي تخصّها. */
     public function permissions(): JsonResponse
     {
         $groups = Permission::orderBy('name')->get()
@@ -95,12 +132,12 @@ class RoleController extends ApiController
                 return [
                     'group' => $key,
                     'label' => self::GROUP_LABELS[$key] ?? $key,
+                    'dashboards' => $this->groupDashboards($key), // أي أنواع اللوحات تُظهر هذه المجموعة
                     'actions' => [
                         'view' => $byAction['view'] ?? null,
                         'manage' => $byAction['manage'] ?? null,
                         'delete' => $byAction['delete'] ?? null,
                     ],
-                    // القائمة الكاملة تبقى للتوافق مع المودال القديم.
                     'permissions' => $items->map(fn (Permission $p): array => [
                         'name' => $p->name,
                         'action' => str_ends_with((string) $p->name, '.manage') ? 'إدارة' : (str_ends_with((string) $p->name, '.delete') ? 'حذف' : 'عرض'),
@@ -117,7 +154,9 @@ class RoleController extends ApiController
         $data = $this->validateRole($request, null);
 
         $role = Role::create(['name' => $data['name'], 'guard_name' => 'web']);
-        $role->syncPermissions($data['permissions']);
+        $role->dashboard = $data['dashboard'];
+        $role->save();
+        $role->syncPermissions($this->clampPermissions($data['permissions'], $data['dashboard']));
 
         return $this->created(['id' => $role->id], 'تم إنشاء الدور');
     }
@@ -128,15 +167,22 @@ class RoleController extends ApiController
 
         $data = $this->validateRole($request, $role->id);
 
+        // نوع الأدوار النظامية ثابت؛ المخصّصة يمكن تغيير نوعها.
+        $dashboard = in_array($role->name, self::SYSTEM_ROLES, true)
+            ? $this->dashboardOf($role)
+            : $data['dashboard'];
+
         $role->update(['name' => $data['name']]);
-        $role->syncPermissions($data['permissions']);
+        $role->dashboard = $dashboard;
+        $role->save();
+        $role->syncPermissions($this->clampPermissions($data['permissions'], $dashboard));
 
         return $this->ok(['id' => $role->id], 'تم تحديث الدور وصلاحياته');
     }
 
     public function destroy(Role $role): JsonResponse
     {
-        abort_if(array_key_exists($role->name, self::ROLE_LABELS), 403, 'لا يمكن حذف دور نظامي');
+        abort_if(in_array($role->name, self::SYSTEM_ROLES, true), 403, 'لا يمكن حذف دور نظامي');
         abort_if($role->users()->exists(), 422, 'لا يمكن حذف دور مرتبط بمستخدمين');
 
         $role->delete();
@@ -145,19 +191,42 @@ class RoleController extends ApiController
     }
 
     /**
-     * @return array{name: string, permissions: array<int, string>}
+     * يقصر الصلاحيات على ما يخصّ نوع لوحة الدور — دفاع خادمي: دور «موظف» لا يُمنح صلاحية
+     * مالية مثلًا حتى لو أُرسلت في الطلب.
+     *
+     * @param  array<int, string>  $permissions
+     * @return array<int, string>
+     */
+    private function clampPermissions(array $permissions, string $dashboard): array
+    {
+        return array_values(array_filter($permissions, function (string $name) use ($dashboard): bool {
+            $group = explode('.', $name)[0];
+
+            return in_array($dashboard, $this->groupDashboards($group), true);
+        }));
+    }
+
+    /**
+     * @return array{name: string, dashboard: string, permissions: array<int, string>}
      */
     private function validateRole(Request $request, ?int $ignoreId): array
     {
-        /** @var array{name: string, permissions?: array<int, string>} $validated */
+        /** @var array{name: string, dashboard: string, permissions?: array<int, string>} $validated */
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100', 'regex:/^[a-z_]+$/', Rule::unique('roles', 'name')->ignore($ignoreId)],
+            // اسم الدور يقبل العربية والإنجليزية والأرقام والمسافات (طلب أيمن 2026-08-12).
+            'name' => ['required', 'string', 'max:100', 'regex:/^[\p{Arabic}A-Za-z0-9 _\-]+$/u', Rule::unique('roles', 'name')->ignore($ignoreId)],
+            'dashboard' => ['required', Rule::in(array_keys(self::DASHBOARDS))],
             'permissions' => ['array'],
             'permissions.*' => ['string', Rule::exists('permissions', 'name')],
         ], [
-            'name.regex' => 'اسم الدور يجب أن يكون بأحرف إنجليزية صغيرة وشرطة سفلية فقط (مثل: project_manager).',
+            'name.regex' => 'اسم الدور يقبل حروفًا عربية أو إنجليزية وأرقامًا ومسافات فقط.',
+            'dashboard.required' => 'حدّد نوع الدور (لوحة الإدارة / بوابة الموظف / بوابة العميل).',
         ]);
 
-        return ['name' => $validated['name'], 'permissions' => $validated['permissions'] ?? []];
+        return [
+            'name' => trim($validated['name']),
+            'dashboard' => $validated['dashboard'],
+            'permissions' => $validated['permissions'] ?? [],
+        ];
     }
 }

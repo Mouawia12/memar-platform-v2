@@ -9,8 +9,6 @@ use App\Models\Project;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 /**
  * حسابات الدخول التجريبية — حساب واحد لكل دور (تنظيف طلبه أيمن 2026-08-06).
@@ -30,14 +28,16 @@ class DemoUsersSeeder extends Seeder
      * كلمات مرور قوية (تُخزَّن مُجزَّأة Hash) — دخول حقيقي بالبريد وكلمة السر فقط،
      * بلا أي دخول سريع من الواجهة (طلب أيمن 2026-08-08).
      */
+    // تبسيط صارم لـ4 أدوار (طلب أيمن 2026-08-12): مدير/محاسب/موارد → أدمن،
+    // مهندس/مبيعات/سكرتير → موظف. تبقى الإيميلات وكلمات المرور ثابتة للحسابات المحفوظة.
     private const ACCOUNTS = [
         ['admin@memar.kw', 'Admin@Memar2026', 'م. أيمن الطوخي', 'super_admin'],
-        ['pm@memar.kw', 'Manager@Memar2026', 'م. عبدالله', 'manager'],
-        ['arch1@memar.kw', 'Architect@Memar2026', 'م. دعاء', 'architect'],
-        ['acc@memar.kw', 'Account@Memar2026', 'أ. وليد', 'accountant'],
-        ['hr@memar.kw', 'HR@Memar2026', 'أ. منى الهاجري', 'hr_manager'],
-        ['rep@memar.kw', 'Sales@Memar2026', 'مندوب أبو علي', 'sales'],
-        ['sec@memar.kw', 'Secretary@Memar2026', 'أ. رنا', 'secretary'],
+        ['pm@memar.kw', 'Manager@Memar2026', 'م. عبدالله', 'admin'],
+        ['arch1@memar.kw', 'Architect@Memar2026', 'م. دعاء', 'employee'],
+        ['acc@memar.kw', 'Account@Memar2026', 'أ. وليد', 'admin'],
+        ['hr@memar.kw', 'HR@Memar2026', 'أ. منى الهاجري', 'admin'],
+        ['rep@memar.kw', 'Sales@Memar2026', 'مندوب أبو علي', 'employee'],
+        ['sec@memar.kw', 'Secretary@Memar2026', 'أ. رنا', 'employee'],
         // العميل الرئيسي الغني (شركة المنصور) — يربطه AtomsDemoSeeder ببوابته
         ['client1@memar.kw', 'Client@Memar2026', 'أحمد بن عبدالله المنصور', 'client'],
     ];
@@ -57,13 +57,6 @@ class DemoUsersSeeder extends Seeder
 
     public function run(): void
     {
-        // دور «طاقم العمل» — يبقى معرّفًا (صلاحيات عرض) وإن لم يعد يُستخدم في الحسابات
-        $staff = Role::findOrCreate('staff', 'web');
-        $staff->syncPermissions(array_filter(
-            ['tasks.view', 'projects.view', 'appointments.view', 'documents.view'],
-            fn (string $p): bool => Permission::where('name', $p)->exists(),
-        ));
-
         // حذف الحسابات الزائدة — علاقات المستخدم كلها nullOnDelete/cascade فالحذف آمن
         User::whereIn('email', self::REMOVED)->get()->each->delete();
 

@@ -36,7 +36,7 @@ export function Topbar({ onToggleSidebar }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   // العميل يرى شريطًا علويًا مبسّطًا (AUTH-1/2): بلا أدوات الطاقم، مع خروج واضح.
-  const clientOnly = isClientOnly(user?.roles);
+  const clientOnly = isClientOnly(user);
 
   // إغلاق قائمة المستخدم عند النقر خارجها (بديل موثوق عن onBlur السابق الذي كان
   // يمنع فتح القائمة/الخروج على بعض الحالات — إصلاح خلل تسجيل الخروج).

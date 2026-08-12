@@ -33,10 +33,33 @@ class UserResource extends JsonResource
             'referred_clients' => $this->referredContacts()->count(),
             'avatar_url' => $this->resource->avatarDataUri(),
             'roles' => $this->getRoleNames(),
+            // نوع اللوحة التي يهبط عليها المستخدم حسب أعلى أدواره (أدمن > موظف > عميل).
+            // يُوجّه إليها الدخول والحرّاس بدل الاعتماد على أسماء الأدوار. طلب أيمن 2026-08-12.
+            'dashboard' => $this->resolveDashboard(),
             'permissions' => $this->getAllPermissions()->pluck('name'),
             // تفضيلات القائمة الجانبية (المخفي/المطوي) — تُحمَّل عند الدخول لتبقى ثابتة عبر الأجهزة.
             'ui_prefs' => $this->ui_prefs ?? (object) [],
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    /** أعلى نوع لوحة بين أدوار المستخدم (أدمن > موظف > عميل)؛ الافتراضي موظف. */
+    private function resolveDashboard(): string
+    {
+        // احتياط للأدوار النظامية إن لم يُضبط عمود dashboard بعد.
+        $systemMap = ['super_admin' => 'admin', 'admin' => 'admin', 'employee' => 'employee', 'client' => 'client'];
+        $priority = ['admin' => 3, 'employee' => 2, 'client' => 1];
+
+        $best = null;
+        $bestScore = -1;
+        foreach ($this->roles as $role) {
+            $d = $systemMap[$role->name] ?? ($role->getAttribute('dashboard') ?: 'employee');
+            if (($priority[$d] ?? 0) > $bestScore) {
+                $bestScore = $priority[$d] ?? 0;
+                $best = $d;
+            }
+        }
+
+        return $best ?? 'employee';
     }
 }

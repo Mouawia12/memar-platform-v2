@@ -33,7 +33,7 @@ export function HomePage() {
     // زر الدخول واعٍ بالجلسة: المسجَّل يُوجَّه للوحته، وغير المسجَّل تُفتح له نافذة الدخول.
     const openAuthOrPortal = () => {
       const a = useAuthStore.getState();
-      if (a.token && a.user) navigate(landingPath(a.user.roles));
+      if (a.token && a.user) navigate(landingPath(a.user));
       else setAuthOpen(true);
     };
     const cleanupInteractions = initHomepage((path) => navigate(path), openAuthOrPortal);
@@ -66,7 +66,7 @@ export function HomePage() {
   useEffect(() => {
     const root = ref.current;
     if (!root || !token || !user) return;
-    const dest = landingPath(user.roles);
+    const dest = landingPath(user);
     const apply = () => {
       root.querySelectorAll<HTMLButtonElement>('#btn-login').forEach((btn) => {
         if (btn.dataset.authAware !== '1') { btn.textContent = '🏠 الدخول إلى لوحتي'; btn.dataset.authAware = '1'; }

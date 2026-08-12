@@ -23,17 +23,12 @@ export function useRoles() {
   });
 }
 
-/** تحويل بيانات النموذج لحمولة الـAPI (حقل العميل الفارغ = غير مرتبط). */
-function toPayload(data: UserFormData): Record<string, unknown> {
-  return { ...data, contact_id: data.contact_id === '' ? null : data.contact_id };
-}
-
-/** إنشاء أو تعديل مستخدم (حسب وجود id). */
+/** إنشاء أو تعديل مستخدم (حسب وجود id). الدور وحده يحدّد الوجهة — لا ربط عميل. */
 export function useSaveUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id?: number; data: UserFormData }) =>
-      id ? usersApi.update(id, toPayload(data)) : usersApi.create(toPayload(data)),
+      id ? usersApi.update(id, { ...data }) : usersApi.create({ ...data }),
     onSuccess: () => qc.invalidateQueries({ queryKey: USERS_KEY }),
   });
 }

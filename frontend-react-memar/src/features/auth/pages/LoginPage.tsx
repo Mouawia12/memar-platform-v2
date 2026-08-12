@@ -12,7 +12,7 @@ export function LoginPage() {
   // إصلاح خلل الجلسة (طلب أيمن 2026-08-07): الزائر المسجَّل الذي يفتح /login (أو يضغط
   // «رجوع») يُوجَّه للوحته بدل رؤية نموذج الدخول من جديد.
   if (token && user) {
-    return <Navigate to={landingPath(user.roles)} replace />;
+    return <Navigate to={landingPath(user)} replace />;
   }
 
   return (

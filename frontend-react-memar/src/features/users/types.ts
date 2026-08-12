@@ -29,6 +29,4 @@ export interface UserFormData {
   password: string;
   is_active: boolean;
   roles: string[];
-  /** ربط الحساب بسجل عميل — يُفعّل بوابة العميل. */
-  contact_id: number | '';
 }

@@ -2,7 +2,7 @@ import { type CSSProperties, useEffect, useState } from 'react';
 
 import { RoleFormModal } from '../components/RoleFormModal';
 import { useDeleteRole, usePermissionGroups, useRolesCatalog, useSaveRole } from '../hooks/useRoles';
-import type { Role } from '../types';
+import { DASHBOARD_LABELS, type Role } from '../types';
 
 /**
  * صفحة الصلاحيات — مصفوفة CRUD (اجتماع 2026-08-05، طلب أيمن):
@@ -31,12 +31,15 @@ export function RolesPage() {
   // مزامنة المسوّدة عند تبديل الدور أو وصول بيانات جديدة.
   useEffect(() => { if (selected) setDraft(selected.permissions); }, [selected?.id, roles]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // مجموعات الصلاحيات التي تخصّ نوع لوحة الدور المختار فقط (طلب أيمن 2026-08-12).
+  const roleGroups = groups?.filter((g) => selected && g.dashboards.includes(selected.dashboard)) ?? [];
+
   const has = (perm: string | null) => !!perm && draft.includes(perm);
   const toggle = (perm: string | null) => {
     if (!perm || !selected || isSuper) return;
     const next = draft.includes(perm) ? draft.filter((p) => p !== perm) : [...draft, perm];
     setDraft(next);
-    save.mutate({ id: selected.id, data: { name: selected.name, permissions: next } });
+    save.mutate({ id: selected.id, data: { name: selected.name, dashboard: selected.dashboard, permissions: next } });
   };
   const handleDelete = (r: Role) => { if (confirm(`حذف دور "${r.label}"؟`)) del.mutate(r.id); };
 
@@ -72,6 +75,7 @@ export function RolesPage() {
           <div style={matrixHead}>
             <div>
               <b style={{ fontSize: '15px', color: '#274A78' }}>صلاحيات دور: {selected.label}</b>
+              <span style={dashChip}>{DASHBOARD_LABELS[selected.dashboard]}</span>
               {isSuper && <span style={{ ...sysBadge }}>مدير النظام — كل الصلاحيات (للعرض)</span>}
               <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px', direction: 'ltr', textAlign: 'right' }}>{selected.name}</div>
             </div>
@@ -91,7 +95,12 @@ export function RolesPage() {
                 </tr>
               </thead>
               <tbody>
-                {groups?.map((g) => (
+                {roleGroups.length === 0 && (
+                  <tr><td style={{ ...td, textAlign: 'center', padding: '26px', color: '#8A93A3' }} colSpan={ACTION_COLS.length + 1}>
+                    {selected.dashboard === 'client' ? 'بوابة العميل لا تحتاج صلاحيات طاقم.' : 'لا صلاحيات لهذا النوع.'}
+                  </td></tr>
+                )}
+                {roleGroups.map((g) => (
                   <tr key={g.group} style={{ borderTop: '1px solid #EEF2F7' }}>
                     <td style={{ ...td, textAlign: 'start', fontWeight: 700, color: '#334155' }}>{g.label}</td>
                     {ACTION_COLS.map((c) => {
@@ -132,6 +141,7 @@ const tabActive: CSSProperties = { background: '#274A78', borderColor: '#274A78'
 const countPill: CSSProperties = { fontSize: '11px', background: 'rgba(0,0,0,.08)', borderRadius: '999px', padding: '1px 7px', fontWeight: 700 };
 const matrixHead: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '14px 18px', borderBottom: '1px solid #EEF2F7', background: '#F8FAFC' };
 const sysBadge: CSSProperties = { marginInlineStart: '10px', fontSize: '11.5px', fontWeight: 700, color: '#B45309', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '999px', padding: '2px 10px' };
+const dashChip: CSSProperties = { marginInlineStart: '10px', fontSize: '11.5px', fontWeight: 700, color: '#1B6CA8', background: '#E6F1FB', border: '1px solid #BBDDF3', borderRadius: '999px', padding: '2px 10px' };
 const table: CSSProperties = { width: '100%', borderCollapse: 'collapse' };
 const th: CSSProperties = { padding: '12px 14px', fontSize: '12.5px', fontWeight: 800, color: '#5A6478', textAlign: 'center', background: '#F8FAFC', whiteSpace: 'nowrap' };
 const td: CSSProperties = { padding: '11px 14px', fontSize: '13px', textAlign: 'center' };

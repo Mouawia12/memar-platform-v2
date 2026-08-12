@@ -45,26 +45,39 @@ class RolesAndAdminSeeder extends Seeder
             Permission::findOrCreate($name, 'web');
         }
 
-        // ── الأدوار ──
+        // ── الأدوار النظامية الأربعة فقط (طلب أيمن 2026-08-12: تبسيط صارم) ──
+        // كل دور له «نوع لوحة» يحدّد وجهته: admin=لوحة الإدارة، employee=بوابة الموظف،
+        // client=بوابة العميل. الأدوار المتخصّصة تُنشأ من صفحة الأدوار حسب الحاجة.
+
+        // الأدمن: كل الصلاحيات التشغيلية عدا إدارة المستخدمين والأدوار والإعدادات (للمدير العام وحده).
+        $adminPerms = array_values(array_filter(
+            $permissions,
+            fn (string $p): bool => ! str_starts_with($p, 'users.')
+                && ! str_starts_with($p, 'roles.')
+                && $p !== 'settings.manage',
+        ));
+
+        // الموظف: أساس تشغيلي عام ضمن بوابة الموظف (مهام/مواعيد/CRM عرض/مشاريع عرض/مستندات/منتدى).
+        $employeePerms = ['crm.view', 'requests.view', 'projects.view', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'forum.view'];
+
         $roles = [
-            'super_admin' => $permissions, // كل الصلاحيات
-            // المدير يشرف على التشغيل: CRM/مشاريع/مهام/مواعيد/عقود + رؤية المالية والأسعار والمستندات والموظفين.
-            'manager' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.view.all', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'pricing.view', 'hr.view', 'forum.view', 'forum.manage'],
-            // المهندس يرى الطلبات المُسنَدة إليه فقط (requests.view بلا view.all)
-            'architect' => ['projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'crm.view', 'requests.view'],
-            // المحاسب يدير سجل العقود (السعر والتفاصيل المالية) بعد أن يُنشئ المهندس المشروع
-            // بلا قيمة — هناك تعيش الجزئية المالية. طلب أيمن 2026-08-09.
-            'accountant' => ['finance.view', 'finance.manage', 'pricing.view', 'contracts.view', 'contracts.manage'],
-            'hr_manager' => ['hr.view', 'hr.manage'],
-            // أدوار فريق معمار كما ذكرها العميل (اجتماع 3) — قوالب مبدئية قابلة للتعديل من صفحة الصلاحيات
-            'sales' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.view.all', 'requests.manage', 'appointments.view', 'appointments.manage', 'tasks.view'],
-            'secretary' => ['appointments.view', 'appointments.manage', 'requests.view', 'requests.view.all', 'requests.manage', 'crm.view', 'tasks.view', 'documents.view'],
-            'client' => [],
+            'super_admin' => ['dashboard' => 'admin', 'perms' => $permissions],
+            'admin' => ['dashboard' => 'admin', 'perms' => $adminPerms],
+            'employee' => ['dashboard' => 'employee', 'perms' => $employeePerms],
+            'client' => ['dashboard' => 'client', 'perms' => []],
         ];
-        foreach ($roles as $roleName => $rolePerms) {
+        foreach ($roles as $roleName => $spec) {
             $role = Role::findOrCreate($roleName, 'web');
-            $role->syncPermissions($rolePerms);
+            $role->dashboard = $spec['dashboard'];
+            $role->save();
+            $role->syncPermissions($spec['perms']);
         }
+
+        // ── تنظيف: إزالة أي أدوار متخصّصة قديمة لم تعُد نظامية (بعد فصل مستخدميها) ──
+        Role::whereNotIn('name', array_keys($roles))->get()->each(function (Role $role): void {
+            $role->users()->detach(); // فكّ ارتباط المستخدمين قبل الحذف (تُعاد إسنادهم عبر DemoUsersSeeder)
+            $role->delete();
+        });
 
         // ── مستخدم أدمن افتراضي ──
         $admin = User::updateOrCreate(

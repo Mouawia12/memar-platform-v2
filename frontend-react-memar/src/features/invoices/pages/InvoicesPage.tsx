@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { invoicesApi } from '../api/invoicesApi';
 import { InvoiceFormModal } from '../components/InvoiceFormModal';
 import { InvoicesTable } from '../components/InvoicesTable';
@@ -15,6 +16,9 @@ export function InvoicesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [payFor, setPayFor] = useState<Invoice | null>(null);
   const [editing, setEditing] = useState<Invoice | null>(null);
+  // بوّابة الإجراءات: إضافة/تعديل/تحصيل = manage؛ حذف = delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('finance.manage');
+  const canDelete = usePermission('finance.delete');
 
   const { data, isLoading, isError } = useInvoices({ search: search || undefined, status: status || undefined, page });
   const del = useDeleteInvoice();
@@ -53,7 +57,7 @@ export function InvoicesPage() {
               { header: 'متأخرة', value: (r: Invoice) => (r.is_overdue ? 'نعم' : 'لا') },
             ]}
           />
-          <button className="btn btn-primary" onClick={openCreate} type="button">+ فاتورة جديدة</button>
+          {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ فاتورة جديدة</button>}
         </div>
       </div>
 
@@ -74,7 +78,7 @@ export function InvoicesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الفواتير.</p>}
-        {data && <InvoicesTable invoices={data.data} onEdit={openEdit} onDelete={handleDelete} onPay={setPayFor} />}
+        {data && <InvoicesTable invoices={data.data} onEdit={openEdit} onDelete={handleDelete} onPay={setPayFor} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

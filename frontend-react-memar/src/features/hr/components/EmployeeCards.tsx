@@ -6,6 +6,8 @@ interface Props {
   employees: Employee[];
   onEdit: (e: Employee) => void;
   onDelete: (e: Employee) => void;
+  canManage?: boolean;  // إظهار زر التعديل (hr.manage)
+  canDelete?: boolean;  // إظهار زر الحذف (hr.delete)
 }
 
 const money = (v: string) => Number(v).toLocaleString('ar', { minimumFractionDigits: 3 });
@@ -23,7 +25,8 @@ const deptColor = (d: string | null) => (d && DEPT_COLORS[d]) || '#64748B';
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('ar', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
-export function EmployeeCards({ employees, onEdit, onDelete }: Props) {
+export function EmployeeCards({ employees, onEdit, onDelete, canManage = true, canDelete = true }: Props) {
+  const showActions = canManage || canDelete; // مجموعة الإجراءات تظهر فقط لمن يملك تعديلًا أو حذفًا
   if (employees.length === 0) {
     return <p style={{ opacity: 0.6, padding: '24px', textAlign: 'center' }}>لا يوجد موظفون مطابقون.</p>;
   }
@@ -74,10 +77,12 @@ export function EmployeeCards({ employees, onEdit, onDelete }: Props) {
                     {money(e.base_salary_kwd)} <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>د.ك</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button type="button" className="btn btn-sm" style={iconBtn} onClick={() => onEdit(e)} title="تعديل" aria-label="تعديل"><i className="fas fa-pen" /></button>
-                  <button type="button" className="btn btn-sm" style={{ ...iconBtn, color: '#DC4A3D' }} onClick={() => onDelete(e)} title="حذف" aria-label="حذف"><i className="fas fa-trash" /></button>
-                </div>
+                {showActions && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {canManage && <button type="button" className="btn btn-sm" style={iconBtn} onClick={() => onEdit(e)} title="تعديل" aria-label="تعديل"><i className="fas fa-pen" /></button>}
+                    {canDelete && <button type="button" className="btn btn-sm" style={{ ...iconBtn, color: '#DC4A3D' }} onClick={() => onDelete(e)} title="حذف" aria-label="حذف"><i className="fas fa-trash" /></button>}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -12,6 +12,9 @@ import { CONTACT_TYPE_LABELS, type Contact, type ContactType } from '../types';
 export function ClientsPage() {
   const navigate = useNavigate();
   const canViewProfile = usePermission('clients.view');
+  // بوّابة الإجراءات: إضافة/تعديل = crm.manage؛ حذف = crm.delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('crm.manage');
+  const canDelete = usePermission('crm.delete');
   const [search, setSearch] = useState('');
   const [type, setType] = useState<'' | ContactType>('');
   const [page, setPage] = useState(1);
@@ -52,7 +55,7 @@ export function ClientsPage() {
               { header: 'المسؤول', value: (r: Contact) => r.owner?.name },
             ]}
           />
-          <button className="btn btn-primary" onClick={openCreate} type="button">+ عميل جديد</button>
+          {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ عميل جديد</button>}
         </div>
       </div>
 
@@ -81,6 +84,8 @@ export function ClientsPage() {
             onEdit={openEdit}
             onDelete={handleDelete}
             onViewProfile={canViewProfile ? (c) => navigate(`/clients/${c.id}/profile`) : undefined}
+            canManage={canManage}
+            canDelete={canDelete}
           />
         )}
 

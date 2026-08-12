@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { ApplicationsTab } from '../components/ApplicationsTab';
 import { JobOpeningFormModal } from '../components/JobOpeningFormModal';
 import { useDeleteJobOpening, useJobOpenings } from '../hooks/useCareers';
@@ -16,6 +17,8 @@ export function CareersPage() {
 
   const { data, isLoading, isError } = useJobOpenings({ search: search || undefined, status: status || undefined, per_page: 50 });
   const del = useDeleteJobOpening();
+  const canManage = usePermission('hr.manage');
+  const canDelete = usePermission('hr.delete');
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (o: JobOpening) => { setEditing(o); setModalOpen(true); };
@@ -29,7 +32,7 @@ export function CareersPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>التوظيف</h1>
-        {tab === 'jobs' && <button className="btn btn-primary" onClick={openCreate} type="button">+ وظيفة جديدة</button>}
+        {tab === 'jobs' && canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ وظيفة جديدة</button>}
       </div>
 
       {/* بطاقات مؤشرات */}
@@ -74,8 +77,8 @@ export function CareersPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #f0f0f0' }}>
               <span style={{ fontSize: '12px', opacity: 0.6 }}>👥 {o.applicants_count} متقدّم</span>
               <span style={{ flex: 1 }} />
-              <button className="btn btn-sm" type="button" onClick={() => openEdit(o)}>تعديل</button>
-              <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => handleDelete(o)}>حذف</button>
+              {canManage && <button className="btn btn-sm" type="button" onClick={() => openEdit(o)}>تعديل</button>}
+              {canDelete && <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => handleDelete(o)}>حذف</button>}
             </div>
           </div>
         ))}

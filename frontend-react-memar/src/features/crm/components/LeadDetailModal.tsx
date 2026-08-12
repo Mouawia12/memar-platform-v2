@@ -17,6 +17,8 @@ interface Props {
   onDelete: (l: Lead) => void;
   onMove: (l: Lead, stage: Stage) => void;
   onAddTask: (l: Lead) => void;
+  canManage?: boolean; // تعديل/نقل الفرصة (crm.manage)
+  canDelete?: boolean; // حذف الفرصة (crm.delete)
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -27,7 +29,7 @@ const EVENT_COLOR: Record<string, string> = { created: '#2D9B6F', updated: '#1B6
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
 /** تفاصيل ومسار الفرصة — طبق الأصل: مؤشرات + نقل المرحلة + سجل التعديلات. */
-export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask }: Props) {
+export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
   const setTemp = useSetTemperature();
   const qc = useQueryClient();
@@ -63,7 +65,7 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
         <div style={infoCard}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
             <h3 style={{ margin: 0, fontSize: '16px' }}>{lead.full_name}</h3>
-            <button type="button" onClick={() => onEdit(lead)} style={fullLink}>الملف الكامل ←</button>
+            {canManage && <button type="button" onClick={() => onEdit(lead)} style={fullLink}>الملف الكامل ←</button>}
           </div>
           <div style={grid}>
             <Info label="الحرارة"><span style={{ color: temp.color, fontWeight: 700 }}>{temp.icon} {temp.label}</span></Info>
@@ -121,18 +123,20 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
           />
         </div>
 
-        {/* نقل لمسار آخر */}
-        <div style={section}>
-          <div style={secTitle}>🔄 نقل العميل إلى مسار آخر</div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {stages.map((s) => (
-              <button key={s.key} type="button" onClick={() => onMove(lead, s.key)}
-                style={{ ...chip, ...(lead.stage === s.key ? { background: `${s.color}18`, color: s.color, borderColor: s.color } : null) }}>
-                {s.label}
-              </button>
-            ))}
+        {/* نقل لمسار آخر — إجراء تعديل، يظهر لمن يملك crm.manage فقط */}
+        {canManage && (
+          <div style={section}>
+            <div style={secTitle}>🔄 نقل العميل إلى مسار آخر</div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {stages.map((s) => (
+                <button key={s.key} type="button" onClick={() => onMove(lead, s.key)}
+                  style={{ ...chip, ...(lead.stage === s.key ? { background: `${s.color}18`, color: s.color, borderColor: s.color } : null) }}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* سجل التعديلات */}
         <div style={section}>
@@ -161,10 +165,10 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
 
         {/* أزرار */}
         <div style={{ display: 'flex', gap: '8px', marginTop: '18px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" type="button" onClick={() => onEdit(lead)}>✏️ تعديل الفرصة</button>
-          <button className="btn" type="button" onClick={() => onAddTask(lead)}>+ مهمة</button>
+          {canManage && <button className="btn btn-primary" type="button" onClick={() => onEdit(lead)}>✏️ تعديل الفرصة</button>}
+          {canManage && <button className="btn" type="button" onClick={() => onAddTask(lead)}>+ مهمة</button>}
           <span style={{ flex: 1 }} />
-          <button className="btn" type="button" style={{ color: '#DC2626' }} onClick={() => { onDelete(lead); onClose(); }}>حذف</button>
+          {canDelete && <button className="btn" type="button" style={{ color: '#DC2626' }} onClick={() => { onDelete(lead); onClose(); }}>حذف</button>}
         </div>
       </div>
     </div>

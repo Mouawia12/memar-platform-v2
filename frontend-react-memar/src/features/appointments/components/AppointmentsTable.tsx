@@ -6,12 +6,15 @@ interface Props {
   appointments: Appointment[];
   onEdit: (a: Appointment) => void;
   onDelete: (a: Appointment) => void;
+  canManage?: boolean; // إظهار زر التعديل (appointments.manage)
+  canDelete?: boolean; // إظهار زر الحذف (appointments.delete)
 }
 
 const fmt = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
-export function AppointmentsTable({ appointments, onEdit, onDelete }: Props) {
+export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = true, canDelete = true }: Props) {
+  const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (appointments.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد مواعيد.</p>;
   }
@@ -27,7 +30,7 @@ export function AppointmentsTable({ appointments, onEdit, onDelete }: Props) {
             <th style={th}>المكان</th>
             <th style={th}>فيديو</th>
             <th style={th}>الحالة</th>
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -50,10 +53,12 @@ export function AppointmentsTable({ appointments, onEdit, onDelete }: Props) {
                   {STATUS_LABELS[a.status]}
                 </span>
               </td>
-              <td style={td}>
-                <button className="btn btn-sm" onClick={() => onEdit(a)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(a)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-              </td>
+              {showActions && (
+                <td style={td}>
+                  {canManage && <button className="btn btn-sm" onClick={() => onEdit(a)} type="button">تعديل</button>}{' '}
+                  {canDelete && <button className="btn btn-sm" onClick={() => onDelete(a)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

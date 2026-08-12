@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { filesApi } from '../api/filesApi';
 import { FileUploadModal } from '../components/FileUploadModal';
 import { useDeleteFile, useFileStats, useFiles } from '../hooks/useFiles';
@@ -13,6 +14,9 @@ export function FilesPage() {
   const [folder, setFolder] = useState('');
   const [page, setPage] = useState(1);
   const [uploadOpen, setUploadOpen] = useState(false);
+  // بوّابة الإجراءات: رفع الملفات = documents.manage؛ حذف = documents.delete (التنزيل متاح دائمًا). طلب أيمن 2026-08-12.
+  const canManage = usePermission('documents.manage');
+  const canDelete = usePermission('documents.delete');
 
   const { data, isLoading, isError } = useFiles({ search: search || undefined, folder: folder || undefined, page });
   const { data: stats } = useFileStats();
@@ -28,7 +32,7 @@ export function FilesPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>مدير الملفات</h1>
-        <button className="btn btn-primary" type="button" onClick={() => setUploadOpen(true)}>📤 رفع ملف</button>
+        {canManage && <button className="btn btn-primary" type="button" onClick={() => setUploadOpen(true)}>📤 رفع ملف</button>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', marginBottom: '18px' }}>
@@ -79,7 +83,7 @@ export function FilesPage() {
                 <div style={{ display: 'flex', gap: '6px', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
                   <button className="btn btn-sm" type="button" onClick={() => handleDownload(f)}>⬇️ تنزيل</button>
                   <span style={{ flex: 1 }} />
-                  <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => handleDelete(f)}>حذف</button>
+                  {canDelete && <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => handleDelete(f)}>حذف</button>}
                 </div>
               </div>
             ))}

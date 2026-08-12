@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { CompaniesTable } from '../components/CompaniesTable';
 import { CompanyFormModal } from '../components/CompanyFormModal';
 import { CompanyDetailPage } from './CompanyDetailPage';
@@ -13,6 +14,9 @@ export function CompaniesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  // بوّابة الإجراءات: إضافة/تعديل = crm.manage؛ حذف = crm.delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('crm.manage');
+  const canDelete = usePermission('crm.delete');
 
   const { data, isLoading, isError } = useCompanies({ search: search || undefined, type: type || undefined, page });
   const del = useDeleteCompany();
@@ -32,7 +36,7 @@ export function CompaniesPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>الشركات (B2B)</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ شركة جديدة</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ شركة جديدة</button>}
       </div>
 
       <div className="card" style={{ padding: '16px' }}>
@@ -54,7 +58,7 @@ export function CompaniesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الشركات.</p>}
-        {data && <CompaniesTable companies={data.data} onEdit={openEdit} onDelete={handleDelete} onOpen={(c) => setSelectedId(c.id)} />}
+        {data && <CompaniesTable companies={data.data} onEdit={openEdit} onDelete={handleDelete} onOpen={(c) => setSelectedId(c.id)} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

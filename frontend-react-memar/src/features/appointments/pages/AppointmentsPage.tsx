@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { AppointmentFormModal } from '../components/AppointmentFormModal';
 import { AppointmentsCalendar } from '../components/AppointmentsCalendar';
 import { AppointmentsTable } from '../components/AppointmentsTable';
@@ -10,6 +11,10 @@ import { STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentStatus, t
 type Mode = 'calendar' | 'list';
 
 export function AppointmentsPage() {
+  // بوّابة الإجراءات: إضافة/تعديل = manage؛ حذف = delete (طلب أيمن 2026-08-12)
+  const canManage = usePermission('appointments.manage');
+  const canDelete = usePermission('appointments.delete');
+
   const [mode, setMode] = useState<Mode>('calendar');
   const [search, setSearch] = useState('');
   const [type, setType] = useState<'' | AppointmentType>('');
@@ -41,7 +46,7 @@ export function AppointmentsPage() {
             <button type="button" onClick={() => setMode('calendar')} style={{ ...toggleBtn, ...(mode === 'calendar' ? toggleOn : null) }}>📅 تقويم</button>
             <button type="button" onClick={() => setMode('list')} style={{ ...toggleBtn, ...(mode === 'list' ? toggleOn : null) }}>📋 قائمة</button>
           </div>
-          <button className="btn btn-primary" onClick={openCreate} type="button">+ طلب/موعد جديد</button>
+          {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ طلب/موعد جديد</button>}
         </div>
       </div>
 
@@ -55,10 +60,10 @@ export function AppointmentsPage() {
                   <AppointmentsCalendar appointments={appts} onDayClick={openDay} onEventClick={openEdit} />
                 </div>
                 <div style={{ flex: '1 1 300px', minWidth: '280px', maxWidth: '340px' }}>
-                  <AppointmentSidebar appointments={appts} onEdit={openEdit} onConfirm={(a) => confirm_.mutate(a.id)} />
+                  <AppointmentSidebar appointments={appts} onEdit={openEdit} onConfirm={(a) => confirm_.mutate(a.id)} canManage={canManage} />
                 </div>
               </div>
-              <AppointmentHistory appointments={appts} onEdit={openEdit} onDelete={handleDelete} />
+              <AppointmentHistory appointments={appts} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} />
             </>
           )}
         </>
@@ -78,7 +83,7 @@ export function AppointmentsPage() {
 
           {listQuery.isLoading && <p>جارٍ التحميل…</p>}
           {listQuery.isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المواعيد.</p>}
-          {listQuery.data && <AppointmentsTable appointments={listQuery.data.data} onEdit={openEdit} onDelete={handleDelete} />}
+          {listQuery.data && <AppointmentsTable appointments={listQuery.data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} />}
 
           {meta && meta.last_page > 1 && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

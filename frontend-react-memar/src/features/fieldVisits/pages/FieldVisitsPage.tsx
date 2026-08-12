@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { FieldVisitFormModal } from '../components/FieldVisitFormModal';
 import { useDeleteVisit, useFieldVisits, useVisitStats } from '../hooks/useFieldVisits';
 import { STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, type FieldVisit, type VisitStatus } from '../types';
@@ -8,6 +9,11 @@ const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { 
 
 /** الزيارات الميدانية — جدولة زيارات المواقع وتقاريرها. */
 export function FieldVisitsPage() {
+  // بوّابة الإجراءات: إضافة/تعديل = projects.manage؛ حذف = projects.delete (طلب أيمن 2026-08-12)
+  const canManage = usePermission('projects.manage');
+  const canDelete = usePermission('projects.delete');
+  const showActions = canManage || canDelete;
+
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'' | VisitStatus>('');
   const [page, setPage] = useState(1);
@@ -29,7 +35,7 @@ export function FieldVisitsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>الزيارات الميدانية</h1>
-        <button className="btn btn-primary" type="button" onClick={openCreate}>+ جدولة زيارة</button>
+        {canManage && <button className="btn btn-primary" type="button" onClick={openCreate}>+ جدولة زيارة</button>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '18px' }}>
@@ -88,11 +94,13 @@ export function FieldVisitsPage() {
 
                 {v.findings && <p style={{ fontSize: '12.5px', color: '#5A6478', marginTop: '10px', lineHeight: 1.7 }}>📝 {v.findings.slice(0, 120)}{v.findings.length > 120 ? '…' : ''}</p>}
 
-                <div style={{ display: 'flex', gap: '6px', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #F1F5F9' }}>
-                  <button className="btn btn-sm" type="button" onClick={() => openEdit(v)}>تعديل / تقرير</button>
-                  <span style={{ flex: 1 }} />
-                  <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => handleDelete(v)}>حذف</button>
-                </div>
+                {showActions && (
+                  <div style={{ display: 'flex', gap: '6px', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #F1F5F9' }}>
+                    {canManage && <button className="btn btn-sm" type="button" onClick={() => openEdit(v)}>تعديل / تقرير</button>}
+                    <span style={{ flex: 1 }} />
+                    {canDelete && <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => handleDelete(v)}>حذف</button>}
+                  </div>
+                )}
               </div>
             ))}
           </div>

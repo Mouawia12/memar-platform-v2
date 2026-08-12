@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { ServiceFormModal } from '../components/ServiceFormModal';
 import { ServicesTable } from '../components/ServicesTable';
 import { useDeleteService, useServices } from '../hooks/useServices';
@@ -10,6 +11,8 @@ export function ServicesPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);
+  // بوّابة الإجراءات: إضافة/تعديل/حذف = pricing.manage (لا توجد صلاحية pricing.delete). طلب أيمن 2026-08-12.
+  const canManage = usePermission('pricing.manage');
 
   const { data, isLoading, isError } = useServices({ search: search || undefined, page });
   const del = useDeleteService();
@@ -24,7 +27,7 @@ export function ServicesPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>الخدمات والأسعار</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ خدمة جديدة</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ خدمة جديدة</button>}
       </div>
 
       <div className="card" style={{ padding: '16px' }}>
@@ -38,7 +41,7 @@ export function ServicesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الخدمات.</p>}
-        {data && <ServicesTable services={data.data} onEdit={openEdit} onDelete={handleDelete} />}
+        {data && <ServicesTable services={data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canManage} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

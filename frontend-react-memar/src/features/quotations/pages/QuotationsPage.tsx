@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { quotationsApi } from '../api/quotationsApi';
 import { QuotationFormModal } from '../components/QuotationFormModal';
 import { apiErrorMessage } from '../../../lib/api';
@@ -14,6 +15,8 @@ export function QuotationsPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  // بوّابة الإجراءات: إضافة/تعديل/تحويل/حذف = pricing.manage (لا توجد صلاحية pricing.delete). طلب أيمن 2026-08-12.
+  const canManage = usePermission('pricing.manage');
 
   const { data, isLoading, isError } = useQuotations({ search: search || undefined, status: status || undefined, page });
   const del = useDeleteQuotation();
@@ -42,7 +45,7 @@ export function QuotationsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>عروض الأسعار</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ عرض سعر جديد</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ عرض سعر جديد</button>}
       </div>
 
       <div className="card" style={{ padding: '16px' }}>
@@ -62,7 +65,7 @@ export function QuotationsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العروض.</p>}
-        {data && <QuotationsTable quotations={data.data} onEdit={openEdit} onDelete={handleDelete} onPrint={handlePrint} onConvert={handleConvert} />}
+        {data && <QuotationsTable quotations={data.data} onEdit={openEdit} onDelete={handleDelete} onPrint={handlePrint} onConvert={handleConvert} canManage={canManage} canDelete={canManage} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

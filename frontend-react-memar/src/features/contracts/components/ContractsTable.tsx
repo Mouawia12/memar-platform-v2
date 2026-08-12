@@ -7,11 +7,14 @@ interface Props {
   onEdit: (c: Contract) => void;
   onDelete: (c: Contract) => void;
   onGenerateInvoices: (c: Contract) => void;
+  canManage?: boolean;  // إظهار توليد الفواتير + التعديل (contracts.manage)
+  canDelete?: boolean;  // إظهار زر الحذف (contracts.delete)
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
 
-export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices }: Props) {
+export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices, canManage = true, canDelete = true }: Props) {
+  const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (contracts.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد عقود.</p>;
   }
@@ -27,7 +30,7 @@ export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices
             <th style={th}>القيمة</th>
             <th style={th}>العرض</th>
             <th style={th}>الحالة</th>
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -41,11 +44,13 @@ export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices
               <td style={td}>
                 <span style={{ ...badge, background: `${STATUS_COLORS[c.status]}1a`, color: STATUS_COLORS[c.status] }}>{STATUS_LABELS[c.status]}</span>
               </td>
-              <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                <button className="btn btn-sm" onClick={() => onGenerateInvoices(c)} type="button" style={{ background: '#1B6CA8', color: '#fff' }} title="توليد فواتير 40/30/30">🧾 فواتير الدفعات</button>{' '}
-                <button className="btn btn-sm" onClick={() => onEdit(c)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-              </td>
+              {showActions && (
+                <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                  {canManage && <button className="btn btn-sm" onClick={() => onGenerateInvoices(c)} type="button" style={{ background: '#1B6CA8', color: '#fff' }} title="توليد فواتير 40/30/30">🧾 فواتير الدفعات</button>}{' '}
+                  {canManage && <button className="btn btn-sm" onClick={() => onEdit(c)} type="button">تعديل</button>}{' '}
+                  {canDelete && <button className="btn btn-sm" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

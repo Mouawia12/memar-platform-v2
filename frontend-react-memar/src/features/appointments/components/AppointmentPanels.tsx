@@ -13,7 +13,7 @@ const shortDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateStrin
 const clientOf = (a: Appointment) => a.notes?.match(/العميل:\s*([^—\n]+)/)?.[1]?.trim() ?? a.project?.name ?? '';
 
 /** الشريط الجانبي: طلبات منتظرة + مواعيد مؤكّدة (طبق أصل لوحة المواعيد). */
-export function AppointmentSidebar({ appointments, onEdit, onConfirm }: { appointments: Appointment[]; onEdit: (a: Appointment) => void; onConfirm: (a: Appointment) => void }) {
+export function AppointmentSidebar({ appointments, onEdit, onConfirm, canManage = true }: { appointments: Appointment[]; onEdit: (a: Appointment) => void; onConfirm: (a: Appointment) => void; canManage?: boolean }) {
   const now = Date.now();
   const pending = appointments.filter((a) => a.status === 'pending').sort((a, b) => (a.start_at ?? '').localeCompare(b.start_at ?? ''));
   const confirmed = appointments
@@ -34,10 +34,12 @@ export function AppointmentSidebar({ appointments, onEdit, onConfirm }: { appoin
                 <div style={cardTitle}>{a.title}</div>
                 <div style={cardSub}>{clientOf(a)} 👤 · {shortDate(a.start_at)} {time(a.start_at)}</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <button className="btn btn-sm" type="button" onClick={() => onConfirm(a)} style={{ background: '#059669', color: '#fff', fontSize: '11px', padding: '3px 8px' }}>✓ تأكيد</button>
-                <button className="btn btn-sm" type="button" onClick={() => onEdit(a)} style={{ fontSize: '11px', padding: '3px 8px' }}>✏️</button>
-              </div>
+              {canManage && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <button className="btn btn-sm" type="button" onClick={() => onConfirm(a)} style={{ background: '#059669', color: '#fff', fontSize: '11px', padding: '3px 8px' }}>✓ تأكيد</button>
+                  <button className="btn btn-sm" type="button" onClick={() => onEdit(a)} style={{ fontSize: '11px', padding: '3px 8px' }}>✏️</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -68,7 +70,8 @@ export function AppointmentSidebar({ appointments, onEdit, onConfirm }: { appoin
 }
 
 /** السجل السابق — مواعيد منتهية أو مضت (طبق الأصل). */
-export function AppointmentHistory({ appointments, onEdit, onDelete }: { appointments: Appointment[]; onEdit: (a: Appointment) => void; onDelete: (a: Appointment) => void }) {
+export function AppointmentHistory({ appointments, onEdit, onDelete, canManage = true, canDelete = true }: { appointments: Appointment[]; onEdit: (a: Appointment) => void; onDelete: (a: Appointment) => void; canManage?: boolean; canDelete?: boolean }) {
+  const showActions = canManage || canDelete; // أزرار السجل تظهر فقط لمن يملك تعديلًا أو حذفًا
   const now = Date.now();
   const past = appointments
     .filter((a) => a.status === 'done' || (a.status === 'scheduled' && a.start_at && new Date(a.start_at).getTime() < now))
@@ -90,10 +93,12 @@ export function AppointmentHistory({ appointments, onEdit, onDelete }: { appoint
               <div style={{ fontSize: '13px', fontWeight: 800 }}>{time(a.start_at)}</div>
               <div style={{ fontSize: '10.5px', color: '#8A93A3' }}>{shortDate(a.start_at)}</div>
             </div>
-            <div style={{ display: 'flex', gap: '5px' }}>
-              <button className="btn btn-sm" type="button" onClick={() => onEdit(a)} style={{ fontSize: '11px', padding: '3px 8px' }}>✏️</button>
-              <button className="btn btn-sm" type="button" onClick={() => onDelete(a)} style={{ fontSize: '11px', padding: '3px 8px', color: '#DC2626' }}>🗑</button>
-            </div>
+            {showActions && (
+              <div style={{ display: 'flex', gap: '5px' }}>
+                {canManage && <button className="btn btn-sm" type="button" onClick={() => onEdit(a)} style={{ fontSize: '11px', padding: '3px 8px' }}>✏️</button>}
+                {canDelete && <button className="btn btn-sm" type="button" onClick={() => onDelete(a)} style={{ fontSize: '11px', padding: '3px 8px', color: '#DC2626' }}>🗑</button>}
+              </div>
+            )}
           </div>
         ))}
       </div>

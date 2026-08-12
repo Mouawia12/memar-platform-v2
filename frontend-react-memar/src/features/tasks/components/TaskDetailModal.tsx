@@ -11,6 +11,7 @@ import { PRIORITY_COLORS, PRIORITY_LABELS, dueLabel, isDone, type Task } from '.
 
 interface Props {
   task: Task; // البطاقة المختصرة — نجلب التفاصيل الكاملة بالـid
+  canManage: boolean; // إظهار زر التعديل (tasks.manage)
   canDelete: boolean;
   onClose: () => void;
   onEdit: (t: Task) => void;
@@ -23,7 +24,7 @@ const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { 
 const kb = (n: number) => (n < 1024 ? `${n}B` : n < 1_048_576 ? `${Math.round(n / 1024)}KB` : `${(n / 1_048_576).toFixed(1)}MB`);
 
 /** صفحة تفاصيل المهمة (TASK-4): محادثة، مشاركون، ملفات، مكالمة فيديو، حجز موعد، تقييم. */
-export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, onDelete, onSetNotExecuted }: Props) {
+export function TaskDetailModal({ task, canManage, canDelete, onClose, onEdit, onToggle, onDelete, onSetNotExecuted }: Props) {
   const userName = useAuthStore((s) => s.user?.name);
   const { data: detail, isLoading } = useTaskDetail(task.id);
   const { data: users } = useUsers({ per_page: 100 });
@@ -99,7 +100,7 @@ export function TaskDetailModal({ task, canDelete, onClose, onEdit, onToggle, on
           )}
           <button className="btn btn-sm" type="button" onClick={() => void startCall()} style={{ background: '#059669', color: '#fff' }}>📹 مكالمة فيديو</button>
           <button className="btn btn-sm" type="button" onClick={() => setBooking(true)}>📅 حجز موعد</button>
-          <button className="btn btn-sm" type="button" onClick={() => onEdit(task)}>✏️ تعديل</button>
+          {canManage && <button className="btn btn-sm" type="button" onClick={() => onEdit(task)}>✏️ تعديل</button>}
           {task.status !== 'cancelled' && task.status !== 'done' && (
             <button className="btn btn-sm" type="button" style={{ color: '#B45309' }} onClick={() => { onSetNotExecuted(task); }}>⊘ لم تُنفَّذ</button>
           )}

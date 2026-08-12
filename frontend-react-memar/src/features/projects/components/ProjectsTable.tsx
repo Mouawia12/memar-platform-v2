@@ -8,12 +8,15 @@ interface Props {
   onEdit: (p: Project) => void;
   onDelete: (p: Project) => void;
   showBudget?: boolean; // قيمة المشروع تُعرض فقط لمن يملك finance.view (طلب أيمن 2026-08-09)
+  canManage?: boolean;  // إظهار زر التعديل (projects.manage)
+  canDelete?: boolean;  // إظهار زر الحذف (projects.delete)
 }
 
 const fmtMoney = (v: string | null | undefined) =>
   v === null || v === undefined ? '—' : `${Number(v).toLocaleString('ar')} د.ك`;
 
-export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true }: Props) {
+export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true, canManage = true, canDelete = true }: Props) {
+  const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (projects.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد مشاريع.</p>;
   }
@@ -29,7 +32,7 @@ export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true }:
             <th style={th}>المدير</th>
             <th style={th}>الحالة</th>
             {showBudget && <th style={th}>الميزانية</th>}
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -45,10 +48,12 @@ export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true }:
                 </span>
               </td>
               {showBudget && <td style={td}>{fmtMoney(p.budget_kwd)}</td>}
-              <td style={td}>
-                <button className="btn btn-sm" onClick={() => onEdit(p)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(p)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-              </td>
+              {showActions && (
+                <td style={td}>
+                  {canManage && <button className="btn btn-sm" onClick={() => onEdit(p)} type="button">تعديل</button>}{' '}
+                  {canDelete && <button className="btn btn-sm" onClick={() => onDelete(p)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

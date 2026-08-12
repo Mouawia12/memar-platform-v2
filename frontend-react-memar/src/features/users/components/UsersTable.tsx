@@ -10,12 +10,15 @@ interface Props {
   /** دخول المالك بحساب الموظف (impersonation) — يُمرَّر لمدير النظام فقط. */
   onImpersonate?: (user: User) => void;
   currentUserId?: number;
+  canManage?: boolean;  // إظهار زر التعديل (users.manage)
+  canDelete?: boolean;  // إظهار زر الحذف (users.delete)
 }
 
-export function UsersTable({ users, roles, onEdit, onDelete, onImpersonate, currentUserId }: Props) {
+export function UsersTable({ users, roles, onEdit, onDelete, onImpersonate, currentUserId, canManage = true, canDelete = true }: Props) {
   const roleLabel = (name: string) => roles.find((r) => r.name === name)?.label ?? name;
   // يمكن الدخول بحساب أي مستخدم عدا النفس ومديري النظام الآخرين.
   const canImpersonate = (u: User) => !!onImpersonate && u.id !== currentUserId && !u.roles.includes('super_admin');
+  const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
 
   if (users.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا يوجد مستخدمون.</p>;
@@ -31,7 +34,7 @@ export function UsersTable({ users, roles, onEdit, onDelete, onImpersonate, curr
             <th style={th}>الهاتف</th>
             <th style={th}>الأدوار</th>
             <th style={th}>الحالة</th>
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -50,15 +53,17 @@ export function UsersTable({ users, roles, onEdit, onDelete, onImpersonate, curr
                   {user.is_active ? '● نشط' : '○ موقوف'}
                 </span>
               </td>
-              <td style={td}>
-                {canImpersonate(user) && (
-                  <>
-                    <button className="btn btn-sm" onClick={() => onImpersonate?.(user)} type="button" style={{ color: '#B45309' }} title="الدخول بحساب هذا الموظف">🕵️ دخول بحسابه</button>{' '}
-                  </>
-                )}
-                <button className="btn btn-sm" onClick={() => onEdit(user)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(user)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-              </td>
+              {showActions && (
+                <td style={td}>
+                  {canImpersonate(user) && (
+                    <>
+                      <button className="btn btn-sm" onClick={() => onImpersonate?.(user)} type="button" style={{ color: '#B45309' }} title="الدخول بحساب هذا الموظف">🕵️ دخول بحسابه</button>{' '}
+                    </>
+                  )}
+                  {canManage && <button className="btn btn-sm" onClick={() => onEdit(user)} type="button">تعديل</button>}{' '}
+                  {canDelete && <button className="btn btn-sm" onClick={() => onDelete(user)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

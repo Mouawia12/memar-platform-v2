@@ -6,11 +6,14 @@ interface Props {
   services: Service[];
   onEdit: (s: Service) => void;
   onDelete: (s: Service) => void;
+  canManage?: boolean;  // إظهار زر التعديل (pricing.manage)
+  canDelete?: boolean;  // إظهار زر الحذف (لا توجد pricing.delete → يُمرَّر canManage)
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
 
-export function ServicesTable({ services, onEdit, onDelete }: Props) {
+export function ServicesTable({ services, onEdit, onDelete, canManage = true, canDelete = true }: Props) {
+  const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (services.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد خدمات.</p>;
   }
@@ -25,7 +28,7 @@ export function ServicesTable({ services, onEdit, onDelete }: Props) {
             <th style={th}>الوحدة</th>
             <th style={th}>السعر</th>
             <th style={th}>الحالة</th>
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -38,10 +41,12 @@ export function ServicesTable({ services, onEdit, onDelete }: Props) {
               <td style={td}>
                 <span style={{ color: s.is_active ? '#059669' : '#9ca3af' }}>{s.is_active ? '● مفعّلة' : '○ موقوفة'}</span>
               </td>
-              <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                <button className="btn btn-sm" onClick={() => onEdit(s)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(s)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-              </td>
+              {showActions && (
+                <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                  {canManage && <button className="btn btn-sm" onClick={() => onEdit(s)} type="button">تعديل</button>}{' '}
+                  {canDelete && <button className="btn btn-sm" onClick={() => onDelete(s)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { DocumentEditModal } from '../components/DocumentEditModal';
 import { GenerateModal } from '../components/GenerateModal';
 import { TemplateFormModal } from '../components/TemplateFormModal';
@@ -15,6 +16,10 @@ export function DocumentsPage() {
   const [genModal, setGenModal] = useState(false);
   const [editingTpl, setEditingTpl] = useState<DocumentTemplate | null>(null);
   const [editingDoc, setEditingDoc] = useState<GeneratedDocument | null>(null);
+  // بوّابة الإجراءات: توليد/إنشاء/تعديل = documents.manage؛ حذف = documents.delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('documents.manage');
+  const canDelete = usePermission('documents.delete');
+  const showTplActions = canManage || canDelete; // عمود إجراءات القوالب (لا يوجد فعل عرض/طباعة فيه)
 
   const templates = useTemplates();
   const generated = useGeneratedDocs();
@@ -25,9 +30,9 @@ export function DocumentsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>أتمتة المستندات</h1>
-        {tab === 'generated'
+        {canManage && (tab === 'generated'
           ? <button className="btn btn-primary" onClick={() => setGenModal(true)} type="button">📄 توليد مستند</button>
-          : <button className="btn btn-primary" onClick={() => { setEditingTpl(null); setTplModal(true); }} type="button">+ قالب جديد</button>}
+          : <button className="btn btn-primary" onClick={() => { setEditingTpl(null); setTplModal(true); }} type="button">+ قالب جديد</button>)}
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
@@ -49,9 +54,9 @@ export function DocumentsPage() {
                       <td style={td}>{d.project?.name ?? '—'}</td>
                       <td style={td}>{d.created_at ? new Date(d.created_at).toLocaleDateString('ar') : '—'}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                        <button className="btn btn-sm" type="button" onClick={() => setEditingDoc(d)}>✍️ تحرير</button>{' '}
+                        {canManage && <><button className="btn btn-sm" type="button" onClick={() => setEditingDoc(d)}>✍️ تحرير</button>{' '}</>}
                         <button className="btn btn-sm" type="button" style={{ background: '#274A78', color: '#fff' }} onClick={() => printDocument(d.title, d.body_html)}>🖨️ طباعة</button>{' '}
-                        <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => confirm(`حذف "${d.title}"؟`) && delDoc.mutate(d.id)}>حذف</button>
+                        {canDelete && <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => confirm(`حذف "${d.title}"؟`) && delDoc.mutate(d.id)}>حذف</button>}
                       </td>
                     </tr>
                   ))}
@@ -64,20 +69,22 @@ export function DocumentsPage() {
           templates.isLoading ? <p>جارٍ التحميل…</p> : (
             <div style={{ overflowX: 'auto' }}>
               <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>القالب</th><th style={th}>النوع</th><th style={th}>الحالة</th><th style={th}>إجراءات</th></tr></thead>
+                <thead><tr><th style={th}>القالب</th><th style={th}>النوع</th><th style={th}>الحالة</th>{showTplActions && <th style={th}>إجراءات</th>}</tr></thead>
                 <tbody>
                   {(templates.data?.data ?? []).map((t) => (
                     <tr key={t.id}>
                       <td style={td}><b>{t.name}</b></td>
                       <td style={td}>{TEMPLATE_TYPE_LABELS[t.type]}</td>
                       <td style={td}><span style={{ color: t.is_active ? '#059669' : '#9ca3af' }}>{t.is_active ? '● مفعّل' : '○ موقوف'}</span></td>
-                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                        <button className="btn btn-sm" type="button" onClick={() => { setEditingTpl(t); setTplModal(true); }}>تعديل</button>{' '}
-                        <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => confirm(`حذف "${t.name}"؟`) && delTpl.mutate(t.id)}>حذف</button>
-                      </td>
+                      {showTplActions && (
+                        <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                          {canManage && <button className="btn btn-sm" type="button" onClick={() => { setEditingTpl(t); setTplModal(true); }}>تعديل</button>}{' '}
+                          {canDelete && <button className="btn btn-sm" type="button" style={{ color: '#ef4444' }} onClick={() => confirm(`حذف "${t.name}"؟`) && delTpl.mutate(t.id)}>حذف</button>}
+                        </td>
+                      )}
                     </tr>
                   ))}
-                  {(templates.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={4}><span style={{ opacity: 0.6 }}>لا توجد قوالب — أنشئ قالبًا أولاً.</span></td></tr>}
+                  {(templates.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={showTplActions ? 4 : 3}><span style={{ opacity: 0.6 }}>لا توجد قوالب — أنشئ قالبًا أولاً.</span></td></tr>}
                 </tbody>
               </table>
             </div>

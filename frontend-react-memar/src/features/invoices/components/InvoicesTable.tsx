@@ -7,11 +7,14 @@ interface Props {
   onEdit: (i: Invoice) => void;
   onDelete: (i: Invoice) => void;
   onPay: (i: Invoice) => void;
+  canManage?: boolean;  // إظهار التحصيل + التعديل (finance.manage)
+  canDelete?: boolean;  // إظهار زر الحذف (finance.delete)
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })}`;
 
-export function InvoicesTable({ invoices, onEdit, onDelete, onPay }: Props) {
+export function InvoicesTable({ invoices, onEdit, onDelete, onPay, canManage = true, canDelete = true }: Props) {
+  const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (invoices.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد فواتير.</p>;
   }
@@ -28,7 +31,7 @@ export function InvoicesTable({ invoices, onEdit, onDelete, onPay }: Props) {
             <th style={th}>المتبقّي</th>
             <th style={th}>الحالة</th>
             <th style={th}>الاستحقاق</th>
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -46,13 +49,15 @@ export function InvoicesTable({ invoices, onEdit, onDelete, onPay }: Props) {
                 {i.is_overdue && <span style={{ ...badge, background: '#DC26261a', color: '#DC2626', marginInlineStart: '4px' }}>متأخرة</span>}
               </td>
               <td style={td}>{i.due_date ?? '—'}</td>
-              <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                {i.status !== 'paid' && i.status !== 'cancelled' && (
-                  <button className="btn btn-sm" onClick={() => onPay(i)} type="button" style={{ background: '#059669', color: '#fff' }}>تحصيل</button>
-                )}{' '}
-                <button className="btn btn-sm" onClick={() => onEdit(i)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(i)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-              </td>
+              {showActions && (
+                <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                  {canManage && i.status !== 'paid' && i.status !== 'cancelled' && (
+                    <button className="btn btn-sm" onClick={() => onPay(i)} type="button" style={{ background: '#059669', color: '#fff' }}>تحصيل</button>
+                  )}{' '}
+                  {canManage && <button className="btn btn-sm" onClick={() => onEdit(i)} type="button">تعديل</button>}{' '}
+                  {canDelete && <button className="btn btn-sm" onClick={() => onDelete(i)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

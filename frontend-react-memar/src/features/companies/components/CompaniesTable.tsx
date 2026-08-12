@@ -7,6 +7,8 @@ interface Props {
   onEdit: (c: Company) => void;
   onDelete: (c: Company) => void;
   onOpen: (c: Company) => void;
+  canManage?: boolean; // إظهار زر التعديل (crm.manage)
+  canDelete?: boolean; // إظهار زر الحذف (crm.delete)
 }
 
 const typeColor: Record<string, string> = {
@@ -16,7 +18,9 @@ const typeColor: Record<string, string> = {
   partner: '#274A78',
 };
 
-export function CompaniesTable({ companies, onEdit, onDelete, onOpen }: Props) {
+export function CompaniesTable({ companies, onEdit, onDelete, onOpen, canManage = true, canDelete = true }: Props) {
+  // عمود الإجراءات يظهر لمن يملك تعديلًا أو حذفًا (الفتح متاح دائمًا بالنقر على الصف)
+  const showActions = canManage || canDelete;
   if (companies.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد شركات.</p>;
   }
@@ -31,7 +35,7 @@ export function CompaniesTable({ companies, onEdit, onDelete, onOpen }: Props) {
             <th style={th}>القطاع</th>
             <th style={th}>الهاتف</th>
             <th style={th}>البريد</th>
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -46,11 +50,13 @@ export function CompaniesTable({ companies, onEdit, onDelete, onOpen }: Props) {
               <td style={td}>{c.industry ?? '—'}</td>
               <td style={td}>{c.phone ?? '—'}</td>
               <td style={td}>{c.email ?? '—'}</td>
-              <td style={td} onClick={(e) => e.stopPropagation()}>
-                <button className="btn btn-sm" onClick={() => onOpen(c)} type="button">عرض</button>{' '}
-                <button className="btn btn-sm" onClick={() => onEdit(c)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-              </td>
+              {showActions && (
+                <td style={td} onClick={(e) => e.stopPropagation()}>
+                  <button className="btn btn-sm" onClick={() => onOpen(c)} type="button">عرض</button>{' '}
+                  {canManage && <button className="btn btn-sm" onClick={() => onEdit(c)} type="button">تعديل</button>}{' '}
+                  {canDelete && <button className="btn btn-sm" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

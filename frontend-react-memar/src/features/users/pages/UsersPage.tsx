@@ -5,6 +5,7 @@ import { UsersTable } from '../components/UsersTable';
 import { useImpersonation } from '../hooks/useImpersonation';
 import { useDeleteUser, useRoles, useUsers } from '../hooks/useUsers';
 import type { User } from '../types';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 
 export function UsersPage() {
@@ -19,6 +20,9 @@ export function UsersPage() {
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = !!currentUser?.roles?.includes('super_admin');
   const { start: startImpersonation } = useImpersonation();
+  // بوّابة الإجراءات: إضافة/تعديل = manage؛ حذف = delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('users.manage');
+  const canDelete = usePermission('users.delete');
 
   const handleImpersonate = (user: User) => {
     if (confirm(`الدخول بحساب "${user.name}"؟ ستتصفّح المنصة ببياناته، ويمكنك العودة من الشريط العلوي.`)) {
@@ -39,7 +43,7 @@ export function UsersPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>سجل المستخدمين</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ مستخدم جديد</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ مستخدم جديد</button>}
       </div>
 
       <div className="card" style={{ padding: '16px' }}>
@@ -53,7 +57,7 @@ export function UsersPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المستخدمين.</p>}
-        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onDelete={handleDelete} onImpersonate={isOwner ? handleImpersonate : undefined} currentUserId={currentUser?.id} />}
+        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onDelete={handleDelete} onImpersonate={isOwner ? handleImpersonate : undefined} currentUserId={currentUser?.id} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

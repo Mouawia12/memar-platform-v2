@@ -27,6 +27,7 @@ export function CrmPage() {
   const move = useMoveLead();
   const del = useDeleteLead();
   const canManage = usePermission('crm.manage');
+  const canDelete = usePermission('crm.delete');
 
   const stageList = useMemo(() => [...(stages ?? [])].sort((a, b) => a.position - b.position), [stages]);
   const wonKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won).map((s) => s.key)), [stageList]);
@@ -80,7 +81,7 @@ export function CrmPage() {
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {canManage && <button className="btn" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
-          <button className="btn btn-primary" onClick={openCreate} type="button">+ فرصة جديدة</button>
+          {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ فرصة جديدة</button>}
         </div>
       </div>
 
@@ -133,6 +134,8 @@ export function CrmPage() {
           onDelete={handleDelete}
           onMove={handleMove}
           onAddTask={handleAddTask}
+          canManage={canManage}
+          canDelete={canDelete}
         />
       )}
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}

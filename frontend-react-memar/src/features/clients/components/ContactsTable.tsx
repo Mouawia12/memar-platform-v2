@@ -7,6 +7,8 @@ interface Props {
   onEdit: (c: Contact) => void;
   onDelete: (c: Contact) => void;
   onViewProfile?: (c: Contact) => void;
+  canManage?: boolean; // إظهار زر التعديل (crm.manage)
+  canDelete?: boolean; // إظهار زر الحذف (crm.delete)
 }
 
 const typeColor: Record<string, string> = {
@@ -15,7 +17,9 @@ const typeColor: Record<string, string> = {
   contact: '#274A78',
 };
 
-export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile }: Props) {
+export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canManage = true, canDelete = true }: Props) {
+  // عمود الإجراءات يظهر لمن يملك عرض البروفيل أو التعديل أو الحذف
+  const showActions = !!onViewProfile || canManage || canDelete;
   if (contacts.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا يوجد عملاء.</p>;
   }
@@ -31,7 +35,7 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile }: Pro
             <th style={th}>البريد</th>
             <th style={th}>النوع</th>
             <th style={th}>المسؤول</th>
-            <th style={th}>إجراءات</th>
+            {showActions && <th style={th}>إجراءات</th>}
           </tr>
         </thead>
         <tbody>
@@ -47,18 +51,20 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile }: Pro
                 </span>
               </td>
               <td style={td}>{c.owner?.name ?? '—'}</td>
-              <td style={td}>
-                {/* إجراءات كأيقونات فقط في صفّ واحد (طلب أيمن) — العنوان title للتوضيح والوصولية */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {onViewProfile && (
-                    <button className="btn btn-sm btn-icon" onClick={() => onViewProfile(c)} type="button" style={{ color: '#1B6CA8' }} title="زيارة بروفيل العميل داخل الداشبورد" aria-label="بروفيل">
-                      <i className="fas fa-eye" />
-                    </button>
-                  )}
-                  <button className="btn btn-sm btn-icon" onClick={() => onEdit(c)} type="button" title="تعديل" aria-label="تعديل"><i className="fas fa-pen" /></button>
-                  <button className="btn btn-sm btn-icon" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }} title="حذف" aria-label="حذف"><i className="fas fa-trash" /></button>
-                </div>
-              </td>
+              {showActions && (
+                <td style={td}>
+                  {/* إجراءات كأيقونات فقط في صفّ واحد (طلب أيمن) — العنوان title للتوضيح والوصولية */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {onViewProfile && (
+                      <button className="btn btn-sm btn-icon" onClick={() => onViewProfile(c)} type="button" style={{ color: '#1B6CA8' }} title="زيارة بروفيل العميل داخل الداشبورد" aria-label="بروفيل">
+                        <i className="fas fa-eye" />
+                      </button>
+                    )}
+                    {canManage && <button className="btn btn-sm btn-icon" onClick={() => onEdit(c)} type="button" title="تعديل" aria-label="تعديل"><i className="fas fa-pen" /></button>}
+                    {canDelete && <button className="btn btn-sm btn-icon" onClick={() => onDelete(c)} type="button" style={{ color: '#ef4444' }} title="حذف" aria-label="حذف"><i className="fas fa-trash" /></button>}
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

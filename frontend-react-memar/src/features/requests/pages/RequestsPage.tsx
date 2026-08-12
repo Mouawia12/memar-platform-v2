@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { ServiceRequestFormModal } from '../components/ServiceRequestFormModal';
 import { useDeleteRequest, useServiceRequests } from '../hooks/useRequests';
 import {
@@ -10,6 +11,11 @@ import {
 type StatusFilter = '' | RequestStatus;
 
 export function RequestsPage() {
+  // بوّابة الإجراءات: إضافة/تعديل = manage؛ حذف = delete (طلب أيمن 2026-08-12)
+  const canManage = usePermission('requests.manage');
+  const canDelete = usePermission('requests.delete');
+  const showActions = canManage || canDelete;
+
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilter>('');
   const [page, setPage] = useState(1);
@@ -31,7 +37,7 @@ export function RequestsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>الطلبات الواردة</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ طلب جديد</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ طلب جديد</button>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '18px' }}>
@@ -62,7 +68,7 @@ export function RequestsPage() {
                   <th style={th}>الأولوية</th>
                   <th style={th}>الحالة</th>
                   <th style={th}>المسؤول</th>
-                  <th style={th}>إجراءات</th>
+                  {showActions && <th style={th}>إجراءات</th>}
                 </tr>
               </thead>
               <tbody>
@@ -77,13 +83,15 @@ export function RequestsPage() {
                     <td style={td}><span style={{ ...badge, background: `${PRIORITY_COLORS[r.priority]}1a`, color: PRIORITY_COLORS[r.priority] }}>{PRIORITY_LABELS[r.priority]}</span></td>
                     <td style={td}><span style={{ ...badge, background: `${STATUS_COLORS[r.status]}1a`, color: STATUS_COLORS[r.status] }}>{STATUS_LABELS[r.status]}</span></td>
                     <td style={td}>{r.assignee ? r.assignee.name : <span style={{ opacity: 0.5 }}>— غير مُسنَد —</span>}</td>
-                    <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-sm" onClick={() => openEdit(r)} type="button">تعديل</button>{' '}
-                      <button className="btn btn-sm" onClick={() => handleDelete(r)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-                    </td>
+                    {showActions && (
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        {canManage && <button className="btn btn-sm" onClick={() => openEdit(r)} type="button">تعديل</button>}{' '}
+                        {canDelete && <button className="btn btn-sm" onClick={() => handleDelete(r)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                      </td>
+                    )}
                   </tr>
                 ))}
-                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={7}>لا توجد طلبات.</td></tr>}
+                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={showActions ? 7 : 6}>لا توجد طلبات.</td></tr>}
               </tbody>
             </table>
           </div>

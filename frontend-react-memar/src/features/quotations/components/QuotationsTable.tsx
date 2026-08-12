@@ -8,11 +8,13 @@ interface Props {
   onDelete: (q: Quotation) => void;
   onPrint: (q: Quotation) => void;
   onConvert: (q: Quotation) => void;
+  canManage?: boolean;  // إظهار التعديل + التحويل لعقد (pricing.manage)
+  canDelete?: boolean;  // إظهار زر الحذف (لا توجد pricing.delete → يُمرَّر canManage)
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
 
-export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConvert }: Props) {
+export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConvert, canManage = true, canDelete = true }: Props) {
   if (quotations.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد عروض أسعار.</p>;
   }
@@ -45,12 +47,13 @@ export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConve
               </td>
               <td style={td}>{q.valid_until ?? '—'}</td>
               <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                {/* الطباعة إجراء قراءة فقط → يبقى متاحًا للجميع؛ التعديل/التحويل/الحذف مبوّبة بالصلاحية */}
                 <button className="btn btn-sm" onClick={() => onPrint(q)} type="button" style={{ background: '#274A78', color: '#fff' }}>🖨️ طباعة</button>{' '}
-                {q.status !== 'accepted' && (
+                {canManage && q.status !== 'accepted' && (
                   <><button className="btn btn-sm" onClick={() => onConvert(q)} type="button" style={{ background: '#2D9B6F', color: '#fff' }} title="إنشاء عقد من هذا العرض">📄 تحويل لعقد</button>{' '}</>
                 )}
-                <button className="btn btn-sm" onClick={() => onEdit(q)} type="button">تعديل</button>{' '}
-                <button className="btn btn-sm" onClick={() => onDelete(q)} type="button" style={{ color: '#ef4444' }}>حذف</button>
+                {canManage && <button className="btn btn-sm" onClick={() => onEdit(q)} type="button">تعديل</button>}{' '}
+                {canDelete && <button className="btn btn-sm" onClick={() => onDelete(q)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
               </td>
             </tr>
           ))}

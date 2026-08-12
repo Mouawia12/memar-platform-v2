@@ -13,6 +13,7 @@ import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
  * طبق الأصل: سحب لتغيير الحالة، فلاتر فترة لكل عمود، ومؤشرات KPI.
  */
 export function TasksPage() {
+  const canManage = usePermission('tasks.manage'); // إضافة/تعديل المهام (بوّابة الصلاحيات — طلب أيمن 2026-08-12)
   const canDelete = usePermission('tasks.delete'); // الحذف للإدارة فقط (طلب العميل — اجتماع 3)
 
   const [search, setSearch] = useState('');
@@ -55,7 +56,7 @@ export function TasksPage() {
           <h1 style={{ margin: 0 }}>✅ المهام والمتابعة</h1>
           <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px' }}>اسحب للتغيير · اضغط للتفاصيل</div>
         </div>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ مهمة جديدة</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ مهمة جديدة</button>}
       </div>
 
       {/* مؤشرات */}
@@ -92,6 +93,7 @@ export function TasksPage() {
       {detail && (
         <TaskDetailModal
           task={detail}
+          canManage={canManage}
           canDelete={canDelete}
           onClose={() => setDetail(null)}
           onEdit={(t) => { setEditing(t); setFormOpen(true); }}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { ContractFormModal } from '../components/ContractFormModal';
 import { ContractsTable } from '../components/ContractsTable';
 import { apiErrorMessage } from '../../../lib/api';
@@ -12,6 +13,9 @@ export function ContractsPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | null>(null);
+  // بوّابة الإجراءات: إضافة/تعديل = manage؛ حذف = delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('contracts.manage');
+  const canDelete = usePermission('contracts.delete');
 
   const { data, isLoading, isError } = useContracts({ search: search || undefined, status: status || undefined, page });
   const del = useDeleteContract();
@@ -36,7 +40,7 @@ export function ContractsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>العقود والتحصيل</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ عقد جديد</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ عقد جديد</button>}
       </div>
 
       <div className="card" style={{ padding: '16px' }}>
@@ -56,7 +60,7 @@ export function ContractsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العقود.</p>}
-        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} onGenerateInvoices={handleGenerate} />}
+        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} onGenerateInvoices={handleGenerate} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

@@ -16,6 +16,9 @@ export function ProjectsPage() {
   const [editing, setEditing] = useState<Project | null>(null);
   // قيمة المشروع تُعرض فقط لأصحاب الصلاحية المالية (محاسب/مدير/أدمن). المهندسون يديرون المشاريع بلا سعر. طلب أيمن 2026-08-09.
   const canFinance = usePermission('finance.view');
+  // بوّابة الإجراءات: عرض فقط = قراءة؛ إضافة/تعديل = manage؛ حذف = delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('projects.manage');
+  const canDelete = usePermission('projects.delete');
 
   const { data, isLoading, isError } = useProjects({ search: search || undefined, status: status || undefined, page });
   const allQuery = useProjects({ per_page: 500 });
@@ -63,7 +66,7 @@ export function ProjectsPage() {
                 { header: 'النهاية', value: (r: Project) => r.end_date },
               ]}
             />
-            <button className="btn btn-primary" onClick={openCreate} type="button">+ مشروع جديد</button>
+            {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ مشروع جديد</button>}
           </div>
         </div>
 
@@ -97,7 +100,7 @@ export function ProjectsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المشاريع.</p>}
-        {data && <ProjectsTable projects={data.data} onEdit={openEdit} onDelete={handleDelete} showBudget={canFinance} />}
+        {data && <ProjectsTable projects={data.data} onEdit={openEdit} onDelete={handleDelete} showBudget={canFinance} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

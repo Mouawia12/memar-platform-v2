@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { ExpenseFormModal } from '../components/ExpenseFormModal';
 import { useDeleteExpense, useExpenses, useFinanceOverview } from '../hooks/useFinance';
 import type { Expense } from '../types';
@@ -15,6 +16,8 @@ export function FinancePage() {
 
   const { data, isLoading, isError } = useExpenses({ search: search || undefined, page });
   const del = useDeleteExpense();
+  const canManage = usePermission('finance.manage');
+  const canDelete = usePermission('finance.delete');
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (x: Expense) => { setEditing(x); setModalOpen(true); };
@@ -27,7 +30,7 @@ export function FinancePage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>الحسابات</h1>
-        <button className="btn btn-primary" onClick={openCreate} type="button">+ مصروف جديد</button>
+        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ مصروف جديد</button>}
       </div>
 
       {/* بطاقات مالية */}
@@ -55,7 +58,7 @@ export function FinancePage() {
                     <th style={th}>التصنيف</th>
                     <th style={th}>التاريخ</th>
                     <th style={th}>المبلغ</th>
-                    <th style={th}>إجراءات</th>
+                    {(canManage || canDelete) && <th style={th}>إجراءات</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -65,13 +68,15 @@ export function FinancePage() {
                       <td style={td}>{x.category ?? '—'}</td>
                       <td style={td}>{x.spent_at ?? '—'}</td>
                       <td style={{ ...td, fontWeight: 700, color: '#DC2626' }}>{money(x.amount_kwd)}</td>
-                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                        <button className="btn btn-sm" onClick={() => openEdit(x)} type="button">تعديل</button>{' '}
-                        <button className="btn btn-sm" onClick={() => handleDelete(x)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-                      </td>
+                      {(canManage || canDelete) && (
+                        <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                          {canManage && <button className="btn btn-sm" onClick={() => openEdit(x)} type="button">تعديل</button>}{' '}
+                          {canDelete && <button className="btn btn-sm" onClick={() => handleDelete(x)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
+                        </td>
+                      )}
                     </tr>
                   ))}
-                  {data.data.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={5}>لا توجد مصروفات مسجّلة.</td></tr>}
+                  {data.data.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={(canManage || canDelete) ? 5 : 4}>لا توجد مصروفات مسجّلة.</td></tr>}
                 </tbody>
               </table>
             </div>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { employeesApi } from '../api/employeesApi';
 import { EmployeeCards } from '../components/EmployeeCards';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
@@ -19,6 +20,9 @@ export function EmployeesPage() {
   const { data, isLoading, isError } = useEmployees({ search: search || undefined, status: status || undefined, page });
   const { data: stats } = useEmployeeStats();
   const del = useDeleteEmployee();
+  // بوّابة الإجراءات: إضافة/تعديل = manage؛ حذف = delete. طلب أيمن 2026-08-12.
+  const canManage = usePermission('hr.manage');
+  const canDelete = usePermission('hr.delete');
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (e: Employee) => { setEditing(e); setModalOpen(true); };
@@ -51,7 +55,7 @@ export function EmployeesPage() {
               { header: 'الحالة', value: (r: Employee) => STATUS_LABELS[r.status] },
             ]}
           />
-          <button className="btn btn-primary" onClick={openCreate} type="button">+ موظف جديد</button>
+          {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ موظف جديد</button>}
         </div>
       </div>
 
@@ -80,7 +84,7 @@ export function EmployeesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الموظفين.</p>}
-        {data && <EmployeeCards employees={data.data} onEdit={openEdit} onDelete={handleDelete} />}
+        {data && <EmployeeCards employees={data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

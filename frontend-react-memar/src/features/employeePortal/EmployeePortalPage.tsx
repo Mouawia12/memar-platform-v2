@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../store/auth';
@@ -28,7 +28,7 @@ import './employeePortal.css';
  * السايدبار + لوحة التحكم طبق الأصل؛ بقية الصفحات تُضاف تباعًا.
  */
 
-interface SbLink { id: string; icon: string; text: string; badge?: string; badgeRed?: boolean }
+interface SbLink { id: string; icon: string; text: string; badge?: string; badgeRed?: boolean; perm?: string }
 
 // ترتيب اجتماع 2026-08-07: نظرة عامة (أعلى) ثم مجموعات دروب-داون قابلة للطي.
 const TOP: SbLink = { id: 'ep-dashboard', icon: '🏠', text: 'نظرة عامة' };
@@ -36,19 +36,19 @@ const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
   {
     id: 'g-business', icon: '💼', title: 'إدارة الأعمال',
     links: [
-      { id: 'ep-appointments', icon: '📅', text: 'المواعيد' },
-      { id: 'ep-tasks', icon: '✅', text: 'المهام والمتابعة', badge: '5' },
-      { id: 'ep-crm', icon: '🎯', text: 'العملاء المحتملون' },
-      { id: 'ep-projects', icon: '📁', text: 'مشاريعي' },
+      { id: 'ep-appointments', icon: '📅', text: 'المواعيد', perm: 'appointments.view' },
+      { id: 'ep-tasks', icon: '✅', text: 'المهام والمتابعة', badge: '5', perm: 'tasks.view' },
+      { id: 'ep-crm', icon: '🎯', text: 'العملاء المحتملون', perm: 'crm.view' },
+      { id: 'ep-projects', icon: '📁', text: 'مشاريعي' }, // بلا صلاحية: يعتمد على الإسناد لكل موظف
     ],
   },
   {
     // السجلات المكتبية العامة (اجتماع 2026-08-07) — منفصلة عن «مشاريعي»/«العملاء المحتملون».
     id: 'g-records', icon: '🗄️', title: 'السجلات',
     links: [
-      { id: 'ep-rec-projects', icon: '📚', text: 'سجل المشاريع' },
-      { id: 'ep-rec-clients', icon: '👥', text: 'سجل العملاء' },
-      { id: 'ep-rec-companies', icon: '🏢', text: 'سجل الشركات' },
+      { id: 'ep-rec-projects', icon: '📚', text: 'سجل المشاريع', perm: 'projects.view' },
+      { id: 'ep-rec-clients', icon: '👥', text: 'سجل العملاء', perm: 'crm.view' },
+      { id: 'ep-rec-companies', icon: '🏢', text: 'سجل الشركات', perm: 'crm.view' },
     ],
   },
   {
@@ -64,7 +64,7 @@ const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
   {
     id: 'g-comm', icon: '💬', title: 'التواصل',
     links: [
-      { id: 'ep-meetings', icon: '📹', text: 'الاجتماعات' },
+      { id: 'ep-meetings', icon: '📹', text: 'الاجتماعات', perm: 'appointments.view' },
       { id: 'ep-chat', icon: '💬', text: 'المحادثات', badge: '3' },
       { id: 'ep-forum', icon: '🗨️', text: 'المنتدى' },
       { id: 'ep-notifications', icon: '🔔', text: 'الإشعارات', badge: '2', badgeRed: true },
@@ -114,6 +114,16 @@ export function EmployeePortalPage() {
   const userInitials = initialsOf(user?.name);
   const firstName = (user?.name ?? '').trim().split(/\s+/).slice(0, 2).join(' ') || 'زميلنا';
 
+  // كل موظف يرى فقط أقسام يملك صلاحيتها — تنعكس صلاحيات الرول على بوابته (طلب أيمن 2026-08-12).
+  // «مشاريعي» و«شؤوني» و«حسابي» بلا صلاحية (تخص الموظف نفسه)، فتظهر للجميع.
+  const perms = user?.permissions;
+  const permittedGroups = useMemo(
+    () => GROUPS
+      .map((g) => ({ ...g, links: g.links.filter((l) => !l.perm || !perms || perms.includes(l.perm)) }))
+      .filter((g) => g.links.length > 0),
+    [perms],
+  );
+
   const [active, setActive] = useState('ep-dashboard');
   const [sbOpen, setSbOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(GROUPS.map((g) => g.id)));
@@ -154,8 +164,8 @@ export function EmployeePortalPage() {
             <span className="ep-sb-icon">{TOP.icon}</span><span className="ep-sb-text">{TOP.text}</span>
           </a>
 
-          {/* مجموعات قابلة للطي (دروب-داون) */}
-          {GROUPS.map((g) => (
+          {/* مجموعات قابلة للطي (دروب-داون) — مفلترة حسب صلاحيات الموظف */}
+          {permittedGroups.map((g) => (
             <div key={g.id} className={`ep-sb-group${openGroups.has(g.id) ? ' ep-open' : ''}`}>
               <div className="ep-sb-group-header" onClick={() => toggleGroup(g.id)}>
                 <span className="ep-sb-group-icon">{g.icon}</span>

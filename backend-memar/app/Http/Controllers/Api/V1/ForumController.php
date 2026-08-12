@@ -53,8 +53,15 @@ class ForumController extends ApiController
         return $this->created(new ForumTopicResource($topic), 'تم نشر الموضوع');
     }
 
-    public function destroyTopic(ForumTopic $topic): JsonResponse
+    public function destroyTopic(Request $request, ForumTopic $topic): JsonResponse
     {
+        // لا يحذف الموضوع إلا صاحبه أو من يملك إدارة المنتدى (طلب أيمن 2026-08-12).
+        abort_unless(
+            $request->user()?->id === $topic->user_id || (bool) $request->user()?->can('forum.manage'),
+            403,
+            'لا تملك صلاحية حذف هذا الموضوع',
+        );
+
         $this->forum->deleteTopic($topic);
 
         return $this->ok(null, 'تم حذف الموضوع');
@@ -68,8 +75,15 @@ class ForumController extends ApiController
         return $this->created(new ForumTopicResource($this->forum->showTopic($topic)), 'تم إضافة الرد');
     }
 
-    public function destroyReply(ForumReply $reply): JsonResponse
+    public function destroyReply(Request $request, ForumReply $reply): JsonResponse
     {
+        // لا يحذف الرد إلا صاحبه أو من يملك إدارة المنتدى (طلب أيمن 2026-08-12).
+        abort_unless(
+            $request->user()?->id === $reply->user_id || (bool) $request->user()?->can('forum.manage'),
+            403,
+            'لا تملك صلاحية حذف هذا الرد',
+        );
+
         $this->forum->deleteReply($reply);
 
         return $this->ok(null, 'تم حذف الرد');

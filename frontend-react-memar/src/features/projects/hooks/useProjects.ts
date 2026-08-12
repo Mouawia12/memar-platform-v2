@@ -6,8 +6,9 @@ import type { ProjectFormData } from '../types';
 
 const KEY = ['projects'];
 
-export function useProjects(params: ProjectsQuery) {
+export function useProjects(params: ProjectsQuery, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: [...KEY, params],
     queryFn: () => projectsApi.list(params),
   });

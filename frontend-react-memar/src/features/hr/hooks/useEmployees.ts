@@ -6,8 +6,9 @@ import type { EmployeeFormData } from '../types';
 
 const KEY = ['employees'];
 
-export function useEmployees(params: EmployeesQuery) {
+export function useEmployees(params: EmployeesQuery, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: [...KEY, params],
     queryFn: () => employeesApi.list(params),
   });

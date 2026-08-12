@@ -48,7 +48,8 @@ class RolesAndAdminSeeder extends Seeder
         // ── الأدوار ──
         $roles = [
             'super_admin' => $permissions, // كل الصلاحيات
-            'manager' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.view.all', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'hr.view', 'forum.view', 'forum.manage'],
+            // المدير يشرف على التشغيل: CRM/مشاريع/مهام/مواعيد/عقود + رؤية المالية والأسعار والمستندات والموظفين.
+            'manager' => ['crm.view', 'crm.manage', 'clients.view', 'requests.view', 'requests.view.all', 'requests.manage', 'projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'contracts.view', 'contracts.manage', 'finance.view', 'pricing.view', 'hr.view', 'forum.view', 'forum.manage'],
             // المهندس يرى الطلبات المُسنَدة إليه فقط (requests.view بلا view.all)
             'architect' => ['projects.view', 'projects.manage', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'documents.manage', 'crm.view', 'requests.view'],
             // المحاسب يدير سجل العقود (السعر والتفاصيل المالية) بعد أن يُنشئ المهندس المشروع

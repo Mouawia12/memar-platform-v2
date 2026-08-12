@@ -6,8 +6,9 @@ import type { AppointmentFormData } from '../types';
 
 const KEY = ['appointments'];
 
-export function useAppointments(params: AppointmentsQuery) {
+export function useAppointments(params: AppointmentsQuery, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: [...KEY, params],
     queryFn: () => appointmentsApi.list(params),
   });

@@ -6,8 +6,9 @@ import type { TaskFormData, TaskStatus } from '../types';
 
 const KEY = ['tasks'];
 
-export function useTasks(params: TasksQuery) {
+export function useTasks(params: TasksQuery, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: [...KEY, params],
     queryFn: () => tasksApi.list(params),
   });

@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { NAV_SECTIONS } from './config/nav';
@@ -48,6 +48,7 @@ import { ImpersonationBanner } from './features/users/components/ImpersonationBa
 import { UsersPage } from './features/users/pages/UsersPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
+import { LandingRedirect, RequireDashboardHome, RequirePermission, RequireStaff } from './router/RequirePermission';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
 const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'my_projects', 'team_projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads', 'audit', 'file_manager', 'field_visits', 'engineer_portal', 'client_portal'];
@@ -66,55 +67,65 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         {/* بوابة العميل — بواجهتها الكاملة الخاصة (طبق أصل تصميم atoms)، خارج قالب لوحة التحكم */}
         <Route path="/client-portal" element={<ClientPortalV2Page />} />
-        {/* بوابة الموظف — واجهة مستقلّة طبق أصل Atoms (سايدبار وتوب‌بار خاصّان، خارج شِلّ لوحة التحكم) */}
-        <Route path="/employee-portal" element={<EmployeePortalPage />} />
+        {/* بوابة الموظف — واجهة مستقلّة طبق أصل Atoms؛ يُمنع العميل منها ويُعاد لبوابته */}
+        <Route path="/employee-portal" element={<RequireStaff><EmployeePortalPage /></RequireStaff>} />
         {/* صفحة مشروع العميل — داخل سياق البوابة (لا قالب لوحة الموظفين) حتى لا يخرج العميل من بوابته */}
         <Route path="/client-portal/projects/:id" element={<ClientProjectDetailPage />} />
-        {/* بروفيل العميل للأدمن = «عرض إداري» بنفس واجهة البوابة كاملةً (خارج قالب لوحة التحكم لتفادي تداخل الشِلّين) */}
-        <Route path="/clients/:id/profile" element={<StaffClientProfilePage />} />
+        {/* بروفيل العميل للأدمن = «عرض إداري» — يتطلب صلاحية زيارة بروفيل العميل */}
+        <Route path="/clients/:id/profile" element={<RequirePermission perm="clients.view"><StaffClientProfilePage /></RequirePermission>} />
         <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/user-logs" element={<UsersPage />} />
-          <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/companies" element={<CompaniesPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/my-projects" element={<MyProjectsPage />} />
-          <Route path="/team-projects" element={<TeamProjectsPage />} />
-          <Route path="/projects/:id" element={<ProjectDetailPage />} />
-          <Route path="/tasks" element={<TasksPage />} />
-          <Route path="/appointments" element={<AppointmentsPage />} />
-          <Route path="/finance/invoices" element={<InvoicesPage />} />
-          <Route path="/finance/contracts" element={<ContractsPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/forum" element={<ForumPage />} />
-          <Route path="/chatbot" element={<ChatbotPage />} />
-          <Route path="/meetings" element={<MeetingsPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/pricing" element={<QuotationsPage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/files" element={<FilesPage />} />
-          <Route path="/field-visits" element={<FieldVisitsPage />} />
-          <Route path="/engineer-portal" element={<EngineerPortalPage />} />
-          <Route path="/team/:id" element={<TeamMemberPage />} />
-          <Route path="/hr" element={<EmployeesPage />} />
-          <Route path="/hr/attendance" element={<AttendancePage />} />
-          <Route path="/hr/payroll" element={<PayrollPage />} />
-          <Route path="/crm" element={<CrmPage />} />
-          <Route path="/careers" element={<CareersPage />} />
-          <Route path="/roles" element={<RolesPage />} />
-          <Route path="/audit" element={<AuditPage />} />
-          <Route path="/requests" element={<RequestsPage />} />
-          <Route path="/finance" element={<FinancePage />} />
-          <Route path="/whatsapp" element={<CommunicationsPage />} />
-          <Route path="/web-builder" element={<WebBuilderPage />} />
-          <Route path="/hero-ads" element={<HeroAdsPage />} />
+          {/* الصفحة الرئيسية للوحة التحكم — لطاقم الإدارة فقط؛ غيرهم يُعاد لصفحة هبوطه */}
+          <Route path="/dashboard" element={<RequireDashboardHome><DashboardPage /></RequireDashboardHome>} />
+          <Route path="/user-logs" element={<RequirePermission perm="users.view"><UsersPage /></RequirePermission>} />
+          <Route path="/clients" element={<RequirePermission perm="crm.view"><ClientsPage /></RequirePermission>} />
+          <Route path="/companies" element={<RequirePermission perm="crm.view"><CompaniesPage /></RequirePermission>} />
+          <Route path="/projects" element={<RequirePermission perm="projects.view"><ProjectsPage /></RequirePermission>} />
+          {/* مشاريعي/المهام العاجلة متاحة لكل الطاقم (تعتمد على الإسناد لا الصلاحية) */}
+          <Route path="/my-projects" element={<RequireStaff><MyProjectsPage /></RequireStaff>} />
+          <Route path="/team-projects" element={<RequirePermission perm="projects.manage"><TeamProjectsPage /></RequirePermission>} />
+          <Route path="/projects/:id" element={<RequirePermission perm="projects.view"><ProjectDetailPage /></RequirePermission>} />
+          <Route path="/tasks" element={<RequirePermission perm="tasks.view"><TasksPage /></RequirePermission>} />
+          <Route path="/appointments" element={<RequirePermission perm="appointments.view"><AppointmentsPage /></RequirePermission>} />
+          <Route path="/finance/invoices" element={<RequirePermission perm="finance.view"><InvoicesPage /></RequirePermission>} />
+          <Route path="/finance/contracts" element={<RequirePermission perm="contracts.view"><ContractsPage /></RequirePermission>} />
+          <Route path="/reports" element={<RequirePermission perm="finance.view"><ReportsPage /></RequirePermission>} />
+          <Route path="/forum" element={<RequireStaff><ForumPage /></RequireStaff>} />
+          <Route path="/chatbot" element={<RequireStaff><ChatbotPage /></RequireStaff>} />
+          <Route path="/meetings" element={<RequirePermission perm="appointments.view"><MeetingsPage /></RequirePermission>} />
+          <Route path="/services" element={<RequirePermission perm="pricing.view"><ServicesPage /></RequirePermission>} />
+          <Route path="/pricing" element={<RequirePermission perm="pricing.view"><QuotationsPage /></RequirePermission>} />
+          <Route path="/documents" element={<RequirePermission perm="documents.view"><DocumentsPage /></RequirePermission>} />
+          <Route path="/files" element={<RequirePermission perm="documents.view"><FilesPage /></RequirePermission>} />
+          <Route path="/field-visits" element={<RequirePermission perm="projects.view"><FieldVisitsPage /></RequirePermission>} />
+          <Route path="/engineer-portal" element={<RequireStaff><EngineerPortalPage /></RequireStaff>} />
+          <Route path="/team/:id" element={<RequirePermission perm="projects.manage"><TeamMemberPage /></RequirePermission>} />
+          <Route path="/hr" element={<RequirePermission perm="hr.view"><EmployeesPage /></RequirePermission>} />
+          <Route path="/hr/attendance" element={<RequirePermission perm="hr.view"><AttendancePage /></RequirePermission>} />
+          <Route path="/hr/payroll" element={<RequirePermission perm="hr.view"><PayrollPage /></RequirePermission>} />
+          <Route path="/crm" element={<RequirePermission perm="crm.view"><CrmPage /></RequirePermission>} />
+          <Route path="/careers" element={<RequirePermission perm="hr.view"><CareersPage /></RequirePermission>} />
+          <Route path="/roles" element={<RequirePermission perm="users.view"><RolesPage /></RequirePermission>} />
+          <Route path="/audit" element={<RequirePermission perm="users.view"><AuditPage /></RequirePermission>} />
+          <Route path="/requests" element={<RequirePermission perm="requests.view"><RequestsPage /></RequirePermission>} />
+          <Route path="/finance" element={<RequirePermission perm="finance.view"><FinancePage /></RequirePermission>} />
+          <Route path="/whatsapp" element={<RequirePermission perm="crm.view"><CommunicationsPage /></RequirePermission>} />
+          <Route path="/web-builder" element={<RequirePermission perm="settings.manage"><WebBuilderPage /></RequirePermission>} />
+          <Route path="/hero-ads" element={<RequirePermission perm="settings.manage"><HeroAdsPage /></RequirePermission>} />
           {placeholderItems.map((item) => (
-            <Route key={item.path} path={item.path} element={<PlaceholderPage title={item.label} />} />
+            <Route
+              key={item.path}
+              path={item.path}
+              element={
+                item.perm
+                  ? <RequirePermission perm={item.perm}><PlaceholderPage title={item.label} /></RequirePermission>
+                  : <PlaceholderPage title={item.label} />
+              }
+            />
           ))}
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<LandingRedirect />} />
     </Routes>
     </>
   );

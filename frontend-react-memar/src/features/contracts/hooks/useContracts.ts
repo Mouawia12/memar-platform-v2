@@ -6,8 +6,8 @@ import type { ContractFormData } from '../types';
 
 const KEY = ['contracts'];
 
-export function useContracts(params: ContractsQuery) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => contractsApi.list(params) });
+export function useContracts(params: ContractsQuery, enabled = true) {
+  return useQuery({ enabled, queryKey: [...KEY, params], queryFn: () => contractsApi.list(params) });
 }
 
 function toPayload(data: ContractFormData): Record<string, unknown> {

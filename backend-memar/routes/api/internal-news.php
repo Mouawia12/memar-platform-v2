@@ -10,8 +10,12 @@ use Illuminate\Support\Facades\Route;
 | القراءة لأي موظف مسجّل؛ الكتابة للإدارة (تُقيَّد لاحقًا بصلاحية إدارة الأخبار).
 */
 Route::middleware('auth:sanctum')->group(function (): void {
+    // القراءة لأي موظف مسجّل (هيرو لوحة الموظف)
     Route::get('/internal-news', [InternalNewsController::class, 'index']);
-    Route::post('/internal-news', [InternalNewsController::class, 'store']);
-    Route::match(['put', 'patch'], '/internal-news/{internalNews}', [InternalNewsController::class, 'update']);
-    Route::delete('/internal-news/{internalNews}', [InternalNewsController::class, 'destroy']);
+    // الكتابة/الحذف للإدارة فقط — أخبار الشركة محتوى إداري يظهر لكل الطاقم (طلب أيمن 2026-08-12)
+    Route::middleware('permission:settings.manage')->group(function (): void {
+        Route::post('/internal-news', [InternalNewsController::class, 'store']);
+        Route::match(['put', 'patch'], '/internal-news/{internalNews}', [InternalNewsController::class, 'update']);
+        Route::delete('/internal-news/{internalNews}', [InternalNewsController::class, 'destroy']);
+    });
 });

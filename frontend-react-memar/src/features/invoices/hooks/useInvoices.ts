@@ -6,8 +6,9 @@ import type { InvoiceFormData, PaymentFormData } from '../types';
 
 const KEY = ['invoices'];
 
-export function useInvoices(params: InvoicesQuery) {
+export function useInvoices(params: InvoicesQuery, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: [...KEY, params],
     queryFn: () => invoicesApi.list(params),
   });

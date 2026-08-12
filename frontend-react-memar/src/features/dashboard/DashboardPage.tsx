@@ -1,6 +1,7 @@
 import { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
+import { usePermission } from '../auth/hooks/usePermission';
 import { useAppointments } from '../appointments/hooks/useAppointments';
 import { TYPE_LABELS as APPT_TYPE_LABELS, STATUS_LABELS as APPT_STATUS_LABELS } from '../appointments/types';
 import { useContracts } from '../contracts/hooks/useContracts';
@@ -19,12 +20,21 @@ const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString(
 const money = (v: number) => v.toLocaleString('ar', { maximumFractionDigits: 3 });
 
 export function DashboardPage() {
-  const projects = useProjects({ per_page: 100 });
-  const tasks = useTasks({});
-  const appts = useAppointments({ per_page: 100 });
-  const contracts = useContracts({ per_page: 100 });
-  const employees = useEmployees({ per_page: 1 });
-  const invoices = useInvoices({ per_page: 100 });
+  // كل قسم/مؤشّر يظهر فقط لمن يملك صلاحيته — فيرى كل رول لوحته الخاصة به بلا أرقام صفرية
+  // لا يملك رؤيتها. ولا نُطلق الطلب أصلًا لمن لا يملك الصلاحية (enabled).
+  const canTasks = usePermission('tasks.view');
+  const canAppts = usePermission('appointments.view');
+  const canProjects = usePermission('projects.view');
+  const canContracts = usePermission('contracts.view');
+  const canFinance = usePermission('finance.view');
+  const canHr = usePermission('hr.view');
+
+  const projects = useProjects({ per_page: 100 }, canProjects);
+  const tasks = useTasks({}, canTasks);
+  const appts = useAppointments({ per_page: 100 }, canAppts);
+  const contracts = useContracts({ per_page: 100 }, canContracts);
+  const employees = useEmployees({ per_page: 1 }, canHr);
+  const invoices = useInvoices({ per_page: 100 }, canFinance);
 
   const projectList = projects.data?.data ?? [];
   const taskList = tasks.data ?? [];
@@ -54,50 +64,59 @@ export function DashboardPage() {
       {/* هيرو أخبار الشركة الداخلية (اجتماع 2026-08-05) — أعلى لوحة الموظف */}
       <InternalNewsHero />
 
-      {/* شريط التنبيهات */}
-      <div style={alertStrip}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}><span style={boltIcon}>⚡</span> التنبيهات:</span>
-          <span style={{ ...pill, background: '#FDE8E8', color: '#DC4A3D' }}>متأخرة <b>{overdueTasks}</b></span>
-          <span style={{ ...pill, background: '#FFF3DB', color: '#B9770E' }}>اليوم <b>{todayAppts.length}</b></span>
-          <span style={{ ...pill, background: '#E6F1FB', color: '#1B6CA8' }}>قادمة <b>{upcomingAppts}</b></span>
+      {/* شريط التنبيهات — كل مؤشّر حسب صلاحيته؛ يُخفى الشريط كليًّا إن لم يملك المستخدم شيئًا منه */}
+      {(canTasks || canAppts) && (
+        <div style={alertStrip}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}><span style={boltIcon}>⚡</span> التنبيهات:</span>
+            {canTasks && <span style={{ ...pill, background: '#FDE8E8', color: '#DC4A3D' }}>متأخرة <b>{overdueTasks}</b></span>}
+            {canAppts && <span style={{ ...pill, background: '#FFF3DB', color: '#B9770E' }}>اليوم <b>{todayAppts.length}</b></span>}
+            {canAppts && <span style={{ ...pill, background: '#E6F1FB', color: '#1B6CA8' }}>قادمة <b>{upcomingAppts}</b></span>}
+          </div>
+          {canTasks && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ ...pill, background: '#E1F5EE', color: '#2D9B6F' }}>منجزة <b>{doneTasks}</b></span>
+              <Link to="/tasks" style={{ fontSize: '13px', color: '#1B6CA8', textDecoration: 'none', fontWeight: 600 }}>عرض الكل ←</Link>
+            </div>
+          )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ ...pill, background: '#E1F5EE', color: '#2D9B6F' }}>منجزة <b>{doneTasks}</b></span>
-          <Link to="/tasks" style={{ fontSize: '13px', color: '#1B6CA8', textDecoration: 'none', fontWeight: 600 }}>عرض الكل ←</Link>
-        </div>
-      </div>
+      )}
 
-      {/* رؤوس القسمين */}
-      <div style={headers}>
+      {/* رؤوس القسمين — «نظرة عامة على المشاريع» لمن يملك عرض المشاريع فقط */}
+      <div style={{ ...headers, gridTemplateColumns: canProjects ? '1fr 1fr' : '1fr' }}>
         <div>
           <div style={hTitle}>ملخص نشاط اليوم</div>
           <div style={hSub}>{today}</div>
         </div>
-        <div style={{ textAlign: 'start' }}>
-          <div style={hTitle}>نظرة عامة على المشاريع</div>
-          <div style={hSub}>{projectList.length} مشروع مسجل في النظام · <Link to="/projects" style={{ color: '#1B6CA8', textDecoration: 'none', fontWeight: 600 }}>تفاصيل المشاريع ←</Link></div>
-        </div>
+        {canProjects && (
+          <div style={{ textAlign: 'start' }}>
+            <div style={hTitle}>نظرة عامة على المشاريع</div>
+            <div style={hSub}>{projectList.length} مشروع مسجل في النظام · <Link to="/projects" style={{ color: '#1B6CA8', textDecoration: 'none', fontWeight: 600 }}>تفاصيل المشاريع ←</Link></div>
+          </div>
+        )}
       </div>
 
-      {/* بطاقات المؤشرات */}
+      {/* بطاقات المؤشرات — كل بطاقة حسب صلاحية صاحبها */}
       <div style={kpiGrid}>
-        <KpiCard icon="📝" color="blue" label="مهام قيد التنفيذ" value={inProgress} sub={overdueTasks ? <span style={{ color: '#DC4A3D' }}>{overdueTasks} متأخرة</span> : 'لا مهام متأخرة'} />
-        <KpiCard icon="📅" color="blue" label="مواعيد اليوم" value={todayAppts.length} sub="موزعة على الأقسام" />
-        <KpiCard icon="🏗️" color="orange" label="مشاريع نشطة" value={activeProjects} sub={<span style={{ color: '#1B6CA8' }}>جاري العمل عليها</span>} />
-        <KpiCard icon="⏸️" color="orange" label="مشاريع معلقة" value={onHold} sub="بانتظار الموافقات" />
-        <KpiCard icon="💰" color="purple" label="حجم العقود التقديري" value={`${money(contractsValue)} د.ك`} sub="دينار كويتي" />
-        <KpiCard icon="✅" color="green" label="مشاريع مكتملة" value={completed} sub="تم التسليم النهائي" />
-        <KpiCard icon="⚠️" color="red" label="تنبيهات معلقة" value={overdueInvoices} sub="تحتاج متابعة إدارية" />
-        <KpiCard icon="👥" color="green" label="الحضور والدوام" value={employeesTotal} sub={<span style={{ color: '#2D9B6F' }}>إجمالي الموظفين</span>} />
+        {canTasks && <KpiCard icon="📝" color="blue" label="مهام قيد التنفيذ" value={inProgress} sub={overdueTasks ? <span style={{ color: '#DC4A3D' }}>{overdueTasks} متأخرة</span> : 'لا مهام متأخرة'} />}
+        {canAppts && <KpiCard icon="📅" color="blue" label="مواعيد اليوم" value={todayAppts.length} sub="موزعة على الأقسام" />}
+        {canProjects && <KpiCard icon="🏗️" color="orange" label="مشاريع نشطة" value={activeProjects} sub={<span style={{ color: '#1B6CA8' }}>جاري العمل عليها</span>} />}
+        {canProjects && <KpiCard icon="⏸️" color="orange" label="مشاريع معلقة" value={onHold} sub="بانتظار الموافقات" />}
+        {canContracts && <KpiCard icon="💰" color="purple" label="حجم العقود التقديري" value={`${money(contractsValue)} د.ك`} sub="دينار كويتي" />}
+        {canProjects && <KpiCard icon="✅" color="green" label="مشاريع مكتملة" value={completed} sub="تم التسليم النهائي" />}
+        {canFinance && <KpiCard icon="⚠️" color="red" label="تنبيهات معلقة" value={overdueInvoices} sub="تحتاج متابعة إدارية" />}
+        {canHr && <KpiCard icon="👥" color="green" label="الحضور والدوام" value={employeesTotal} sub={<span style={{ color: '#2D9B6F' }}>إجمالي الموظفين</span>} />}
       </div>
 
-      {/* حِمل عمل الفريق (DASH-1) */}
-      <div style={{ marginBottom: '18px' }}>
-        <WorkloadPanel />
-      </div>
+      {/* حِمل عمل الفريق (DASH-1) — يحتاج عرض المهام */}
+      {canTasks && (
+        <div style={{ marginBottom: '18px' }}>
+          <WorkloadPanel />
+        </div>
+      )}
 
-      {/* جدول مواعيد اليوم */}
+      {/* جدول مواعيد اليوم — لمن يملك عرض المواعيد */}
+      {canAppts && (
       <div style={tableCard}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid #E4E8EF' }}>
           <h3 style={{ margin: 0, fontSize: '16px' }}>📅 جدول مواعيد اليوم</h3>
@@ -131,6 +150,7 @@ export function DashboardPage() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

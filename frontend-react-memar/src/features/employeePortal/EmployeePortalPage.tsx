@@ -39,7 +39,7 @@ const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
       { id: 'ep-appointments', icon: '📅', text: 'المواعيد', perm: 'appointments.view' },
       { id: 'ep-tasks', icon: '✅', text: 'المهام والمتابعة', badge: '5', perm: 'tasks.view' },
       { id: 'ep-crm', icon: '🎯', text: 'العملاء المحتملون', perm: 'crm.view' },
-      { id: 'ep-projects', icon: '📁', text: 'مشاريعي' }, // بلا صلاحية: يعتمد على الإسناد لكل موظف
+      { id: 'ep-projects', icon: '📁', text: 'مشاريعي', perm: 'projects.view' },
     ],
   },
   {
@@ -52,28 +52,30 @@ const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
     ],
   },
   {
+    // شؤوني (الخدمة الذاتية) — محكومة بصلاحية self.view؛ المستندات بصلاحية عرض المستندات. طلب أيمن 2026-08-13.
     id: 'g-self', icon: '🗂️', title: 'شؤوني',
     links: [
-      { id: 'ep-attendance', icon: '⏰', text: 'الحضور والانصراف' },
-      { id: 'ep-leaves', icon: '🏖️', text: 'الإجازات' },
-      { id: 'ep-salary', icon: '💰', text: 'كشف الراتب' },
-      { id: 'ep-reports', icon: '📝', text: 'التقارير اليومية' },
-      { id: 'ep-documents', icon: '📄', text: 'المستندات' },
+      { id: 'ep-attendance', icon: '⏰', text: 'الحضور والانصراف', perm: 'self.view' },
+      { id: 'ep-leaves', icon: '🏖️', text: 'الإجازات', perm: 'self.view' },
+      { id: 'ep-salary', icon: '💰', text: 'كشف الراتب', perm: 'self.view' },
+      { id: 'ep-reports', icon: '📝', text: 'التقارير اليومية', perm: 'self.view' },
+      { id: 'ep-documents', icon: '📄', text: 'المستندات', perm: 'documents.view' },
     ],
   },
   {
     id: 'g-comm', icon: '💬', title: 'التواصل',
     links: [
       { id: 'ep-meetings', icon: '📹', text: 'الاجتماعات', perm: 'appointments.view' },
-      { id: 'ep-chat', icon: '💬', text: 'المحادثات', badge: '3' },
-      { id: 'ep-forum', icon: '🗨️', text: 'المنتدى' },
-      { id: 'ep-notifications', icon: '🔔', text: 'الإشعارات', badge: '2', badgeRed: true },
+      { id: 'ep-chat', icon: '💬', text: 'المحادثات', badge: '3', perm: 'self.view' },
+      { id: 'ep-forum', icon: '🗨️', text: 'المنتدى', perm: 'forum.view' },
+      { id: 'ep-notifications', icon: '🔔', text: 'الإشعارات', badge: '2', badgeRed: true, perm: 'self.view' },
     ],
   },
 ];
+// حسابي — بيانات المستخدم الشخصية؛ محكومة بصلاحية self.view (لا تظهر لدور بلا خدمة ذاتية).
 const ACCOUNT: SbLink[] = [
-  { id: 'ep-profile', icon: '👤', text: 'ملفي الشخصي' },
-  { id: 'ep-referral', icon: '🎁', text: 'كود الإحالة' },
+  { id: 'ep-profile', icon: '👤', text: 'ملفي الشخصي', perm: 'self.view' },
+  { id: 'ep-referral', icon: '🎁', text: 'كود الإحالة', perm: 'self.view' },
 ];
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
@@ -97,6 +99,10 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
 /** المجموعة التي تحوي صفحةً ما (لإبقائها مفتوحة). */
 const groupOf = (pageId: string) => GROUPS.find((g) => g.links.some((l) => l.id === pageId))?.id;
 
+/** صلاحية كل صفحة (تُشتق من روابط المجموعات + حسابي) — لحراسة المحتوى داخل البوابة. */
+const PAGE_PERM: Record<string, string> = {};
+[...GROUPS.flatMap((g) => g.links), ...ACCOUNT].forEach((l) => { if (l.perm) PAGE_PERM[l.id] = l.perm; });
+
 /** الأحرف الأولى للأڤاتار من اسم المستخدم الحقيقي. */
 const initialsOf = (n?: string | null) => {
   const parts = (n ?? '').trim().split(/\s+/).filter(Boolean);
@@ -114,17 +120,24 @@ export function EmployeePortalPage() {
   const userInitials = initialsOf(user?.name);
   const firstName = (user?.name ?? '').trim().split(/\s+/).slice(0, 2).join(' ') || 'زميلنا';
 
-  // كل موظف يرى فقط أقسام يملك صلاحيتها — تنعكس صلاحيات الرول على بوابته (طلب أيمن 2026-08-12).
-  // «مشاريعي» و«شؤوني» و«حسابي» بلا صلاحية (تخص الموظف نفسه)، فتظهر للجميع.
-  const perms = user?.permissions;
+  // كل موظف يرى فقط أقسام يملك صلاحيتها — تنعكس صلاحيات الرول على بوابته (طلب أيمن 2026-08-13).
+  // لا يظهر إلا «نظرة عامة» (الهبوط) وما مُنح صلاحيته صراحةً؛ حتى شؤونه/حسابه/تواصله محكومة بالصلاحية.
+  // fail-closed: إن غابت الصلاحيات (undefined) نعاملها كفارغة فلا يظهر إلا ما لا يحتاج صلاحية.
+  const perms = user?.permissions ?? [];
   const permittedGroups = useMemo(
     () => GROUPS
-      .map((g) => ({ ...g, links: g.links.filter((l) => !l.perm || !perms || perms.includes(l.perm)) }))
+      .map((g) => ({ ...g, links: g.links.filter((l) => !l.perm || perms.includes(l.perm)) }))
       .filter((g) => g.links.length > 0),
     [perms],
   );
+  const permittedAccount = useMemo(() => ACCOUNT.filter((l) => !l.perm || perms.includes(l.perm)), [perms]);
 
+  // حراسة المحتوى: حتى لو ظهر رابط (نسخة قديمة/حالة حافّة) لا نعرض صفحة لا يملك المستخدم
+  // صلاحيتها — نُظهر «لا صلاحية» بدل تحميل الصفحة وفشل بياناتها (طلب أيمن 2026-08-12).
   const [active, setActive] = useState('ep-dashboard');
+  const activePerm = PAGE_PERM[active];
+  const activeAllowed = !activePerm || perms.includes(activePerm);
+
   const [sbOpen, setSbOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(GROUPS.map((g) => g.id)));
   const go = (id: string) => {
@@ -185,8 +198,8 @@ export function EmployeePortalPage() {
             </div>
           ))}
 
-          <div className="ep-sb-section-label">حسابي</div>
-          {ACCOUNT.map((l) => (
+          {permittedAccount.length > 0 && <div className="ep-sb-section-label">حسابي</div>}
+          {permittedAccount.map((l) => (
             <a key={l.id} className={`ep-sb-link${active === l.id ? ' ep-active' : ''}`} onClick={() => go(l.id)}>
               <span className="ep-sb-icon">{l.icon}</span><span className="ep-sb-text">{l.text}</span>
             </a>
@@ -213,7 +226,8 @@ export function EmployeePortalPage() {
 
       {/* ═══ MAIN ═══ */}
       <main className="ep-main">
-        {active === 'ep-dashboard' ? <EmployeeDashboard onGo={go} />
+        {!activeAllowed ? <EpNoAccess />
+          : active === 'ep-dashboard' ? <EmployeeDashboard onGo={go} />
           // المنتدى والاجتماعات يحملان ترويسة/بانر خاصًّا بهما → غلاف مجرّد بلا ترويسة مكرّرة
           : active === 'ep-forum' ? <Bare><ForumPage /></Bare>
           : active === 'ep-chat' ? <SharedPage title="💬 المحادثات" subtitle="تواصل مباشر مع الفريق والإدارة"><LiveChatPanel /></SharedPage>
@@ -257,6 +271,19 @@ function SharedPage({ title, subtitle, children }: { title: string; subtitle?: s
 /** غلاف مجرّد: صفحة مشتركة تحمل ترويستها الخاصة (مشاريعي/المواعيد/CRM) بلا ترويسة مكرّرة. */
 function Bare({ children }: { children: ReactNode }) {
   return <div className="ep-page ep-active">{children}</div>;
+}
+
+/** رسالة «لا صلاحية» — تظهر بدل صفحة لا يملكها الموظف، فلا يرى «تعذّر التحميل». */
+function EpNoAccess() {
+  return (
+    <div className="ep-page ep-active">
+      <div className="ep-card" style={{ textAlign: 'center', padding: '52px 24px' }}>
+        <div style={{ fontSize: '44px', marginBottom: '12px' }}>🔒</div>
+        <div style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>لا تملك صلاحية هذه الصفحة</div>
+        <div style={{ color: '#8A93A3', fontSize: '14px' }}>هذه الصفحة غير مُتاحة ضمن دورك — تواصل مع المدير لمنحك الصلاحية.</div>
+      </div>
+    </div>
+  );
 }
 
 /** الإشعارات — بنود حيّة تحتاج إجراءً (نفس محرّك جرس التوب‌بار)، بتصميم البوابة. */

@@ -60,7 +60,8 @@ export function visibleNavSections(
       .filter((s) => s.items.length > 0);
   }
 
-  const allow = (perm?: string) => !perm || !ctx.permissions || ctx.permissions.includes(perm);
+  // fail-closed: بلا صلاحيات معروفة لا يظهر إلا ما لا يحتاج صلاحية (أمان: لا نكشف صفحات بالخطأ).
+  const allow = (perm?: string) => !perm || (ctx.permissions ?? []).includes(perm);
 
   return sections
     .map((s) => ({ ...s, items: s.items.filter((i) => allow(i.perm)) }))

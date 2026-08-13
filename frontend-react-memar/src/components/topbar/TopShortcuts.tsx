@@ -21,7 +21,7 @@ export function TopShortcuts() {
 
   // كل عناصر التنقّل المسموح بها لهذا المستخدم
   const allowed = useMemo(() => {
-    const allow = (perm?: string) => !perm || !permissions || permissions.includes(perm);
+    const allow = (perm?: string) => !perm || (permissions ?? []).includes(perm);
 
     return NAV_SECTIONS.flatMap((s) => s.items).filter((i) => allow(i.perm));
   }, [permissions]);

@@ -40,6 +40,9 @@ class RolesAndAdminSeeder extends Seeder
             'pricing.view', 'pricing.manage',
             'forum.view', 'forum.manage', 'forum.delete',
             'settings.manage',
+            // الخدمة الذاتية للموظف (شؤوني/حسابي/محادثات/إشعارات في بوابة الموظف) — تُمنح للموظف
+            // فيرى شؤونه؛ ودور محدود بلا هذه الصلاحية لا يرى إلا ما أُشّر له. طلب أيمن 2026-08-13.
+            'self.view',
         ];
         foreach ($permissions as $name) {
             Permission::findOrCreate($name, 'web');
@@ -58,7 +61,7 @@ class RolesAndAdminSeeder extends Seeder
         ));
 
         // الموظف: أساس تشغيلي عام ضمن بوابة الموظف (مهام/مواعيد/CRM عرض/مشاريع عرض/مستندات/منتدى).
-        $employeePerms = ['crm.view', 'requests.view', 'projects.view', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'forum.view'];
+        $employeePerms = ['crm.view', 'requests.view', 'projects.view', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'forum.view', 'self.view'];
 
         $roles = [
             'super_admin' => ['dashboard' => 'admin', 'perms' => $permissions],

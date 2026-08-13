@@ -52,6 +52,7 @@ class RoleController extends ApiController
         'settings' => 'الإعدادات والصلاحيات',
         'users' => 'المستخدمون',
         'roles' => 'الأدوار',
+        'self' => 'الخدمة الذاتية (شؤوني/حسابي)',
     ];
 
     /**
@@ -66,6 +67,7 @@ class RoleController extends ApiController
         'appointments' => ['admin', 'employee'],
         'documents' => ['admin', 'employee'],
         'forum' => ['admin', 'employee'],
+        'self' => ['employee'], // الخدمة الذاتية تخصّ بوابة الموظف فقط
     ];
 
     private function dashboardOf(Role $role): string

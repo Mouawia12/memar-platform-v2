@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\Role;
+use App\Models\User;
 use Spatie\Permission\Models\Permission;
 
 class RoleController extends ApiController
@@ -101,11 +102,26 @@ class RoleController extends ApiController
             ->groupBy('role_id')
             ->pluck('total', 'role_id');
 
+        $userMorph = (new User)->getMorphClass();
+
+        // مستخدمو كل دور دفعةً واحدة (join مباشر، مستقل عن حارس المصادقة) لتفادي N+1.
+        $roleUsers = DB::table('model_has_roles as mhr')
+            ->join('users as u', 'u.id', '=', 'mhr.model_id')
+            ->where('mhr.model_type', $userMorph)
+            ->orderBy('u.name')
+            ->get(['mhr.role_id', 'u.id', 'u.name', 'u.email', 'u.is_active'])
+            ->groupBy('role_id');
+
+        // المستخدمون ذوو صلاحيات مباشرة (استثناء خارج الدور).
+        $exceptionIds = array_flip(
+            DB::table('model_has_permissions')->where('model_type', $userMorph)->pluck('model_id')->all()
+        );
+
         $roles = Role::query()
             ->with('permissions:id,name')
             ->orderBy('id')
             ->get()
-            ->map(function (Role $role) use ($counts): array {
+            ->map(function (Role $role) use ($counts, $roleUsers, $exceptionIds): array {
                 $rbac = $this->rbacOf($role);
 
                 return [
@@ -118,6 +134,15 @@ class RoleController extends ApiController
                     'is_system' => in_array($role->name, self::SYSTEM_ROLES, true),
                     'users_count' => (int) ($counts[$role->id] ?? 0),
                     'permissions' => $role->permissions->pluck('name')->all(),
+                    // المستخدمون المرتبطون بالدور (طبق الأصل: جدول الاسم/البريد/الحالة/استثناء).
+                    // «استثناء» = يملك صلاحيات مباشرة خارج دوره (model_has_permissions).
+                    'users' => ($roleUsers->get($role->id) ?? collect())->map(fn ($u): array => [
+                        'id' => (int) $u->id,
+                        'name' => $u->name,
+                        'email' => $u->email,
+                        'is_active' => (bool) $u->is_active,
+                        'has_exception' => isset($exceptionIds[$u->id]),
+                    ])->values(),
                     // حالة RBAC الكاملة (الوحدات + الحقوق + الرؤية + النطاق + الاعتماد + التواصل)
                     'modules' => $rbac['modules'],
                     'modules_count' => count($rbac['modules']),

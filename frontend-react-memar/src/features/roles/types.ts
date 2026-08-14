@@ -17,6 +17,16 @@ export interface RbacSettings {
   chat: { types: string[]; restrict: string };
 }
 
+/** مستخدم مرتبط بدور — لجدول «المستخدمون المرتبطون». */
+export interface RoleUser {
+  id: number;
+  name: string;
+  email: string;
+  is_active: boolean;
+  /** يملك صلاحيات مباشرة خارج دوره (استثناء). */
+  has_exception: boolean;
+}
+
 export interface Role {
   id: number;
   name: string;
@@ -27,6 +37,8 @@ export interface Role {
   is_system: boolean;
   users_count: number;
   permissions: string[];
+  /** المستخدمون الذين يحملون هذا الدور. */
+  users: RoleUser[];
   modules: string[];
   modules_count: number;
   rbac: RbacSettings;

@@ -199,6 +199,43 @@ export function RolesPage() {
                   </div>
                 </div>
               </fieldset>
+
+              {/* 5. المستخدمون المرتبطون (طبق الأصل — خارج الحقول: للعرض فقط حتى للمدير العام) */}
+              <div style={{ padding: '0 20px 20px' }}>
+                <div style={sectionBox}>
+                  <div style={sectionTitle}>5. المستخدمون المرتبطون ({selected.users.length})</div>
+                  {selected.users.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#8A93A3', fontSize: '13px' }}>لا يوجد مستخدمون مرتبطون بهذا الدور.</div>
+                  ) : (
+                    <div style={{ padding: '10px', overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E4E8EF' }}>
+                            <th style={{ ...th, textAlign: 'right' }}>الاسم</th>
+                            <th style={{ ...th, textAlign: 'right' }}>البريد</th>
+                            <th style={{ ...th, textAlign: 'center' }}>الحالة</th>
+                            <th style={{ ...th, textAlign: 'center' }}>استثناء</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selected.users.map((u) => (
+                            <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                              <td style={{ ...td, fontWeight: 700 }}>{u.name}</td>
+                              <td style={{ ...td, color: '#8A93A3', direction: 'ltr', textAlign: 'right' }}>{u.email || '—'}</td>
+                              <td style={{ ...td, textAlign: 'center' }}>
+                                <span style={u.is_active ? badgeGreen : badgeRed}>{u.is_active ? 'نشط' : 'معطّل'}</span>
+                              </td>
+                              <td style={{ ...td, textAlign: 'center' }}>
+                                {u.has_exception ? <span style={badgeGreen}>نعم</span> : <span style={{ color: '#C0C7D2' }}>—</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           ) : (
             <div style={{ padding: '40px', textAlign: 'center', color: '#8A93A3' }}>يرجى اختيار دور من القائمة لعرض وتعديل صلاحياته.</div>
@@ -261,6 +298,10 @@ const editorHead: CSSProperties = { padding: '18px 20px', borderBottom: '1px sol
 const superNote: CSSProperties = { margin: '0', padding: '10px 20px', fontSize: '13px', color: '#B45309', background: '#FEF3C7', borderBottom: '1px solid #FCD34D' };
 const sectionBox: CSSProperties = { border: '1px solid #E4E8EF', borderRadius: '8px', overflow: 'hidden' };
 const sectionTitle: CSSProperties = { background: '#F1F5F9', padding: '10px 15px', fontWeight: 700, fontSize: '13.5px', borderBottom: '1px solid #E4E8EF' };
+const th: CSSProperties = { padding: '10px', fontWeight: 700, fontSize: '12.5px', color: '#5A6478' };
+const td: CSSProperties = { padding: '10px' };
+const badgeGreen: CSSProperties = { display: 'inline-block', fontSize: '11px', fontWeight: 700, background: '#DCFCE7', color: '#15803D', borderRadius: '999px', padding: '2px 10px' };
+const badgeRed: CSSProperties = { display: 'inline-block', fontSize: '11px', fontWeight: 700, background: '#FEE2E2', color: '#B91C1C', borderRadius: '999px', padding: '2px 10px' };
 const dashChip: CSSProperties = { padding: '7px 14px', borderRadius: '9px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#334155', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700 };
 const dashChipOn: CSSProperties = { borderColor: '#274A78', background: '#EBF2FB', color: '#274A78' };
 const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', zIndex: 50, padding: '20px' };

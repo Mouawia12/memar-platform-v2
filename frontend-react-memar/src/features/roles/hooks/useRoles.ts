@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryClient } from '../../../lib/queryClient';
 import { rolesApi } from '../api/rolesApi';
-import type { RoleFormData } from '../types';
 
 const KEY = ['roles-catalog'];
 
@@ -17,7 +16,7 @@ export function usePermissionGroups() {
 export function useSaveRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id?: number; data: RoleFormData }) =>
+    mutationFn: ({ id, data }: { id?: number; data: Record<string, unknown> }) =>
       id ? rolesApi.update(id, { ...data }) : rolesApi.create({ ...data }),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });

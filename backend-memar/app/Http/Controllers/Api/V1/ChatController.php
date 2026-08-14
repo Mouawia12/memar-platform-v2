@@ -45,12 +45,14 @@ class ChatController extends ApiController
             ->where('id', '!=', $me->id)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name'])
+            ->get(['id', 'name', 'contact_id'])
+            // إنفاذ صلاحيات التواصل من إعدادات الدور: لا يُعرض إلا من يُسمح بمخاطبته.
+            ->filter(fn (User $u): bool => $me->canChatWith($u))
             ->map(fn (User $u): array => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'role' => $u->getRoleNames()->first(),
-            ])->all();
+            ])->values()->all();
 
         return $this->ok($users);
     }
@@ -104,9 +106,13 @@ class ChatController extends ApiController
 
         // منع مخاطبة حسابات العملاء عبر الشات الداخلي.
         $targetIds = $data['type'] === 'direct' ? [(int) $data['user_id']] : array_map('intval', $data['user_ids']);
-        $clientTargets = User::whereIn('id', $targetIds)->whereNotNull('contact_id')->count();
-        if ($clientTargets > 0) {
+        $targets = User::whereIn('id', $targetIds)->get();
+        if ($targets->contains(fn (User $u): bool => $u->contact_id !== null)) {
             throw ValidationException::withMessages(['user_ids' => 'لا يمكن إضافة حساب عميل إلى الشات الداخلي — استخدم محادثة العملاء.']);
+        }
+        // إنفاذ صلاحيات التواصل من إعدادات الدور: يُمنع بدء محادثة مع نوع حساب غير مسموح.
+        if ($targets->contains(fn (User $u): bool => ! $me->canChatWith($u))) {
+            throw ValidationException::withMessages(['user_ids' => 'صلاحيات دورك لا تسمح بالتواصل مع أحد المستخدمين المحدّدين.']);
         }
 
         if ($data['type'] === 'direct') {

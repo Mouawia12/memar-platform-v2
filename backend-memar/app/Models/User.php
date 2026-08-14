@@ -74,6 +74,74 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    /**
+     * النطاق الفعّال للمشاريع من إعدادات RBAC لأدوار المستخدم (all/partial/assigned/own).
+     *
+     * الأدمن والمدير العام يريان الكل دائمًا. الإنفاذ يتبع ما ضُبط صراحةً: دور بلا إعدادات
+     * محفوظة ⇒ «all» (لا كسر للسلوك الحالي)، وبمجرد ضبط الدور على «assigned» في شاشة RBAC
+     * يُقصر المستخدم على مشاريعه المُسنَدة. عند تعدّد الأدوار نأخذ الأوسع.
+     */
+    public function rbacProjectScope(): string
+    {
+        $rank = ['own' => 0, 'assigned' => 1, 'department' => 2, 'partial' => 2, 'all' => 3];
+        $best = null;
+
+        foreach ($this->roles as $role) {
+            if (in_array($role->name, ['super_admin', 'admin'], true)) {
+                return 'all';
+            }
+            $scope = data_get($role->getAttribute('settings'), 'scope.projects');
+            if (is_string($scope) && ($best === null || ($rank[$scope] ?? 0) > ($rank[$best] ?? 0))) {
+                $best = $scope;
+            }
+        }
+
+        return $best ?? 'all';
+    }
+
+    /**
+     * أنواع الحسابات المسموح لهذا المستخدم التواصل معها ('all' = بلا قيود).
+     * مثل النطاق: دور بلا إعدادات محفوظة أو يتضمّن «all» ⇒ بلا قيود. عند التعدّد نأخذ الاتحاد.
+     *
+     * @return array<int, string>
+     */
+    public function rbacChatTypes(): array
+    {
+        $union = [];
+        $anyStored = false;
+
+        foreach ($this->roles as $role) {
+            if (in_array($role->name, ['super_admin', 'admin'], true)) {
+                return ['all'];
+            }
+            $types = data_get($role->getAttribute('settings'), 'chat.types');
+            if (is_array($types)) {
+                $anyStored = true;
+                if (in_array('all', $types, true)) {
+                    return ['all'];
+                }
+                $union = array_merge($union, array_values(array_filter($types, 'is_string')));
+            }
+        }
+
+        return $anyStored ? array_values(array_unique($union)) : ['all'];
+    }
+
+    /** هل يسمح دور هذا المستخدم بمخاطبة الطرف الآخر (حسب نوع حسابه)؟ */
+    public function canChatWith(self $target): bool
+    {
+        $types = $this->rbacChatTypes();
+        if (in_array('all', $types, true)) {
+            return true;
+        }
+
+        $targetType = $target->contact_id !== null
+            ? 'clients'
+            : ($target->hasAnyRole(['super_admin', 'admin']) ? 'management' : 'employees');
+
+        return in_array($targetType, $types, true);
+    }
+
     /** إشعارات التطبيق لهذا المستخدم (جرس التوب‌بار). */
     public function appNotifications(): HasMany
     {

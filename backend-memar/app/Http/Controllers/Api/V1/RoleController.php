@@ -9,8 +9,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class RoleController extends ApiController
 {
@@ -105,15 +105,25 @@ class RoleController extends ApiController
             ->with('permissions:id,name')
             ->orderBy('id')
             ->get()
-            ->map(fn (Role $role): array => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'label' => self::ROLE_LABELS[$role->name] ?? $role->name,
-                'dashboard' => $this->dashboardOf($role),
-                'is_system' => in_array($role->name, self::SYSTEM_ROLES, true),
-                'users_count' => (int) ($counts[$role->id] ?? 0),
-                'permissions' => $role->permissions->pluck('name')->all(),
-            ]);
+            ->map(function (Role $role) use ($counts): array {
+                $rbac = $this->rbacOf($role);
+
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'label' => self::ROLE_LABELS[$role->name] ?? $role->name,
+                    // «الكود» في تصميم RBAC — نعرض الاسم البرمجي كرمز للدور (R_ADMIN ↔ super_admin).
+                    'code' => 'R_'.mb_strtoupper($role->name),
+                    'dashboard' => $this->dashboardOf($role),
+                    'is_system' => in_array($role->name, self::SYSTEM_ROLES, true),
+                    'users_count' => (int) ($counts[$role->id] ?? 0),
+                    'permissions' => $role->permissions->pluck('name')->all(),
+                    // حالة RBAC الكاملة (الوحدات + الحقوق + الرؤية + النطاق + الاعتماد + التواصل)
+                    'modules' => $rbac['modules'],
+                    'modules_count' => count($rbac['modules']),
+                    'rbac' => $rbac,
+                ];
+            });
 
         return $this->ok($roles);
     }
@@ -157,6 +167,7 @@ class RoleController extends ApiController
 
         $role = Role::create(['name' => $data['name'], 'guard_name' => 'web']);
         $role->dashboard = $data['dashboard'];
+        $role->settings = $data['settings'];
         $role->save();
         $role->syncPermissions($this->clampPermissions($data['permissions'], $data['dashboard']));
 
@@ -176,6 +187,9 @@ class RoleController extends ApiController
 
         $role->update(['name' => $data['name']]);
         $role->dashboard = $dashboard;
+        if ($data['settings'] !== null) {
+            $role->settings = $data['settings'];
+        }
         $role->save();
         $role->syncPermissions($this->clampPermissions($data['permissions'], $dashboard));
 
@@ -208,27 +222,141 @@ class RoleController extends ApiController
         }));
     }
 
+    /** إعدادات RBAC الافتراضية لدور (تُدمج مع المخزّن). */
+    private function defaultSettings(): array
+    {
+        return [
+            'rights' => ['view' => 'all', 'edit' => 'none', 'delete' => false],
+            'visibility' => ['pricing' => 'none', 'financial' => 'none'],
+            'scope' => ['projects' => 'assigned'],
+            'approval_authority' => false,
+            'chat' => ['types' => ['all'], 'restrict' => 'none'],
+        ];
+    }
+
+    /**
+     * حالة RBAC لدور: الوحدات (المجموعات التي يملك .view عليها) + الحقوق/الرؤية/النطاق/
+     * الاعتماد/التواصل من settings المخزّنة، أو مُشتقّة من صلاحياته إن لم تُحفَظ بعد.
+     */
+    private function rbacOf(Role $role): array
+    {
+        $perms = $role->permissions->pluck('name')->all();
+        $has = fn (string $p): bool => in_array($p, $perms, true);
+        $modules = collect($perms)
+            ->map(fn (string $p): string => explode('.', $p)[0])
+            ->unique()
+            ->filter(fn (string $g): bool => $has("$g.view"))
+            ->values()->all();
+
+        $stored = $role->getAttribute('settings');
+        if (is_array($stored)) {
+            // دمج علوي فقط (لا array_replace_recursive) حتى لا تُدمج القوائم كـ chat.types عنصرًا بعنصر.
+            return array_merge($this->defaultSettings(), $stored, ['modules' => $modules]);
+        }
+
+        // اشتقاق العرض من الصلاحيات الحالية (لأدوار لم تُحفَظ إعداداتها بعد)
+        $hasManage = collect($modules)->contains(fn (string $g): bool => $has("$g.manage"));
+        $hasDelete = collect($modules)->contains(fn (string $g): bool => $has("$g.delete"));
+
+        return array_merge($this->defaultSettings(), [
+            'modules' => $modules,
+            'rights' => ['view' => 'all', 'edit' => $hasManage ? 'full' : 'none', 'delete' => $hasDelete],
+            'visibility' => [
+                'pricing' => $has('pricing.view') ? 'full' : 'none',
+                'financial' => $has('finance.view') ? 'full' : 'none',
+            ],
+            'scope' => ['projects' => $this->dashboardOf($role) === 'admin' ? 'all' : 'assigned'],
+            'approval_authority' => $this->dashboardOf($role) === 'admin',
+        ]);
+    }
+
+    /**
+     * يبني قائمة صلاحيات spatie من حمولة RBAC: كل وحدة مؤشّرة تُمنح .view؛ وإن كان
+     * التعديل مسموحًا تُمنح .manage، والحذف يمنح .delete؛ ورؤية الأسعار/المالية تمنح
+     * pricing.view/finance.view. تُقصّ على نوع اللوحة وتُبقى الموجودة فقط.
+     *
+     * @return array<int, string>
+     */
+    private function permissionsFromRbac(array $data, string $dashboard): array
+    {
+        $rights = $data['rights'] ?? [];
+        $visibility = $data['visibility'] ?? [];
+        $out = [];
+
+        foreach (($data['modules'] ?? []) as $group) {
+            if (! in_array($dashboard, $this->groupDashboards($group), true)) {
+                continue;
+            }
+            $out[] = "$group.view";
+            if (($rights['edit'] ?? 'none') !== 'none') {
+                $out[] = "$group.manage";
+            }
+            if (! empty($rights['delete'])) {
+                $out[] = "$group.delete";
+            }
+        }
+        if (($visibility['pricing'] ?? 'none') !== 'none') {
+            $out[] = 'pricing.view';
+        }
+        if (($visibility['financial'] ?? 'none') !== 'none') {
+            $out[] = 'finance.view';
+        }
+
+        // نُبقي الصلاحيات الموجودة فعلًا فقط
+        return array_values(array_unique(array_filter($out, fn (string $p): bool => Permission::where('name', $p)->exists())));
+    }
+
     /**
      * @return array{name: string, dashboard: string, permissions: array<int, string>}
      */
     private function validateRole(Request $request, ?int $ignoreId): array
     {
-        /** @var array{name: string, dashboard: string, permissions?: array<int, string>} $validated */
         $validated = $request->validate([
             // اسم الدور يقبل العربية والإنجليزية والأرقام والمسافات (طلب أيمن 2026-08-12).
             'name' => ['required', 'string', 'max:100', 'regex:/^[\p{Arabic}A-Za-z0-9 _\-]+$/u', Rule::unique('roles', 'name')->ignore($ignoreId)],
             'dashboard' => ['required', Rule::in(array_keys(self::DASHBOARDS))],
+            // مسار قديم: قائمة صلاحيات صريحة (مصفوفة الأدوار القديمة)
             'permissions' => ['array'],
             'permissions.*' => ['string', Rule::exists('permissions', 'name')],
+            // مسار RBAC الجديد (طبق الأصل): وحدات + حقوق + رؤية + نطاق + اعتماد + تواصل
+            'modules' => ['array'],
+            'modules.*' => ['string'],
+            'rights' => ['array'],
+            'visibility' => ['array'],
+            'scope' => ['array'],
+            'approval_authority' => ['boolean'],
+            'chat' => ['array'],
         ], [
             'name.regex' => 'اسم الدور يقبل حروفًا عربية أو إنجليزية وأرقامًا ومسافات فقط.',
             'dashboard.required' => 'حدّد نوع الدور (لوحة الإدارة / بوابة الموظف / بوابة العميل).',
         ]);
 
+        // إعدادات RBAC (تُخزَّن كما هي للعرض؛ والوحدات/الحقوق/الرؤية تُزامَن مع صلاحيات spatie).
+        // دمج صريح لكل مفتاح (لا array_replace_recursive) حتى لا تُدمج القوائم كـ chat.types
+        // عنصرًا بعنصر — فإلغاء تحديد كل الأنواع يجب أن يُخزَّن قائمة فارغة لا الافتراضي.
+        $def = $this->defaultSettings();
+        $settings = [
+            'rights' => array_replace($def['rights'], array_intersect_key($validated['rights'] ?? [], $def['rights'])),
+            'visibility' => array_replace($def['visibility'], array_intersect_key($validated['visibility'] ?? [], $def['visibility'])),
+            'scope' => array_replace($def['scope'], array_intersect_key($validated['scope'] ?? [], $def['scope'])),
+            'approval_authority' => (bool) ($validated['approval_authority'] ?? false),
+            'chat' => [
+                'types' => array_values(array_filter((array) ($validated['chat']['types'] ?? []), 'is_string')),
+                'restrict' => is_string($validated['chat']['restrict'] ?? null) ? $validated['chat']['restrict'] : 'none',
+            ],
+        ];
+
+        // إن أُرسلت وحدات RBAC نبني الصلاحيات منها؛ وإلا نستخدم قائمة الصلاحيات الصريحة (القديمة).
+        $isRbac = $request->has('modules');
+        $permissions = $isRbac
+            ? $this->permissionsFromRbac(array_merge($validated, ['rights' => $settings['rights'], 'visibility' => $settings['visibility']]), $validated['dashboard'])
+            : ($validated['permissions'] ?? []);
+
         return [
             'name' => trim($validated['name']),
             'dashboard' => $validated['dashboard'],
-            'permissions' => $validated['permissions'] ?? [],
+            'permissions' => $permissions,
+            'settings' => $isRbac ? $settings : null,
         ];
     }
 }

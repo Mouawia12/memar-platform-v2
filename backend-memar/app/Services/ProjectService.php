@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Project;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -14,9 +15,16 @@ class ProjectService
 {
     public function __construct(private readonly ContractService $contracts) {}
 
-    public function list(?string $search, ?string $status, int $perPage = 15): LengthAwarePaginator
+    public function list(?string $search, ?string $status, int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
         return Project::query()
+            // إنفاذ نطاق RBAC: غير «all» ⇒ يرى فقط ما يديره أو أُسنِد إليه كعضو (طلب أيمن 2026-08-13).
+            ->when($user && $user->rbacProjectScope() !== 'all', function ($query) use ($user): void {
+                $query->where(function ($q) use ($user): void {
+                    $q->where('manager_id', $user->id)
+                        ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
+                });
+            })
             ->when($search, function ($query, string $s): void {
                 $query->where(function ($q) use ($s): void {
                     $q->where('name', 'like', "%{$s}%")

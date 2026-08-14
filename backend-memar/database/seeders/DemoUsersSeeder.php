@@ -28,31 +28,50 @@ class DemoUsersSeeder extends Seeder
      * كلمات مرور قوية (تُخزَّن مُجزَّأة Hash) — دخول حقيقي بالبريد وكلمة السر فقط،
      * بلا أي دخول سريع من الواجهة (طلب أيمن 2026-08-08).
      */
-    // تبسيط صارم لـ4 أدوار (طلب أيمن 2026-08-12): مدير/محاسب/موارد → أدمن،
-    // مهندس/مبيعات/سكرتير → موظف. تبقى الإيميلات وكلمات المرور ثابتة للحسابات المحفوظة.
+    // 4 أدوار (طلب أيمن 2026-08-12): مدير/محاسب/موارد → أدمن، مهندس/مبيعات/سكرتير → موظف.
+    // توسعة الحسابات لعدة مستخدمين لكل دور (طلب أيمن 2026-08-14) — لتظهر عضوية واقعية
+    // لكل دور في سجل المستخدمين وشاشة الصلاحيات وتُختبر لوحات الأدوار بحسابات متعددة.
+    // الإيميلات وكلمات المرور ثابتة للحسابات المحفوظة.
     private const ACCOUNTS = [
+        // مدير عام
         ['admin@memar.kw', 'Admin@Memar2026', 'م. أيمن الطوخي', 'super_admin'],
+
+        // الإدارة (لوحة الإدارة)
         ['pm@memar.kw', 'Manager@Memar2026', 'م. عبدالله', 'admin'],
-        ['arch1@memar.kw', 'Architect@Memar2026', 'م. دعاء', 'employee'],
         ['acc@memar.kw', 'Account@Memar2026', 'أ. وليد', 'admin'],
         ['hr@memar.kw', 'HR@Memar2026', 'أ. منى الهاجري', 'admin'],
+        ['acc2@memar.kw', 'Account2@Memar2026', 'أ. ليلى الفهد', 'admin'],
+        ['ops@memar.kw', 'Ops@Memar2026', 'م. طارق الخالدي', 'admin'],
+
+        // الموظفون (بوابة الموظف)
+        ['arch1@memar.kw', 'Architect@Memar2026', 'م. دعاء', 'employee'],
         ['rep@memar.kw', 'Sales@Memar2026', 'مندوب أبو علي', 'employee'],
         ['sec@memar.kw', 'Secretary@Memar2026', 'أ. رنا', 'employee'],
-        // العميل الرئيسي الغني (شركة المنصور) — يربطه AtomsDemoSeeder ببوابته
+        ['arch2@memar.kw', 'Architect2@Memar2026', 'م. سارة العنزي', 'employee'],
+        ['struct1@memar.kw', 'Struct@Memar2026', 'م. خالد المطيري', 'employee'],
+        ['draft1@memar.kw', 'Draft@Memar2026', 'أ. يوسف الرشيدي', 'employee'],
+        ['site1@memar.kw', 'Site@Memar2026', 'م. فهد العجمي', 'employee'],
+        ['sales2@memar.kw', 'Sales2@Memar2026', 'أ. نورة الصباح', 'employee'],
+
+        // العملاء (بوابة العميل) — الأسماء تطابق جهات CRM موجودة فتُربط تلقائيًا ببواباتهم
         ['client1@memar.kw', 'Client@Memar2026', 'أحمد بن عبدالله المنصور', 'client'],
+        ['client2@memar.kw', 'Client2@Memar2026', 'خالد خلف العازمي', 'client'],
+        ['client3@memar.kw', 'Client3@Memar2026', 'د. آمنة الرشيدي', 'client'],
     ];
 
-    /** حسابات دخول قديمة زائدة تُحذف (أبقينا واحدًا لكل دور). */
+    /** حسابات دخول قديمة زائدة تُحذف (لم تُعَد ضمن ACCOUNTS). */
     private const REMOVED = [
-        'arch2@memar.kw', 'struct1@memar.kw', 'struct2@memar.kw', 'draft@memar.kw',
-        'office@memar.kw', '3d@memar.kw', 'interior@memar.kw', 'ui@memar.kw',
-        'client2@memar.kw', 'client3@memar.kw',
+        'struct2@memar.kw', 'draft@memar.kw', 'office@memar.kw',
+        '3d@memar.kw', 'interior@memar.kw', 'ui@memar.kw',
     ];
 
-    /** كم مشروعًا يُسنَد لكل موظف (تُختار ديناميكيًا من المشاريع الموجودة). */
+    /** دور كل موظف داخل مشاريعه المُسنَدة (تُختار المشاريع ديناميكيًا). */
     private const ASSIGN_ROLES = [
         'pm@memar.kw' => 'مدير المشروع',
         'arch1@memar.kw' => 'مهندسة معمارية',
+        'struct1@memar.kw' => 'مهندس إنشائي',
+        'site1@memar.kw' => 'مشرف موقع',
+        'arch2@memar.kw' => 'مهندسة معمارية',
     ];
 
     public function run(): void
@@ -88,10 +107,13 @@ class DemoUsersSeeder extends Seeder
         // نختار مشاريع موجودة ديناميكيًا (يعمل على أي قاعدة بيانات، لا اعتماد على IDs ثابتة).
         $ids = Project::orderBy('id')->pluck('id')->all();
         if ($ids !== []) {
-            // pm يأخذ أول 3، arch1 يأخذ ثلاثة مع تداخل مشروع واحد (لعرض المشاركة).
+            // توزيع المشاريع على الموظفين (مع تداخل لعرض المشاركة) — يغذّي إنفاذ نطاق «المرتبطة به».
             $plan = [
                 'pm@memar.kw' => array_slice($ids, 0, 3),
                 'arch1@memar.kw' => array_slice($ids, 2, 3) ?: array_slice($ids, 0, 3),
+                'struct1@memar.kw' => array_slice($ids, 4, 3) ?: array_slice($ids, 0, 2),
+                'site1@memar.kw' => array_slice($ids, 6, 2) ?: array_slice($ids, 0, 2),
+                'arch2@memar.kw' => array_slice($ids, 1, 2) ?: array_slice($ids, 0, 2),
             ];
 
             foreach ($plan as $email => $projectIds) {

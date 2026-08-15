@@ -1,5 +1,5 @@
-import { useState, type CSSProperties } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { type CSSProperties } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { ProjectAssessmentPanel } from '../components/ProjectAssessmentPanel';
 import { ProjectContractTab, ProjectDocumentsTab } from '../components/ProjectDocumentsPanel';
@@ -31,7 +31,15 @@ const EVENT_COLORS: Record<string, string> = {
 export function ProjectDetailPage() {
   const { id } = useParams();
   const projectId = Number(id);
-  const [tab, setTab] = useState<Tab>('overview');
+  // التبويب مشتقّ من الرابط (?tab=) ليبقى بعد تحديث المتصفّح (خلل الرفرش — أيمن 2026-08-15).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: Tab = tabParam && TABS.some((t) => t.key === tabParam) ? (tabParam as Tab) : 'overview';
+  const setTab = (t: Tab) => setSearchParams((prev) => {
+    const p = new URLSearchParams(prev);
+    if (t === 'overview') p.delete('tab'); else p.set('tab', t);
+    return p;
+  }, { replace: true });
   const { data, isLoading, isError } = useProjectOverview(projectId);
 
   if (isLoading) return <p>جارٍ التحميل…</p>;

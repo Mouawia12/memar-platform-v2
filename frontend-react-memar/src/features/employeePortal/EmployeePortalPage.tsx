@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAuthStore } from '../../store/auth';
 import { useLiveSync } from '../../hooks/useLiveSync';
@@ -78,6 +78,9 @@ const ACCOUNT: SbLink[] = [
   { id: 'ep-referral', icon: '🎁', text: 'كود الإحالة', perm: 'self.view' },
 ];
 
+/** كل معرّفات الأقسام الصالحة — للتحقّق من قيمة ?tab في الرابط. */
+const ALL_TAB_IDS = new Set<string>([TOP.id, ...GROUPS.flatMap((g) => g.links.map((l) => l.id)), ...ACCOUNT.map((l) => l.id)]);
+
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   'ep-appointments': { title: '📅 المواعيد', subtitle: 'تقويم مواعيدك واجتماعاتك' },
   'ep-tasks': { title: '✅ المهام والمتابعة', subtitle: 'إدارة ومتابعة المهام المسندة إليك' },
@@ -134,17 +137,26 @@ export function EmployeePortalPage() {
 
   // حراسة المحتوى: حتى لو ظهر رابط (نسخة قديمة/حالة حافّة) لا نعرض صفحة لا يملك المستخدم
   // صلاحيتها — نُظهر «لا صلاحية» بدل تحميل الصفحة وفشل بياناتها (طلب أيمن 2026-08-12).
-  const [active, setActive] = useState('ep-dashboard');
+  // القسم النشط مشتقّ من الرابط (?tab=) — يبقى المستخدم على صفحته عند تحديث المتصفّح،
+  // ويعمل زرّا الرجوع/التقدّم أيضًا (خلل أبلغ عنه أيمن 2026-08-15: الرفرش يعيد للوحة التحكم).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const active = tabParam && ALL_TAB_IDS.has(tabParam) ? tabParam : 'ep-dashboard';
   const activePerm = PAGE_PERM[active];
   const activeAllowed = !activePerm || perms.includes(activePerm);
 
   const [sbOpen, setSbOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(GROUPS.map((g) => g.id)));
   const go = (id: string) => {
-    setActive(id);
     setSbOpen(false);
     const g = groupOf(id);
     if (g) setOpenGroups((prev) => new Set(prev).add(g));
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      // «نظرة عامة» هي الافتراضي — نُبقي الرابط نظيفًا بلا ?tab.
+      if (id === TOP.id) p.delete('tab'); else p.set('tab', id);
+      return p;
+    });
   };
   const toggleGroup = (id: string) => setOpenGroups((prev) => {
     const next = new Set(prev);

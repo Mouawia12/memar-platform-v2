@@ -61,6 +61,27 @@ class ContactsRegistryTest extends TestCase
         $this->assertDatabaseHas('contacts', ['full_name' => 'سالم المنصور', 'client_kind' => 'company']);
     }
 
+    public function test_reorder_sets_board_position_and_is_allowed_for_view_only_roles(): void
+    {
+        // متاح لكل الأدوار: يكفي crm.view (بلا crm.manage) — طلب أيمن 2026-08-15.
+        $this->actingAsUserWith(['crm.view']);
+
+        $a = Contact::factory()->create(['type' => 'lead', 'stage' => 'new']);
+        $b = Contact::factory()->create(['type' => 'lead', 'stage' => 'new']);
+        $c = Contact::factory()->create(['type' => 'lead', 'stage' => 'new']);
+
+        // ترتيب جديد: c، a، b
+        $this->postJson('/api/v1/contacts/reorder', ['ids' => [$c->id, $a->id, $b->id]])->assertOk();
+
+        $this->assertSame(0, $c->fresh()->board_position);
+        $this->assertSame(1, $a->fresh()->board_position);
+        $this->assertSame(2, $b->fresh()->board_position);
+
+        // قائمة الفرص تعكس الترتيب الجديد (board_position ثم الأحدث)
+        $order = collect($this->getJson('/api/v1/contacts?type=lead')->assertOk()->json('data'))->pluck('id')->all();
+        $this->assertSame([$c->id, $a->id, $b->id], array_values(array_intersect($order, [$a->id, $b->id, $c->id])));
+    }
+
     public function test_client_kind_defaults_are_derived_when_absent(): void
     {
         $this->actingAsUserWith(['crm.view']);

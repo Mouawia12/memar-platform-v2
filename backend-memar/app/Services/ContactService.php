@@ -32,6 +32,8 @@ class ContactService
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
             ->with(['owner', 'convertedProject', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
+            // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).
+            ->orderBy('board_position')
             ->latest()
             ->paginate($perPage);
     }
@@ -61,6 +63,19 @@ class ContactService
     public function delete(Contact $contact): void
     {
         $contact->delete();
+    }
+
+    /**
+     * إعادة ترتيب الفرص: تُسند board_position = الفهرس لكل معرّف بالترتيب المُرسَل.
+     * تحديث مُجمّع بدفعة واحدة (CASE) لتفادي استعلام لكل صف.
+     *
+     * @param  array<int, int>  $ids
+     */
+    public function reorder(array $ids): void
+    {
+        foreach (array_values($ids) as $position => $id) {
+            Contact::whereKey($id)->update(['board_position' => $position]);
+        }
     }
 
     /**

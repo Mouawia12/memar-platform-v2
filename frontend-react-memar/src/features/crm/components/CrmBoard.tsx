@@ -20,6 +20,8 @@ interface Props {
   stages: PipelineStage[];
   onMove: (l: Lead, stage: Stage) => void;
   onOpen: (l: Lead) => void;
+  /** إعادة ترتيب عمود: قائمة المعرّفات بالترتيب الجديد (طلب أيمن 2026-08-15). */
+  onReorder: (orderedIds: number[]) => void;
 }
 
 const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
@@ -96,7 +98,15 @@ function DraggableCard({ lead, children }: { lead: Lead; children: ReactNode }) 
   );
 }
 
-export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
+export function CrmBoard({ leads, stages, onMove, onOpen, onReorder }: Props) {
+  /** تبديل موضع كرت مع جاره داخل العمود ثم إرسال الترتيب الجديد. */
+  const moveInColumn = (colLeads: Lead[], index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= colLeads.length) return;
+    const ids = colLeads.map((l) => l.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    onReorder(ids);
+  };
   const [active, setActive] = useState<Lead | null>(null);
   const [expanded, setExpanded] = useState<PipelineStage | null>(null);
   // سحب بالضغط المطوّل (طلب أيمن): يبدأ السحب بعد ثبات ~250ms فقط. النقرة السريعة تفتح
@@ -135,9 +145,17 @@ export function CrmBoard({ leads, stages, onMove, onOpen }: Props) {
           return (
             <DroppableColumn key={stage.key} stage={stage} count={colLeads.length} total={total} onExpand={() => setExpanded(stage)}>
               {colLeads.length === 0 && <p style={{ opacity: 0.4, fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>أفلت هنا</p>}
-              {colLeads.map((lead) => (
+              {colLeads.map((lead, i) => (
                 <DraggableCard key={lead.id} lead={lead}>
-                  <LeadCard lead={lead} onOpen={onOpen} stageColor={stage.color} />
+                  <LeadCard
+                    lead={lead}
+                    onOpen={onOpen}
+                    stageColor={stage.color}
+                    onMoveUp={() => moveInColumn(colLeads, i, -1)}
+                    onMoveDown={() => moveInColumn(colLeads, i, 1)}
+                    canMoveUp={i > 0}
+                    canMoveDown={i < colLeads.length - 1}
+                  />
                 </DraggableCard>
               ))}
             </DroppableColumn>

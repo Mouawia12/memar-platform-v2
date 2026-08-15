@@ -24,6 +24,8 @@ export const crmApi = {
   update: (id: number, payload: Record<string, unknown>) => apiPatch<Lead>(`/contacts/${id}`, payload),
   moveStage: (id: number, stage: Stage) => apiPatch<Lead>(`/contacts/${id}`, { stage }),
   setTemperature: (id: number, temperature: Temperature) => apiPatch<Lead>(`/contacts/${id}`, { temperature }),
+  /** إعادة ترتيب الفرص داخل عمود (قائمة المعرّفات بالترتيب الجديد) — متاح لكل الأدوار. */
+  reorder: (ids: number[]) => apiPost<null>('/contacts/reorder', { ids }),
   remove: (id: number) => apiDelete<null>(`/contacts/${id}`),
   /** سجل تعديلات الصفقة (AUDIT-1). */
   history: (id: number) => apiGetPaginated<LeadActivity>('/activity-log', { params: { subject_type: 'Contact', subject_id: id, per_page: 40 } }),

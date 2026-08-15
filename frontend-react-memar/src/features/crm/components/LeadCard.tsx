@@ -6,14 +6,23 @@ interface Props {
   lead: Lead;
   onOpen: (l: Lead) => void;
   stageColor?: string;
+  /** ترتيب يدوي داخل العمود (أعلى/أسفل) — متاح لكل الأدوار (طلب أيمن 2026-08-15). */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }
+
+/** يوقف انتشار الحدث كي لا يفتح الكرت أو يبدأ السحب عند الضغط على أزرار الترتيب. */
+const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
 const AVATAR_COLORS = ['#6366f1', '#22c55e', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444'];
 const fmtReminder = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM: صورة + اسم، وسم الجهة، القيمة + الحرارة، وتنبيه تذكير. */
-export function LeadCard({ lead, onOpen, stageColor }: Props) {
+export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: Props) {
+  const reorderable = !!(onMoveUp || onMoveDown);
   const temp = TEMPERATURE_META[lead.temperature];
   const avatarColor = AVATAR_COLORS[lead.id % AVATAR_COLORS.length];
   const dueReminder = lead.reminder?.due ? lead.reminder : null;
@@ -56,12 +65,28 @@ export function LeadCard({ lead, onOpen, stageColor }: Props) {
       )}
 
       <div style={footer}>
-        <span style={{ ...tempPill, background: `${temp.color}18`, color: temp.color }}>{temp.icon} {temp.label}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {reorderable && (
+            <span style={reorderGroup} onClick={stop} onPointerDown={stop}>
+              <button type="button" title="تحريك لأعلى" aria-label="تحريك لأعلى" disabled={!canMoveUp}
+                style={{ ...reorderBtn, ...(canMoveUp ? null : reorderBtnOff) }}
+                onClick={(e) => { stop(e); onMoveUp?.(); }} onPointerDown={stop}>▲</button>
+              <button type="button" title="تحريك لأسفل" aria-label="تحريك لأسفل" disabled={!canMoveDown}
+                style={{ ...reorderBtn, ...(canMoveDown ? null : reorderBtnOff) }}
+                onClick={(e) => { stop(e); onMoveDown?.(); }} onPointerDown={stop}>▼</button>
+            </span>
+          )}
+          <span style={{ ...tempPill, background: `${temp.color}18`, color: temp.color }}>{temp.icon} {temp.label}</span>
+        </div>
         {Number(lead.deal_value_kwd) > 0 && <b style={{ fontSize: '13px', color: '#059669' }}>{money(lead.deal_value_kwd)}</b>}
       </div>
     </div>
   );
 }
+
+const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px' };
+const reorderBtn: CSSProperties = { width: '20px', height: '14px', display: 'grid', placeItems: 'center', border: '1px solid #E4E8EF', background: '#F7F9FC', color: '#5A6478', borderRadius: '4px', cursor: 'pointer', fontSize: '8px', lineHeight: 1, padding: 0 };
+const reorderBtnOff: CSSProperties = { opacity: 0.3, cursor: 'default' };
 
 const card: CSSProperties = { padding: '13px 14px', marginBottom: '9px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', cursor: 'pointer' };
 const cardDue: CSSProperties = { border: '1px solid #FCA5A5', boxShadow: '0 0 0 3px rgba(220,38,38,.10)' };

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryClient } from '../../../lib/queryClient';
 import { crmApi, type CrmQuery } from '../api/crmApi';
-import type { LeadFormData, Stage, Temperature } from '../types';
+import type { Lead, LeadFormData, Stage, Temperature } from '../types';
 
 const KEY = ['crm-leads'];
 
@@ -64,5 +64,41 @@ export function useDeleteLead() {
   return useMutation({
     mutationFn: (id: number) => crmApi.remove(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** يعيد ترتيب مصفوفة الفرص بحيث يتبع أعضاء العمود ترتيب orderedIds في أماكنهم نفسها. */
+function applyColumnOrder(list: Lead[], orderedIds: number[]): Lead[] {
+  const inCol = new Set(orderedIds);
+  const byId = new Map(list.map((l) => [l.id, l]));
+  const reordered = orderedIds.map((id) => byId.get(id)).filter((l): l is Lead => !!l);
+  const out = [...list];
+  let k = 0;
+  for (let i = 0; i < out.length; i++) {
+    if (inCol.has(out[i].id)) out[i] = reordered[k++];
+  }
+  return out;
+}
+
+/**
+ * إعادة ترتيب الفرص داخل عمود (أعلى/أسفل) — تحديث تفاؤلي فوري ثم مزامنة مع الخادم.
+ * متاح لكل الأدوار (الخادم يكتفي بـ crm.view).
+ */
+export function useReorderLeads() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderedIds: number[]) => crmApi.reorder(orderedIds),
+    onMutate: async (orderedIds) => {
+      await qc.cancelQueries({ queryKey: KEY });
+      const snapshots = qc.getQueriesData<{ data: Lead[]; meta: unknown }>({ queryKey: KEY });
+      snapshots.forEach(([key, value]) => {
+        if (value?.data) qc.setQueryData(key, { ...value, data: applyColumnOrder(value.data, orderedIds) });
+      });
+      return { snapshots };
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.snapshots.forEach(([key, value]) => qc.setQueryData(key, value));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }

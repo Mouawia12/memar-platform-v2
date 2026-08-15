@@ -7,7 +7,7 @@ import { CrmBoard } from '../components/CrmBoard';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
-import { useDeleteLead, useLeads, useMoveLead } from '../hooks/useCrm';
+import { useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
 
@@ -27,6 +27,7 @@ export function CrmPage() {
   const { data, isLoading, isError } = useLeads({ search: search || undefined, type: 'lead', per_page: 200 });
   const { data: stages } = usePipelineStages();
   const move = useMoveLead();
+  const reorder = useReorderLeads();
   const del = useDeleteLead();
   const canManage = usePermission('crm.manage');
   const canDelete = usePermission('crm.delete');
@@ -125,7 +126,7 @@ export function CrmPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids)} />}
 
       {detailLead && (
         <LeadDetailModal

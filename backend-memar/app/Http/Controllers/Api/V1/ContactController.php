@@ -58,6 +58,22 @@ class ContactController extends ApiController
         return $this->ok(null, 'تم حذف العميل');
     }
 
+    /**
+     * إعادة ترتيب الفرص داخل عمود CRM (أعلى/أسفل) — طلب أيمن 2026-08-15، متاح لكل الأدوار
+     * (يكفي crm.view). تستقبل قائمة المعرّفات بالترتيب الجديد فتُسند board_position = الفهرس.
+     */
+    public function reorder(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $this->contacts->reorder(array_map('intval', $data['ids']));
+
+        return $this->ok(null, 'تم تحديث الترتيب');
+    }
+
     // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───
 
     /** تذكيرات الفرصة (الأحدث أولًا). */

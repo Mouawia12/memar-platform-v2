@@ -26,6 +26,7 @@ class UpdateContactRequest extends FormRequest
             'company' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
             'type' => ['sometimes', 'required', Rule::in(['lead', 'client', 'contact'])],
+            'client_kind' => ['nullable', Rule::in(['individual', 'company'])],
             'status' => ['nullable', 'string', 'max:50'],
             'stage' => ['sometimes', 'required', 'string', Rule::exists('pipeline_stages', 'key')],
             'temperature' => ['nullable', Rule::in(['hot', 'warm', 'cold', 'normal'])],

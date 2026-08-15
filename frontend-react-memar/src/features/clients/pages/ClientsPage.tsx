@@ -7,7 +7,7 @@ import { contactsApi } from '../api/contactsApi';
 import { ContactFormModal } from '../components/ContactFormModal';
 import { ContactsTable } from '../components/ContactsTable';
 import { useContacts, useDeleteContact } from '../hooks/useContacts';
-import { CONTACT_TYPE_LABELS, type Contact, type ContactType } from '../types';
+import { CONTACT_TYPE_LABELS, type Contact } from '../types';
 
 export function ClientsPage() {
   const navigate = useNavigate();
@@ -16,7 +16,9 @@ export function ClientsPage() {
   const canManage = usePermission('crm.manage');
   const canDelete = usePermission('crm.delete');
   const [search, setSearch] = useState('');
-  const [type, setType] = useState<'' | ContactType>('');
+  // سجل العملاء لا يعرض الفرص (leads) — تلك في لوحة CRM. فحذف فرصة لا يفرّغ السجل.
+  // الأنواع المتاحة هنا: العملاء وجهات الاتصال فقط (طلب أيمن 2026-08-14).
+  const [type, setType] = useState<'client' | 'contact'>('client');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
@@ -68,9 +70,8 @@ export function ClientsPage() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             style={{ flex: 1, minWidth: '220px' }}
           />
-          <select className="input" value={type} onChange={(e) => { setType(e.target.value as '' | ContactType); setPage(1); }}>
-            <option value="">كل الأنواع</option>
-            {(Object.keys(CONTACT_TYPE_LABELS) as ContactType[]).map((t) => (
+          <select className="input" value={type} onChange={(e) => { setType(e.target.value as 'client' | 'contact'); setPage(1); }}>
+            {(['client', 'contact'] as const).map((t) => (
               <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>
             ))}
           </select>

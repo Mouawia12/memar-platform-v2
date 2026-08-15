@@ -26,6 +26,8 @@ class ContactResource extends JsonResource
             'company' => $this->company,
             'position' => $this->position,
             'type' => $this->type,
+            // نوع العميل: فرد/شركة — إن لم يُحدَّد نشتقّه من وجود اسم شركة.
+            'client_kind' => $this->client_kind ?? ($this->company ? 'company' : 'individual'),
             'status' => $this->status,
             'stage' => $this->stage,
             'temperature' => $this->temperature,

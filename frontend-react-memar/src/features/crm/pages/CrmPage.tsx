@@ -22,7 +22,9 @@ export function CrmPage() {
   const [kpisOpen, setKpisOpen] = useState(false);
   const [stagesOpen, setStagesOpen] = useState(false);
 
-  const { data, isLoading, isError } = useLeads({ search: search || undefined, per_page: 200 });
+  // لوحة CRM = الفرص فقط (type=lead). سجل العملاء منفصل — فحذف فرصة لا يمسّ سجل العملاء
+  // (خلل أبلغ عنه أيمن 2026-08-14: حذف العملاء المحتملين كان يحذفهم من سجل العملاء).
+  const { data, isLoading, isError } = useLeads({ search: search || undefined, type: 'lead', per_page: 200 });
   const { data: stages } = usePipelineStages();
   const move = useMoveLead();
   const del = useDeleteLead();

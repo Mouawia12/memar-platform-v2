@@ -1,5 +1,13 @@
 export type ContactType = 'lead' | 'client' | 'contact';
 
+/** نوع العميل: فرد أو شركة (طلب أيمن 2026-08-14). */
+export type ClientKind = 'individual' | 'company';
+
+export const CLIENT_KIND_LABELS: Record<ClientKind, string> = {
+  individual: 'فرد',
+  company: 'شركة',
+};
+
 export interface Contact {
   id: number;
   full_name: string;
@@ -8,6 +16,7 @@ export interface Contact {
   company: string | null;
   position: string | null;
   type: ContactType;
+  client_kind: ClientKind;
   status: string | null;
   notes: string | null;
   owner: { id: number; name: string } | null;

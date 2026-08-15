@@ -1,7 +1,10 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
+import { queryClient } from '../../../lib/queryClient';
 import { usePermission } from '../../auth/hooks/usePermission';
+import { contactsApi } from '../../clients/api/contactsApi';
+import { CLIENT_KIND_LABELS, type ClientKind } from '../../clients/types';
 import { useContacts } from '../../clients/hooks/useContacts';
 import { useUsers } from '../../users/hooks/useUsers';
 import { useSaveProject } from '../hooks/useProjects';
@@ -17,6 +20,8 @@ const empty: ProjectFormData = {
   budget_kwd: '', start_date: '', end_date: '', description: '',
 };
 
+const emptyClient = { full_name: '', client_kind: 'individual' as ClientKind, phone: '', email: '', company: '' };
+
 export function ProjectFormModal({ project, onClose }: Props) {
   const save = useSaveProject();
   // القيمة المالية تظهر وتُحرَّر فقط لأصحاب صلاحية finance.view. طلب أيمن 2026-08-09.
@@ -24,6 +29,12 @@ export function ProjectFormModal({ project, onClose }: Props) {
   const { data: clientsData } = useContacts({ type: 'client', per_page: 100 });
   const { data: usersData } = useUsers({ per_page: 100 });
   const [form, setForm] = useState<ProjectFormData>(empty);
+
+  // إضافة بيانات عميل جديد أثناء إنشاء المشروع + نوعه فرد/شركة (طلب أيمن 2026-08-14).
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
+  const [newClient, setNewClient] = useState(emptyClient);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (project) {
@@ -40,15 +51,44 @@ export function ProjectFormModal({ project, onClose }: Props) {
     } else {
       setForm(empty);
     }
+    setClientMode('existing');
+    setNewClient(emptyClient);
+    setErr(null);
   }, [project]);
 
   const set = <K extends keyof ProjectFormData>(key: K, value: ProjectFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const setNC = <K extends keyof typeof emptyClient>(key: K, value: (typeof emptyClient)[K]) => setNewClient((c) => ({ ...c, [key]: value }));
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // القيمة المالية محميّة من جهة الخادم: يُزال budget_kwd من البيانات المعتمدة لمن لا يملك
-    // finance.view، فلا يُضبط ولا يُكتب فوق القيمة المخزّنة — والحقل مخفيّ أصلًا في الواجهة.
-    save.mutate({ id: project?.id, data: form }, { onSuccess: onClose });
+    setErr(null);
+
+    let clientId: number | '' = form.client_id;
+
+    // عميل جديد: نُنشئه أولًا (type=client) ثم نربطه بالمشروع.
+    if (clientMode === 'new') {
+      if (!newClient.full_name.trim()) { setErr('اسم العميل الجديد مطلوب.'); return; }
+      try {
+        setBusy(true);
+        const created = await contactsApi.create({
+          full_name: newClient.full_name.trim(),
+          type: 'client',
+          client_kind: newClient.client_kind,
+          phone: newClient.phone.trim() || null,
+          email: newClient.email.trim() || null,
+          company: newClient.client_kind === 'company' ? (newClient.company.trim() || null) : null,
+        });
+        clientId = created.id;
+        queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      } catch (error) {
+        setErr(apiErrorMessage(error, 'تعذّر إنشاء العميل الجديد.'));
+        setBusy(false);
+        return;
+      }
+      setBusy(false);
+    }
+
+    save.mutate({ id: project?.id, data: { ...form, client_id: clientId } }, { onSuccess: onClose });
   };
 
   return (
@@ -60,13 +100,51 @@ export function ProjectFormModal({ project, onClose }: Props) {
           <input className="input" style={input} value={form.name} onChange={(e) => set('name', e.target.value)} required />
         </label>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <label style={label}>العميل
+        {/* ── العميل: موجود أو جديد ── */}
+        <div style={{ marginTop: '12px', border: '1px solid #E4E8EF', borderRadius: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '14px', fontWeight: 700 }}>العميل</span>
+            <div style={{ display: 'flex', gap: '6px', marginInlineStart: 'auto' }}>
+              <button type="button" onClick={() => setClientMode('existing')} style={{ ...seg, ...(clientMode === 'existing' ? segOn : null) }}>عميل موجود</button>
+              <button type="button" onClick={() => setClientMode('new')} style={{ ...seg, ...(clientMode === 'new' ? segOn : null) }}>+ عميل جديد</button>
+            </div>
+          </div>
+
+          {clientMode === 'existing' ? (
             <select className="input" style={input} value={form.client_id} onChange={(e) => set('client_id', e.target.value ? Number(e.target.value) : '')}>
               <option value="">— بدون —</option>
               {clientsData?.data.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
             </select>
-          </label>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <label style={{ ...label, marginTop: 0, gridColumn: '1 / -1' }}>نوع العميل
+                <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                  {(Object.keys(CLIENT_KIND_LABELS) as ClientKind[]).map((k) => (
+                    <button key={k} type="button" onClick={() => setNC('client_kind', k)} style={{ ...seg, ...(newClient.client_kind === k ? segOn : null) }}>
+                      {k === 'company' ? '🏢 ' : '👤 '}{CLIENT_KIND_LABELS[k]}
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <label style={{ ...label, marginTop: 0 }}>{newClient.client_kind === 'company' ? 'اسم جهة الاتصال' : 'الاسم'}
+                <input className="input" style={input} value={newClient.full_name} onChange={(e) => setNC('full_name', e.target.value)} placeholder="مثال: أحمد المنصور" />
+              </label>
+              {newClient.client_kind === 'company' && (
+                <label style={{ ...label, marginTop: 0 }}>اسم الشركة
+                  <input className="input" style={input} value={newClient.company} onChange={(e) => setNC('company', e.target.value)} placeholder="مثال: شركة المنصور للاستثمار" />
+                </label>
+              )}
+              <label style={{ ...label, marginTop: 0 }}>الهاتف
+                <input className="input" style={input} value={newClient.phone} onChange={(e) => setNC('phone', e.target.value)} />
+              </label>
+              <label style={{ ...label, marginTop: 0 }}>البريد
+                <input className="input" style={input} type="email" value={newClient.email} onChange={(e) => setNC('email', e.target.value)} />
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
           <label style={label}>مدير المشروع
             <select className="input" style={input} value={form.manager_id} onChange={(e) => set('manager_id', e.target.value ? Number(e.target.value) : '')}>
               <option value="">— بدون —</option>
@@ -97,11 +175,11 @@ export function ProjectFormModal({ project, onClose }: Props) {
           <textarea className="input" style={{ ...input, minHeight: '60px' }} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </label>
 
-        {save.isError && <p style={{ color: '#ef4444' }}>{apiErrorMessage(save.error, 'تعذّر الحفظ')}</p>}
+        {(err || save.isError) && <p style={{ color: '#ef4444' }}>{err ?? apiErrorMessage(save.error, 'تعذّر الحفظ')}</p>}
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <button className="btn btn-primary" type="submit" disabled={save.isPending}>
-            {save.isPending ? 'جارٍ الحفظ…' : 'حفظ'}
+          <button className="btn btn-primary" type="submit" disabled={save.isPending || busy}>
+            {busy ? 'جارٍ إنشاء العميل…' : save.isPending ? 'جارٍ الحفظ…' : 'حفظ'}
           </button>
           <button className="btn" type="button" onClick={onClose}>إلغاء</button>
         </div>
@@ -114,3 +192,5 @@ const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(
 const modal: CSSProperties = { padding: '24px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' };
 const label: CSSProperties = { display: 'block', marginTop: '10px', fontSize: '14px' };
 const input: CSSProperties = { width: '100%', marginTop: '4px' };
+const seg: CSSProperties = { padding: '6px 12px', borderRadius: '7px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#334155', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' };
+const segOn: CSSProperties = { borderColor: '#274A78', background: '#EBF2FB', color: '#274A78' };

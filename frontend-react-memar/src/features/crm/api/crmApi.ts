@@ -3,6 +3,8 @@ import type { Lead, LeadReminder, Stage, Temperature } from '../types';
 
 export interface CrmQuery {
   search?: string;
+  /** لوحة CRM تعرض الفرص فقط (type=lead) — منفصلة عن سجل العملاء. */
+  type?: string;
   per_page?: number;
 }
 

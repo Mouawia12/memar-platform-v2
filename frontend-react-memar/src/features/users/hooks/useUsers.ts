@@ -15,6 +15,18 @@ export function useUsers(params: UsersQuery, enabled = true) {
   });
 }
 
+/**
+ * قائمة الطاقم للإسناد (المكلّف/المدير) في النماذج التشغيلية — لا تتطلّب users.view،
+ * فيراها الموظف ويسند المهام. تُعيد نفس شكل useUsers (`{ data }`) لتسهيل الاستبدال.
+ */
+export function useAssignableUsers() {
+  return useQuery({
+    queryKey: ['assignable-users'],
+    queryFn: async () => ({ data: await usersApi.assignable() }),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useRoles() {
   return useQuery({
     queryKey: ['roles'],

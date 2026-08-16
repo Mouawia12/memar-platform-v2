@@ -4,7 +4,7 @@ import { useAuthStore } from '../../../store/auth';
 import { AppointmentFormModal } from '../../appointments/components/AppointmentFormModal';
 import { MeetingRoom } from '../../appointments/components/MeetingRoom';
 import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
-import { useUsers } from '../../users/hooks/useUsers';
+import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { tasksApi } from '../api/tasksApi';
 import { useAddComment, useRateTask, useSyncParticipants, useTaskDetail, useUploadTaskFile } from '../hooks/useTasks';
 import { PRIORITY_COLORS, PRIORITY_LABELS, dueLabel, isDone, type Task } from '../types';
@@ -27,7 +27,7 @@ const kb = (n: number) => (n < 1024 ? `${n}B` : n < 1_048_576 ? `${Math.round(n 
 export function TaskDetailModal({ task, canManage, canDelete, onClose, onEdit, onToggle, onDelete, onSetNotExecuted }: Props) {
   const userName = useAuthStore((s) => s.user?.name);
   const { data: detail, isLoading } = useTaskDetail(task.id);
-  const { data: users } = useUsers({ per_page: 100 });
+  const { data: users } = useAssignableUsers();
 
   const addComment = useAddComment(task.id);
   const syncParts = useSyncParticipants(task.id);

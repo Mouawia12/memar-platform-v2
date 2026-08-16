@@ -27,6 +27,25 @@ class UserController extends ApiController
         return $this->paginated($paginator, UserResource::class);
     }
 
+    /**
+     * قائمة الطاقم القابلين للإسناد (المعرّف + الاسم فقط) — لقوائم «المكلّف/المدير» في النماذج
+     * التشغيلية (مهام/مشاريع/طلبات/زيارات). متاحة لأي عضو طاقم بلا حاجة إلى users.view (التي
+     * تخصّ إدارة المستخدمين) — طلب أيمن 2026-08-17: الموظف يضيف مهمة ويسندها دون كشف بيانات
+     * إدارة المستخدمين. حسابات العملاء ممنوعة.
+     */
+    public function assignable(Request $request): JsonResponse
+    {
+        abort_if($request->user()?->contact_id !== null, 403, 'غير متاح لحسابات العملاء.');
+
+        $users = User::whereNull('contact_id')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $u): array => ['id' => $u->id, 'name' => $u->name]);
+
+        return $this->ok($users);
+    }
+
     public function store(StoreUserRequest $request): JsonResponse
     {
         $user = $this->users->create($request->validated());

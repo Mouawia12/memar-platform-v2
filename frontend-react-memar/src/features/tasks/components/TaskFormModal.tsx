@@ -2,7 +2,7 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useProjects } from '../../projects/hooks/useProjects';
-import { useUsers } from '../../users/hooks/useUsers';
+import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useAddComment, useSaveTask } from '../hooks/useTasks';
 import { PRIORITY_LABELS, STATUS_LABELS, type Task, type TaskFormData, type TaskPriority, type TaskStatus } from '../types';
 
@@ -28,7 +28,7 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
   // تعليق «مَن عدّل ولماذا» يُنشر باسم المُعدِّل بعد الحفظ (طلب أيمن) — يُستخدم عند التعديل فقط.
   const addNote = useAddComment(task?.id ?? 0);
   const { data: projectsData } = useProjects({ per_page: 100 });
-  const { data: usersData } = useUsers({ per_page: 100 });
+  const { data: usersData } = useAssignableUsers();
   const [form, setForm] = useState<TaskFormData>({ ...empty, ...initial });
   const [editNote, setEditNote] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});

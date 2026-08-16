@@ -2,7 +2,7 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useProjects } from '../../projects/hooks/useProjects';
-import { useUsers } from '../../users/hooks/useUsers';
+import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveVisit } from '../hooks/useFieldVisits';
 import { STATUS_LABELS, TYPE_LABELS, type FieldVisit, type FieldVisitFormData, type VisitStatus, type VisitType } from '../types';
 
@@ -26,7 +26,7 @@ const empty = (): FieldVisitFormData => ({
 export function FieldVisitFormModal({ visit, onClose }: Props) {
   const save = useSaveVisit();
   const { data: projects } = useProjects({ per_page: 100 });
-  const { data: users } = useUsers({ per_page: 100 });
+  const { data: users } = useAssignableUsers();
   const [form, setForm] = useState<FieldVisitFormData>(empty);
 
   useEffect(() => {

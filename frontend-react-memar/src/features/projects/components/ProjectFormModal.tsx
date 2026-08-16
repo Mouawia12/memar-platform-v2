@@ -6,7 +6,7 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { contactsApi } from '../../clients/api/contactsApi';
 import { CLIENT_KIND_LABELS, type ClientKind } from '../../clients/types';
 import { useContacts } from '../../clients/hooks/useContacts';
-import { useUsers } from '../../users/hooks/useUsers';
+import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveProject } from '../hooks/useProjects';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectFormData, type ProjectStatus } from '../types';
 
@@ -27,7 +27,7 @@ export function ProjectFormModal({ project, onClose }: Props) {
   // القيمة المالية تظهر وتُحرَّر فقط لأصحاب صلاحية finance.view. طلب أيمن 2026-08-09.
   const canFinance = usePermission('finance.view');
   const { data: clientsData } = useContacts({ type: 'client', per_page: 100 });
-  const { data: usersData } = useUsers({ per_page: 100 });
+  const { data: usersData } = useAssignableUsers();
   const [form, setForm] = useState<ProjectFormData>(empty);
 
   // إضافة بيانات عميل جديد أثناء إنشاء المشروع + نوعه فرد/شركة (طلب أيمن 2026-08-14).

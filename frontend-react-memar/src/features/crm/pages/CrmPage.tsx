@@ -11,6 +11,7 @@ import { StagesManagerModal } from '../components/StagesManagerModal';
 import { useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
+import '../crm.css';
 
 /**
  * صفحة CRM — طبق أصل «إدارة علاقات العملاء» من مرجع معمار customer portal:
@@ -22,6 +23,9 @@ export function CrmPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
+  // فلاتر طبق الأصل: نوع العميل + المسؤول (المصدر عرضي لعدم تتبّعه).
+  const [clientFilter, setClientFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
@@ -66,11 +70,23 @@ export function CrmPage() {
   const leads = data?.data ?? [];
   const money = (v: number) => `${v.toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`;
 
+  const owners = useMemo(() => {
+    const map = new Map<number, string>();
+    leads.forEach((l) => { if (l.owner) map.set(l.owner.id, l.owner.name); });
+    return [...map.entries()];
+  }, [leads]);
+
   const visibleLeads = useMemo(() => {
-    if (period === 'all') return leads;
-    const cutoff = Date.now() - Number(period) * 86_400_000;
-    return leads.filter((l) => l.created_at && new Date(l.created_at).getTime() >= cutoff);
-  }, [leads, period]);
+    const cutoff = period === 'all' ? 0 : Date.now() - Number(period) * 86_400_000;
+    return leads.filter((l) => {
+      if (period !== 'all' && !(l.created_at && new Date(l.created_at).getTime() >= cutoff)) return false;
+      if (ownerFilter !== 'all' && String(l.owner?.id ?? '') !== ownerFilter) return false;
+      if (clientFilter === 'vip' && !l.is_vip) return false;
+      if (clientFilter === 'new' && l.stage !== 'new') return false;
+      if ((clientFilter === 'hot' || clientFilter === 'warm' || clientFilter === 'cold') && l.temperature !== clientFilter) return false;
+      return true;
+    });
+  }, [leads, period, ownerFilter, clientFilter]);
   const hiddenByPeriod = leads.length - visibleLeads.length;
   const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
 
@@ -111,7 +127,7 @@ export function CrmPage() {
   ];
 
   return (
-    <div>
+    <div className="crm-scope">
       {/* ── رأس CRM ── */}
       <div style={headerRow}>
         <div>
@@ -119,9 +135,9 @@ export function CrmPage() {
           <div style={sectionSubtitle}>مركز العمليات التجارية — من أول تواصل حتى إغلاق المشروع</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
-          {canLoyalty && <button className="btn" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
-          {canManage && <button className="btn" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
+          {canManage && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
+          {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
+          {canManage && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
         </div>
       </div>
 
@@ -151,16 +167,28 @@ export function CrmPage() {
         </div>
       )}
 
-      {/* ── الفلاتر ── */}
+      {/* ── الفلاتر طبق الأصل: نوع العميل · المصدر · المسؤول · الفترة · بحث ── */}
       <div style={filtersRow}>
-        <input className="input" placeholder="بحث بالاسم، الهاتف، البريد…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '220px', maxWidth: '320px' }} />
-        <select style={filterSelect} value={period} onChange={(e) => setPeriod(e.target.value as typeof period)} title="عرض حسب الفترة">
+        <select className="crm-filter-select" value={clientFilter} onChange={(e) => setClientFilter(e.target.value)}>
+          <option value="all">جميع العملاء</option>
+          <option value="new">جدد</option>
+          <option value="vip">VIP</option>
+          <option value="hot">ساخن</option>
+          <option value="warm">دافئ</option>
+          <option value="cold">بارد</option>
+        </select>
+        <select className="crm-filter-select" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+          <option value="all">جميع الموظفين</option>
+          {owners.map(([id, name]) => <option key={id} value={String(id)}>{name}</option>)}
+        </select>
+        <select className="crm-filter-select" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)}>
           <option value="all">كل الفترات</option>
           <option value="7">آخر أسبوع</option>
           <option value="30">آخر شهر</option>
           <option value="90">آخر 3 أشهر</option>
           <option value="365">آخر سنة</option>
         </select>
+        <input className="crm-search" placeholder="🔍 بحث بالاسم، الهاتف، البريد…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }} />
         {period !== 'all' && hiddenByPeriod > 0 && <span style={{ fontSize: '12px', color: '#94A3B8' }}>عرض {visibleLeads.length} — أُخفي {hiddenByPeriod}</span>}
       </div>
 
@@ -213,4 +241,3 @@ const alertBody: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap'
 const alertChip: CSSProperties = { background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: '20px', padding: '5px 12px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
 const alertSub: CSSProperties = { fontSize: '10.5px', color: '#8A5A08', marginTop: '6px', fontWeight: 700 };
 const filtersRow: CSSProperties = { display: 'flex', gap: '10px', marginBottom: '18px', flexWrap: 'wrap', alignItems: 'center' };
-const filterSelect: CSSProperties = { padding: '9px 14px', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '13px', color: '#1E293B', background: '#fff', fontFamily: 'inherit', fontWeight: 600, cursor: 'pointer', minWidth: '150px' };

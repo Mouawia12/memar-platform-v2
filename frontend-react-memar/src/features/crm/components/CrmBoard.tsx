@@ -160,7 +160,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
                   />
                 </DraggableCard>
               ))}
-              {onAdd && <button type="button" style={addBtn} onClick={onAdd} title="إضافة فرصة في هذه المرحلة">+ إضافة فرصة</button>}
+              {onAdd && <button type="button" className="crm-add-btn" style={addBtn} onClick={onAdd} title="إضافة فرصة في هذه المرحلة">+ إضافة فرصة</button>}
             </DroppableColumn>
           );
         })}

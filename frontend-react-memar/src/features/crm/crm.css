@@ -1,0 +1,43 @@
+/* أنماط CRM طبق أصل معمار customer portal (أزرار/فلاتر/بطاقات) — طلب أيمن 2026-08-17.
+   مبوّبة تحت .crm-scope كي لا تتداخل مع سكِن التطبيق العام. */
+
+.crm-scope .crm-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; white-space: nowrap; line-height: 1.4;
+  font-family: inherit; text-decoration: none;
+  transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.crm-scope .crm-btn-primary { background: #1B6CA8; color: #fff; }
+.crm-scope .crm-btn-primary:hover { background: #145A8C; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(27,108,168,.35); }
+.crm-scope .crm-btn-outline { background: transparent; color: #1B6CA8; border: 1.5px solid #1B6CA8; }
+.crm-scope .crm-btn-outline:hover { background: #E3F0FA; }
+.crm-scope .crm-btn-danger { background: transparent; color: #DC4A3D; border: 1.5px solid #DC4A3D; }
+.crm-scope .crm-btn-danger:hover { background: #FEF2F2; }
+.crm-scope .crm-btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* قوائم الفلترة — طبق أصل .crm-filter-select مع سهم SVG */
+.crm-scope .crm-filter-select {
+  padding: 9px 32px 9px 14px; border: 1.5px solid #E2E8F0; border-radius: 8px;
+  font-size: 13px; color: #1E293B; background-color: #fff; font-family: inherit;
+  font-weight: 600; outline: none; cursor: pointer; min-width: 150px;
+  transition: border-color .2s, box-shadow .2s;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: left 12px center;
+}
+.crm-scope .crm-filter-select:focus { border-color: #1B6CA8; box-shadow: 0 0 0 3px rgba(27,108,168,.12); }
+.crm-scope .crm-search {
+  padding: 9px 14px; border: 1.5px solid #E2E8F0; border-radius: 8px; font-size: 13px;
+  color: #1E293B; background: #fff; font-family: inherit; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.crm-scope .crm-search:focus { border-color: #1B6CA8; box-shadow: 0 0 0 3px rgba(27,108,168,.12); }
+
+/* رفع البطاقة عند المرور (طبق الأصل .lead-card:hover) */
+.crm-scope .crm-lead-card { transition: all .2s ease; }
+.crm-scope .crm-lead-card:hover { border-color: #D1E9F9; box-shadow: 0 6px 18px rgba(27,108,168,.12); transform: translateY(-2px); }
+
+/* زر «+ إضافة فرصة» أسفل العمود */
+.crm-scope .crm-add-btn { transition: all .2s; }
+.crm-scope .crm-add-btn:hover { border-color: #1B6CA8; color: #1B6CA8; background: #F5FAFF; }

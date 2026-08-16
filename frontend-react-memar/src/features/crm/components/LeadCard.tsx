@@ -61,7 +61,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
 
   return (
     <div
-      className="card"
+      className="crm-lead-card"
       onClick={() => onOpen(lead)}
       style={{ ...card, borderInlineEnd: `4px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
     >

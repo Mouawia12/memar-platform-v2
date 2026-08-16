@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { downloadCsv, type CsvColumn } from '../lib/csv';
+import { useExportDisabled } from './ExportGuard';
 
 interface Props<T> {
   /** يجلب كل السجلات المطابقة للفلاتر الحالية — لا الصفحة المعروضة فقط. */
@@ -16,6 +17,9 @@ interface Props<T> {
  */
 export function ExportCsvButton<T>({ fetchRows, columns, filename, label = '📥 تصدير CSV' }: Props<T>) {
   const [busy, setBusy] = useState(false);
+  // مُخفى داخل بوابة الموظف (منع تصدير البيانات) — يبقى ظاهرًا في لوحة الإدارة.
+  const disabled = useExportDisabled();
+  if (disabled) return null;
 
   const handleClick = async () => {
     setBusy(true);

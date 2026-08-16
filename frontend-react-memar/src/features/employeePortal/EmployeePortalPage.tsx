@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAuthStore } from '../../store/auth';
 import { useLiveSync } from '../../hooks/useLiveSync';
+import { ExportDisabledProvider } from '../../components/ExportGuard';
 import { SidebarUserCard } from '../../components/SidebarUserCard';
 import { EmployeeDashboard } from './EmployeeDashboard';
 import { ROLE_AR } from './SelfServicePages';
@@ -237,7 +238,9 @@ export function EmployeePortalPage() {
       </header>
 
       {/* ═══ MAIN ═══ */}
+      {/* منع تصدير البيانات (CSV/إكسل) من بوابة الموظف — يُخفي كل أزرار التصدير داخلها */}
       <main className="ep-main">
+        <ExportDisabledProvider>
         {!activeAllowed ? <EpNoAccess />
           : active === 'ep-dashboard' ? <EmployeeDashboard onGo={go} />
           // المنتدى والاجتماعات يحملان ترويسة/بانر خاصًّا بهما → غلاف مجرّد بلا ترويسة مكرّرة
@@ -263,6 +266,7 @@ export function EmployeePortalPage() {
           : active === 'ep-profile' ? <ProfileEp />
           : active === 'ep-referral' ? <ReferralEp />
           : <ComingSoon page={active} />}
+        </ExportDisabledProvider>
       </main>
     </div>
   );

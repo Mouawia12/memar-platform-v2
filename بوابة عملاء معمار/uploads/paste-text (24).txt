@@ -1,0 +1,741 @@
+# MEMAR ERP MASTER PROMPT
+
+# PART 04
+
+# ENGINEERING DEPARTMENTS + DOCUMENT MANAGEMENT SYSTEM
+
+# ENGINEERING OPERATIONS PLATFORM
+
+---
+
+# 1. Engineering Department Vision
+
+يجب أن يكون نظام الأقسام الهندسية هو مركز تشغيل الفريق الفني داخل **Memar ERP**.
+
+الغرض منه تحويل العمل الهندسي من ملفات منفصلة ومراسلات غير منظمة إلى Workflow رقمي متكامل يربط:
+
+```
+Project
+ ↓
+Engineering Department
+ ↓
+Engineer
+ ↓
+Tasks
+ ↓
+Drawings
+ ↓
+Reviews
+ ↓
+Approvals
+ ↓
+Final Delivery
+```
+
+كل قسم هندسي يعمل داخل النظام بصلاحياته، مع وجود متابعة كاملة للإدارة.
+
+---
+
+# 2. Engineering Department Structure
+
+يجب إنشاء هيكل أقسام هندسية قابل للتعديل:
+
+## Architectural Department
+
+المعماري
+
+---
+
+## Structural Department
+
+الإنشائي
+
+---
+
+## Electrical Department
+
+الكهرباء
+
+---
+
+## Mechanical Department
+
+الميكانيكا والتكييف
+
+---
+
+## Plumbing Department
+
+الصحي
+
+---
+
+## Fire Fighting Department
+
+الحريق
+
+---
+
+## Survey Department
+
+المساحة
+
+---
+
+## Quantity Survey Department
+
+حصر الكميات والتكاليف
+
+---
+
+## Supervision Department
+
+الإشراف الهندسي
+
+---
+
+## Document Control Department
+
+إدارة المستندات
+
+---
+
+## Quality Control Department
+
+المراجعة والجودة
+
+---
+
+# 3. Engineering Dashboard
+
+كل قسم له Dashboard خاص.
+
+مثال:
+
+## Architectural Dashboard
+
+يعرض:
+
+* المشاريع الحالية.
+* المخططات قيد العمل.
+* المخططات بانتظار المراجعة.
+* التعديلات المطلوبة.
+* الأعمال المتأخرة.
+* المهندسين المتاحين.
+* نسبة الإنجاز.
+
+---
+
+# 4. Department Workspace
+
+كل قسم يمتلك مساحة عمل خاصة:
+
+```
+Department Workspace
+
+├── Active Projects
+├── Tasks
+├── Drawings
+├── Reviews
+├── Meetings
+├── Documents
+├── Reports
+└── Archive
+```
+
+---
+
+# 5. Engineer Assignment System
+
+عند إضافة مهمة هندسية:
+
+يتم تحديد:
+
+* المشروع.
+* القسم.
+* المهندس.
+* المراجع.
+* تاريخ البداية.
+* تاريخ التسليم.
+* الأولوية.
+* الملفات المطلوبة.
+
+---
+
+مثال:
+
+```
+Project:
+Villa Al Bida'a
+
+Department:
+Architectural
+
+Task:
+Prepare Ground Floor Plan
+
+Assigned:
+Architect Engineer
+
+Reviewer:
+Senior Architect
+
+Deadline:
+15 Days
+```
+
+---
+
+# 6. Engineering Task Workflow
+
+كل مهمة تمر بالمراحل:
+
+```
+New
+
+↓
+
+Assigned
+
+↓
+
+Working
+
+↓
+
+Internal Review
+
+↓
+
+Client Review
+
+↓
+
+Modification Required
+
+↓
+
+Approved
+
+↓
+
+Delivered
+
+```
+
+---
+
+# 7. Drawing Management System
+
+## Drawing Registry
+
+قسم مركزي لجميع المخططات.
+
+---
+
+كل Drawing يحتوي على:
+
+* Drawing ID
+* Project Number
+* Discipline
+* Title
+* Drawing Number
+* Revision
+* Engineer
+* Checker
+* Date
+* Status
+* File Type
+
+---
+
+# 8. Drawing Revision Control
+
+يجب منع فقدان الإصدارات.
+
+كل تعديل ينشئ Revision جديد.
+
+مثال:
+
+```
+Architectural Plan
+
+Revision 00
+Initial Design
+
+Revision 01
+Client Comments
+
+Revision 02
+Municipality Comments
+
+Revision 03
+Final Approved
+```
+
+---
+
+# 9. Drawing Status
+
+الحالات:
+
+```
+Draft
+
+Under Preparation
+
+Under Checking
+
+Submitted
+
+Comments Received
+
+Revised
+
+Approved
+
+Issued For Construction
+
+Archived
+```
+
+---
+
+# 10. Engineering Review System
+
+نظام مراجعة داخلي.
+
+قبل إرسال أي ملف للعميل أو الجهة الحكومية:
+
+يمر على:
+
+Designer
+
+↓
+
+Checker
+
+↓
+
+Manager Approval
+
+↓
+
+Final Issue
+
+---
+
+## Review Form
+
+يشمل:
+
+* Reviewer Name
+* Date
+* Comments
+* Markups
+* Required Actions
+* Approval Status
+
+---
+
+# 11. Markup & Comment System
+
+إضافة ملاحظات مباشرة على الملفات:
+
+يدعم:
+
+* PDF Markup
+* Drawing Comments
+* Attach Images
+* Notes
+* Revision Cloud
+
+---
+
+# 12. Municipality Workflow
+
+قسم خاص بمتابعة معاملات الجهات.
+
+---
+
+## Transaction Card
+
+يحتوي:
+
+* Project.
+* Municipality Reference.
+* Transaction Number.
+* Submission Date.
+* Responsible Engineer.
+* Status.
+* Comments.
+* Attachments.
+
+---
+
+## Transaction Status
+
+```
+Preparing
+
+Submitted
+
+Under Review
+
+Returned Comments
+
+Modification
+
+Resubmitted
+
+Approved
+
+Completed
+```
+
+---
+
+# 13. Government Approval Tracker
+
+يدعم متابعة:
+
+* البلدية.
+* قوة الإطفاء.
+* الكهرباء.
+* المياه.
+* الجهات الأخرى.
+
+---
+
+لكل جهة:
+
+```
+Authority Name
+
+Requirement List
+
+Submitted Documents
+
+Pending Items
+
+Approval Date
+
+Certificate
+```
+
+---
+
+# 14. Document Management System (DMS)
+
+## الهدف
+
+إنشاء مركز مستندات مركزي للشركة.
+
+بدلاً من توزيع الملفات بين:
+
+* الكمبيوترات.
+* البريد.
+* الواتساب.
+* الأقراص.
+
+يصبح كل شيء داخل النظام.
+
+---
+
+# 15. Document Categories
+
+## Project Documents
+
+* عقود.
+* مخططات.
+* تقارير.
+* صور.
+* مراسلات.
+
+---
+
+## Engineering Documents
+
+* Architectural.
+* Structural.
+* Electrical.
+* Mechanical.
+* Plumbing.
+* Fire.
+
+---
+
+## Administrative Documents
+
+* موظفين.
+* عقود عمل.
+* شهادات.
+* مراسلات.
+
+---
+
+## Financial Documents
+
+* عروض أسعار.
+* فواتير.
+* إيصالات.
+* دفعات.
+
+---
+
+# 16. File Manager
+
+واجهة تشبه:
+
+Google Drive
+
+لكن داخل النظام.
+
+---
+
+الخصائص:
+
+* إنشاء مجلدات.
+* رفع ملفات.
+* مشاركة.
+* معاينة.
+* بحث.
+* تحميل.
+* صلاحيات.
+
+---
+
+# 17. Smart Document Naming
+
+النظام يقترح أسماء تلقائية.
+
+مثال:
+
+```
+ProjectCode_Discipline_DrawingNumber_Revision_Date
+
+MBR-026-ARC-101-R02-2026.pdf
+```
+
+---
+
+# 18. Document Approval Workflow
+
+أي مستند مهم يمر:
+
+```
+Upload
+
+↓
+
+Review
+
+↓
+
+Approve
+
+↓
+
+Publish
+
+↓
+
+Archive
+```
+
+---
+
+# 19. Document Permissions
+
+حسب:
+
+* المستخدم.
+* القسم.
+* المشروع.
+* نوع الملف.
+
+مثال:
+
+المهندس المعماري:
+
+يرى ملفات المعماري.
+
+لا يرى الملفات المالية.
+
+---
+
+# 20. Archive System
+
+بعد انتهاء المشروع:
+
+يتم أرشفته بالكامل:
+
+يشمل:
+
+* جميع المخططات.
+* جميع الإصدارات.
+* العقود.
+* الاعتمادات.
+* التقارير.
+* الصور.
+
+---
+
+# 21. Search Engine
+
+بحث شامل داخل النظام:
+
+بحث بواسطة:
+
+* اسم المشروع.
+* العميل.
+* رقم المخطط.
+* رقم العقد.
+* المنطقة.
+* المهندس.
+* التاريخ.
+* نوع الملف.
+
+---
+
+# 22. Document AI Assistant
+
+إضافة مساعد ذكي للمستندات:
+
+وظائفه:
+
+* تلخيص ملف PDF.
+* استخراج البيانات.
+* مقارنة نسختين.
+* البحث داخل الملفات.
+* إنشاء تقرير.
+* كشف الملفات الناقصة.
+
+---
+
+# 23. Quality Control System
+
+قسم الجودة يراجع:
+
+* اكتمال الملفات.
+* صحة الإصدارات.
+* مطابقة النماذج.
+* وجود الاعتمادات.
+* تسلسل المراجعات.
+
+---
+
+# 24. Engineering Reports
+
+تقارير جاهزة:
+
+## تقرير إنتاجية المهندس
+
+يشمل:
+
+* عدد المهام.
+* عدد المخططات.
+* مدة الإنجاز.
+* التأخير.
+
+---
+
+## تقرير القسم
+
+يشمل:
+
+* المشاريع الحالية.
+* الأعمال المتأخرة.
+* نسبة الإنجاز.
+
+---
+
+## تقرير الإدارة
+
+يشمل:
+
+* أداء جميع الأقسام.
+* ضغط العمل.
+* توزيع الموارد.
+
+---
+
+# 25. Integration With Projects
+
+كل نشاط هندسي يظهر داخل Timeline المشروع:
+
+مثال:
+
+```
+10/08/2026
+
+Architect uploaded
+Ground Floor Revision 02
+
+Reviewed by:
+Eng. Ahmed
+
+Status:
+Approved
+```
+
+---
+
+# 26. Engineering Automation
+
+عند إنشاء مشروع جديد:
+
+النظام ينشئ تلقائياً:
+
+```
+Project Folder
+
+Architectural Folder
+
+Structural Folder
+
+MEP Folder
+
+Fire Folder
+
+Approval Folder
+
+Reports Folder
+
+Archive Folder
+```
+
+---
+
+# نتيجة PART 04
+
+بعد تنفيذ هذه الوحدة يصبح Memar ERP نظام تشغيل هندسي حقيقي يدير:
+
+* فرق التصميم.
+* المخططات.
+* الإصدارات.
+* المراجعات.
+* الاعتمادات.
+* المستندات.
+* الأرشفة.
+* الجودة.
+
+ويحول المكتب من إدارة ملفات إلى **Engineering Digital Workflow Platform**.
+
+---
+
+الجزء التالي:
+
+# PART 05
+
+# HR + EMPLOYEE MANAGEMENT + EMPLOYEE PORTAL
+
+وسيشمل:
+
+* الموظفين.
+* الحضور والانصراف.
+* الإجازات.
+* الرواتب.
+* التقييم.
+* التوظيف.
+* بوابة الموظف الخاصة التي طلبتها سابقاً.

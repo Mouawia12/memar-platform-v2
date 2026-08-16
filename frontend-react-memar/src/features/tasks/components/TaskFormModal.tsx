@@ -3,7 +3,7 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../lib/api';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { useUsers } from '../../users/hooks/useUsers';
-import { useSaveTask } from '../hooks/useTasks';
+import { useAddComment, useSaveTask } from '../hooks/useTasks';
 import { PRIORITY_LABELS, STATUS_LABELS, type Task, type TaskFormData, type TaskPriority, type TaskStatus } from '../types';
 
 interface Props {
@@ -25,9 +25,12 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export function TaskFormModal({ task, initial, onClose }: Props) {
   const save = useSaveTask();
+  // تعليق «مَن عدّل ولماذا» يُنشر باسم المُعدِّل بعد الحفظ (طلب أيمن) — يُستخدم عند التعديل فقط.
+  const addNote = useAddComment(task?.id ?? 0);
   const { data: projectsData } = useProjects({ per_page: 100 });
   const { data: usersData } = useUsers({ per_page: 100 });
   const [form, setForm] = useState<TaskFormData>({ ...empty, ...initial });
+  const [editNote, setEditNote] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
     } else {
       setForm({ ...empty, ...initial });
     }
+    setEditNote('');
     setErrors({});
   }, [task, initial]);
 
@@ -68,7 +72,14 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    save.mutate({ id: task?.id, data: { ...form, title: form.title.trim() } }, { onSuccess: onClose });
+    const note = editNote.trim();
+    save.mutate({ id: task?.id, data: { ...form, title: form.title.trim() } }, {
+      onSuccess: () => {
+        // عند التعديل مع رسالة: تُنشر تعليقًا باسم المُعدِّل ثم نُغلق (الإغلاق يتم على أي حال)
+        if (task && note) addNote.mutate(note, { onSettled: onClose });
+        else onClose();
+      },
+    });
   };
 
   return (
@@ -114,6 +125,19 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
         <label style={label}>الوصف
           <textarea className="input" style={{ ...input, minHeight: '60px' }} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </label>
+
+        {/* رسالة التعديل (عند التعديل فقط): تُنشر باسم المُعدِّل ليعرف الجميع مَن غيّر ولماذا */}
+        {task && (
+          <label style={label}>✍️ رسالة التعديل (اختياري)
+            <textarea
+              className="input"
+              style={{ ...input, minHeight: '48px' }}
+              value={editNote}
+              onChange={(e) => setEditNote(e.target.value)}
+              placeholder="مثال: عدّلت الأولوية لعاجل بعد اتصال العميل — بتوقيعك تظهر في التعليقات"
+            />
+          </label>
+        )}
 
         {/* تلميح وجهة المهمة */}
         <div style={hint}>

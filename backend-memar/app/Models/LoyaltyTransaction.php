@@ -14,8 +14,15 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 class LoyaltyTransaction extends Model
 {
+    // دورة حياة النقاط (المرحلة 1 بنية؛ التحوّلات في المرحلة 2).
+    public const STATUS_PENDING = 'pending';     // معلّقة — لم يتحقّق شرط الاستحقاق
+    public const STATUS_EARNED = 'earned';       // مستحقة — بعد التعاقد، بانتظار اعتماد الإدارة
+    public const STATUS_AVAILABLE = 'available';  // متاحة — قابلة للاستبدال
+    public const STATUS_REDEEMED = 'redeemed';   // مستبدلة
+    public const STATUS_CANCELLED = 'cancelled'; // ملغاة
+
     protected $fillable = [
-        'contact_id', 'user_id', 'points', 'balance_after', 'source', 'description',
+        'contact_id', 'user_id', 'points', 'balance_after', 'source', 'status', 'description',
         'reference_type', 'reference_id',
     ];
 

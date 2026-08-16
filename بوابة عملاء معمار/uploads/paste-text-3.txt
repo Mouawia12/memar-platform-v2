@@ -1,0 +1,720 @@
+# MEMAR ERP MASTER PROMPT
+
+# PART 06
+
+# FINANCE + CONTRACTS + PAYMENTS + COLLECTIONS
+
+# FINANCIAL MANAGEMENT SYSTEM (FMS)
+
+---
+
+# 1. Finance Module Vision
+
+نظام الحسابات في **Memar ERP** يجب أن يكون نظامًا ماليًا مرتبطًا بجميع عمليات الشركة وليس برنامج حسابات منفصل.
+
+يجب أن تكون كل حركة مالية مرتبطة بمصدرها التشغيلي:
+
+```text
+Lead
+ ↓
+Quotation
+ ↓
+Contract
+ ↓
+Project
+ ↓
+Invoice
+ ↓
+Payment
+ ↓
+Financial Report
+```
+
+الهدف:
+
+* معرفة قيمة كل مشروع.
+* متابعة المستحقات.
+* مراقبة المصروفات.
+* معرفة الربحية.
+* ربط الأداء المالي بالمشاريع والعملاء.
+
+---
+
+# 2. Finance Dashboard
+
+لوحة التحكم المالية تعرض:
+
+## Financial KPI Cards
+
+* إجمالي الإيرادات.
+* الإيرادات الشهرية.
+* الإيرادات السنوية.
+* إجمالي المصروفات.
+* صافي الربح.
+* المبالغ المستحقة.
+* المبالغ المتأخرة.
+* العقود النشطة.
+* قيمة المشاريع الحالية.
+* التدفقات النقدية.
+
+---
+
+# 3. Financial Overview
+
+واجهة تحليلية تعرض:
+
+## Revenue Chart
+
+الإيرادات حسب:
+
+* الشهر.
+* السنة.
+* نوع الخدمة.
+* العميل.
+* المشروع.
+
+---
+
+## Expense Chart
+
+المصروفات حسب:
+
+* القسم.
+* المشروع.
+* نوع المصروف.
+* الفترة الزمنية.
+
+---
+
+## Profit Analysis
+
+تحليل:
+
+```text
+Project Revenue
+
+-
+
+Project Cost
+
+=
+
+Project Profit
+```
+
+---
+
+# 4. Chart of Accounts
+
+إنشاء دليل حسابات مرن.
+
+---
+
+## Main Accounts
+
+### Assets
+
+الأصول:
+
+* البنك.
+* الصندوق.
+* العملاء.
+* العهد.
+* المعدات.
+
+---
+
+### Liabilities
+
+الالتزامات:
+
+* الموردون.
+* الرواتب المستحقة.
+* الالتزامات الأخرى.
+
+---
+
+### Revenue
+
+الإيرادات:
+
+* تصميم معماري.
+* تصميم إنشائي.
+* مخططات.
+* إشراف.
+* تراخيص.
+* خدمات استشارية.
+
+---
+
+### Expenses
+
+المصروفات:
+
+* رواتب.
+* إيجار.
+* تسويق.
+* برامج.
+* معدات.
+* مصاريف تشغيل.
+
+---
+
+# 5. Contracts Management
+
+## Contract Registry
+
+سجل مركزي لجميع العقود.
+
+---
+
+كل عقد يحتوي على:
+
+## Contract Information
+
+* رقم العقد.
+* العميل.
+* المشروع.
+* تاريخ العقد.
+* بداية العقد.
+* نهاية العقد.
+* قيمة العقد.
+* حالة العقد.
+* المسؤول.
+
+---
+
+## Contract Status
+
+```text
+Draft
+
+Under Review
+
+Approved
+
+Signed
+
+Active
+
+Completed
+
+Cancelled
+```
+
+---
+
+# 6. Contract Generator
+
+إنشاء العقود تلقائيًا من:
+
+* بيانات العميل.
+* عرض السعر.
+* الخدمات.
+* شروط الدفع.
+
+---
+
+النظام يقوم بإنشاء:
+
+* Contract PDF.
+* نسخة إلكترونية.
+* رقم العقد.
+* سجل التوقيع.
+
+---
+
+# 7. Contract Templates
+
+إدارة قوالب العقود.
+
+تشمل:
+
+* عقود التصميم.
+* عقود الإشراف.
+* عقود التراخيص.
+* عقود حصر الكميات.
+* عقود الاستشارات.
+
+---
+
+القالب يحتوي على:
+
+* Header.
+* بيانات المكتب.
+* البنود.
+* الشروط.
+* التوقيع.
+* الختم.
+
+---
+
+# 8. Payment Schedule Management
+
+كل عقد يحتوي على جدول دفعات.
+
+مثال:
+
+```text
+Contract Value:
+5000 KWD
+
+Payment 1:
+40% عند التوقيع
+
+Payment 2:
+40% عند إصدار الرخصة
+
+Payment 3:
+20% عند التسليم
+```
+
+---
+
+لكل دفعة:
+
+* القيمة.
+* التاريخ المتوقع.
+* الحالة.
+* المسؤول.
+* إثبات الدفع.
+
+---
+
+# 9. Invoice Management
+
+## Invoice System
+
+إنشاء فواتير مرتبطة بالعقود والمشاريع.
+
+---
+
+بيانات الفاتورة:
+
+* رقم الفاتورة.
+* العميل.
+* المشروع.
+* العقد.
+* تاريخ الإصدار.
+* المبلغ.
+* الضريبة.
+* الخصم.
+* الحالة.
+
+---
+
+# Invoice Status
+
+```text
+Draft
+
+Issued
+
+Sent
+
+Partially Paid
+
+Paid
+
+Overdue
+
+Cancelled
+```
+
+---
+
+# 10. Payment Collection
+
+## Collections Module
+
+متابعة التحصيلات.
+
+---
+
+يعرض:
+
+* العملاء المتأخرون.
+* الدفعات القادمة.
+* الفواتير غير المسددة.
+* المبالغ المتأخرة.
+
+---
+
+# Collection Workflow
+
+```text
+Invoice Created
+
+↓
+
+Payment Due
+
+↓
+
+Reminder Sent
+
+↓
+
+Follow Up
+
+↓
+
+Collected
+
+↓
+
+Closed
+```
+
+---
+
+# 11. Payment Methods
+
+يدعم:
+
+* Cash.
+* Bank Transfer.
+* KNET.
+* Credit Card.
+* Other.
+
+---
+
+# 12. KNET Integration
+
+قسم خاص بالدفع الإلكتروني.
+
+يشمل:
+
+* إنشاء رابط دفع.
+* متابعة حالة العملية.
+* تسجيل العملية تلقائيًا.
+* ربطها بالفاتورة.
+
+---
+
+# 13. Expenses Management
+
+## Expense Registry
+
+تسجيل المصروفات.
+
+---
+
+بيانات المصروف:
+
+* رقم المصروف.
+* التاريخ.
+* الموظف.
+* القسم.
+* المشروع.
+* النوع.
+* القيمة.
+* المرفقات.
+* الحالة.
+
+---
+
+# Expense Categories
+
+مثال:
+
+```text
+Office Expenses
+
+Marketing
+
+Transportation
+
+Software
+
+Equipment
+
+Project Expenses
+
+Employee Expenses
+```
+
+---
+
+# 14. Expense Approval Workflow
+
+المصروف يمر:
+
+```text
+Created
+
+↓
+
+Manager Review
+
+↓
+
+Finance Approval
+
+↓
+
+Paid
+
+↓
+
+Archived
+```
+
+---
+
+# 15. Employee Expenses
+
+ربط مصروفات الموظفين:
+
+مثل:
+
+* زيارات مواقع.
+* تنقلات.
+* مشتريات.
+* عهد.
+
+---
+
+# 16. Project Financial Control
+
+داخل كل مشروع تظهر:
+
+## Project Finance Tab
+
+يشمل:
+
+* قيمة العقد.
+* المدفوع.
+* المتبقي.
+* المصروفات.
+* الربح المتوقع.
+* الربح الفعلي.
+
+---
+
+مثال:
+
+```text
+Project:
+
+Villa Project
+
+Contract:
+12,000 KWD
+
+Received:
+8,000 KWD
+
+Expenses:
+2,500 KWD
+
+Profit:
+5,500 KWD
+```
+
+---
+
+# 17. Budget Management
+
+إعداد ميزانية لكل مشروع.
+
+---
+
+يشمل:
+
+* Budget Value.
+* Planned Cost.
+* Actual Cost.
+* Variance.
+
+---
+
+# 18. Financial Approval System
+
+أي عملية مالية مهمة تحتاج موافقة حسب الصلاحيات.
+
+مثال:
+
+مصروف أكثر من مبلغ معين:
+
+```text
+Employee
+
+↓
+
+Project Manager
+
+↓
+
+Finance Manager
+
+↓
+
+General Manager
+```
+
+---
+
+# 19. Financial Reports
+
+## Revenue Reports
+
+* حسب العميل.
+* حسب المشروع.
+* حسب الفترة.
+
+---
+
+## Expense Reports
+
+* حسب النوع.
+* حسب القسم.
+* حسب المشروع.
+
+---
+
+## Collection Reports
+
+* المستحقات.
+* المتأخرات.
+* التحصيل الشهري.
+
+---
+
+## Profit Reports
+
+* ربحية المشاريع.
+* ربحية الخدمات.
+* أداء الأقسام.
+
+---
+
+# 20. Financial Notifications
+
+تنبيهات تلقائية:
+
+* قرب موعد دفعة.
+* تأخر فاتورة.
+* تجاوز ميزانية مشروع.
+* مصروف بانتظار الموافقة.
+* عقد على وشك الانتهاء.
+
+---
+
+# 21. Finance Permissions
+
+## Finance Manager
+
+صلاحيات كاملة:
+
+* الحسابات.
+* الفواتير.
+* الدفعات.
+* التقارير.
+
+---
+
+## Accountant
+
+* إدخال العمليات.
+* إصدار الفواتير.
+* تسجيل التحصيل.
+
+---
+
+## Project Manager
+
+يشاهد:
+
+* مالية مشاريعه فقط.
+
+---
+
+## Employee
+
+يرى:
+
+* مصروفاته وطلباته فقط.
+
+---
+
+# 22. Automation Rules
+
+عند توقيع العقد:
+
+النظام يقوم تلقائيًا:
+
+```text
+Create Project Finance Profile
+
+Create Payment Schedule
+
+Generate Invoice Plan
+
+Notify Finance Department
+```
+
+---
+
+عند استلام دفعة:
+
+```text
+Update Contract Balance
+
+Update Project Revenue
+
+Generate Receipt
+
+Notify Project Manager
+```
+
+---
+
+عند انتهاء المشروع:
+
+```text
+Calculate Final Profit
+
+Archive Financial Records
+
+Generate Final Report
+```
+
+---
+
+# نتيجة PART 06
+
+بعد تنفيذ هذه الوحدة يصبح **Memar ERP** قادرًا على إدارة الدورة المالية الكاملة:
+
+العرض السعري
+⬇️
+العقد
+⬇️
+جدول الدفعات
+⬇️
+الفواتير
+⬇️
+التحصيل
+⬇️
+المصروفات
+⬇️
+الربحية
+⬇️
+التقارير المالية
+
+---
+
+الجزء التالي:
+
+# PART 07
+
+# PRICING ENGINE + SERVICES MANAGEMENT + AI ASSISTANT
+
+وسيكون خاصًا بـ:
+
+* إدارة الخدمات والأسعار.
+* محركات التسعير الذكية.
+* إنشاء عروض الأسعار تلقائيًا.
+* مساعد الذكاء الاصطناعي داخل النظام.
+* اقتراح الأسعار حسب نوع المشروع.

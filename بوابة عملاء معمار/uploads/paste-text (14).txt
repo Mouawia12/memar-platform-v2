@@ -1,0 +1,528 @@
+ممتاز، سأنتقل مباشرة إلى **الجزء رقم 14** كما طلبت.
+
+# MEMAR ERP MASTER PROMPT
+
+# PART 14
+
+# WEBSITE BUILDER + HERO ADS MANAGEMENT
+
+# إدارة الموقع الإلكتروني + مدير واجهة الإعلانات
+
+> هذا الجزء مبني على وحدة **إدارة الموقع** و **مدير واجهة الإعلانات** الموجودة داخل هيكل النظام الأصلي، حيث تظهر ضمن إدارة المستخدمين والصلاحيات كصفحات مستقلة. 
+
+---
+
+# 1. Website Builder Vision
+
+إنشاء نظام إدارة موقع إلكتروني داخلي داخل MEMAR ERP يسمح للإدارة بالتحكم الكامل في محتوى الموقع بدون الحاجة إلى تعديل الأكواد.
+
+النظام يعمل كـ:
+
+**CMS + Marketing Automation Platform**
+
+ويكون مرتبطًا مباشرة مع:
+
+* CRM
+* العملاء
+* المشاريع
+* الخدمات
+* الأسعار
+* الحملات التسويقية
+* الإعلانات
+* التقارير
+
+---
+
+# 2. Website Builder Structure
+
+النظام يجب أن يحتوي على لوحة تحكم خاصة بالموقع:
+
+```
+Website Management
+
+│
+├── Pages
+│
+├── Sections
+│
+├── Services
+│
+├── Projects Portfolio
+│
+├── Blog / News
+│
+├── Testimonials
+│
+├── Contact Forms
+│
+├── SEO Manager
+│
+├── Media Library
+│
+├── Analytics
+│
+└── Settings
+```
+
+---
+
+# 3. Pages Management
+
+إدارة جميع صفحات الموقع:
+
+## الصفحة الرئيسية
+
+Home Page
+
+تحتوي على:
+
+* Hero Section
+* الخدمات
+* المشاريع
+* نبذة عن الشركة
+* فريق العمل
+* آراء العملاء
+* Call To Action
+* نموذج التواصل
+
+---
+
+## صفحات الخدمات
+
+مثل:
+
+* الاستشارات الهندسية
+* التصميم المعماري
+* التصميم الإنشائي
+* الإشراف الهندسي
+* تراخيص البلدية
+* مخططات الكهرباء
+* مخططات الحريق
+* التصميم الداخلي
+
+كل خدمة مرتبطة بصفحة مستقلة.
+
+---
+
+# 4. Dynamic Content Blocks
+
+يجب أن يعتمد الموقع على Blocks قابلة لإعادة الترتيب:
+
+مثال:
+
+```
+Hero Block
+
+↓
+
+Services Block
+
+↓
+
+Projects Block
+
+↓
+
+Testimonials Block
+
+↓
+
+Contact Block
+```
+
+يمكن للإدارة:
+
+* إضافة Block
+* حذف Block
+* تغيير الترتيب
+* إخفاء Block
+* تعديل المحتوى
+
+بدون برمجة.
+
+---
+
+# 5. Service Management
+
+كل خدمة تحتوي على:
+
+## معلومات أساسية
+
+* اسم الخدمة
+* الوصف
+* الصورة
+* Icon
+* التصنيف
+* الحالة
+* ترتيب العرض
+
+## معلومات تسويقية
+
+* عنوان SEO
+* Meta Description
+* Keywords
+* رابط الصفحة
+
+## ربط النظام
+
+الخدمة ترتبط مع:
+
+* Pricing Engine
+* CRM
+* Quotations
+* Reports
+
+مثال:
+
+إذا اختار العميل:
+
+"رخصة بناء"
+
+يتم إنشاء Lead داخل CRM مرتبط بالخدمة.
+
+---
+
+# 6. Portfolio Management
+
+إدارة معرض المشاريع:
+
+كل مشروع يعرض:
+
+* اسم المشروع
+* نوع المشروع
+* الموقع
+* العميل (اختياري)
+* الصور
+* الفيديو
+* المخططات
+* الوصف
+* سنة التنفيذ
+* حالة المشروع
+
+تصنيفات:
+
+* فلل
+* مباني تجارية
+* مشاريع حكومية
+* تصميم داخلي
+* إشراف هندسي
+
+---
+
+# 7. Media Library
+
+مكتبة ملفات مركزية:
+
+تدعم:
+
+* صور
+* فيديو
+* PDF
+* DWG
+* ملفات العرض
+
+الخصائص:
+
+* Folder Structure
+* Tags
+* Search
+* Preview
+* Permissions
+* Version Control
+
+---
+
+# 8. SEO Manager
+
+إدارة ظهور الموقع بمحركات البحث:
+
+يشمل:
+
+* Page Title
+* Meta Description
+* Keywords
+* Sitemap
+* Robots.txt
+* Open Graph
+* Social Preview
+
+---
+
+# 9. Contact Form Integration
+
+أي نموذج موجود بالموقع يجب أن يرتبط مباشرة بالنظام الداخلي.
+
+مثال:
+
+عميل يرسل:
+
+```
+الاسم
+الهاتف
+نوع المشروع
+المنطقة
+الرسالة
+```
+
+النظام يقوم تلقائياً:
+
+1. إنشاء Lead.
+2. تحديد مصدر العميل Website.
+3. إرسال Notification لفريق المبيعات.
+4. إنشاء مهمة متابعة.
+5. تسجيل النشاط في CRM.
+
+---
+
+# 10. Analytics Dashboard
+
+لوحة تحليل الموقع:
+
+تشمل:
+
+* عدد الزوار
+* مصادر الزيارات
+* أكثر الصفحات زيارة
+* عدد الطلبات
+* معدل التحويل
+* الخدمات الأكثر طلباً
+* الحملات الناجحة
+
+---
+
+# 11. HERO ADS MANAGER
+
+مدير واجهة الإعلانات هو نظام مستقل داخل الإدارة.
+
+وظيفته التحكم في الإعلان الرئيسي للموقع والتطبيق.
+
+---
+
+# 12. Hero Advertisement Structure
+
+كل إعلان يحتوي على:
+
+```
+Advertisement
+
+ID
+
+Title
+
+Subtitle
+
+Description
+
+Media
+
+Button
+
+Link
+
+Start Date
+
+End Date
+
+Priority
+
+Status
+```
+
+---
+
+# 13. Advertisement Types
+
+يدعم:
+
+## صورة
+
+Banner Image
+
+## فيديو
+
+YouTube
+
+أو
+
+Video Upload
+
+## Animation
+
+Motion Graphics
+
+## Interactive Banner
+
+مع زر Call To Action
+
+---
+
+# 14. Hero Slider Logic
+
+واجهة الموقع تعرض:
+
+Carousel ديناميكي.
+
+الإعدادات:
+
+* عدد الإعلانات
+* ترتيب العرض
+* مدة ظهور الإعلان
+* Transition Effect
+* Auto Play
+* Priority
+
+مثال:
+
+```
+Ad 1
+الأولوية 1
+
+↓
+
+Ad 2
+الأولوية 2
+
+↓
+
+Ad 3
+الأولوية 3
+```
+
+---
+
+# 15. Campaign Management
+
+ربط الإعلانات بالحملات:
+
+كل حملة تحتوي:
+
+* اسم الحملة
+* الهدف
+* الميزانية
+* تاريخ البداية
+* تاريخ النهاية
+* الجمهور المستهدف
+* الإعلان المرتبط
+
+---
+
+# 16. Smart Marketing Integration
+
+النظام يجب أن يحلل:
+
+أي إعلان جلب:
+
+* عدد زيارات
+* عدد Leads
+* عدد عقود
+* قيمة الإيرادات الناتجة
+
+مثال:
+
+```
+إعلان باقة معمار
+
+Views:
+50,000
+
+Leads:
+240
+
+Contracts:
+35
+
+Revenue:
+75,000 KD
+```
+
+---
+
+# 17. Permission Control
+
+الصلاحيات:
+
+## Admin
+
+كل شيء.
+
+## Marketing Manager
+
+* إنشاء إعلان
+* تعديل إعلان
+* مشاهدة التقارير
+
+## Employee
+
+مشاهدة فقط.
+
+## Designer
+
+رفع الملفات فقط.
+
+---
+
+# 18. AI Marketing Assistant
+
+إضافة مساعد ذكي يقوم بـ:
+
+* كتابة محتوى الإعلانات.
+* اقتراح عناوين.
+* تحسين SEO.
+* تحليل أداء الحملات.
+* اقتراح أفضل وقت للنشر.
+* إنشاء منشورات سوشيال ميديا.
+
+---
+
+# 19. Integration With CRM
+
+أي حملة أو إعلان يجب أن يسجل:
+
+```
+Lead Source
+
+Website
+
+Instagram
+
+Google Ads
+
+Campaign Name
+
+Advertisement ID
+```
+
+حتى يمكن معرفة:
+
+أي قناة جلبت العميل.
+
+---
+
+# 20. Final Requirements
+
+يجب بناء وحدة:
+
+Website Builder + Hero Ads
+
+بشكل:
+
+* Modular
+* Dynamic
+* Permission Based
+* Connected With CRM
+* Connected With Pricing
+* Connected With Analytics
+* Ready For AI Automation
+
+---
+
+## نهاية الجزء 14
+
+تم تحويل وحدة:
+
+* إدارة الموقع
+* مدير واجهة الإعلانات
+
+إلى مواصفات نظام كاملة قابلة للبناء، مع الحفاظ على موقعها داخل هيكل MEMAR ERP الأصلي. 
+
+سأكمل بعد ذلك بالجزء **15: Permissions & Security + RBAC + Audit System**.

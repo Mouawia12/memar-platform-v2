@@ -60,6 +60,32 @@ export function useLeadHistory(id: number | null) {
   });
 }
 
+/** تايملاين تحديثات الفرصة (المرحلة 4). */
+export function useOpportunityUpdates(id: number | null) {
+  return useQuery({
+    queryKey: ['opportunity-updates', id],
+    queryFn: () => crmApi.updates(id as number),
+    enabled: id !== null,
+  });
+}
+
+/** اختصارات المتابعة الجاهزة (تُدار من الأدمن). */
+export function useQuickActions() {
+  return useQuery({ queryKey: ['quick-actions'], queryFn: () => crmApi.quickActions(), staleTime: 300_000 });
+}
+
+/** تسجيل تحديث على الفرصة — يُبطل التايملاين والقائمة (لتحديث حالة العاجل/الموعد فورًا). */
+export function useLogUpdate(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { action_key?: string; note?: string; next_followup_at?: string }) => crmApi.logUpdate(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['opportunity-updates', id] });
+      invalidateCrm(qc);
+    },
+  });
+}
+
 export function useDeleteLead() {
   return useMutation({
     mutationFn: (id: number) => crmApi.remove(id),

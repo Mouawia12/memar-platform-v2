@@ -1,0 +1,526 @@
+MEMAR ERP MASTER PROMPT
+PART 03
+PROJECT MANAGEMENT SYSTEM
+Engineering Project Operating System (EPOS)
+1. Project Philosophy
+
+المشروع هو قلب النظام.
+
+ليس مجرد سجل يحتوي على اسم العميل، بل هو Digital Twin للمشروع الهندسي، بحيث يستطيع مدير الشركة معرفة كل ما يحدث في المشروع من شاشة واحدة.
+
+يجب أن تكون صفحة المشروع هي أكثر صفحة استخدامًا داخل النظام، لأنها تربط جميع الإدارات ببعضها.
+
+2. Project Lifecycle
+
+كل مشروع يمر بالمراحل التالية:
+
+Lead
+↓
+Quotation
+↓
+Contract
+↓
+Initial Payment
+↓
+Project Creation
+↓
+Engineering Assignment
+↓
+Data Collection
+↓
+Concept Design
+↓
+Municipality Submission
+↓
+Government Approvals
+↓
+Execution Drawings
+↓
+Site Supervision
+↓
+Final Delivery
+↓
+Warranty
+↓
+Archive
+
+كل مرحلة لها:
+
+بداية
+نهاية
+مدة
+مسؤول
+نسبة إنجاز
+موافقات
+مستندات
+مهام مرتبطة
+3. Project Dashboard
+
+عند فتح أي مشروع تظهر لوحة تحكم خاصة به.
+
+تتضمن:
+
+Header
+Project Number
+Project Name
+Client
+Company
+Project Type
+Status
+Priority
+Progress %
+Current Stage
+Quick Statistics
+عدد المهام
+المهام المتأخرة
+عدد الرسومات
+عدد المراسلات
+عدد الاجتماعات
+عدد الزيارات
+قيمة العقد
+المدفوع
+المتبقي
+نسبة الإنجاز
+الأيام المتبقية
+المخاطر الحالية
+4. General Information
+
+كل مشروع يحتوي على:
+
+Project ID
+
+Project Number
+
+Project Name
+
+Client
+
+Owner
+
+Project Manager
+
+Lead Engineer
+
+Architect
+
+Structural Engineer
+
+MEP Engineer
+
+Site Engineer
+
+Quantity Surveyor
+
+Document Controller
+
+Contract Number
+
+Quotation Number
+
+Project Category
+
+Project Type
+
+Project Status
+
+Priority
+
+Start Date
+
+Expected Finish Date
+
+Actual Finish Date
+
+Warranty End Date
+
+5. Property Information
+
+لكل مشروع بيانات عقارية كاملة:
+
+الدولة
+المحافظة
+المنطقة
+القطعة
+القسيمة
+الشارع
+الإحداثيات
+Google Maps
+مساحة الأرض
+مساحة البناء
+عدد الطوابق
+الارتدادات
+نسبة البناء
+نوع الاستخدام
+رقم المخطط المساحي
+6. Kuwait Engineering Information
+
+لأن النظام مخصص لمجموعة معمار والاستشارات الهندسية في الكويت، يجب أن يدعم بيانات المشروع الهندسية والإدارية الخاصة بالمشاريع المحلية، مثل:
+
+ملف البلدية
+تراخيص البناء
+اعتماد الكهرباء
+اعتماد المخرج الصحي
+المخططات المعمارية
+المخططات الإنشائية
+مخططات الكهرباء
+مخططات الصحة
+مخططات التكييف
+الدفاع المدني (عند الحاجة)
+الرفع المساحي
+تقرير فحص التربة
+
+ويجب أن تكون هذه الملفات مرتبطة مباشرة بالمشروع وليس كوحدة منفصلة. (هذا التوسع مبني على طبيعة النظام الهندسي، بينما الملف المصدر يوضح وجود إدارة للمشاريع والوثائق والعمليات دون تفاصيل داخلية.)
+
+7. Project Timeline
+
+كل مشروع يمتلك Timeline لا يمكن حذفه.
+
+مثال
+
+إنشاء المشروع
+
+↓
+
+توقيع العقد
+
+↓
+
+استلام الدفعة الأولى
+
+↓
+
+رفع المخططات
+
+↓
+
+مراجعة المعماري
+
+↓
+
+اعتماد الإنشائي
+
+↓
+
+تقديم البلدية
+
+↓
+
+اعتماد البلدية
+
+↓
+
+بدء التنفيذ
+
+↓
+
+زيارة ميدانية
+
+↓
+
+تسليم المشروع
+
+↓
+
+إغلاق المشروع
+
+كل حدث يسجل:
+
+التاريخ
+الوقت
+المستخدم
+القسم
+الملفات
+الصور
+الملاحظات
+8. Project Stages
+
+كل مشروع يقسم إلى مراحل.
+
+مثلاً
+
+Stage 01
+
+Data Collection
+
+Stage 02
+
+Concept Design
+
+Stage 03
+
+Architectural Design
+
+Stage 04
+
+Structural Design
+
+Stage 05
+
+Municipality Submission
+
+Stage 06
+
+Execution Drawings
+
+Stage 07
+
+Construction Supervision
+
+Stage 08
+
+Final Delivery
+
+كل مرحلة تحتوي على:
+
+مسؤول
+نسبة الإنجاز
+Checklist
+Deliverables
+Attachments
+Comments
+Due Date
+9. Engineering Deliverables
+
+لكل مشروع قائمة تسليمات.
+
+مثل
+
+مخطط معماري
+مخطط إنشائي
+مخطط كهرباء
+مخطط صحي
+HVAC
+Fire Fighting
+Fire Alarm
+BOQ
+Shop Drawings
+As Built
+3D
+Renders
+Animation
+
+كل عنصر له:
+
+Version
+
+Revision
+
+Approver
+
+Reviewer
+
+Issue Date
+
+Status
+
+10. Task Management
+
+داخل المشروع يوجد Kanban خاص.
+
+يتضمن:
+
+To Do
+
+↓
+
+Assigned
+
+↓
+
+In Progress
+
+↓
+
+Review
+
+↓
+
+Revision
+
+↓
+
+Approved
+
+↓
+
+Completed
+
+كل مهمة مرتبطة:
+
+بالمشروع
+بالقسم
+بالموظف
+بالمستند
+بالمرحلة
+بالأولوية
+11. Engineering Team
+
+لكل مشروع فريق.
+
+يشمل:
+
+Project Manager
+
+Architect
+
+Structural
+
+Electrical
+
+Mechanical
+
+Civil
+
+Interior
+
+Landscape
+
+QS
+
+Supervisor
+
+Accountant
+
+Legal
+
+CRM
+
+HR (عند الحاجة)
+
+لكل عضو:
+
+الصلاحيات
+المهام
+ساعات العمل
+نسبة الإنجاز
+تقييم الأداء داخل المشروع
+12. Financial Integration
+
+كل مشروع مرتبط بالحسابات.
+
+يشمل:
+
+قيمة العقد
+قيمة التعديلات
+أوامر التغيير (Variation Orders)
+الدفعات
+الفواتير
+التحصيل
+المصروفات
+الربحية
+تكلفة التنفيذ
+13. Documents Center
+
+داخل المشروع يوجد مركز مستندات.
+
+التصنيف:
+
+Contracts
+
+Drawings
+
+Permits
+
+PDF
+
+DWG
+
+IFC
+
+Images
+
+Videos
+
+Excel
+
+Word
+
+Reports
+
+Site Photos
+
+Approvals
+
+Invoices
+
+Letters
+
+Email Export
+
+Minutes of Meeting
+
+كل ملف يدعم:
+
+Version Control
+Locking
+Revision History
+Approval Workflow
+Digital Signature
+14. Site Supervision
+
+إدارة الإشراف الميداني تشمل:
+
+Schedule
+Site Visits
+Daily Reports
+Weekly Reports
+NCR
+Observation
+Snag List
+Site Instructions
+Contractor Responses
+Photo Log
+GPS
+Checklists
+15. Project Analytics
+
+يعرض النظام:
+
+Project Health Score
+
+Budget Health
+
+Schedule Health
+
+Engineering Progress
+
+Financial Progress
+
+Resource Utilization
+
+Delay Risk
+
+Client Satisfaction
+
+Team Performance
+
+Profit Margin
+
+16. Cross Module Integration
+
+المشروع هو نقطة الربط بين جميع وحدات النظام:
+
+CRM ← العميل
+Contracts ← العقد
+Finance ← الدفعات
+HR ← الموظفون
+Documents ← الملفات
+Meetings ← الاجتماعات
+Tasks ← المهام
+Field Visits ← الزيارات
+Reports ← التقارير
+Notifications ← التنبيهات
+
+أي تحديث داخل هذه الوحدات ينعكس مباشرة في صفحة المشروع.
+
+17. Project Closing
+
+قبل إغلاق المشروع يجب التحقق من:
+
+جميع المهام مكتملة.
+جميع الدفعات مسددة.
+جميع المستندات مؤرشفة.
+النسخة النهائية من الرسومات محفوظة.
+تقرير التسليم النهائي موجود.
+إقفال جميع الملاحظات المفتوحة.
+نقل المشروع إلى الأرشيف مع بقاء إمكانية البحث والرجوع إليه.

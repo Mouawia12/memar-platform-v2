@@ -37,6 +37,19 @@ class UpdateContactRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'project_name' => ['nullable', 'string', 'max:255'],
             'project_details' => ['nullable', 'string'],
+            // حقول الفرصة (المرحلة 3) — expected_points يحسبه النظام لا المستخدم.
+            'price_1_kwd' => ['nullable', 'numeric', 'min:0'],
+            'price_2_kwd' => ['nullable', 'numeric', 'min:0'],
+            'price_3_kwd' => ['nullable', 'numeric', 'min:0'],
+            'expected_price_kwd' => ['nullable', 'numeric', 'min:0'],
+            'priority' => ['nullable', Rule::in(['low', 'medium', 'high', 'urgent'])],
+            'is_vip' => ['sometimes', 'boolean'],
+            'is_urgent' => ['sometimes', 'boolean'],
+            'area_sqm' => ['nullable', 'numeric', 'min:0'],
+            'region' => ['nullable', 'string', 'max:120'],
+            'project_type' => ['nullable', 'string', 'max:60'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'parent_contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')],
         ];
     }
 }

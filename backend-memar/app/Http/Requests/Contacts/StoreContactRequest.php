@@ -34,6 +34,30 @@ class StoreContactRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'project_name' => ['nullable', 'string', 'max:255'],
             'project_details' => ['nullable', 'string'],
+        ] + $this->opportunityRules();
+    }
+
+    /**
+     * حقول الفرصة (المرحلة 3) — مشتركة بين الإنشاء والتحديث. expected_points لا يُقبل من
+     * المستخدم؛ يحسبه النظام من قواعد النقاط منعًا للتلاعب.
+     *
+     * @return array<string, mixed>
+     */
+    protected function opportunityRules(): array
+    {
+        return [
+            'price_1_kwd' => ['nullable', 'numeric', 'min:0'],
+            'price_2_kwd' => ['nullable', 'numeric', 'min:0'],
+            'price_3_kwd' => ['nullable', 'numeric', 'min:0'],
+            'expected_price_kwd' => ['nullable', 'numeric', 'min:0'],
+            'priority' => ['nullable', \Illuminate\Validation\Rule::in(['low', 'medium', 'high', 'urgent'])],
+            'is_vip' => ['sometimes', 'boolean'],
+            'is_urgent' => ['sometimes', 'boolean'],
+            'area_sqm' => ['nullable', 'numeric', 'min:0'],
+            'region' => ['nullable', 'string', 'max:120'],
+            'project_type' => ['nullable', 'string', 'max:60'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'parent_contact_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('contacts', 'id')],
         ];
     }
 }

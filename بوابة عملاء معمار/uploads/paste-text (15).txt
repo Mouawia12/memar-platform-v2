@@ -1,0 +1,654 @@
+# MEMAR ERP MASTER PROMPT
+
+# PART 15
+
+# PERMISSIONS & SECURITY SYSTEM
+
+# RBAC + AUDIT LOG + ACCESS CONTROL
+
+---
+
+# 1. Security Vision
+
+يجب تصميم نظام الصلاحيات في **MEMAR ERP** كنظام مؤسسي متكامل، وليس مجرد إخفاء وإظهار صفحات.
+
+الصلاحيات يجب أن تتحكم في:
+
+* الصفحات.
+* الأقسام.
+* البيانات.
+* الإجراءات.
+* الملفات.
+* التقارير.
+* عمليات الموافقة.
+* التصدير.
+* الحذف.
+* التعديل.
+* الوصول حسب المشروع أو القسم أو الموظف.
+
+الهدف:
+
+> كل مستخدم يرى ويستخدم فقط ما يسمح له به حسب دوره ومسؤوليته.
+
+---
+
+# 2. Permission Architecture
+
+اعتماد نظام:
+
+## RBAC
+
+(Role Based Access Control)
+
+مع:
+
+## ABAC
+
+(Attribute Based Access Control)
+
+للسيطرة على الوصول حسب خصائص إضافية.
+
+مثال:
+
+المهندس يمكنه رؤية:
+
+* المشاريع المكلف بها فقط.
+
+مدير القسم يمكنه رؤية:
+
+* جميع مشاريع قسمه.
+
+الإدارة العليا يمكنها رؤية:
+
+* كل المشاريع.
+
+---
+
+# 3. User Hierarchy
+
+النظام يدعم هيكل إداري:
+
+```
+Super Admin
+
+↓
+
+General Manager
+
+↓
+
+Department Manager
+
+↓
+
+Team Leader
+
+↓
+
+Employee
+
+↓
+
+External User
+```
+
+---
+
+# 4. Roles Management
+
+صفحة إدارة الأدوار:
+
+## Role Information
+
+كل Role يحتوي:
+
+* Role Name
+* Description
+* Status
+* Created Date
+* Created By
+* Assigned Users
+* Permissions Count
+
+---
+
+# 5. Default Roles
+
+النظام يجب أن يحتوي على أدوار جاهزة:
+
+---
+
+## Super Administrator
+
+صلاحية كاملة:
+
+* جميع الصفحات.
+* جميع البيانات.
+* جميع الإعدادات.
+* إدارة المستخدمين.
+* حذف البيانات.
+* النظام بالكامل.
+
+---
+
+## General Manager
+
+صلاحيات:
+
+* Dashboard كامل.
+* التقارير.
+* المشاريع.
+* العملاء.
+* المالية.
+* الموظفين.
+* الموافقات.
+
+بدون:
+
+* إعدادات النظام الحساسة.
+
+---
+
+## Project Manager
+
+صلاحيات:
+
+* المشاريع.
+* المهام.
+* فريق العمل.
+* الملفات.
+* التقارير.
+* الاجتماعات.
+* المتابعة.
+
+---
+
+## Engineer
+
+صلاحيات:
+
+* المشاريع المسندة.
+* الملفات الهندسية.
+* رفع التقارير.
+* الزيارات.
+* المهام.
+
+---
+
+## Accountant
+
+صلاحيات:
+
+* الفواتير.
+* الدفعات.
+* المصروفات.
+* التقارير المالية.
+
+---
+
+## HR Manager
+
+صلاحيات:
+
+* الموظفين.
+* الحضور.
+* الرواتب.
+* الإجازات.
+* التوظيف.
+
+---
+
+## Sales Employee
+
+صلاحيات:
+
+* CRM.
+* Leads.
+* العملاء.
+* العروض.
+* المتابعة.
+
+---
+
+## Document Controller
+
+صلاحيات:
+
+* الملفات.
+* الأرشيف.
+* الإصدارات.
+* المستندات.
+
+---
+
+# 6. Permission Levels
+
+كل Module يجب أن يحتوي على صلاحيات منفصلة:
+
+مثال:
+
+## Projects
+
+```
+View Projects
+
+Create Project
+
+Edit Project
+
+Delete Project
+
+Assign Engineer
+
+Change Status
+
+Upload Files
+
+Approve Stage
+
+Export Report
+```
+
+---
+
+## CRM
+
+```
+View Leads
+
+Create Lead
+
+Edit Lead
+
+Convert Lead
+
+Delete Lead
+
+Export Customers
+
+View Sales Reports
+```
+
+---
+
+## Finance
+
+```
+View Revenue
+
+Create Invoice
+
+Edit Invoice
+
+Approve Payment
+
+Delete Transaction
+
+Export Financial Report
+```
+
+---
+
+# 7. Action Permission Matrix
+
+كل زر في النظام مرتبط بصلاحية.
+
+مثال:
+
+زر:
+
+"حذف"
+
+لا يظهر إلا إذا:
+
+```
+permission.delete.project = true
+```
+
+زر:
+
+"اعتماد"
+
+يحتاج:
+
+```
+permission.approve.contract = true
+```
+
+---
+
+# 8. Data Level Permission
+
+ليس فقط صلاحية الصفحة.
+
+مثال:
+
+المهندس يرى صفحة المشاريع:
+
+لكن:
+
+يرى فقط:
+
+```
+Projects
+WHERE assigned_engineer = current_user
+```
+
+---
+
+مدير المشاريع:
+
+```
+Projects
+WHERE department = current_department
+```
+
+---
+
+الإدارة:
+
+```
+ALL PROJECTS
+```
+
+---
+
+# 9. Department Based Access
+
+الأقسام:
+
+* الإدارة.
+* التصميم المعماري.
+* الإنشاء.
+* الكهرباء.
+* الميكانيكا.
+* الحسابات.
+* الموارد البشرية.
+* التسويق.
+* المبيعات.
+
+كل قسم له:
+
+* مستخدمون.
+* مدير.
+* صلاحيات.
+* ملفات.
+* تقارير.
+
+---
+
+# 10. User Management
+
+صفحة المستخدمين:
+
+تحتوي على:
+
+## User Profile
+
+* الاسم.
+* البريد.
+* الهاتف.
+* الصورة.
+* القسم.
+* الوظيفة.
+* المدير المباشر.
+* تاريخ التعيين.
+* الحالة.
+
+---
+
+## Account Status
+
+حالات:
+
+* Active
+* Suspended
+* Pending
+* Disabled
+
+---
+
+# 11. Authentication System
+
+يدعم:
+
+* Email Login
+* Password
+* Two Factor Authentication
+* Session Management
+* Device Tracking
+* Password Policy
+
+---
+
+# 12. Password Security
+
+القواعد:
+
+* Minimum Length.
+* Uppercase.
+* Lowercase.
+* Numbers.
+* Special Characters.
+
+مع:
+
+* Password History.
+* Password Expiration.
+* Reset Workflow.
+
+---
+
+# 13. Audit Log System
+
+كل حركة داخل النظام يجب تسجيلها.
+
+Audit Log يحتوي:
+
+```
+User
+
+Action
+
+Module
+
+Record ID
+
+Old Value
+
+New Value
+
+Date
+
+Time
+
+IP Address
+
+Device
+```
+
+---
+
+# 14. Actions To Track
+
+يتم تسجيل:
+
+* Login.
+* Logout.
+* Create.
+* Update.
+* Delete.
+* Download.
+* Upload.
+* Export.
+* Approve.
+* Reject.
+* Permission Change.
+
+---
+
+# 15. Activity Timeline
+
+كل عنصر في النظام يحتوي Timeline:
+
+مثال:
+
+Project:
+
+```
+Created by Ahmed
+
+↓
+
+Updated drawings
+
+↓
+
+Uploaded PDF
+
+↓
+
+Changed status
+
+↓
+
+Approved by Manager
+```
+
+---
+
+# 16. File Security
+
+إدارة الملفات يجب أن تدعم:
+
+* صلاحيات قراءة.
+* صلاحيات تحميل.
+* صلاحيات تعديل.
+* صلاحيات حذف.
+
+مثال:
+
+ملف عقد:
+
+الإدارة فقط.
+
+ملفات المشروع:
+
+الفريق المكلف.
+
+---
+
+# 17. Approval Workflow
+
+أي عملية حساسة يمكن ربطها بموافقة.
+
+أمثلة:
+
+## Contract Approval
+
+```
+Employee
+
+↓
+
+Project Manager
+
+↓
+
+General Manager
+```
+
+---
+
+## Expense Approval
+
+```
+Employee
+
+↓
+
+Manager
+
+↓
+
+Accounting
+```
+
+---
+
+# 18. Notification Security
+
+عند حدوث عملية:
+
+مثال:
+
+تغيير صلاحية مستخدم.
+
+يرسل:
+
+* إشعار للإدارة.
+* يسجل في Audit.
+* يظهر في Timeline.
+
+---
+
+# 19. System Logs Dashboard
+
+لوحة خاصة بالإدارة:
+
+تعرض:
+
+* آخر تسجيلات الدخول.
+* المستخدمين النشطين.
+* العمليات الحساسة.
+* محاولات الدخول الفاشلة.
+* تغييرات الصلاحيات.
+* حذف البيانات.
+
+---
+
+# 20. Security Settings
+
+الإدارة تستطيع التحكم في:
+
+* مدة الجلسة.
+* سياسة كلمة المرور.
+* التحقق الثنائي.
+* السماح بالأجهزة.
+* صلاحيات API.
+* Backup.
+* Data Export.
+
+---
+
+# 21. Final Security Requirements
+
+يجب بناء نظام الصلاحيات في MEMAR ERP بحيث يكون:
+
+* Dynamic.
+* Scalable.
+* Secure.
+* Permission Driven.
+* Audit Ready.
+* Multi Department.
+* Multi Branch.
+* Enterprise Level.
+
+---
+
+## نهاية الجزء 15
+
+تم بناء وحدة:
+
+**Permissions + Security + RBAC + Audit System**
+
+لتكون الأساس الأمني للنظام بالكامل، بحيث ترتبط بكل الوحدات الأخرى:
+CRM، المشاريع، المالية، HR، المستندات، الموقع، والتقارير.
+
+الجزء القادم:
+
+# PART 16
+
+## Workflow Engine + Notifications + Automation System
+
+وسيكون مسؤولاً عن تحويل النظام من برنامج إداري إلى نظام تشغيل ذكي يقوم بالمتابعة والتنبيهات والإجراءات التلقائية.

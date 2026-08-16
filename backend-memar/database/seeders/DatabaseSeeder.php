@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             JobOpeningsSeeder::class,     // الوظائف المعروضة في صفحة /jobs
             EmployeesSeeder::class,       // فريق معمار (HR) — بيانات موظفين حقيقية
             ServiceRequestsSeeder::class, // الطلبات الواردة الثابتة (/requests) + إسناد لمهندسين
+            LoyaltyRulesSeeder::class,    // قواعد نقاط الموظفين الافتراضية (المرحلة 2)
+            QuickActionsSeeder::class,    // اختصارات متابعة الفرص الافتراضية (المرحلة 4)
         ]);
     }
 }

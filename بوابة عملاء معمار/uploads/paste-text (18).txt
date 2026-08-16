@@ -1,0 +1,637 @@
+تمام، سننتقل إلى **الجزء رقم 18** كما طلبت:
+
+# MEMAR ERP MASTER PROMPT
+
+# PART 18
+
+# API ARCHITECTURE
+
+# (Application Programming Interface Design)
+
+هذا الجزء يحدد طريقة اتصال جميع أجزاء النظام ببعضها، وقاعدة البيانات، والتطبيقات الخارجية، بحيث يكون النظام قابلًا للتوسع والعمل كتطبيق Enterprise.
+
+المحتوى مبني على هيكل النظام الموجود في الملف، والذي يحتوي على وحدات مثل CRM، المشاريع، الموظفين، الحسابات، المستندات، مدير الملفات، بوابة المهندسين، KNET، التقارير، والصلاحيات. 
+
+---
+
+# 1. API Architecture Philosophy
+
+يجب بناء النظام باستخدام:
+
+**Modular API Architecture**
+
+بحيث تكون كل وحدة لها API مستقل ولكنها مرتبطة بالنظام المركزي.
+
+الهيكل:
+
+```
+Frontend Application
+        |
+        |
+      API Gateway
+        |
+--------------------------------
+|        |        |             |
+CRM    ERP     HR          Finance
+API    API     API          API
+|        |        |             |
+--------------------------------
+          |
+     Database Layer
+```
+
+---
+
+# 2. API Technology Requirements
+
+يجب أن يدعم النظام:
+
+* REST API
+* JSON Responses
+* Authentication Tokens
+* Role Based Access Control
+* Real Time Events
+* Webhooks
+* File Upload API
+* Reporting API
+* Integration API
+
+---
+
+# 3. API Structure
+
+كل API يجب أن يكون له Versioning.
+
+مثال:
+
+```
+/api/v1/
+```
+
+المستقبل:
+
+```
+/api/v2/
+```
+
+لمنع كسر النظام عند التطوير.
+
+---
+
+# 4. Authentication API
+
+## Login
+
+Endpoint:
+
+```
+POST /api/v1/auth/login
+```
+
+البيانات:
+
+```json
+{
+"email":"",
+"password":""
+}
+```
+
+Response:
+
+```json
+{
+"user_id":"",
+"name":"",
+"role":"",
+"token":"",
+"permissions":[]
+}
+```
+
+---
+
+## Logout
+
+```
+POST /api/v1/auth/logout
+```
+
+---
+
+## Refresh Token
+
+```
+POST /api/v1/auth/refresh
+```
+
+---
+
+# 5. User Management API
+
+مرتبط بوحدة:
+
+* المستخدمين
+* الصلاحيات
+* سجل المستخدمين
+
+الموجودة في النظام. 
+
+---
+
+## Users
+
+الحصول على المستخدمين:
+
+```
+GET /api/v1/users
+```
+
+إضافة:
+
+```
+POST /api/v1/users
+```
+
+تعديل:
+
+```
+PUT /api/v1/users/{id}
+```
+
+حذف:
+
+```
+DELETE /api/v1/users/{id}
+```
+
+---
+
+## Roles API
+
+```
+GET /api/v1/roles
+```
+
+إنشاء Role:
+
+```
+POST /api/v1/roles
+```
+
+تعديل الصلاحيات:
+
+```
+PUT /api/v1/roles/{id}/permissions
+```
+
+---
+
+# 6. CRM API
+
+مرتبط بوحدة:
+
+* CRM
+* الشركات
+* العملاء
+* الاجتماعات
+* المواعيد
+* التواصل
+
+كما يظهر في القائمة الأساسية للنظام. 
+
+---
+
+## Leads
+
+جلب العملاء المحتملين:
+
+```
+GET /api/v1/crm/leads
+```
+
+إنشاء Lead:
+
+```
+POST /api/v1/crm/leads
+```
+
+تحديث الحالة:
+
+```
+PUT /api/v1/crm/leads/{id}/status
+```
+
+---
+
+## Convert Lead
+
+تحويل Lead إلى Client:
+
+```
+POST /api/v1/crm/leads/{id}/convert
+```
+
+العملية تنشئ:
+
+* Client
+* Project
+* Folder
+* Timeline
+
+---
+
+# 7. Clients API
+
+```
+GET /api/v1/clients
+```
+
+```
+POST /api/v1/clients
+```
+
+```
+GET /api/v1/clients/{id}
+```
+
+Response:
+
+```json
+{
+"name":"",
+"phone":"",
+"projects":[],
+"contracts":[],
+"invoices":[],
+"documents":[]
+}
+```
+
+---
+
+# 8. Projects API
+
+وحدة المشاريع هي قلب النظام.
+
+---
+
+## Projects List
+
+```
+GET /api/v1/projects
+```
+
+---
+
+## Create Project
+
+```
+POST /api/v1/projects
+```
+
+البيانات:
+
+```json
+{
+"client_id":"",
+"project_type":"",
+"location":"",
+"area":"",
+"engineer":"",
+"status":""
+}
+```
+
+---
+
+## Project Dashboard
+
+```
+GET /api/v1/projects/{id}/dashboard
+```
+
+يعيد:
+
+* نسبة الإنجاز
+* المهام
+* الملفات
+* الدفعات
+* المراسلات
+* الزيارات
+* المخططات
+
+---
+
+# 9. Tasks API
+
+مرتبط بلوحة المهام الموجودة في النظام. 
+
+---
+
+```
+GET /api/v1/tasks
+```
+
+إنشاء:
+
+```
+POST /api/v1/tasks
+```
+
+تغيير الحالة:
+
+```
+PUT /api/v1/tasks/{id}/status
+```
+
+---
+
+# 10. HR API
+
+يشمل:
+
+* الموظفين
+* الحضور
+* الرواتب
+* التوظيف
+
+---
+
+## Employees
+
+```
+GET /api/v1/employees
+```
+
+---
+
+## Attendance
+
+```
+POST /api/v1/attendance/checkin
+```
+
+```
+POST /api/v1/attendance/checkout
+```
+
+---
+
+## Payroll
+
+```
+GET /api/v1/payroll/monthly
+```
+
+---
+
+# 11. Finance API
+
+مرتبط بوحدة:
+
+* الحسابات
+* المدفوعات
+* المصروفات
+* العقود
+* الفواتير
+* الملخص المالي
+
+الموجودة في النظام. 
+
+---
+
+## Invoices
+
+```
+GET /api/v1/invoices
+```
+
+إنشاء:
+
+```
+POST /api/v1/invoices
+```
+
+---
+
+## Payments
+
+```
+POST /api/v1/payments
+```
+
+---
+
+## Expenses
+
+```
+POST /api/v1/expenses
+```
+
+---
+
+# 12. Document Management API
+
+مرتبط بـ:
+
+* محرر المستندات
+* العقود
+* الأرشيف
+* مدير الملفات
+
+
+
+---
+
+رفع ملف:
+
+```
+POST /api/v1/files/upload
+```
+
+تحميل:
+
+```
+GET /api/v1/files/{id}
+```
+
+حذف:
+
+```
+DELETE /api/v1/files/{id}
+```
+
+---
+
+# 13. Notification API
+
+النظام يحتاج Real-Time Notification.
+
+يدعم:
+
+* المهام
+* الموافقات
+* الدفعات
+* الرسائل
+* التنبيهات
+
+---
+
+```
+GET /api/v1/notifications
+```
+
+Mark Read:
+
+```
+PUT /api/v1/notifications/{id}/read
+```
+
+---
+
+# 14. WhatsApp Integration API
+
+لربط التواصل مع العملاء:
+
+```
+POST /api/v1/messages/send
+```
+
+يدعم:
+
+* نص
+* صورة
+* PDF
+* ملفات
+* Templates
+
+---
+
+# 15. AI Assistant API
+
+المساعد الذكي الموجود بالنظام يحتاج API مستقل.
+
+---
+
+```
+POST /api/v1/ai/chat
+```
+
+الوظائف:
+
+* البحث داخل النظام.
+* إنشاء تقارير.
+* تحليل المشاريع.
+* اقتراح أسعار.
+* تلخيص العملاء.
+* الإجابة على استفسارات الموظفين.
+
+---
+
+# 16. Reporting API
+
+التقارير تعتمد على Data Aggregation Layer.
+
+---
+
+```
+GET /api/v1/reports/dashboard
+```
+
+```
+GET /api/v1/reports/projects
+```
+
+```
+GET /api/v1/reports/finance
+```
+
+```
+GET /api/v1/reports/hr
+```
+
+---
+
+# 17. Audit Log API
+
+كل حركة يجب تسجيلها.
+
+مثال:
+
+```
+POST /api/v1/audit
+```
+
+يسجل:
+
+* المستخدم
+* العملية
+* التاريخ
+* الجهاز
+* IP
+* البيانات قبل وبعد التعديل
+
+---
+
+# 18. External Integration Layer
+
+النظام يجب أن يكون جاهزًا للربط مع:
+
+* KNET Payment Gateway
+* WhatsApp Business API
+* Email Services
+* SMS Gateway
+* Cloud Storage
+* Accounting Systems
+* Municipality Systems مستقبلًا
+
+---
+
+# 19. API Security Rules
+
+يجب تطبيق:
+
+* HTTPS فقط
+* Token Expiration
+* Rate Limiting
+* Input Validation
+* SQL Injection Protection
+* Permission Verification
+* File Scan قبل الرفع
+* Activity Logging
+
+---
+
+# 20. Final API Principle
+
+أي وظيفة في النظام يجب أن تكون متاحة من خلال API.
+
+لا يتم وضع Logic داخل الواجهة فقط.
+
+الواجهة تعرض البيانات.
+
+الـ API يدير:
+
+* Business Rules
+* Permissions
+* Validation
+* Database Operations
+* Automation
+
+---
+
+✅ انتهى الجزء 18: **API Architecture**
+
+الجزء التالي حسب الخطة:
+
+**PART 19 — Automation Rules & Workflow Engine**
+
+وسيشمل:
+
+* التحويلات التلقائية بين الوحدات.
+* الموافقات.
+* التنبيهات.
+* إنشاء المشاريع تلقائيًا.
+* ربط العقود بالفواتير.
+* دورة حياة المشروع بالكامل.

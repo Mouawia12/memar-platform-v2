@@ -1,0 +1,1013 @@
+# MEMAR ERP MASTER PROMPT
+
+# PART 17
+
+# DATABASE SCHEMA & DATA ARCHITECTURE
+
+# تصميم قاعدة البيانات وهيكل البيانات
+
+---
+
+# 1. Database Philosophy
+
+يجب بناء قاعدة بيانات **Enterprise Grade** تعتمد على:
+
+**PostgreSQL + Supabase**
+
+وتكون قاعدة البيانات هي:
+
+## Single Source of Truth
+
+أي أن:
+
+* كل البيانات الأساسية تحفظ في قاعدة البيانات المركزية.
+* جميع الوحدات تعتمد على نفس البيانات.
+* لا يتم تكرار بيانات العميل أو المشروع.
+* جميع العلاقات تعتمد على UUID.
+* جميع العمليات تسجل في Audit Trail.
+
+---
+
+# 2. Database Architecture Principles
+
+## Primary Key
+
+كل جدول يستخدم:
+
+```
+UUID
+```
+
+بدلاً من:
+
+```
+Integer ID
+```
+
+لأسباب:
+
+* الأمان.
+* التوسع.
+* التكامل مع API.
+* سهولة المزامنة.
+
+---
+
+# 3. Common Fields
+
+كل جدول رئيسي يجب أن يحتوي على:
+
+```sql
+id UUID PRIMARY KEY
+
+created_at TIMESTAMP
+
+updated_at TIMESTAMP
+
+created_by UUID
+
+updated_by UUID
+
+is_active BOOLEAN
+
+deleted_at TIMESTAMP NULL
+```
+
+---
+
+# 4. Core System Tables
+
+---
+
+# USERS TABLE
+
+جدول المستخدمين.
+
+الغرض:
+
+تخزين جميع مستخدمي النظام.
+
+Fields:
+
+```
+id
+
+full_name
+
+email
+
+phone
+
+password_hash
+
+avatar
+
+role_id
+
+department_id
+
+employee_id
+
+status
+
+last_login
+
+created_at
+```
+
+---
+
+# ROLES TABLE
+
+إدارة الأدوار.
+
+مثال:
+
+* Super Admin
+* Manager
+* Engineer
+* Accountant
+* Employee
+
+Fields:
+
+```
+id
+
+role_name
+
+description
+
+permissions
+```
+
+---
+
+# PERMISSIONS TABLE
+
+الصلاحيات التفصيلية.
+
+Fields:
+
+```
+id
+
+module
+
+permission_name
+
+action
+```
+
+مثال:
+
+```
+Projects
+
+create_project
+
+edit_project
+
+delete_project
+
+approve_project
+```
+
+---
+
+# ROLE_PERMISSIONS TABLE
+
+ربط:
+
+Role
+
+مع
+
+Permission
+
+```
+role_id
+
+permission_id
+```
+
+---
+
+# 5. ORGANIZATION STRUCTURE
+
+## Departments Table
+
+الأقسام:
+
+مثل:
+
+* Architecture
+* Structural
+* MEP
+* Finance
+* HR
+* Administration
+
+Fields:
+
+```
+id
+
+department_name
+
+manager_id
+```
+
+---
+
+# Employees Table
+
+بيانات الموظفين.
+
+Fields:
+
+```
+id
+
+user_id
+
+employee_code
+
+job_title
+
+department_id
+
+hire_date
+
+salary
+
+status
+
+nationality
+
+documents
+```
+
+---
+
+# 6. CRM DATABASE
+
+## Leads Table
+
+العملاء المحتملين.
+
+```
+id
+
+name
+
+phone
+
+email
+
+source
+
+status
+
+assigned_to
+
+project_type
+
+budget
+
+notes
+
+created_date
+```
+
+---
+
+## Clients Table
+
+العملاء النهائيين.
+
+```
+id
+
+lead_id
+
+client_type
+
+full_name
+
+company_name
+
+phone
+
+email
+
+address
+
+civil_id
+
+notes
+```
+
+---
+
+## Companies Table
+
+للعملاء B2B.
+
+```
+id
+
+company_name
+
+registration_number
+
+contact_person
+
+phone
+
+email
+
+address
+```
+
+---
+
+# 7. Projects Database
+
+## Projects Table
+
+الجدول المركزي للنظام.
+
+```
+id
+
+project_number
+
+client_id
+
+company_id
+
+project_name
+
+project_type
+
+location
+
+plot_number
+
+area
+
+status
+
+stage
+
+progress_percentage
+
+project_manager
+
+start_date
+
+end_date
+```
+
+---
+
+# Project Members
+
+ربط الموظفين بالمشاريع.
+
+```
+project_id
+
+employee_id
+
+role
+```
+
+مثال:
+
+```
+Project A
+
+Architect
+
+Structural Engineer
+
+Site Engineer
+```
+
+---
+
+# Project Milestones
+
+مراحل المشروع.
+
+```
+id
+
+project_id
+
+title
+
+start_date
+
+due_date
+
+status
+
+percentage
+```
+
+---
+
+# Project Tasks
+
+المهام.
+
+```
+id
+
+project_id
+
+assigned_to
+
+title
+
+priority
+
+status
+
+due_date
+
+completion_date
+```
+
+---
+
+# 8. DOCUMENT MANAGEMENT DATABASE
+
+## Documents Table
+
+المستندات.
+
+```
+id
+
+project_id
+
+client_id
+
+document_type
+
+file_name
+
+file_path
+
+version
+
+uploaded_by
+
+status
+```
+
+---
+
+## Document Versions
+
+```
+id
+
+document_id
+
+version_number
+
+file_path
+
+created_by
+
+created_at
+```
+
+---
+
+# 9. COMMUNICATION DATABASE
+
+## Messages Table
+
+```
+id
+
+sender_id
+
+receiver_id
+
+project_id
+
+message
+
+attachment
+
+created_at
+```
+
+---
+
+## Chat Groups
+
+```
+id
+
+project_id
+
+group_name
+```
+
+---
+
+## Chat Members
+
+```
+group_id
+
+user_id
+```
+
+---
+
+# 10. Meetings Database
+
+## Meetings
+
+```
+id
+
+title
+
+client_id
+
+project_id
+
+date
+
+time
+
+location
+
+created_by
+```
+
+---
+
+## Meeting Participants
+
+```
+meeting_id
+
+user_id
+```
+
+---
+
+# 11. FINANCE DATABASE
+
+---
+
+## Contracts
+
+```
+id
+
+client_id
+
+project_id
+
+contract_number
+
+value
+
+start_date
+
+end_date
+
+status
+```
+
+---
+
+## Invoices
+
+```
+id
+
+contract_id
+
+invoice_number
+
+amount
+
+due_date
+
+status
+```
+
+---
+
+## Payments
+
+```
+id
+
+invoice_id
+
+amount
+
+payment_date
+
+method
+```
+
+---
+
+## Expenses
+
+```
+id
+
+category
+
+amount
+
+project_id
+
+employee_id
+
+approval_status
+```
+
+---
+
+# 12. HR DATABASE
+
+## Attendance
+
+```
+id
+
+employee_id
+
+date
+
+check_in
+
+check_out
+
+status
+```
+
+---
+
+## Leave Requests
+
+```
+id
+
+employee_id
+
+type
+
+from_date
+
+to_date
+
+status
+```
+
+---
+
+## Payroll
+
+```
+id
+
+employee_id
+
+month
+
+basic_salary
+
+allowances
+
+deductions
+
+net_salary
+```
+
+---
+
+# 13. PRICING ENGINE DATABASE
+
+## Services
+
+```
+id
+
+service_name
+
+category
+
+price
+
+duration
+```
+
+---
+
+## Quotations
+
+```
+id
+
+client_id
+
+project_id
+
+total
+
+discount
+
+status
+```
+
+---
+
+## Quotation Items
+
+```
+quotation_id
+
+service_id
+
+quantity
+
+price
+```
+
+---
+
+# 14. WORKFLOW DATABASE
+
+## Workflow Rules
+
+```
+id
+
+name
+
+trigger
+
+condition
+
+actions
+
+status
+```
+
+---
+
+## Workflow Execution Logs
+
+```
+id
+
+workflow_id
+
+event
+
+result
+
+executed_at
+```
+
+---
+
+# 15. NOTIFICATION DATABASE
+
+## Notifications
+
+```
+id
+
+user_id
+
+title
+
+message
+
+type
+
+priority
+
+read_status
+
+created_at
+```
+
+---
+
+# 16. AUDIT SYSTEM
+
+## Audit Logs
+
+يسجل كل شيء.
+
+```
+id
+
+user_id
+
+module
+
+action
+
+record_id
+
+old_value
+
+new_value
+
+ip_address
+
+created_at
+```
+
+---
+
+# 17. FILE STORAGE ARCHITECTURE
+
+استخدام:
+
+Supabase Storage
+
+Structure:
+
+```
+/clients
+
+/projects
+
+/contracts
+
+/drawings
+
+/reports
+
+/employees
+
+/archive
+```
+
+كل ملف مرتبط بجدول معين.
+
+---
+
+# 18. Database Security
+
+تطبيق:
+
+## Row Level Security (RLS)
+
+مثال:
+
+المهندس يرى:
+
+* المشاريع المكلف بها فقط.
+
+المحاسب يرى:
+
+* الحسابات والفواتير فقط.
+
+المدير يرى:
+
+* كل البيانات.
+
+---
+
+# 19. Search Architecture
+
+إنشاء Indexes على:
+
+* Client Name
+* Phone
+* Project Number
+* Contract Number
+* Employee Code
+* Document Name
+
+لتحقيق بحث سريع.
+
+---
+
+# 20. Database Relationships Overview
+
+العلاقة الرئيسية:
+
+```
+USER
+
+↓
+
+EMPLOYEE
+
+↓
+
+PROJECT
+
+↓
+
+CLIENT
+
+↓
+
+CONTRACT
+
+↓
+
+INVOICE
+
+↓
+
+PAYMENT
+```
+
+و:
+
+```
+PROJECT
+
+↓
+
+TASKS
+
+↓
+
+DOCUMENTS
+
+↓
+
+MESSAGES
+
+↓
+
+MEETINGS
+
+↓
+
+REPORTS
+```
+
+---
+
+# 21. Backup & Recovery
+
+النظام يجب أن يدعم:
+
+* Daily Backup.
+* Point In Time Recovery.
+* Database Logs.
+* File Backup.
+* Restore Testing.
+
+---
+
+# 22. Future Scalability
+
+يجب تصميم قاعدة البيانات لتدعم مستقبلاً:
+
+* تطبيق الهاتف.
+* Client Portal.
+* AI Assistant.
+* BIM Integration.
+* IoT Site Monitoring.
+* Digital Twin.
+* External APIs.
+
+---
+
+## ارتباط الجزء 17 بالملف الأساسي
+
+هذا الجزء يحول الوحدات الموجودة في النظام إلى هيكل بيانات قابل للتنفيذ، مع الحفاظ على ترابط الوحدات الموجودة في الملف مثل:
+
+* إدارة العملاء.
+* المشاريع.
+* الموظفين.
+* الصلاحيات.
+* الحسابات.
+* المستندات.
+* العمليات.
+* سجل النظام.
+
+
+---
+
+**الجزء القادم: PART 18 — API ARCHITECTURE & BACKEND DESIGN**
+وسيحدد كيف تتواصل الواجهة الأمامية مع قاعدة البيانات، ونقاط API، والأمان، والتكاملات الخارجية.

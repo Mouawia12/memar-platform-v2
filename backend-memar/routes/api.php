@@ -60,4 +60,6 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/public-intake.php';
     require __DIR__.'/api/workspace.php';
     require __DIR__.'/api/internal-news.php';
+    require __DIR__.'/api/settings.php';
+    require __DIR__.'/api/loyalty.php';
 });

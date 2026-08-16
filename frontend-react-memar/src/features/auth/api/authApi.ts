@@ -38,6 +38,13 @@ export interface EmployeePointsTx {
   description: string | null;
   created_at: string | null;
 }
+export interface RedemptionRequest {
+  id: number;
+  points: number;
+  amount_kwd: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string | null;
+}
 export interface EmployeePoints {
   code: string;
   balance: number;
@@ -48,6 +55,8 @@ export interface EmployeePoints {
   points_per_deal: number;
   deals_won: number;
   pending_count: number;
+  available_for_redemption?: number;
+  redemptions?: RedemptionRequest[];
   transactions: EmployeePointsTx[];
 }
 
@@ -65,7 +74,8 @@ export const authApi = {
     apiPost<null>('/auth/me/password', payload),
   /** محفظة نقاط الموظف. */
   getPoints: () => apiGet<EmployeePoints>('/auth/me/points'),
-  convertPoints: (points: number) => apiPost<{ points: number; kwd: number; balance: number }>('/auth/me/points/convert', { points }),
+  /** طلب استبدال نقاط بالراتب (يخضع لاعتماد الإدارة). */
+  convertPoints: (points: number) => apiPost<{ id: number; points: number; amount_kwd: string; status: string }>('/auth/me/points/convert', { points }),
   updateUiPrefs: (prefs: UiPrefs) => apiPatch<UiPrefs>('/auth/me/ui-prefs', prefs),
   /** رفع الصورة الشخصية للموظف — تُعيد بيانات المستخدم المحدّثة (تتضمّن avatar_url). */
   uploadAvatar: (file: File) => {

@@ -1,0 +1,680 @@
+MEMAR ERP MASTER PROMPT
+PART 06
+DOCUMENT MANAGEMENT SYSTEM (DMS)
+Enterprise Engineering Document Center
+
+هذه الوحدة هي العمود الفقري للنظام بالكامل. ليست مجرد مدير ملفات، بل نظام إدارة وثائق هندسية متكامل (EDMS) يربط كل مستند بالمشروع، العميل، العقد، المهمة، والاعتماد الحكومي، مع تطوير الوحدات الموجودة في الملف مثل Document Editor وFile Manager وArchive.
+
+1. Document Philosophy
+
+يجب أن يعمل النظام وفق مبدأ:
+
+Document-Centric ERP
+
+أي أن جميع العمليات داخل النظام تدور حول المستندات.
+
+كل مشروع.
+
+كل عقد.
+
+كل رسم.
+
+كل تقرير.
+
+كل خطاب.
+
+كل بريد إلكتروني.
+
+كل ملف.
+
+يجب أن يكون له سجل كامل.
+
+ولا يسمح بوجود ملفات خارج النظام.
+
+2. Document Center Structure
+
+كل مشروع يحتوي على مركز مستندات مستقل.
+
+التقسيم الافتراضي:
+
+01_Contracts
+
+02_Quotations
+
+03_Municipality
+
+04_Architecture
+
+05_Structure
+
+06_Electrical
+
+07_Mechanical
+
+08_Fire
+
+09_QS
+
+10_Interior
+
+11_Landscape
+
+12_Site
+
+13_Meetings
+
+14_Photos
+
+15_Videos
+
+16_Reports
+
+17_PDF
+
+18_DWG
+
+19_IFC
+
+20_Excel
+
+21_Word
+
+22_Presentations
+
+23_Legal
+
+24_Finance
+
+25_Archive
+
+يمكن للإدارة تعديل الهيكل أو إضافة مجلدات جديدة.
+
+3. Document Object
+
+كل مستند يحتوي على:
+
+Document ID
+
+Document Number
+
+Project
+
+Client
+
+Department
+
+Category
+
+Sub Category
+
+Title
+
+Description
+
+Owner
+
+Uploader
+
+Reviewer
+
+Approver
+
+Current Version
+
+Revision
+
+Issue Date
+
+Expiry Date
+
+Keywords
+
+Tags
+
+Confidentiality Level
+
+Status
+
+Storage Location
+
+4. Supported File Types
+
+النظام يدعم:
+
+PDF
+
+DWG
+
+DXF
+
+DWF
+
+RVT
+
+RFA
+
+IFC
+
+NWD
+
+SKP
+
+3DS
+
+OBJ
+
+FBX
+
+JPG
+
+PNG
+
+WEBP
+
+TIFF
+
+DOCX
+
+XLSX
+
+PPTX
+
+ZIP
+
+RAR
+
+MP4
+
+MOV
+
+AVI
+
+MP3
+
+WAV
+
+TXT
+
+JSON
+
+XML
+
+CSV
+
+ولا يعتمد على الامتداد فقط، بل يتحقق من نوع الملف الحقيقي.
+
+5. Version Control Engine
+
+كل تعديل ينشئ Version جديدة.
+
+مثال
+
+V1.0
+
+↓
+
+V1.1
+
+↓
+
+V1.2
+
+↓
+
+V2.0
+
+↓
+
+V2.1
+
+كل إصدار يحتوي على:
+
+Revision Notes
+
+Author
+
+Reviewer
+
+Approver
+
+Date
+
+Change Summary
+
+Reason
+
+6. Revision History
+
+لا يسمح بحذف أي نسخة.
+
+يعرض النظام:
+
+Version
+
+Revision
+
+Uploader
+
+Date
+
+Reason
+
+Status
+
+Download
+
+Restore
+
+Compare
+
+7. Approval Workflow
+
+كل مستند يمر بالمراحل:
+
+Draft
+
+↓
+
+Submitted
+
+↓
+
+Internal Review
+
+↓
+
+Department Review
+
+↓
+
+QA/QC
+
+↓
+
+Management Review
+
+↓
+
+Approved
+
+↓
+
+Published
+
+↓
+
+Archived
+
+كل انتقال يسجل في Audit Log.
+
+8. Document Editor
+
+النظام يحتوي على محرر مستندات مدمج.
+
+يدعم:
+
+الكتب الرسمية
+المذكرات
+التقارير
+محاضر الاجتماعات
+أوامر الموقع
+أوامر التغيير
+الخطابات الحكومية
+رسائل العملاء
+
+المحرر يدعم:
+
+RTL
+
+الجداول
+
+الصور
+
+الشعارات
+
+التوقيع
+
+الباركود
+
+QR Code
+
+Header/Footer
+
+ترقيم الصفحات
+
+القوالب
+
+دمج بيانات المشروع تلقائياً.
+
+9. Smart Templates
+
+قوالب جاهزة لـ:
+
+عرض سعر
+عقد
+كتاب بلدية
+كتاب قوة الإطفاء
+شهادة راتب
+استمرارية راتب
+تقرير زيارة
+محضر اجتماع
+تقرير هندسي
+أمر تغيير
+شهادة إنجاز
+فاتورة
+إشعار تحصيل
+
+جميع الحقول يتم تعبئتها تلقائياً من قاعدة البيانات.
+
+10. OCR & Smart Indexing
+
+عند رفع أي ملف.
+
+يقوم النظام بـ:
+
+استخراج النص (OCR).
+فهرسة المحتوى.
+التعرف على أرقام المشاريع.
+التعرف على أسماء العملاء.
+التعرف على أرقام العقود.
+إنشاء كلمات مفتاحية تلقائياً.
+
+ليصبح الملف قابلاً للبحث حتى لو كان صورة أو PDF ممسوحًا.
+
+11. Engineering Drawing Viewer
+
+يدعم عرض:
+
+DWG
+
+PDF
+
+IFC
+
+DWF
+
+RVT (Preview)
+
+داخل النظام.
+
+مع:
+
+Zoom
+
+Pan
+
+Layers (عند الدعم)
+
+Markup
+
+Measurement
+
+Comments
+
+Revision Overlay
+
+12. Digital Signature
+
+كل مستند يمكن توقيعه رقمياً.
+
+يعرض:
+
+اسم الموقع
+
+وقت التوقيع
+
+IP
+
+Role
+
+Certificate
+
+Hash
+
+Approval Number
+
+ولا يسمح بتعديل المستند بعد اعتماده إلا بإنشاء Revision جديدة.
+
+13. File Locking
+
+إذا كان أحد المستخدمين يعدل الملف.
+
+يصبح:
+
+Locked
+
+ولا يمكن لمستخدم آخر حفظ نسخة فوقه.
+
+يمكن فقط:
+
+View
+
+Comment
+
+Download
+
+14. Permission Matrix
+
+صلاحيات المستندات تشمل:
+
+View
+
+Download
+
+Upload
+
+Replace
+
+Edit Metadata
+
+Delete
+
+Archive
+
+Restore
+
+Approve
+
+Reject
+
+Print
+
+Share
+
+Digital Sign
+
+كل صلاحية مستقلة.
+
+15. Search Engine
+
+البحث بواسطة:
+
+Project
+
+Document Number
+
+Client
+
+Engineer
+
+Department
+
+Keyword
+
+Tag
+
+Revision
+
+Date
+
+Uploader
+
+File Type
+
+Government Authority
+
+Contract Number
+
+Full Text Search
+
+16. AI Document Assistant
+
+مساعد ذكي داخل مركز المستندات يستطيع:
+
+تلخيص التقارير.
+مقارنة نسختين.
+استخراج البنود.
+استخراج الكميات.
+اكتشاف المستندات الناقصة.
+اقتراح أسماء الملفات.
+تصنيف المستندات تلقائياً.
+إنشاء ملخص تنفيذي للمشروع.
+17. Archive System
+
+الأرشيف ليس مجلدًا فقط.
+
+بل نظام كامل.
+
+الحالات:
+
+Active
+
+↓
+
+Completed
+
+↓
+
+Closed
+
+↓
+
+Archived
+
+↓
+
+Long-Term Storage
+
+كل عملية أرشفة تسجل في Audit Log.
+
+18. Backup & Recovery
+
+كل ملف يتم:
+
+Version Backup
+
+Daily Backup
+
+Weekly Snapshot
+
+Recovery Point
+
+Checksum Verification
+
+Duplicate Detection
+
+ولا يسمح بفقدان أي مستند.
+
+19. Integration Engine
+
+كل مستند يمكن ربطه بـ:
+
+Project
+Client
+Company
+Contract
+Invoice
+Meeting
+Site Visit
+Task
+Government Approval
+Employee
+Department
+
+أي مستند يمكن أن يظهر في أكثر من وحدة دون تكرار النسخة الأصلية.
+
+20. Activity Timeline
+
+لكل مستند سجل كامل:
+
+Created
+
+↓
+
+Uploaded
+
+↓
+
+Reviewed
+
+↓
+
+Commented
+
+↓
+
+Approved
+
+↓
+
+Published
+
+↓
+
+Downloaded
+
+↓
+
+Shared
+
+↓
+
+Archived
+
+مع تسجيل:
+
+المستخدم.
+التاريخ.
+الوقت.
+عنوان IP.
+العملية المنفذة.
+21. Storage Architecture
+
+يجب تصميم التخزين ليكون قابلًا للتوسع:
+
+Local Storage.
+Cloud Storage.
+Object Storage (مثل Supabase Storage أو S3).
+CDN للملفات العامة.
+تشفير الملفات الحساسة.
+إنشاء Thumbnails تلقائياً للصور وملفات PDF.
+22. Integration With Existing Modules
+
+يرتبط مركز المستندات مباشرة مع:
+
+Projects ← جميع ملفات المشروع.
+Engineering Departments ← الرسومات والمراجعات.
+CRM ← العقود والعروض والمراسلات.
+Finance ← الفواتير والإيصالات.
+Government Workflow ← الاعتمادات والكتب الرسمية.
+HR ← ملفات الموظفين.
+Meetings ← محاضر الاجتماعات.
+Reports ← التقارير الدورية.
+Document Editor ← إنشاء وتحرير المستندات.
+File Manager ← إدارة التخزين.
+Archive ← الأرشفة النهائية.
+23. AI Quality Rules
+
+قبل اعتماد أي مستند، يقوم النظام تلقائياً بالتحقق من:
+
+وجود رقم المشروع.
+وجود رقم المستند.
+توافق اسم الملف مع سياسة التسمية.
+اكتمال البيانات الوصفية (Metadata).
+عدم وجود نسخة أحدث.
+اكتمال دورة المراجعة.
+وجود التوقيعات المطلوبة.
+عدم وجود ملف مكرر.
+نتيجة هذا الجزء
+
+بعد تنفيذ هذه الوحدة، يصبح Memar ERP مزودًا بنظام Enterprise Document Management System (EDMS) متكامل، يتجاوز فكرة "مدير ملفات" إلى منصة مركزية لإدارة جميع الوثائق الهندسية والإدارية، مع تكامل كامل مع المشاريع، العملاء، الحسابات، والاعتمادات الحكومية، وبالاستفادة من الوحدات الموجودة في الملف الأصلي مثل Document Editor وFile Manager وArchive.

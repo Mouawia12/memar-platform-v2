@@ -1,0 +1,593 @@
+MEMAR ERP MASTER PROMPT
+PART 04
+ENGINEERING DEPARTMENTS MANAGEMENT SYSTEM
+Multi-Disciplinary Engineering Operations
+1. Engineering Philosophy
+
+الإدارة الهندسية ليست مجموعة صفحات منفصلة، بل محرك تشغيل هندسي متكامل (Engineering Operations Engine).
+
+كل قسم يعمل بشكل مستقل، ولكن جميع الأقسام مرتبطة بنفس المشروع ونفس قاعدة البيانات.
+
+أي تعديل في أحد الأقسام ينعكس مباشرة على باقي الأقسام المرتبطة بالمشروع.
+
+2. Engineering Departments
+
+يجب أن يدعم النظام الأقسام التالية:
+
+Architectural Department
+Concept Design
+Municipality Drawings
+Permit Drawings
+Working Drawings
+Shop Drawings
+Tender Drawings
+As Built Drawings
+3D Design
+Exterior Design
+Interior Design
+Landscape Design
+Structural Department
+Structural Design
+Foundations
+Slabs
+Columns
+Beams
+Steel Structures
+Structural Details
+Reinforcement Drawings
+Structural Calculations
+Structural Revisions
+Electrical Department
+Lighting
+Power
+Low Current
+CCTV
+Telephone
+Data
+Fire Alarm
+Emergency Lighting
+Panel Schedules
+Single Line Diagram
+Mechanical Department
+HVAC
+Exhaust
+Fresh Air
+Smoke Control
+Plumbing
+Drainage
+Water Supply
+Pump Rooms
+Mechanical Rooms
+Fire Protection
+Fire Fighting
+Fire Alarm
+Hydraulic Calculations
+Pump Design
+Sprinklers
+Hose Reels
+Stand Pipes
+Quantity Surveying
+BOQ
+Cost Estimation
+Tender Documents
+Quantity Takeoff
+Variations
+Cost Control
+Interior Design
+Space Planning
+Furniture Layout
+Ceiling Plans
+Finishes
+Materials
+Joinery
+Mood Boards
+Landscape
+Hardscape
+Softscape
+Irrigation
+External Lighting
+Site Furniture
+3. Department Dashboard
+
+كل قسم يمتلك Dashboard مستقل.
+
+يعرض:
+
+عدد المشاريع
+
+عدد الرسومات
+
+المهام الحالية
+
+المراجعات المطلوبة
+
+الرسومات المعتمدة
+
+الرسومات المرفوضة
+
+المواعيد القادمة
+
+المهام المتأخرة
+
+معدل الإنتاج
+
+معدل الأخطاء
+
+4. Drawing Management
+
+كل قسم يمتلك Drawing Center.
+
+كل رسم يحتوي على:
+
+Drawing Number
+
+Drawing Name
+
+Project
+
+Discipline
+
+Scale
+
+Paper Size
+
+Revision
+
+Version
+
+Issue Date
+
+Designer
+
+Checker
+
+Reviewer
+
+Approver
+
+Current Status
+
+الحالات الممكنة:
+
+Draft
+
+↓
+
+In Progress
+
+↓
+
+Internal Review
+
+↓
+
+QA Review
+
+↓
+
+Approved
+
+↓
+
+Issued For Municipality
+
+↓
+
+Issued For Construction
+
+↓
+
+Revision Required
+
+↓
+
+Closed
+
+5. Revision Control
+
+كل تعديل على الرسم:
+
+لا يستبدل الملف القديم.
+
+بل ينشئ Revision جديد.
+
+مثال
+
+A
+
+↓
+
+B
+
+↓
+
+C
+
+↓
+
+D
+
+↓
+
+Issued
+
+مع الاحتفاظ بجميع النسخ السابقة.
+
+ويجب إظهار:
+
+Revision History
+
+Reviewer
+
+Comment
+
+Approval Date
+
+6. Internal Review Workflow
+
+كل رسم يمر بالمراحل:
+
+Designer
+
+↓
+
+Senior Engineer
+
+↓
+
+Department Manager
+
+↓
+
+QA/QC
+
+↓
+
+General Manager
+
+↓
+
+Issue
+
+كل مرحلة يمكنها:
+
+Approve
+
+Reject
+
+Comment
+
+Return
+
+Escalate
+
+7. Design Tasks
+
+كل رسم يولد Tasks.
+
+مثال:
+
+تعديل الواجهة.
+تعديل الأعمدة.
+تحديث اللوحة الكهربائية.
+مراجعة التكييف.
+إضافة مخطط السطح.
+مراجعة BOQ.
+
+كل Task تحتوي على:
+
+Task Number
+
+Project
+
+Department
+
+Priority
+
+Status
+
+Assigned To
+
+Estimated Hours
+
+Actual Hours
+
+Due Date
+
+Completion %
+
+Attachments
+
+8. Engineering Calculations
+
+لكل مشروع قسم خاص بالحسابات.
+
+يشمل:
+
+Structural Calculations
+
+HVAC Calculations
+
+Electrical Load Calculations
+
+Voltage Drop
+
+Lighting Calculations
+
+Water Demand
+
+Drainage
+
+Fire Hydraulic Calculations
+
+Pressure Loss
+
+Cooling Load
+
+Heating Load
+
+Ventilation
+
+Occupancy
+
+Equipment Schedule
+
+ويتم حفظ ملفات الحسابات وربطها بالإصدار الخاص بالرسم.
+
+9. Material Library
+
+النظام يحتوي على مكتبة مواد موحدة.
+
+تشمل:
+
+Concrete
+
+Steel
+
+Blocks
+
+Glass
+
+Doors
+
+Windows
+
+Tiles
+
+Marble
+
+Wood
+
+Gypsum
+
+Lighting Fixtures
+
+HVAC Equipment
+
+Electrical Equipment
+
+Fire Equipment
+
+Sanitary Fixtures
+
+لكل مادة:
+
+Code
+
+Category
+
+Description
+
+Manufacturer
+
+Country
+
+Specifications
+
+Datasheet
+
+Approved Vendors
+
+Unit
+
+Cost
+
+Image
+
+Technical PDF
+
+10. Engineering Standards
+
+كل قسم يمكنه ربط المشروع بـ:
+
+الكود المستخدم
+
+الإصدار
+
+المرجع
+
+الاشتراطات
+
+Checklists
+
+Compliance Status
+
+11. QA/QC System
+
+كل مشروع يحتوي على:
+
+Design Checklist
+
+Review Checklist
+
+Municipality Checklist
+
+Submission Checklist
+
+Execution Checklist
+
+Final Delivery Checklist
+
+لا يسمح بإغلاق المرحلة إلا بعد اكتمال جميع البنود.
+
+12. Clash Detection
+
+يدعم النظام تسجيل تعارضات بين التخصصات.
+
+مثال:
+
+Architecture
+
+×
+
+Structure
+
+Architecture
+
+×
+
+HVAC
+
+Electrical
+
+×
+
+Mechanical
+
+Fire
+
+×
+
+Ceiling
+
+كل Clash يحتوي على:
+
+Number
+
+Description
+
+Severity
+
+Screenshot
+
+Assigned Engineer
+
+Deadline
+
+Resolution
+
+Status
+
+13. Resource Planning
+
+لكل قسم:
+
+عدد المهندسين
+
+عدد المشاريع
+
+الطاقة الاستيعابية
+
+الحمل الحالي
+
+الحمل المتوقع
+
+Availability
+
+Overloaded Engineers
+
+Idle Engineers
+
+14. Department KPIs
+
+يعرض النظام مؤشرات أداء لكل قسم:
+
+عدد الرسومات
+
+عدد الاعتمادات
+
+عدد المراجعات
+
+عدد الأخطاء
+
+متوسط زمن الإنجاز
+
+عدد ساعات العمل
+
+نسبة الالتزام بالمواعيد
+
+إنتاجية كل مهندس
+
+عدد المشاريع النشطة
+
+عدد المشاريع المنتهية
+
+15. Engineering Communication
+
+داخل كل مشروع يوجد:
+
+Engineering Chat
+
+Review Notes
+
+Technical Discussion
+
+Mentions
+
+File Comments
+
+Markup
+
+Drawing Comments
+
+Voice Notes
+
+Meeting Notes
+
+كل تعليق مرتبط بالرسم أو المهمة.
+
+16. Integration Between Departments
+
+أي تعديل في قسم معماري قد يؤثر على:
+
+الإنشائي
+الكهرباء
+التكييف
+الصحي
+الحريق
+الكميات
+
+لذلك يجب إنشاء Impact Analysis Engine يقوم عند اعتماد تعديل جوهري بما يلي:
+
+تحديد الأقسام المتأثرة.
+إنشاء إشعارات تلقائية.
+إنشاء مهام مراجعة للتخصصات المعنية.
+منع إصدار النسخة النهائية قبل إغلاق جميع المراجعات المتقاطعة.
+17. Deliverables Matrix
+
+لكل مرحلة من مراحل المشروع يتم تعريف التسليمات المطلوبة لكل قسم:
+
+القسم	التسليمات
+معماري	مخططات، واجهات، قطاعات، تفاصيل
+إنشائي	حسابات، مخططات، تفاصيل التسليح
+كهرباء	لوحات، جداول الأحمال، SLD
+ميكانيكا	HVAC، صحي، صرف، جداول المعدات
+حريق	Fire Alarm، Fire Fighting
+QS	BOQ، التقديرات، أوامر التغيير
+داخلي	مخططات، جداول التشطيبات، التفاصيل
+
+ولا يمكن اعتبار المرحلة مكتملة إلا بعد اعتماد جميع التسليمات المطلوبة.
+
+18. Integration With Existing System
+
+هذا الجزء يربط الوحدات الهندسية مع الوحدات الموجودة في النظام الأصلي:
+
+Projects ← المشروع الرئيسي.
+Tasks ← المهام الهندسية.
+Document Editor ← إعداد المراسلات والمذكرات الفنية.
+File Manager ← حفظ الرسومات والملفات.
+Reports ← تقارير الإنتاج والأداء.
+Field Visits ← ربط الزيارات بالملاحظات الفنية.
+Meetings ← اجتماعات التنسيق بين التخصصات.
+
+وبذلك تصبح الإدارة الهندسية المحرك التنفيذي للمشروع بالكامل مع المحافظة على الهيكل العام للوحدات الموجودة في الملف المصدر.

@@ -1,0 +1,621 @@
+# MEMAR ERP MASTER PROMPT
+
+# PART 16
+
+# NOTIFICATIONS & WORKFLOW ENGINE
+
+# محرك الإشعارات وسير العمليات الذكية
+
+---
+
+# 1. System Purpose
+
+إنشاء محرك مركزي لإدارة جميع الأحداث داخل نظام **معمار ERP** بحيث يتحول النظام من برنامج إدخال بيانات إلى نظام تشغيل ذكي يقوم بالمتابعة والتنبيه والتنفيذ التلقائي للمهام.
+
+محرك الـ Workflow مسؤول عن:
+
+* مراقبة الأحداث.
+* إنشاء إجراءات تلقائية.
+* إرسال إشعارات.
+* إنشاء مهام.
+* طلب موافقات.
+* تحديث الحالات.
+* تسجيل جميع العمليات.
+
+يجب أن يكون النظام Event Driven Architecture.
+
+أي تغيير مهم داخل النظام ينتج عنه Event.
+
+---
+
+# 2. Notification Center
+
+يجب إنشاء مركز إشعارات موحد داخل النظام.
+
+مكانه:
+
+* Topbar Notification Bell.
+* صفحة إشعارات كاملة.
+* Mobile Push Notifications مستقبلاً.
+* Email Notifications.
+* WhatsApp Notifications.
+
+---
+
+# 3. Notification Types
+
+## 3.1 System Notifications
+
+إشعارات النظام:
+
+* تسجيل دخول جديد.
+* تغيير كلمة المرور.
+* تعديل صلاحيات.
+* حذف بيانات.
+* رفع ملفات.
+* تعديل مستندات.
+
+---
+
+## 3.2 Task Notifications
+
+عند إنشاء مهمة:
+
+يرسل:
+
+* الموظف المسؤول.
+* مدير المشروع.
+* الإدارة حسب الصلاحية.
+
+يشمل:
+
+* عنوان المهمة.
+* المشروع.
+* الأولوية.
+* تاريخ الاستحقاق.
+* رابط مباشر للمهمة.
+
+---
+
+## 3.3 Project Notifications
+
+أحداث المشروع:
+
+### عند إنشاء مشروع جديد
+
+إرسال:
+
+* مدير المشروع.
+* الفريق الهندسي.
+* الحسابات.
+
+---
+
+### عند تغيير حالة المشروع
+
+مثال:
+
+من:
+
+قيد التصميم
+
+إلى:
+
+اعتماد البلدية
+
+يقوم النظام:
+
+* تحديث Timeline.
+* إرسال إشعار.
+* إنشاء Checklist المرحلة الجديدة.
+
+---
+
+### عند تأخر المشروع
+
+إذا:
+
+تاريخ الإنجاز < التاريخ الحالي
+
+يقوم النظام:
+
+* تغيير لون المشروع.
+* إرسال تنبيه.
+* إنشاء Task متابعة.
+
+---
+
+# 4. Workflow Engine
+
+المحرك يجب أن يسمح بإنشاء قواعد بدون تعديل الكود.
+
+مثال:
+
+```
+WHEN
+Contract Status = Signed
+
+THEN
+
+Create Project
+
+Assign Project Manager
+
+Create Project Folder
+
+Generate Tasks
+
+Notify Team
+
+Create Invoice Schedule
+```
+
+---
+
+# 5. Workflow Builder
+
+واجهة مرئية Drag & Drop.
+
+مثل:
+
+Trigger
+
+↓
+
+Condition
+
+↓
+
+Action
+
+↓
+
+Notification
+
+↓
+
+Approval
+
+---
+
+# 6. Triggers
+
+الأحداث التي يمكن تشغيل Workflow عليها:
+
+---
+
+## CRM Triggers
+
+* Lead Created
+* Lead Updated
+* Lead Converted
+* Quotation Sent
+* Quotation Accepted
+* Client Created
+
+---
+
+## Project Triggers
+
+* Project Created
+* Project Status Changed
+* Project Delayed
+* Milestone Completed
+* Document Uploaded
+* Approval Received
+
+---
+
+## Finance Triggers
+
+* Invoice Created
+* Payment Received
+* Payment Overdue
+* Expense Added
+* Contract Signed
+
+---
+
+## HR Triggers
+
+* Employee Added
+* Leave Requested
+* Attendance Missing
+* Payroll Generated
+
+---
+
+## Document Triggers
+
+* File Uploaded
+* File Approved
+* Version Created
+* Document Expired
+
+---
+
+# 7. Actions
+
+بعد حدوث Trigger يمكن تنفيذ:
+
+---
+
+## Create Record
+
+مثال:
+
+إنشاء Task.
+
+---
+
+## Update Record
+
+مثال:
+
+تغيير حالة مشروع.
+
+---
+
+## Send Notification
+
+إرسال:
+
+* داخل النظام.
+* Email.
+* WhatsApp.
+
+---
+
+## Assign User
+
+تعيين:
+
+* مهندس.
+* مدير.
+* موظف.
+
+---
+
+## Generate Document
+
+مثال:
+
+إنشاء:
+
+* عقد.
+* عرض سعر.
+* تقرير.
+
+---
+
+## Request Approval
+
+مثال:
+
+طلب اعتماد عرض سعر قبل الإرسال.
+
+---
+
+# 8. Approval Workflow
+
+نظام الموافقات يجب أن يدعم:
+
+## أنواع الموافقات:
+
+* عروض الأسعار.
+* الخصومات.
+* العقود.
+* المصروفات.
+* طلبات الشراء.
+* الإجازات.
+* المستندات.
+
+---
+
+مثال:
+
+```
+Employee Creates Expense
+
+↓
+
+Project Manager Approval
+
+↓
+
+Finance Approval
+
+↓
+
+General Manager Approval
+
+↓
+
+Payment
+```
+
+---
+
+# 9. Notification Priority
+
+كل إشعار له مستوى:
+
+## Critical
+
+أحمر:
+
+* تأخر مشروع.
+* دفعة متأخرة.
+* خطأ بالنظام.
+
+---
+
+## High
+
+برتقالي:
+
+* مهمة عاجلة.
+* اعتماد مطلوب.
+
+---
+
+## Normal
+
+أزرق:
+
+* تحديث عادي.
+* إضافة ملف.
+
+---
+
+## Low
+
+رمادي:
+
+* أخبار النظام.
+
+---
+
+# 10. Smart Reminder System
+
+النظام يقوم بالمتابعة التلقائية.
+
+أمثلة:
+
+## العملاء
+
+إذا لم يتم التواصل مع Lead لمدة 3 أيام:
+
+إنشاء Reminder.
+
+---
+
+## المشاريع
+
+إذا لم يتم تحديث المشروع خلال 7 أيام:
+
+إرسال تنبيه لمدير المشروع.
+
+---
+
+## الدفعات
+
+قبل موعد الدفعة:
+
+* 7 أيام.
+* 3 أيام.
+* يوم واحد.
+
+---
+
+## المستندات
+
+قبل انتهاء صلاحية:
+
+* رخصة.
+* عقد.
+* اعتماد.
+
+---
+
+# 11. WhatsApp Automation
+
+ربط النظام مع WhatsApp Business.
+
+استخدامه في:
+
+* إرسال عروض الأسعار.
+* إرسال العقود.
+* تذكير العملاء.
+* تأكيد المواعيد.
+* إشعار اكتمال مرحلة.
+
+---
+
+مثال:
+
+عند اعتماد المخطط:
+
+```
+Dear Client,
+
+Your architectural drawings have been completed.
+
+You can review them through your portal.
+```
+
+---
+
+# 12. Email Automation
+
+دعم:
+
+* Templates.
+* Variables.
+* Attachments.
+* Tracking.
+
+Variables:
+
+```
+{{Client_Name}}
+
+{{Project_Name}}
+
+{{Invoice_Number}}
+
+{{Due_Date}}
+```
+
+---
+
+# 13. Activity Log Integration
+
+كل Workflow يجب تسجيله في:
+
+Audit Log
+
+ويحتوي:
+
+* Event.
+* User.
+* Date.
+* Action.
+* Result.
+* IP.
+* System Source.
+
+---
+
+# 14. Real-Time Updates
+
+استخدام:
+
+Realtime Database Events
+
+بحيث:
+
+عند تغيير البيانات:
+
+* Dashboard يتحدث.
+* الإشعارات تظهر فوراً.
+* الجداول تتحدث بدون Refresh.
+
+---
+
+# 15. Notification Settings
+
+كل مستخدم يستطيع التحكم في:
+
+* نوع الإشعارات.
+* البريد.
+* الواتساب.
+* Push.
+* التوقيت.
+* المشاريع التي يريد متابعتها.
+
+---
+
+# 16. Employee Portal Integration
+
+بوابة الموظف تعتمد بشكل أساسي على هذا المحرك.
+
+الموظف يستقبل:
+
+* المهام.
+* الاجتماعات.
+* طلبات الاعتماد.
+* الرسائل.
+* التنبيهات.
+* تحديثات المشاريع.
+
+بدون صلاحية رؤية بيانات غير مسموحة له.
+
+---
+
+# 17. Admin Control Panel
+
+الإدارة تستطيع:
+
+* إنشاء Workflow جديد.
+* تعطيل Workflow.
+* تعديل القواعد.
+* مشاهدة Execution History.
+* معرفة الأخطاء.
+* إعادة تشغيل Workflow.
+
+---
+
+# 18. Workflow History
+
+كل عملية تحفظ:
+
+```
+Workflow ID
+
+Trigger
+
+Date
+
+Executed By System/User
+
+Actions
+
+Status
+
+Error Logs
+```
+
+---
+
+# 19. Error Handling
+
+إذا فشل Workflow:
+
+النظام:
+
+* يسجل الخطأ.
+* يبلغ المسؤول.
+* يعيد المحاولة تلقائياً.
+* يحفظ سبب الفشل.
+
+---
+
+# 20. AI Integration
+
+مستقبلاً:
+
+AI يراقب:
+
+* المشاريع المتأخرة.
+* العملاء غير المتابعين.
+* انخفاض المبيعات.
+* تأخر التحصيل.
+
+ويقدم اقتراحات للإدارة.
+
+مثال:
+
+"يوجد 15 عميل لم يتم التواصل معهم منذ أكثر من أسبوع، يوصى بإنشاء حملة متابعة."
+
+---
+
+## ارتباط الجزء 16 بالملف الأساسي
+
+تم بناء هذا الجزء اعتمادًا على هيكل النظام الموجود في الملف، خصوصًا وحدات:
+
+* المهام والمتابعة.
+* الاجتماعات.
+* الطلبات.
+* CRM.
+* المشاريع.
+* المستخدمين والصلاحيات.
+* سجل النظام.
+* العمليات.
+* بوابة المهندسين.
+
+
+---
+
+**الجزء القادم: PART 17 — DATABASE SCHEMA & DATA ARCHITECTURE**
+وسيكون من أهم الأجزاء لأنه سيحول النظام إلى تصميم قاعدة بيانات حقيقية (Supabase/PostgreSQL) تشمل الجداول والعلاقات والـ UUID والـ Permissions والـ Audit Trail.

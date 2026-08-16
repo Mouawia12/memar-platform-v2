@@ -1,0 +1,626 @@
+ننتقل إلى:
+
+# MEMAR ERP MASTER PROMPT
+
+# PART 10
+
+# CONTRACTS & COLLECTIONS MODULE
+
+# إدارة العقود والتحصيلات وربطها بالمشاريع والمستندات
+
+---
+
+# 1. Contract Management Vision
+
+وحدة العقود هي نقطة الربط القانونية والمالية بين:
+
+* العميل.
+* عرض السعر.
+* المشروع.
+* الدفعات.
+* الفواتير.
+* المستندات.
+* الالتزامات التعاقدية.
+
+يجب أن يتحول العقد من ملف PDF فقط إلى **كائن ذكي داخل النظام** يحتوي على دورة حياة كاملة يمكن متابعتها وتحليلها.
+
+---
+
+# 2. Contract Lifecycle
+
+دورة العقد:
+
+```
+Quotation
+
+↓
+
+Contract Draft
+
+↓
+
+Internal Review
+
+↓
+
+Client Review
+
+↓
+
+Approval
+
+↓
+
+Signature
+
+↓
+
+Active Contract
+
+↓
+
+Execution
+
+↓
+
+Completion
+
+↓
+
+Closure
+
+↓
+
+Archive
+```
+
+كل مرحلة يجب أن تسجل:
+
+* المستخدم المسؤول.
+* التاريخ.
+* الملاحظات.
+* الملفات.
+* الموافقات.
+
+---
+
+# 3. Contract Dashboard
+
+لوحة خاصة بالعقود تعرض:
+
+## KPIs
+
+* إجمالي العقود.
+* العقود النشطة.
+* العقود المنتهية.
+* العقود قيد المراجعة.
+* العقود بانتظار توقيع العميل.
+* قيمة العقود الحالية.
+* قيمة العقود المتأخرة.
+* العقود التي تحتاج متابعة.
+
+---
+
+# 4. Contract Database Structure
+
+كل عقد يحتوي على:
+
+## Basic Information
+
+* Contract ID
+* Contract Number
+* Client
+* Company
+* Project
+* Responsible Engineer
+* Project Manager
+
+---
+
+## Contract Details
+
+* Contract Type
+
+أمثلة:
+
+* تصميم.
+* ترخيص.
+* إشراف.
+* استشارة.
+* فحص.
+* إدارة مشروع.
+* أعمال هندسية خاصة.
+
+---
+
+## Financial Information
+
+* Contract Value
+* Currency
+* Discount
+* Tax
+* Net Value
+* Payment Terms
+* Collection Status
+
+---
+
+## Dates
+
+* إصدار العقد.
+* تاريخ التوقيع.
+* بداية العقد.
+* نهاية العقد.
+* مدة العقد.
+
+---
+
+# 5. Contract Templates System
+
+النظام يحتوي على مكتبة قوالب عقود.
+
+Templates تشمل:
+
+* عقد تصميم.
+* عقد إشراف.
+* عقد استخراج رخصة.
+* عقد استشارات.
+* عقد فحص هندسي.
+* عقد خدمات كمية.
+
+كل Template يحتوي:
+
+* Header.
+* Footer.
+* بيانات المكتب.
+* البنود.
+* الشروط.
+* التوقيع.
+* الختم.
+
+---
+
+# 6. Smart Contract Generator
+
+إنشاء العقد تلقائياً من:
+
+```
+Client Data
+
++
+
+Project Data
+
++
+
+Quotation
+
++
+
+Payment Schedule
+
++
+
+Contract Template
+```
+
+النظام يقوم بإنتاج:
+
+* Word.
+* PDF.
+
+مع إمكانية:
+
+* تعديل.
+* مراجعة.
+* اعتماد.
+* توقيع.
+
+---
+
+# 7. Digital Approval Workflow
+
+قبل اعتماد العقد:
+
+يمر بالمراحل:
+
+```
+Created
+
+↓
+
+Sales Review
+
+↓
+
+Technical Review
+
+↓
+
+Management Approval
+
+↓
+
+Sent To Client
+
+↓
+
+Signed
+```
+
+كل اعتماد يسجل:
+
+* اسم المعتمد.
+* الوقت.
+* الملاحظات.
+
+---
+
+# 8. Contract Attachments
+
+لكل عقد مركز ملفات:
+
+يشمل:
+
+* العقد الأساسي.
+* الملاحق.
+* عروض الأسعار.
+* المخططات.
+* الموافقات.
+* المراسلات.
+* محاضر الاجتماعات.
+* التقارير.
+
+مع:
+
+* Version Control.
+* Upload History.
+* Access Permission.
+
+---
+
+# 9. Payment Schedule Management
+
+كل عقد يحتوي على جدول دفعات.
+
+مثال:
+
+```
+Contract Value: 5000 KD
+
+
+Payment 1
+40%
+On Signing
+
+
+Payment 2
+30%
+After Approval
+
+
+Payment 3
+20%
+During Execution
+
+
+Payment 4
+10%
+Final Delivery
+```
+
+كل دفعة لها:
+
+* رقم.
+* قيمة.
+* تاريخ استحقاق.
+* حالة.
+* فاتورة.
+* إيصال.
+
+---
+
+# 10. Collection Management
+
+قسم خاص للتحصيل.
+
+يعرض:
+
+## العملاء المتأخرين
+
+* العميل.
+* المشروع.
+* قيمة المتأخر.
+* عدد الأيام.
+* آخر متابعة.
+
+---
+
+## إجراءات التحصيل
+
+النظام يسمح بتسجيل:
+
+* اتصال.
+* رسالة.
+* بريد.
+* اجتماع.
+* مطالبة مالية.
+
+---
+
+# 11. Collection Pipeline
+
+```
+Payment Due
+
+↓
+
+Reminder Sent
+
+↓
+
+Client Contacted
+
+↓
+
+Promise To Pay
+
+↓
+
+Partially Paid
+
+↓
+
+Paid
+
+↓
+
+Escalated
+```
+
+---
+
+# 12. Automatic Reminders
+
+النظام يقوم تلقائياً بإرسال:
+
+## قبل الاستحقاق
+
+مثلاً:
+
+7 أيام قبل موعد الدفع.
+
+---
+
+## بعد التأخير
+
+تنبيهات:
+
+* يوم واحد.
+* 7 أيام.
+* 30 يوم.
+
+---
+
+إلى:
+
+* مسؤول الحساب.
+* مدير المشروع.
+* الإدارة.
+
+---
+
+# 13. Contract & Project Integration
+
+عند تفعيل العقد:
+
+يتم إنشاء:
+
+* Project Record.
+* Project Folder.
+* Financial Account.
+* Payment Schedule.
+* Project Timeline.
+
+ويرتبط العقد بالمشروع بشكل دائم.
+
+---
+
+# 14. Contract Performance Tracking
+
+متابعة:
+
+* نسبة الإنجاز.
+* نسبة التحصيل.
+* قيمة الأعمال المنجزة.
+* الأعمال المتبقية.
+* الالتزامات المفتوحة.
+
+مثال:
+
+```
+Contract Value:
+10,000 KD
+
+Completed Work:
+60%
+
+Collected:
+50%
+
+Outstanding:
+50%
+```
+
+---
+
+# 15. Contract Alerts
+
+تنبيهات ذكية:
+
+* عقد سينتهي قريباً.
+* دفعة متأخرة.
+* عقد بدون توقيع.
+* مشروع يعمل بدون عقد.
+* عقد تجاوز المدة.
+* نقص مستندات.
+
+---
+
+# 16. Legal Archive
+
+أرشيف قانوني للعقود.
+
+يشمل:
+
+* العقود القديمة.
+* العقود الملغاة.
+* العقود المكتملة.
+* الملاحق.
+* النزاعات.
+* المراسلات القانونية.
+
+---
+
+# 17. Contract Reports
+
+تقارير:
+
+## تقرير العقود
+
+* حسب السنة.
+* حسب العميل.
+* حسب نوع الخدمة.
+* حسب المهندس.
+
+## تقرير التحصيل
+
+* المستحق.
+* المحصل.
+* المتأخر.
+
+## تقرير الأداء
+
+* نسبة التنفيذ.
+* مدة العقد.
+* الانحرافات.
+
+---
+
+# 18. Permissions
+
+## Sales
+
+* إنشاء مسودة عقد.
+* مشاهدة عروض الأسعار.
+
+## Project Manager
+
+* متابعة العقد.
+* تحديث الإنجاز.
+
+## Finance
+
+* إدارة الدفعات والتحصيل.
+
+## Management
+
+* اعتماد العقود.
+* مشاهدة التقارير.
+
+## Employee
+
+صلاحية حسب المشروع فقط.
+
+---
+
+# 19. Database Entities
+
+الجداول الأساسية:
+
+```
+contracts
+
+contract_templates
+
+contract_versions
+
+contract_items
+
+contract_attachments
+
+payment_schedule
+
+collection_records
+
+approval_workflow
+
+contract_notifications
+
+contract_history
+```
+
+---
+
+# 20. Integration Map
+
+العقود مرتبطة مع:
+
+```
+CRM
+
+↓
+
+Quotation
+
+↓
+
+Projects
+
+↓
+
+Finance
+
+↓
+
+Documents
+
+↓
+
+Reports
+
+↓
+
+Archive
+```
+
+---
+
+# 21. AI Contract Assistant
+
+مساعد ذكي للعقود يستطيع:
+
+* تلخيص العقد.
+* استخراج البنود المهمة.
+* كشف النواقص.
+* مقارنة نسختين.
+* تنبيه الإدارة للمخاطر.
+* اقتراح جدول دفعات.
+
+---
+
+# Final Requirement
+
+يجب أن تكون وحدة العقود والتحصيلات في **Memar ERP** نظامًا قانونيًا وماليًا متكاملاً، وليس مجرد مكان لحفظ ملفات العقود، بحيث تربط دورة البيع والتنفيذ والتحصيل والأرشفة في مسار واحد.
+
+---
+
+✅ تم الانتهاء من:
+
+**PART 10 — Contracts & Collections**
+
+الجزء التالي:
+
+# PART 11 — Pricing Engines + Smart Assistant
+
+وسنقوم فيه ببناء محركات التسعير الأربعة، طريقة حساب الأسعار، عروض الأسعار الذكية، وربطها بالـ AI Assistant كما هو موجود في هيكل النظام. 

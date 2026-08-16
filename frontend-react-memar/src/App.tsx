@@ -17,6 +17,7 @@ import { CareersPage } from './features/careers/pages/CareersPage';
 import { PublicCareersPage } from './features/careers/pages/PublicCareersPage';
 import { CommunicationsPage } from './features/communications/pages/CommunicationsPage';
 import { CrmPage } from './features/crm/pages/CrmPage';
+import { LoyaltyDashboardPage } from './features/loyalty/pages/LoyaltyDashboardPage';
 import { ClientPortalV2Page } from './features/clientPortal/pages/ClientPortalV2Page';
 import { ClientProjectDetailPage } from './features/clientPortal/pages/ClientProjectDetailPage';
 import { TeamMemberPage } from './features/dashboard/pages/TeamMemberPage';
@@ -44,7 +45,7 @@ import { EmployeePortalPage } from './features/employeePortal/EmployeePortalPage
 import { QuotationsPage } from './features/quotations/pages/QuotationsPage';
 import { ServicesPage } from './features/services/pages/ServicesPage';
 import { TasksPage } from './features/tasks/pages/TasksPage';
-import { ImpersonationBanner } from './features/users/components/ImpersonationBanner';
+import { ImpersonationShell } from './features/users/components/ImpersonationBanner';
 import { UsersPage } from './features/users/pages/UsersPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
@@ -56,8 +57,7 @@ const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DON
 
 export default function App() {
   return (
-    <>
-    <ImpersonationBanner />
+    <ImpersonationShell>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/jobs" element={<PublicCareersPage />} />
@@ -84,6 +84,7 @@ export default function App() {
           <Route path="/my-projects" element={<RequireStaff><MyProjectsPage /></RequireStaff>} />
           <Route path="/team-projects" element={<RequirePermission perm="projects.manage"><TeamProjectsPage /></RequirePermission>} />
           <Route path="/projects/:id" element={<RequirePermission perm="projects.view"><ProjectDetailPage /></RequirePermission>} />
+          <Route path="/loyalty" element={<RequirePermission perm="loyalty.view"><LoyaltyDashboardPage /></RequirePermission>} />
           <Route path="/tasks" element={<RequirePermission perm="tasks.view"><TasksPage /></RequirePermission>} />
           <Route path="/appointments" element={<RequirePermission perm="appointments.view"><AppointmentsPage /></RequirePermission>} />
           <Route path="/finance/invoices" element={<RequirePermission perm="finance.view"><InvoicesPage /></RequirePermission>} />
@@ -127,6 +128,6 @@ export default function App() {
 
       <Route path="*" element={<LandingRedirect />} />
     </Routes>
-    </>
+    </ImpersonationShell>
   );
 }

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة الموظف — مجموعة معمار للاستشارات الهندسية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="employee-portal.css">
+</head>
+<body>
+  <!-- ═══════════════════════════════════════════════════════════════
+       SIDEBAR
+       ═══════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">
+        <div class="sb-logo-icon">م</div>
+        <div class="sb-logo-text">
+          <div class="sb-logo-title">بوابة الموظف</div>
+          <div class="sb-logo-sub">مجموعة معمار</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-section-label">القائمة الرئيسية</div>
+      <a class="sb-link active" data-page="ep-dashboard" onclick="switchPage('ep-dashboard')">
+        <span class="sb-icon">🏠</span><span class="sb-text">لوحتي الرئيسية</span>
+      </a>
+      <a class="sb-link" data-page="ep-tasks" onclick="switchPage('ep-tasks')">
+        <span class="sb-icon">✅</span><span class="sb-text">مهامي</span>
+        <span class="sb-badge">5</span>
+      </a>
+      <a class="sb-link" data-page="ep-projects" onclick="switchPage('ep-projects')">
+        <span class="sb-icon">📁</span><span class="sb-text">مشاريعي</span>
+      </a>
+      <a class="sb-link" data-page="ep-attendance" onclick="switchPage('ep-attendance')">
+        <span class="sb-icon">⏰</span><span class="sb-text">الحضور والانصراف</span>
+      </a>
+      <a class="sb-link" data-page="ep-leaves" onclick="switchPage('ep-leaves')">
+        <span class="sb-icon">🏖️</span><span class="sb-text">الإجازات</span>
+      </a>
+      <a class="sb-link" data-page="ep-salary" onclick="switchPage('ep-salary')">
+        <span class="sb-icon">💰</span><span class="sb-text">كشف الراتب</span>
+      </a>
+      <a class="sb-link" data-page="ep-reports" onclick="switchPage('ep-reports')">
+        <span class="sb-icon">📝</span><span class="sb-text">التقارير اليومية</span>
+      </a>
+      <a class="sb-link" data-page="ep-documents" onclick="switchPage('ep-documents')">
+        <span class="sb-icon">📄</span><span class="sb-text">المستندات</span>
+      </a>
+
+      <div class="sb-section-label">التواصل</div>
+      <a class="sb-link" data-page="ep-chat" onclick="switchPage('ep-chat')">
+        <span class="sb-icon">💬</span><span class="sb-text">المحادثات</span>
+        <span class="sb-badge">3</span>
+      </a>
+      <a class="sb-link" data-page="ep-notifications" onclick="switchPage('ep-notifications')">
+        <span class="sb-icon">🔔</span><span class="sb-text">الإشعارات</span>
+        <span class="sb-badge red">2</span>
+      </a>
+
+      <div class="sb-section-label">حسابي</div>
+      <a class="sb-link" data-page="ep-profile" onclick="switchPage('ep-profile')">
+        <span class="sb-icon">👤</span><span class="sb-text">ملفي الشخصي</span>
+      </a>
+      <a class="sb-link" data-page="ep-referral" onclick="switchPage('ep-referral')">
+        <span class="sb-icon">🎁</span><span class="sb-text">كود الإحالة</span>
+      </a>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-user-avatar">م.أ</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name">م. أحمد الراشد</div>
+          <div class="sb-user-role">مهندس معماري أول</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TOPBAR
+       ═══════════════════════════════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="topbar-right">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-greeting">
+        <span class="greeting-text">صباح الخير، م. أحمد 👋</span>
+        <span class="greeting-date">الخميس 7 أغسطس 2026</span>
+      </div>
+    </div>
+    <div class="topbar-left">
+      <button class="topbar-btn" onclick="switchPage('ep-notifications')">🔔<span class="notif-dot"></span></button>
+      <button class="topbar-btn" onclick="switchPage('ep-chat')">💬</button>
+      <div class="topbar-user" onclick="switchPage('ep-profile')">
+        <div class="topbar-avatar">م.أ</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MAIN CONTENT
+       ═══════════════════════════════════════════════════════════════ -->
+  <main class="main">
+
+    <!-- ─── DASHBOARD ─────────────────────────────────────────── -->
+    <div id="ep-dashboard" class="page active">
+      <!-- Welcome Card -->
+      <div class="welcome-card">
+        <div class="welcome-content">
+          <h2>مرحباً م. أحمد الراشد 👋</h2>
+          <p>مهندس معماري أول — قسم التصميم المعماري</p>
+          <div class="welcome-stats">
+            <div class="ws-item"><span class="ws-num">5</span><span class="ws-label">مهام نشطة</span></div>
+            <div class="ws-item"><span class="ws-num">3</span><span class="ws-label">مشاريع</span></div>
+            <div class="ws-item"><span class="ws-num">22</span><span class="ws-label">يوم حضور</span></div>
+            <div class="ws-item"><span class="ws-num">850</span><span class="ws-label">نقاط الإحالة</span></div>
+          </div>
+        </div>
+        <div class="welcome-visual">🏗️</div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <button class="qa-btn" onclick="switchPage('ep-attendance')"><span class="qa-icon">⏰</span>تسجيل حضور</button>
+        <button class="qa-btn" onclick="switchPage('ep-reports')"><span class="qa-icon">📝</span>تقرير يومي</button>
+        <button class="qa-btn" onclick="switchPage('ep-leaves')"><span class="qa-icon">🏖️</span>طلب إجازة</button>
+        <button class="qa-btn" onclick="switchPage('ep-tasks')"><span class="qa-icon">✅</span>مهامي</button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon blue">✅</div>
+          <div class="kpi-body">
+            <div class="kpi-label">المهام المكتملة</div>
+            <div class="kpi-value">18/23</div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:78%"></div></div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon green">⏰</div>
+          <div class="kpi-body">
+            <div class="kpi-label">نسبة الحضور</div>
+            <div class="kpi-value">96%</div>
+            <div class="kpi-bar"><div class="kpi-bar-fill green" style="width:96%"></div></div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon orange">📊</div>
+          <div class="kpi-body">
+            <div class="kpi-label">تقييم الأداء</div>
+            <div class="kpi-value">4.5/5</div>
+            <div class="kpi-bar"><div class="kpi-bar-fill orange" style="width:90%"></div></div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon purple">🎁</div>
+          <div class="kpi-body">
+            <div class="kpi-label">نقاط الإحالة</div>
+            <div class="kpi-value">850</div>
+            <div class="kpi-sub">+150 هذا الشهر</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Tasks + Schedule -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">✅ مهام اليوم</div></div>
+          <div class="card-body">
+            <div class="task-list">
+              <div class="task-item urgent">
+                <div class="task-check"></div>
+                <div class="task-info">
+                  <div class="task-name">مراجعة مخططات الواجهة — فيلا المنصور</div>
+                  <div class="task-meta"><span class="task-project">🏠 فيلا المنصور</span><span class="task-due red">⏰ اليوم</span></div>
+                </div>
+                <span class="badge badge-red">عاجل</span>
+              </div>
+              <div class="task-item">
+                <div class="task-check"></div>
+                <div class="task-info">
+                  <div class="task-name">تحديث BIM Model — الطابق الثالث</div>
+                  <div class="task-meta"><span class="task-project">🏢 مبنى العليا</span><span class="task-due">⏰ غداً</span></div>
+                </div>
+                <span class="badge badge-orange">متوسط</span>
+              </div>
+              <div class="task-item">
+                <div class="task-check"></div>
+                <div class="task-info">
+                  <div class="task-name">إعداد عرض تقديمي للعميل</div>
+                  <div class="task-meta"><span class="task-project">🏢 مجمع تجاري</span><span class="task-due">⏰ 9 أغسطس</span></div>
+                </div>
+                <span class="badge badge-blue">عادي</span>
+              </div>
+              <div class="task-item done">
+                <div class="task-check checked">✓</div>
+                <div class="task-info">
+                  <div class="task-name">رفع مخططات الإنشائي للمراجعة</div>
+                  <div class="task-meta"><span class="task-project">🏠 فيلا المنصور</span><span class="task-due green">✓ مكتمل</span></div>
+                </div>
+                <span class="badge badge-green">مكتمل</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">📅 جدول اليوم</div></div>
+          <div class="card-body">
+            <div class="schedule-list">
+              <div class="sched-item now">
+                <div class="sched-time">09:00</div>
+                <div class="sched-content">
+                  <div class="sched-title">اجتماع مراجعة أسبوعي</div>
+                  <div class="sched-loc">📍 قاعة المؤتمرات A</div>
+                </div>
+                <span class="badge badge-blue">جاري</span>
+              </div>
+              <div class="sched-item">
+                <div class="sched-time">11:00</div>
+                <div class="sched-content">
+                  <div class="sched-title">زيارة موقع — مبنى العليا</div>
+                  <div class="sched-loc">📍 موقع المشروع</div>
+                </div>
+                <span class="badge badge-green">مؤكد</span>
+              </div>
+              <div class="sched-item">
+                <div class="sched-time">14:00</div>
+                <div class="sched-content">
+                  <div class="sched-title">عرض تصميم للعميل</div>
+                  <div class="sched-loc">📍 غرفة العروض</div>
+                </div>
+                <span class="badge badge-green">مؤكد</span>
+              </div>
+              <div class="sched-item">
+                <div class="sched-time">16:30</div>
+                <div class="sched-content">
+                  <div class="sched-title">تسليم تقرير يومي</div>
+                  <div class="sched-loc">📍 عبر النظام</div>
+                </div>
+                <span class="badge badge-orange">معلق</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Notifications -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔔 آخر الإشعارات</div></div>
+        <div class="card-body">
+          <div class="notif-list">
+            <div class="notif-item unread"><span class="notif-icon">⚠️</span><div class="notif-content"><div class="notif-text">تم تعيين مهمة جديدة لك: "مراجعة مخططات الواجهة"</div><div class="notif-time">منذ 30 دقيقة</div></div></div>
+            <div class="notif-item unread"><span class="notif-icon">✅</span><div class="notif-content"><div class="notif-text">تمت الموافقة على طلب إجازتك ليوم 15 أغسطس</div><div class="notif-time">منذ ساعة</div></div></div>
+            <div class="notif-item"><span class="notif-icon">💬</span><div class="notif-content"><div class="notif-text">رسالة جديدة من م. سارة في مشروع "مبنى العليا"</div><div class="notif-time">منذ 3 ساعات</div></div></div>
+            <div class="notif-item"><span class="notif-icon">🎁</span><div class="notif-content"><div class="notif-text">تهانينا! حصلت على 50 نقطة إحالة من مشروع جديد</div><div class="notif-time">أمس</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── MY TASKS ──────────────────────────────────────────── -->
+    <div id="ep-tasks" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">✅ مهامي</h1><p class="page-subtitle">إدارة ومتابعة المهام المسندة إليك</p></div>
+        <div class="page-actions">
+          <select class="filter-select"><option>جميع المهام</option><option>قيد التنفيذ</option><option>مكتملة</option><option>متأخرة</option></select>
+        </div>
+      </div>
+
+      <!-- Task Stats -->
+      <div class="kpi-grid sm">
+        <div class="kpi-card mini"><div class="kpi-icon blue">📋</div><div class="kpi-body"><div class="kpi-value">23</div><div class="kpi-label">إجمالي</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon orange">🔄</div><div class="kpi-body"><div class="kpi-value">5</div><div class="kpi-label">قيد التنفيذ</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon green">✅</div><div class="kpi-body"><div class="kpi-value">18</div><div class="kpi-label">مكتملة</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon red">⚠️</div><div class="kpi-body"><div class="kpi-value">2</div><div class="kpi-label">متأخرة</div></div></div>
+      </div>
+
+      <!-- Tasks Table -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>المهمة</th><th>المشروع</th><th>الأولوية</th><th>تاريخ التسليم</th><th>الحالة</th><th>إجراء</th></tr></thead>
+              <tbody>
+                <tr><td class="td-bold">مراجعة مخططات الواجهة</td><td>فيلا المنصور</td><td><span class="badge badge-red">عاجل</span></td><td class="td-muted">7 أغسطس</td><td><span class="badge badge-orange">قيد التنفيذ</span></td><td><button class="btn btn-xs btn-primary" onclick="showToast('تم تحديث الحالة','success')">✓ إنهاء</button></td></tr>
+                <tr><td class="td-bold">تحديث BIM Model — الطابق الثالث</td><td>مبنى العليا</td><td><span class="badge badge-orange">متوسط</span></td><td class="td-muted">8 أغسطس</td><td><span class="badge badge-orange">قيد التنفيذ</span></td><td><button class="btn btn-xs btn-primary" onclick="showToast('تم تحديث الحالة','success')">✓ إنهاء</button></td></tr>
+                <tr><td class="td-bold">إعداد عرض تقديمي للعميل</td><td>مجمع تجاري</td><td><span class="badge badge-blue">عادي</span></td><td class="td-muted">9 أغسطس</td><td><span class="badge badge-blue">جديدة</span></td><td><button class="btn btn-xs btn-outline" onclick="showToast('تم بدء المهمة','info')">▶ بدء</button></td></tr>
+                <tr><td class="td-bold">تنسيق مع المقاول — أعمال الحفر</td><td>مبنى العليا</td><td><span class="badge badge-orange">متوسط</span></td><td class="td-muted">10 أغسطس</td><td><span class="badge badge-orange">قيد التنفيذ</span></td><td><button class="btn btn-xs btn-primary" onclick="showToast('تم تحديث الحالة','success')">✓ إنهاء</button></td></tr>
+                <tr><td class="td-bold">مراجعة تقرير الإشراف الأسبوعي</td><td>فيلا المنصور</td><td><span class="badge badge-red">عاجل</span></td><td class="td-muted red">5 أغسطس ❗</td><td><span class="badge badge-red">متأخرة</span></td><td><button class="btn btn-xs btn-danger" onclick="showToast('تم تحديث الحالة','success')">✓ إنهاء</button></td></tr>
+                <tr class="row-done"><td class="td-bold"><s>رفع مخططات الإنشائي</s></td><td>فيلا المنصور</td><td><span class="badge badge-blue">عادي</span></td><td class="td-muted">6 أغسطس</td><td><span class="badge badge-green">مكتمل ✓</span></td><td>—</td></tr>
+                <tr class="row-done"><td class="td-bold"><s>تصميم المسقط الأفقي</s></td><td>مجمع تجاري</td><td><span class="badge badge-orange">متوسط</span></td><td class="td-muted">4 أغسطس</td><td><span class="badge badge-green">مكتمل ✓</span></td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── MY PROJECTS ───────────────────────────────────────── -->
+    <div id="ep-projects" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">📁 مشاريعي</h1><p class="page-subtitle">المشاريع المشارك فيها حالياً</p></div>
+      </div>
+
+      <div class="projects-grid">
+        <div class="project-card">
+          <div class="proj-header">
+            <span class="proj-type">🏠 سكني</span>
+            <span class="badge badge-green">نشط</span>
+          </div>
+          <h3 class="proj-name">فيلا المنصور</h3>
+          <p class="proj-client">العميل: أحمد المنصور</p>
+          <div class="proj-progress">
+            <div class="proj-prog-bar"><div class="proj-prog-fill" style="width:65%"></div></div>
+            <span class="proj-prog-text">65%</span>
+          </div>
+          <div class="proj-meta">
+            <span>👥 دوري: مهندس معماري رئيسي</span>
+            <span>📋 مهامي: 3 نشطة</span>
+          </div>
+          <div class="proj-dates">
+            <span>📅 البداية: 1 مارس 2026</span>
+            <span>🏁 التسليم: 30 نوفمبر 2026</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="proj-header">
+            <span class="proj-type">🏢 تجاري</span>
+            <span class="badge badge-green">نشط</span>
+          </div>
+          <h3 class="proj-name">مبنى العليا الإداري</h3>
+          <p class="proj-client">العميل: شركة الفهد للتطوير</p>
+          <div class="proj-progress">
+            <div class="proj-prog-bar"><div class="proj-prog-fill" style="width:40%"></div></div>
+            <span class="proj-prog-text">40%</span>
+          </div>
+          <div class="proj-meta">
+            <span>👥 دوري: مهندس تصميم</span>
+            <span>📋 مهامي: 2 نشطة</span>
+          </div>
+          <div class="proj-dates">
+            <span>📅 البداية: 15 أبريل 2026</span>
+            <span>🏁 التسليم: 15 مارس 2027</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="proj-header">
+            <span class="proj-type">🏬 تجاري</span>
+            <span class="badge badge-orange">تصميم</span>
+          </div>
+          <h3 class="proj-name">مجمع تجاري — الري</h3>
+          <p class="proj-client">العميل: مجموعة الصفوة</p>
+          <div class="proj-progress">
+            <div class="proj-prog-bar"><div class="proj-prog-fill" style="width:20%"></div></div>
+            <span class="proj-prog-text">20%</span>
+          </div>
+          <div class="proj-meta">
+            <span>👥 دوري: مساعد تصميم</span>
+            <span>📋 مهامي: 1 نشطة</span>
+          </div>
+          <div class="proj-dates">
+            <span>📅 البداية: 1 يوليو 2026</span>
+            <span>🏁 التسليم: 30 يونيو 2027</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ATTENDANCE ────────────────────────────────────────── -->
+    <div id="ep-attendance" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">⏰ الحضور والانصراف</h1><p class="page-subtitle">تسجيل الحضور ومتابعة السجل الشهري</p></div>
+      </div>
+
+      <!-- Check-in Card -->
+      <div class="checkin-card">
+        <div class="checkin-status">
+          <div class="checkin-icon">✅</div>
+          <div class="checkin-info">
+            <h3>تم تسجيل الحضور</h3>
+            <p>الوقت: 08:02 صباحاً — في الموعد ✓</p>
+          </div>
+        </div>
+        <div class="checkin-actions">
+          <button class="btn btn-primary btn-lg" onclick="showToast('تم تسجيل الانصراف — 04:30 م','success')">🚪 تسجيل انصراف</button>
+        </div>
+      </div>
+
+      <!-- Monthly Stats -->
+      <div class="kpi-grid sm">
+        <div class="kpi-card mini"><div class="kpi-icon green">✅</div><div class="kpi-body"><div class="kpi-value">22</div><div class="kpi-label">أيام حضور</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon red">❌</div><div class="kpi-body"><div class="kpi-value">1</div><div class="kpi-label">غياب</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon orange">⏰</div><div class="kpi-body"><div class="kpi-value">2</div><div class="kpi-label">تأخير</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon blue">🕐</div><div class="kpi-body"><div class="kpi-value">176h</div><div class="kpi-label">ساعات العمل</div></div></div>
+      </div>
+
+      <!-- Attendance Log -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 سجل الحضور — أغسطس 2026</div></div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>اليوم</th><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th></tr></thead>
+              <tbody>
+                <tr><td>الخميس</td><td>7 أغسطس</td><td class="td-bold">08:02</td><td class="td-muted">—</td><td>—</td><td><span class="badge badge-green">حاضر ✓</span></td></tr>
+                <tr><td>الأربعاء</td><td>6 أغسطس</td><td class="td-bold">07:58</td><td>04:30</td><td>8.5h</td><td><span class="badge badge-green">حاضر ✓</span></td></tr>
+                <tr><td>الثلاثاء</td><td>5 أغسطس</td><td class="td-bold">08:15</td><td>04:45</td><td>8.5h</td><td><span class="badge badge-orange">تأخير 15د</span></td></tr>
+                <tr><td>الاثنين</td><td>4 أغسطس</td><td class="td-bold">07:55</td><td>05:00</td><td>9h</td><td><span class="badge badge-green">حاضر ✓</span></td></tr>
+                <tr><td>الأحد</td><td>3 أغسطس</td><td class="td-bold">08:00</td><td>04:30</td><td>8.5h</td><td><span class="badge badge-green">حاضر ✓</span></td></tr>
+                <tr><td>السبت</td><td>2 أغسطس</td><td colspan="4" style="text-align:center;color:var(--text-3)">— عطلة نهاية الأسبوع —</td></tr>
+                <tr><td>الجمعة</td><td>1 أغسطس</td><td colspan="4" style="text-align:center;color:var(--text-3)">— عطلة نهاية الأسبوع —</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── LEAVES ────────────────────────────────────────────── -->
+    <div id="ep-leaves" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">🏖️ طلبات الإجازات</h1><p class="page-subtitle">تقديم ومتابعة طلبات الإجازة</p></div>
+        <button class="btn btn-primary" onclick="showToast('تم فتح نموذج طلب إجازة','info')">+ طلب إجازة جديد</button>
+      </div>
+
+      <!-- Leave Balance -->
+      <div class="kpi-grid sm">
+        <div class="kpi-card mini"><div class="kpi-icon green">🌴</div><div class="kpi-body"><div class="kpi-value">18</div><div class="kpi-label">رصيد سنوي</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon blue">🤒</div><div class="kpi-body"><div class="kpi-value">10</div><div class="kpi-label">رصيد مرضي</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon orange">✈️</div><div class="kpi-body"><div class="kpi-value">5</div><div class="kpi-label">مستخدمة</div></div></div>
+        <div class="kpi-card mini"><div class="kpi-icon purple">📅</div><div class="kpi-body"><div class="kpi-value">13</div><div class="kpi-label">متبقية</div></div></div>
+      </div>
+
+      <!-- Leave Requests -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 طلباتي</div></div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>النوع</th><th>من</th><th>إلى</th><th>المدة</th><th>السبب</th><th>الحالة</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge badge-green">سنوية</span></td><td>15 أغسطس</td><td>15 أغسطس</td><td>1 يوم</td><td>أمور شخصية</td><td><span class="badge badge-green">موافق عليها ✓</span></td></tr>
+                <tr><td><span class="badge badge-blue">مرضية</span></td><td>20 يوليو</td><td>21 يوليو</td><td>2 يوم</td><td>مراجعة طبية</td><td><span class="badge badge-green">موافق عليها ✓</span></td></tr>
+                <tr><td><span class="badge badge-green">سنوية</span></td><td>1 سبتمبر</td><td>5 سبتمبر</td><td>5 أيام</td><td>إجازة عائلية</td><td><span class="badge badge-orange">بانتظار الموافقة</span></td></tr>
+                <tr><td><span class="badge badge-green">سنوية</span></td><td>10 يونيو</td><td>12 يونيو</td><td>3 أيام</td><td>سفر</td><td><span class="badge badge-green">موافق عليها ✓</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SALARY ────────────────────────────────────────────── -->
+    <div id="ep-salary" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">💰 كشف الراتب</h1><p class="page-subtitle">تفاصيل الراتب الشهري والسجل</p></div>
+      </div>
+
+      <!-- Current Month Salary -->
+      <div class="salary-card">
+        <div class="salary-header">
+          <h3>كشف راتب — أغسطس 2026</h3>
+          <span class="badge badge-green">تم الصرف ✓</span>
+        </div>
+        <div class="salary-grid">
+          <div class="salary-item">
+            <span class="salary-label">الراتب الأساسي</span>
+            <span class="salary-val">1,200 د.ك</span>
+          </div>
+          <div class="salary-item">
+            <span class="salary-label">بدل سكن</span>
+            <span class="salary-val">250 د.ك</span>
+          </div>
+          <div class="salary-item">
+            <span class="salary-label">بدل مواصلات</span>
+            <span class="salary-val">100 د.ك</span>
+          </div>
+          <div class="salary-item">
+            <span class="salary-label">بدل هاتف</span>
+            <span class="salary-val">30 د.ك</span>
+          </div>
+          <div class="salary-item add">
+            <span class="salary-label">مكافأة أداء</span>
+            <span class="salary-val green">+150 د.ك</span>
+          </div>
+          <div class="salary-item deduct">
+            <span class="salary-label">خصم تأمينات</span>
+            <span class="salary-val red">-86 د.ك</span>
+          </div>
+          <div class="salary-item deduct">
+            <span class="salary-label">خصم تأخير (2 مرة)</span>
+            <span class="salary-val red">-15 د.ك</span>
+          </div>
+          <div class="salary-total">
+            <span class="salary-label">صافي الراتب</span>
+            <span class="salary-val total">1,629 د.ك</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Salary History -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📊 سجل الرواتب</div></div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>الشهر</th><th>الأساسي</th><th>البدلات</th><th>المكافآت</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead>
+              <tbody>
+                <tr><td class="td-bold">أغسطس 2026</td><td>1,200</td><td>380</td><td>150</td><td>-101</td><td class="td-bold">1,629</td><td><span class="badge badge-green">مصروف ✓</span></td></tr>
+                <tr><td class="td-bold">يوليو 2026</td><td>1,200</td><td>380</td><td>100</td><td>-86</td><td class="td-bold">1,594</td><td><span class="badge badge-green">مصروف ✓</span></td></tr>
+                <tr><td class="td-bold">يونيو 2026</td><td>1,200</td><td>380</td><td>200</td><td>-86</td><td class="td-bold">1,694</td><td><span class="badge badge-green">مصروف ✓</span></td></tr>
+                <tr><td class="td-bold">مايو 2026</td><td>1,200</td><td>380</td><td>0</td><td>-86</td><td class="td-bold">1,494</td><td><span class="badge badge-green">مصروف ✓</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── DAILY REPORTS ─────────────────────────────────────── -->
+    <div id="ep-reports" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">📝 التقارير اليومية</h1><p class="page-subtitle">كتابة وإرسال التقارير اليومية</p></div>
+      </div>
+
+      <!-- Write Report -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">✍️ تقرير اليوم — 7 أغسطس 2026</div></div>
+        <div class="card-body">
+          <div class="report-form">
+            <div class="form-group">
+              <label>المشروع</label>
+              <select class="form-input"><option>فيلا المنصور</option><option>مبنى العليا</option><option>مجمع تجاري — الري</option></select>
+            </div>
+            <div class="form-group">
+              <label>ما تم إنجازه اليوم</label>
+              <textarea class="form-input" rows="3" placeholder="اكتب ما أنجزته اليوم..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>التحديات / الملاحظات</label>
+              <textarea class="form-input" rows="2" placeholder="أي تحديات واجهتها..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>خطة الغد</label>
+              <textarea class="form-input" rows="2" placeholder="ما تخطط لإنجازه غداً..."></textarea>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" onclick="showToast('تم إرسال التقرير بنجاح ✓','success')">📤 إرسال التقرير</button>
+              <button class="btn btn-outline" onclick="showToast('تم حفظ المسودة','info')">💾 حفظ مسودة</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Previous Reports -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 تقاريري السابقة</div></div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>التاريخ</th><th>المشروع</th><th>ملخص</th><th>الحالة</th></tr></thead>
+              <tbody>
+                <tr><td class="td-bold">6 أغسطس</td><td>فيلا المنصور</td><td>رفع مخططات الإنشائي + تنسيق مع المقاول</td><td><span class="badge badge-green">مقبول ✓</span></td></tr>
+                <tr><td class="td-bold">5 أغسطس</td><td>مبنى العليا</td><td>تحديث BIM Model الطابق 2 + زيارة موقع</td><td><span class="badge badge-green">مقبول ✓</span></td></tr>
+                <tr><td class="td-bold">4 أغسطس</td><td>مجمع تجاري</td><td>تصميم المسقط الأفقي — الطابق الأرضي</td><td><span class="badge badge-green">مقبول ✓</span></td></tr>
+                <tr><td class="td-bold">3 أغسطس</td><td>فيلا المنصور</td><td>مراجعة ملاحظات العميل + تعديل الواجهة</td><td><span class="badge badge-green">مقبول ✓</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── DOCUMENTS ─────────────────────────────────────────── -->
+    <div id="ep-documents" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">📄 المستندات</h1><p class="page-subtitle">الوصول لمستندات المشاريع المسموح بها</p></div>
+        <div class="page-actions">
+          <select class="filter-select"><option>جميع المشاريع</option><option>فيلا المنصور</option><option>مبنى العليا</option><option>مجمع تجاري</option></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>المستند</th><th>المشروع</th><th>النوع</th><th>الإصدار</th><th>آخر تحديث</th><th>إجراء</th></tr></thead>
+              <tbody>
+                <tr><td class="td-bold">📐 مخطط الواجهة الرئيسية</td><td>فيلا المنصور</td><td>DWG</td><td>v3.2</td><td class="td-muted">6 أغسطس</td><td><button class="btn btn-xs btn-outline">⬇️ تحميل</button></td></tr>
+                <tr><td class="td-bold">📐 المسقط الأفقي — أرضي</td><td>فيلا المنصور</td><td>DWG</td><td>v2.1</td><td class="td-muted">5 أغسطس</td><td><button class="btn btn-xs btn-outline">⬇️ تحميل</button></td></tr>
+                <tr><td class="td-bold">📄 مخطط BIM — الطابق 3</td><td>مبنى العليا</td><td>IFC</td><td>v1.4</td><td class="td-muted">4 أغسطس</td><td><button class="btn btn-xs btn-outline">⬇️ تحميل</button></td></tr>
+                <tr><td class="td-bold">📋 تقرير إشراف أسبوعي</td><td>مبنى العليا</td><td>PDF</td><td>v1.0</td><td class="td-muted">3 أغسطس</td><td><button class="btn btn-xs btn-outline">⬇️ تحميل</button></td></tr>
+                <tr><td class="td-bold">📐 تصميم مبدئي — الواجهات</td><td>مجمع تجاري</td><td>DWG</td><td>v1.0</td><td class="td-muted">1 أغسطس</td><td><button class="btn btn-xs btn-outline">⬇️ تحميل</button></td></tr>
+                <tr><td class="td-bold">📄 عقد المشروع</td><td>فيلا المنصور</td><td>PDF</td><td>v1.0</td><td class="td-muted">1 مارس</td><td><button class="btn btn-xs btn-outline">⬇️ تحميل</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CHAT ──────────────────────────────────────────────── -->
+    <div id="ep-chat" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">💬 المحادثات الداخلية</h1><p class="page-subtitle">التواصل مع فريق العمل</p></div>
+      </div>
+
+      <div class="chat-layout">
+        <!-- Chat List -->
+        <div class="chat-list">
+          <div class="chat-item active">
+            <div class="chat-avatar">س</div>
+            <div class="chat-info"><div class="chat-name">م. سارة المطيري</div><div class="chat-last">هل راجعت مخططات الواجهة؟</div></div>
+            <div class="chat-meta"><span class="chat-time">10:15</span><span class="chat-unread">2</span></div>
+          </div>
+          <div class="chat-item">
+            <div class="chat-avatar" style="background:var(--success)">ف</div>
+            <div class="chat-info"><div class="chat-name">م. فهد العتيبي</div><div class="chat-last">تم رفع ملف BIM المحدث</div></div>
+            <div class="chat-meta"><span class="chat-time">09:30</span></div>
+          </div>
+          <div class="chat-item">
+            <div class="chat-avatar" style="background:var(--warning)">خ</div>
+            <div class="chat-info"><div class="chat-name">م. خالد الدوسري</div><div class="chat-last">موعد زيارة الموقع غداً 10 ص</div></div>
+            <div class="chat-meta"><span class="chat-time">أمس</span><span class="chat-unread">1</span></div>
+          </div>
+          <div class="chat-item">
+            <div class="chat-avatar" style="background:var(--secondary)">👥</div>
+            <div class="chat-info"><div class="chat-name">فريق التصميم المعماري</div><div class="chat-last">م. أحمد: تم تسليم المخططات</div></div>
+            <div class="chat-meta"><span class="chat-time">أمس</span></div>
+          </div>
+        </div>
+
+        <!-- Chat Window -->
+        <div class="chat-window">
+          <div class="chat-window-header">
+            <div class="chat-avatar sm">س</div>
+            <div><div class="chat-name">م. سارة المطيري</div><div class="chat-status">🟢 متصلة</div></div>
+          </div>
+          <div class="chat-messages">
+            <div class="msg received"><div class="msg-bubble">السلام عليكم م. أحمد، هل راجعت مخططات الواجهة الجديدة؟</div><div class="msg-time">10:15</div></div>
+            <div class="msg received"><div class="msg-bubble">العميل يسأل عن التعديلات المطلوبة</div><div class="msg-time">10:16</div></div>
+            <div class="msg sent"><div class="msg-bubble">وعليكم السلام، نعم أراجعها الآن وسأرسل الملاحظات خلال ساعة إن شاء الله</div><div class="msg-time">10:20</div></div>
+            <div class="msg received"><div class="msg-bubble">ممتاز، شكراً لك 👍</div><div class="msg-time">10:21</div></div>
+          </div>
+          <div class="chat-input">
+            <input type="text" placeholder="اكتب رسالة..." class="form-input">
+            <button class="btn btn-primary" onclick="showToast('تم إرسال الرسالة','success')">📤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── NOTIFICATIONS ─────────────────────────────────────── -->
+    <div id="ep-notifications" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">🔔 الإشعارات</h1><p class="page-subtitle">جميع الإشعارات والتنبيهات</p></div>
+        <button class="btn btn-outline btn-sm" onclick="showToast('تم تعليم الكل كمقروء','success')">✓ تعليم الكل كمقروء</button>
+      </div>
+
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <div class="notif-full-list">
+            <div class="notif-item unread"><span class="notif-icon">⚠️</span><div class="notif-content"><div class="notif-text"><strong>مهمة عاجلة:</strong> مراجعة مخططات الواجهة — فيلا المنصور (موعد التسليم اليوم)</div><div class="notif-time">منذ 30 دقيقة</div></div></div>
+            <div class="notif-item unread"><span class="notif-icon">✅</span><div class="notif-content"><div class="notif-text"><strong>إجازة:</strong> تمت الموافقة على طلب إجازتك ليوم 15 أغسطس</div><div class="notif-time">منذ ساعة</div></div></div>
+            <div class="notif-item"><span class="notif-icon">💬</span><div class="notif-content"><div class="notif-text"><strong>رسالة:</strong> م. سارة المطيري أرسلت لك رسالة في مشروع "مبنى العليا"</div><div class="notif-time">منذ 3 ساعات</div></div></div>
+            <div class="notif-item"><span class="notif-icon">🎁</span><div class="notif-content"><div class="notif-text"><strong>نقاط إحالة:</strong> حصلت على 50 نقطة من توقيع مشروع جديد عبر كود الإحالة الخاص بك</div><div class="notif-time">أمس</div></div></div>
+            <div class="notif-item"><span class="notif-icon">📋</span><div class="notif-content"><div class="notif-text"><strong>تقرير:</strong> تم قبول تقريرك اليومي ليوم 6 أغسطس</div><div class="notif-time">أمس</div></div></div>
+            <div class="notif-item"><span class="notif-icon">📁</span><div class="notif-content"><div class="notif-text"><strong>مستند:</strong> تم رفع إصدار جديد من مخطط BIM — مبنى العليا (v1.4)</div><div class="notif-time">5 أغسطس</div></div></div>
+            <div class="notif-item"><span class="notif-icon">👥</span><div class="notif-content"><div class="notif-text"><strong>اجتماع:</strong> تذكير باجتماع مراجعة أسبوعي غداً الساعة 9 صباحاً</div><div class="notif-time">5 أغسطس</div></div></div>
+            <div class="notif-item"><span class="notif-icon">💰</span><div class="notif-content"><div class="notif-text"><strong>راتب:</strong> تم صرف راتب شهر أغسطس 2026 بنجاح</div><div class="notif-time">1 أغسطس</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── PROFILE ───────────────────────────────────────────── -->
+    <div id="ep-profile" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">👤 ملفي الشخصي</h1><p class="page-subtitle">عرض وتعديل البيانات الشخصية</p></div>
+        <button class="btn btn-primary" onclick="showToast('تم حفظ التعديلات','success')">💾 حفظ التعديلات</button>
+      </div>
+
+      <div class="grid-2">
+        <!-- Personal Info -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">📋 البيانات الشخصية</div></div>
+          <div class="card-body">
+            <div class="profile-form">
+              <div class="form-group"><label>الاسم الكامل</label><input type="text" class="form-input" value="م. أحمد عبدالله الراشد"></div>
+              <div class="form-group"><label>البريد الإلكتروني</label><input type="email" class="form-input" value="ahmed.rashid@memar.kw"></div>
+              <div class="form-group"><label>الهاتف</label><input type="tel" class="form-input" value="+965 9912 3456"></div>
+              <div class="form-group"><label>تاريخ الميلاد</label><input type="text" class="form-input" value="15 مارس 1992"></div>
+              <div class="form-group"><label>الجنسية</label><input type="text" class="form-input" value="كويتي"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Work Info -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">🏢 البيانات الوظيفية</div></div>
+          <div class="card-body">
+            <div class="profile-form">
+              <div class="form-group"><label>المسمى الوظيفي</label><input type="text" class="form-input" value="مهندس معماري أول" disabled></div>
+              <div class="form-group"><label>القسم</label><input type="text" class="form-input" value="التصميم المعماري" disabled></div>
+              <div class="form-group"><label>المدير المباشر</label><input type="text" class="form-input" value="م. عبدالرحمن الشمري" disabled></div>
+              <div class="form-group"><label>تاريخ الالتحاق</label><input type="text" class="form-input" value="1 يناير 2023" disabled></div>
+              <div class="form-group"><label>الرقم الوظيفي</label><input type="text" class="form-input" value="EMP-2023-015" disabled></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── REFERRAL CODE ─────────────────────────────────────── -->
+    <div id="ep-referral" class="page">
+      <div class="page-header">
+        <div><h1 class="page-title">🎁 كود الإحالة</h1><p class="page-subtitle">اكسب نقاط على كل مشروع يتم توقيعه من خلال كود الإحالة الخاص بك</p></div>
+      </div>
+
+      <!-- Referral Code Card -->
+      <div class="referral-hero">
+        <div class="ref-code-box">
+          <div class="ref-label">كود الإحالة الخاص بك</div>
+          <div class="ref-code">AHMED-MEM-2023</div>
+          <button class="btn btn-primary" onclick="showToast('تم نسخ الكود!','success')">📋 نسخ الكود</button>
+        </div>
+        <div class="ref-stats">
+          <div class="ref-stat"><span class="ref-num">850</span><span class="ref-label">نقاطي الحالية</span></div>
+          <div class="ref-stat"><span class="ref-num">6</span><span class="ref-label">إحالات ناجحة</span></div>
+          <div class="ref-stat"><span class="ref-num">2</span><span class="ref-label">بانتظار التوقيع</span></div>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">📖 كيف يعمل النظام؟</div></div>
+        <div class="card-body">
+          <div class="ref-steps">
+            <div class="ref-step"><div class="ref-step-num">1</div><div class="ref-step-info"><h4>شارك الكود</h4><p>أرسل كود الإحالة الخاص بك للعملاء المحتملين</p></div></div>
+            <div class="ref-step"><div class="ref-step-num">2</div><div class="ref-step-info"><h4>العميل يتواصل</h4><p>عندما يتواصل العميل ويذكر كود الإحالة</p></div></div>
+            <div class="ref-step"><div class="ref-step-num">3</div><div class="ref-step-info"><h4>توقيع العقد</h4><p>عند توقيع عقد المشروع تحصل على النقاط</p></div></div>
+            <div class="ref-step"><div class="ref-step-num">4</div><div class="ref-step-info"><h4>اكسب المكافآت</h4><p>استبدل النقاط بمكافآت مالية أو إجازات</p></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Points Table -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 سجل النقاط</div></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>التاريخ</th><th>العميل</th><th>المشروع</th><th>النقاط</th></tr></thead>
+                <tbody>
+                  <tr><td>6 أغسطس</td><td class="td-bold">خالد الصباح</td><td>فيلا سكنية</td><td><span class="badge badge-green">+150</span></td></tr>
+                  <tr><td>20 يوليو</td><td class="td-bold">سارة العلي</td><td>تصميم داخلي</td><td><span class="badge badge-green">+100</span></td></tr>
+                  <tr><td>5 يوليو</td><td class="td-bold">فهد المطيري</td><td>ملحق سكني</td><td><span class="badge badge-green">+100</span></td></tr>
+                  <tr><td>15 يونيو</td><td class="td-bold">مؤسسة الأمل</td><td>مبنى إداري</td><td><span class="badge badge-green">+200</span></td></tr>
+                  <tr><td>1 يونيو</td><td class="td-bold">عبدالله النور</td><td>فيلا سكنية</td><td><span class="badge badge-green">+150</span></td></tr>
+                  <tr><td>10 مايو</td><td class="td-bold">شركة الوطن</td><td>مجمع تجاري</td><td><span class="badge badge-green">+150</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">🎁 المكافآت المتاحة</div></div>
+          <div class="card-body">
+            <div class="rewards-list">
+              <div class="reward-item"><div class="reward-icon">💰</div><div class="reward-info"><div class="reward-name">مكافأة 50 د.ك</div><div class="reward-cost">500 نقطة</div></div><button class="btn btn-xs btn-primary" onclick="showToast('تم طلب المكافأة','success')">استبدال</button></div>
+              <div class="reward-item"><div class="reward-icon">💰</div><div class="reward-info"><div class="reward-name">مكافأة 100 د.ك</div><div class="reward-cost">900 نقطة</div></div><button class="btn btn-xs btn-outline" disabled>غير كافي</button></div>
+              <div class="reward-item"><div class="reward-icon">🏖️</div><div class="reward-info"><div class="reward-name">يوم إجازة إضافي</div><div class="reward-cost">300 نقطة</div></div><button class="btn btn-xs btn-primary" onclick="showToast('تم طلب المكافأة','success')">استبدال</button></div>
+              <div class="reward-item"><div class="reward-icon">🎓</div><div class="reward-info"><div class="reward-name">دورة تدريبية مجانية</div><div class="reward-cost">600 نقطة</div></div><button class="btn btn-xs btn-primary" onclick="showToast('تم طلب المكافأة','success')">استبدال</button></div>
+              <div class="reward-item"><div class="reward-icon">📱</div><div class="reward-info"><div class="reward-name">بدل هاتف إضافي (شهر)</div><div class="reward-cost">200 نقطة</div></div><button class="btn btn-xs btn-primary" onclick="showToast('تم طلب المكافأة','success')">استبدال</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Referrals -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">⏳ إحالات بانتظار التوقيع</div></div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>العميل</th><th>تاريخ الإحالة</th><th>نوع المشروع</th><th>الحالة</th><th>النقاط المتوقعة</th></tr></thead>
+              <tbody>
+                <tr><td class="td-bold">ناصر الحربي</td><td>1 أغسطس</td><td>فيلا سكنية</td><td><span class="badge badge-orange">عرض سعر مرسل</span></td><td>150</td></tr>
+                <tr><td class="td-bold">شركة المستقبل</td><td>28 يوليو</td><td>مبنى تجاري</td><td><span class="badge badge-blue">قيد التفاوض</span></td><td>200</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="employee-portal.js"></script>
+</body>
+</html>

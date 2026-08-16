@@ -30,6 +30,15 @@ function loadMap(key: string): Record<string, boolean> {
   }
 }
 
+/** هل خُصِّص هذا المفتاح محليًا على هذا الجهاز من قبل؟ (وجود القيمة، لا محتواها) */
+function hasLocal(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== null;
+  } catch {
+    return false;
+  }
+}
+
 function persist(key: string, value: Record<string, boolean>): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -42,8 +51,9 @@ export function Sidebar({ open, onNavigate }: Props) {
   // تفضيلات القائمة تُحفظ في قاعدة البيانات لكل مستخدم فتبقى ثابتة عبر الأجهزة
   // وتحديثات السيرفر؛ والتخزين المحلي يُستخدم كذاكرة سريعة للعرض الفوري (DASH-3).
   const serverPrefs = useAuthStore((s) => s.user?.ui_prefs);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => serverPrefs?.nav_collapsed ?? loadMap(COLLAPSE_KEY));
-  const [hidden, setHidden] = useState<Record<string, boolean>>(() => serverPrefs?.nav_hidden ?? loadMap(HIDDEN_KEY));
+  // المحلي أولًا إن سبق التخصيص على هذا الجهاز؛ وإلا نبدأ من تفضيلات الخادم (تهيئة جهاز جديد).
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => (hasLocal(COLLAPSE_KEY) ? loadMap(COLLAPSE_KEY) : serverPrefs?.nav_collapsed ?? {}));
+  const [hidden, setHidden] = useState<Record<string, boolean>>(() => (hasLocal(HIDDEN_KEY) ? loadMap(HIDDEN_KEY) : serverPrefs?.nav_hidden ?? {}));
   const [editing, setEditing] = useState(false);
   const [hideOptional, setHideOptional] = useState<boolean>(() => {
     try { return localStorage.getItem(HIDE_OPTIONAL_KEY) === '1'; } catch { return false; }
@@ -57,11 +67,12 @@ export function Sidebar({ open, onNavigate }: Props) {
     return next;
   });
 
-  // عند وصول تفضيلات الخادم (تسجيل الدخول / تحديث /auth/me) نعتمدها كمصدر الحقيقة.
+  // تفضيلات الخادم تُهيّئ الجهاز الجديد فقط. بعد أول تخصيص محلي يصبح المحلي هو المرجع،
+  // فلا يستبدله الخادم — وإلا لظهر تراجعٌ للإعدادات عند تحديث الصفحة (الحفظ للخادم مؤجَّل).
   useEffect(() => {
     if (!serverPrefs) return;
-    if (serverPrefs.nav_collapsed) { setCollapsed(serverPrefs.nav_collapsed); persist(COLLAPSE_KEY, serverPrefs.nav_collapsed); }
-    if (serverPrefs.nav_hidden) { setHidden(serverPrefs.nav_hidden); persist(HIDDEN_KEY, serverPrefs.nav_hidden); }
+    if (serverPrefs.nav_collapsed && !hasLocal(COLLAPSE_KEY)) { setCollapsed(serverPrefs.nav_collapsed); persist(COLLAPSE_KEY, serverPrefs.nav_collapsed); }
+    if (serverPrefs.nav_hidden && !hasLocal(HIDDEN_KEY)) { setHidden(serverPrefs.nav_hidden); persist(HIDDEN_KEY, serverPrefs.nav_hidden); }
   }, [serverPrefs]);
 
   // حفظ مؤجَّل في قاعدة البيانات (يتجنّب الإرسال عند كل نقرة سريعة).

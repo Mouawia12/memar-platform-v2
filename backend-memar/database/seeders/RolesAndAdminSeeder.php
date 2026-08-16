@@ -39,6 +39,10 @@ class RolesAndAdminSeeder extends Seeder
             'hr.view', 'hr.manage', 'hr.delete',
             'pricing.view', 'pricing.manage',
             'forum.view', 'forum.manage', 'forum.delete',
+            // نظام الولاء والفرص (طلب أيمن 2026-08-15): إدارة النقاط والقواعد والاستبدال والإحالات،
+            // وإدارة العملاء المحتملين. leads.* منفصلة عن crm.* لضبط أدقّ لاحقًا.
+            'loyalty.view', 'loyalty.manage',
+            'leads.view', 'leads.manage',
             'settings.manage',
             // الخدمة الذاتية للموظف (شؤوني/حسابي/محادثات/إشعارات في بوابة الموظف) — تُمنح للموظف
             // فيرى شؤونه؛ ودور محدود بلا هذه الصلاحية لا يرى إلا ما أُشّر له. طلب أيمن 2026-08-13.
@@ -61,7 +65,7 @@ class RolesAndAdminSeeder extends Seeder
         ));
 
         // الموظف: أساس تشغيلي عام ضمن بوابة الموظف (مهام/مواعيد/CRM عرض/مشاريع عرض/مستندات/منتدى).
-        $employeePerms = ['crm.view', 'requests.view', 'projects.view', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'forum.view', 'self.view'];
+        $employeePerms = ['crm.view', 'leads.view', 'requests.view', 'projects.view', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'forum.view', 'self.view'];
 
         $roles = [
             'super_admin' => ['dashboard' => 'admin', 'perms' => $permissions],

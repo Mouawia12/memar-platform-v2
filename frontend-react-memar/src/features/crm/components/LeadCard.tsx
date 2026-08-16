@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import { STAGE_COLOR_FALLBACK, TEMPERATURE_META, type Lead } from '../types';
+import { PRIORITY_META, STAGE_COLOR_FALLBACK, TEMPERATURE_META, type Lead } from '../types';
 
 interface Props {
   lead: Lead;
@@ -24,11 +24,14 @@ const fmtReminder = (iso: string | null) => (iso ? new Date(iso).toLocaleString(
 export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
   const temp = TEMPERATURE_META[lead.temperature];
+  const prio = PRIORITY_META[lead.priority] ?? PRIORITY_META.medium;
   const avatarColor = AVATAR_COLORS[lead.id % AVATAR_COLORS.length];
   const dueReminder = lead.reminder?.due ? lead.reminder : null;
+  const rating = lead.parent?.internal_rating ?? lead.internal_rating;
 
   return (
-    <div className="card" style={{ ...card, borderInlineStart: `4px solid ${stageColor ?? STAGE_COLOR_FALLBACK}`, ...(dueReminder ? cardDue : null) }} onClick={() => onOpen(lead)}>
+    <div className="card" style={{ ...card, borderInlineStart: `4px solid ${lead.is_urgent ? '#DC2626' : stageColor ?? STAGE_COLOR_FALLBACK}`, ...(lead.is_urgent ? cardUrgent : null), ...(dueReminder ? cardDue : null) }} onClick={() => onOpen(lead)}>
+      {lead.is_urgent && <div style={urgentBar}>🚨 عاجلة — تحتاج متابعة</div>}
       {/* تنبيه «تذكير مستحق» بارز فوق الكرت — يُقرأ من الخارج (طلب أيمن 2026-08-05) */}
       {dueReminder && (
         <div style={dueBar}><i className="fas fa-bell" /> تذكير مستحق{dueReminder.note ? ` — ${dueReminder.note}` : ''}</div>
@@ -48,9 +51,30 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         </div>
       </div>
 
+      {/* شارات: VIP + الأولوية + تقييم العميل — تُقرأ من خارج الكرت */}
+      <div style={badgeRow}>
+        {lead.is_vip && <span style={vipBadge}>⭐ VIP</span>}
+        <span style={{ ...prioBadge, background: `${prio.color}18`, color: prio.color, border: `1px solid ${prio.color}44` }}>{prio.icon} {prio.label}</span>
+        {rating != null && rating > 0 && <span style={ratingBadge} title={`تقييم العميل ${rating}/5`}>{'★'.repeat(rating)}<span style={{ opacity: 0.3 }}>{'★'.repeat(Math.max(0, 5 - rating))}</span></span>}
+      </div>
+
       {(lead.effective_project_name || lead.project_name) && (
         <div style={projectTag} title={lead.effective_project_name ?? lead.project_name ?? ''}>
           🏗️ {lead.effective_project_name ?? lead.project_name}
+        </div>
+      )}
+
+      {/* المساحة/المنطقة + نطاق الأسعار + المتوقّع والنقاط — نظرة سريعة بلا فتح الكرت */}
+      {(lead.area_sqm || lead.region) && (
+        <div style={dimRow}>
+          {lead.area_sqm && <span>📐 {Number(lead.area_sqm).toLocaleString('ar')} م²</span>}
+          {lead.region && <span>📍 {lead.region}</span>}
+        </div>
+      )}
+      {lead.expected_price_kwd && (
+        <div style={expectedRow}>
+          <span>🎯 المتوقّع: <b style={{ color: '#059669' }}>{money(lead.expected_price_kwd)}</b></span>
+          {lead.expected_points > 0 && <span style={pointsPill}>🏆 {lead.expected_points} نقطة</span>}
         </div>
       )}
 
@@ -90,6 +114,15 @@ const reorderBtnOff: CSSProperties = { opacity: 0.3, cursor: 'default' };
 
 const card: CSSProperties = { padding: '13px 14px', marginBottom: '9px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', cursor: 'pointer' };
 const cardDue: CSSProperties = { border: '1px solid #FCA5A5', boxShadow: '0 0 0 3px rgba(220,38,38,.10)' };
+const cardUrgent: CSSProperties = { border: '1px solid #F87171', boxShadow: '0 0 0 2px rgba(220,38,38,.18)' };
+const urgentBar: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', margin: '-13px -14px 8px', padding: '5px 12px', background: 'linear-gradient(90deg,#B91C1C,#DC2626)', color: '#fff', fontSize: '11.5px', fontWeight: 800, borderRadius: '8px 8px 0 0' };
+const badgeRow: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '5px', alignItems: 'center', marginTop: '8px' };
+const vipBadge: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'linear-gradient(90deg,#B45309,#D97706)', color: '#fff' };
+const prioBadge: CSSProperties = { fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px' };
+const ratingBadge: CSSProperties = { fontSize: '11px', color: '#F59E0B', letterSpacing: '1px', marginInlineStart: 'auto' };
+const dimRow: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: '7px', fontSize: '11.5px', color: '#5A6478' };
+const expectedRow: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '7px', fontSize: '12px', color: '#374151' };
+const pointsPill: CSSProperties = { fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: '#EEF3FA', color: '#274A78', whiteSpace: 'nowrap' };
 const dueBar: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', margin: '-10px -11px 8px', padding: '5px 11px', background: 'linear-gradient(90deg,#DC2626,#EF4444)', color: '#fff', fontSize: '11.5px', fontWeight: 800, borderRadius: '8px 8px 0 0' };
 const upcomingPill: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#B45309', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '999px', padding: '1px 8px', fontSize: '10.5px', fontWeight: 700 };
 const avatar: CSSProperties = { width: '32px', height: '32px', borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '14px', flexShrink: 0 };

@@ -27,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureRateLimiting();
         $this->configurePasswordReset();
+        // تطبيق تجاوزات الإعدادات الديناميكية على config (يضبطها الأدمن دون نشر).
+        $this->app->make(\App\Services\SettingsService::class)->apply();
     }
 
     /**

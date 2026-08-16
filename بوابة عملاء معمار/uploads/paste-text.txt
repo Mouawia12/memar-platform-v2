@@ -1,0 +1,275 @@
+MASTER PROMPT
+PART 01
+CORE SYSTEM ARCHITECTURE
+MEMAR ERP
+1. Project Identity
+
+اسم النظام
+
+MEMAR ERP
+
+المؤسسة
+
+Memar Group Engineering Consultants
+
+الغرض من النظام
+
+إنشاء نظام ERP متكامل لإدارة شركة استشارات هندسية يغطي جميع الإدارات داخل الشركة من أول تواصل العميل وحتى إغلاق المشروع والأرشفة النهائية.
+
+النظام يجب أن يكون Enterprise Grade وليس CRM بسيط.
+
+النظام يجب أن يكون قابل للتوسع بدون إعادة كتابة الكود.
+
+النظام يجب أن يكون Modular Architecture.
+
+2. General Philosophy
+
+النظام يعتمد على فكرة أن جميع البيانات مرتبطة ببعضها.
+
+لا يوجد أي Module يعمل منفرداً.
+
+كل البيانات مرتبطة عن طريق UUID.
+
+مثال
+
+Client
+
+↓
+
+CRM
+
+↓
+
+Quotation
+
+↓
+
+Contract
+
+↓
+
+Project
+
+↓
+
+Municipality License
+
+↓
+
+Engineering Drawings
+
+↓
+
+Site Supervision
+
+↓
+
+Invoices
+
+↓
+
+Collections
+
+↓
+
+Archive
+
+كل خطوة مرتبطة بالتي قبلها.
+
+لا يسمح بتكرار البيانات.
+
+Single Source of Truth.
+
+3. UI Philosophy
+
+واجهة احترافية تشبه
+
+Notion
+
+Linear
+
+ClickUp
+
+Monday
+
+Odoo
+
+ERPNext
+
+ولكن بهوية معمار.
+
+ألوان هادئة.
+
+بطاقات كبيرة.
+
+واجهات زجاجية.
+
+Animations بسيطة.
+
+Transitions سريعة.
+
+RTL بالكامل.
+
+Responsive.
+
+Dark Mode.
+
+Light Mode.
+
+4. Navigation Structure
+
+النظام يعتمد على Sidebar ديناميكي قابل للتعديل، مع أقسام رئيسية يمكن طيها وتوسيعها، ويحتوي على الوحدات التالية كما هي موجودة في الملف المصدر: الرئيسية، إدارة الأعمال، الأسعار، إدارة الموظفين، إدارة المستخدمين والصلاحيات، الحسابات، سجل النظام، محرر المستندات، والعمليات، مع العناصر الفرعية لكل قسم. يجب أن يدعم إعادة ترتيب الأقسام والعناصر وإضافة أقسام جديدة ووضع التحرير للقائمة الجانبية.
+
+5. Dashboard Philosophy
+
+لوحة التحكم ليست صفحة ثابتة.
+
+بل Live Dashboard.
+
+كل Widget متصل بقاعدة البيانات مباشرة.
+
+Realtime.
+
+كل Card يمكن الضغط عليه.
+
+كل رقم يفتح تفاصيله.
+
+Dashboard بالكامل Dynamic.
+
+Widgets قابلة للإضافة والحذف.
+
+6. Dashboard Components
+
+اعتمادًا على الملف، تعرض لوحة التحكم:
+
+شريط ملخص سريع يتضمن المهام المتأخرة، مهام اليوم، القادمة، والمكتملة.
+بطاقات KPI للمشاريع النشطة، الإيرادات الشهرية، العملاء الجدد، المهام المعلقة، والمهام المتأخرة.
+قسم المشاريع الأخيرة مع حالة المشروع، العميل، المرحلة، نسبة الإنجاز، والموعد.
+قسم المهام العاجلة مع الأولوية والحالة.
+ملخص مالي (الإيرادات، المصروفات، صافي الربح، المستحقات).
+جدول آخر العملاء المضافين.
+7. User Types
+
+النظام يجب أن يدعم على الأقل:
+
+Super Admin
+General Manager
+Engineering Manager
+Project Manager
+Architect
+Structural Engineer
+MEP Engineer
+Site Engineer
+Quantity Surveyor
+Accountant
+HR Manager
+HR Employee
+Sales Manager
+Sales Employee
+CRM Officer
+Reception
+Document Controller
+Legal Officer
+Procurement
+Client Portal User
+Employee Portal User
+
+ولا يجوز ربط الصلاحيات بالمسمى الوظيفي مباشرة، بل بأدوار (Roles) وصلاحيات قابلة للتخصيص.
+
+8. Permission Engine
+
+كل صفحة.
+
+كل زر.
+
+كل عملية.
+
+كل API.
+
+كل Export.
+
+كل Import.
+
+كل Delete.
+
+كل Edit.
+
+كل Approve.
+
+كل Reject.
+
+يجب أن يكون لها Permission مستقل.
+
+RBAC كامل.
+
+Multiple Roles.
+
+Permission Groups.
+
+Inheritance.
+
+Overrides.
+
+9. Core Design Rules
+
+النظام يجب أن يلتزم بالقواعد التالية:
+
+جميع الصفحات تستخدم تصميم موحد.
+كل صفحة تحتوي على Header وSearch وActions عند الحاجة.
+جميع الجداول تدعم البحث والفرز والتصفية.
+جميع النوافذ المنبثقة (Modal) موحدة.
+جميع الإشعارات (Toast/Notifications) موحدة.
+جميع الصفحات تدعم حالات التحميل (Loading)، الفراغ (Empty State)، والأخطاء (Error State).
+واجهة النظام تعتمد اتجاه RTL بالكامل مع دعم الأجهزة المختلفة.
+10. System Modules
+
+يجب أن يبنى النظام كوحدات مستقلة مترابطة، وتشمل الوحدات الموجودة في الملف:
+
+Dashboard
+Tasks
+Meetings
+Requests
+CRM
+Companies (B2B)
+Clients
+Projects
+Appointments
+Communication
+Services & Pricing
+Pricing Engines
+AI Assistant
+HR
+Attendance
+Payroll
+Recruitment
+User Management
+Roles & Permissions
+Website Management
+Hero Ads
+Reports
+Finance
+Payments & Expenses
+Contracts & Collections
+Invoices
+Financial Summary
+Audit Logs
+Document Editor
+Templates
+Archive
+Field Visits
+File Manager
+Engineer Portal
+KNET Payment Gateway.
+11. Data Relationship Principle
+
+جميع الوحدات يجب أن تكون مترابطة.
+
+على سبيل المثال:
+
+العميل يرتبط بالمشاريع والعقود والفواتير.
+المشروع يرتبط بالمهام والاجتماعات والملفات.
+الموظف يرتبط بالمهام والحضور والزيارات.
+المستندات ترتبط بالمشروع أو العميل أو العقد حسب نوعها.
+العمليات المالية ترتبط بالعقود والفواتير والتحصيل.
+
+لا يتم إنشاء بيانات معزولة عن باقي النظام، ويجب أن تكون جميع العلاقات قابلة للتتبع.

@@ -22,6 +22,9 @@ class Contact extends Model
     use LogsActivity;
     use SoftDeletes;
 
+    // أولوية الفرصة (منفصلة عن «الحرارة») — طلب أيمن 2026-08-15.
+    public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+
     protected $fillable = [
         'full_name', 'kunya', 'email', 'phone', 'company', 'head_office', 'company_about', 'position',
         'type', 'client_kind', 'status', 'stage', 'board_position', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
@@ -29,6 +32,11 @@ class Contact extends Model
         'referral_code', 'referral_shares', 'account_number', 'avatar_file_id', 'referred_by_user_id',
         'referred_by_contact_id', 'loyalty_points', 'loyalty_points_lifetime',
         'internal_rating', 'internal_notes',
+        // حقول الفرصة (المرحلة 3)
+        'price_1_kwd', 'price_2_kwd', 'price_3_kwd', 'expected_price_kwd', 'expected_points',
+        'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'project_type', 'address', 'parent_contact_id',
+        // خصم الترحيب لأول مشروع (المرحلة 5)
+        'welcome_discount_used', 'welcome_discount_kwd',
     ];
 
     /**
@@ -85,12 +93,34 @@ class Contact extends Model
             'notification_prefs' => 'array',
             'loyalty_points' => 'integer',
             'loyalty_points_lifetime' => 'integer',
+            'price_1_kwd' => 'decimal:3',
+            'price_2_kwd' => 'decimal:3',
+            'price_3_kwd' => 'decimal:3',
+            'expected_price_kwd' => 'decimal:3',
+            'expected_points' => 'integer',
+            'is_vip' => 'boolean',
+            'is_urgent' => 'boolean',
+            'area_sqm' => 'decimal:2',
+            'welcome_discount_used' => 'boolean',
+            'welcome_discount_kwd' => 'decimal:3',
         ];
     }
 
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /** العميل الأصل حين تكون هذه فرصة جديدة لعميل موجود. @return BelongsTo<Contact, $this> */
+    public function parentContact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'parent_contact_id');
+    }
+
+    /** الفرص المرتبطة بهذا العميل (فرص جديدة له). @return HasMany<Contact, $this> */
+    public function opportunities(): HasMany
+    {
+        return $this->hasMany(Contact::class, 'parent_contact_id');
     }
 
     /**
@@ -148,7 +178,7 @@ class Contact extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['full_name', 'email', 'phone', 'company', 'type', 'status', 'stage', 'temperature', 'deal_value_kwd'])
+            ->logOnly(['full_name', 'email', 'phone', 'company', 'type', 'status', 'stage', 'temperature', 'deal_value_kwd', 'priority', 'is_vip', 'is_urgent', 'expected_price_kwd'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

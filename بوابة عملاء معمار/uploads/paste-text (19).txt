@@ -1,0 +1,646 @@
+# MEMAR ERP MASTER PROMPT
+
+# PART 19
+
+# AUTOMATION RULES & WORKFLOW ENGINE
+
+# (Business Process Automation System)
+
+---
+
+# 1. Workflow Engine Vision
+
+يجب أن يحتوي نظام **MEMAR ERP** على محرك Workflow مركزي مسؤول عن تشغيل جميع العمليات التلقائية داخل الشركة.
+
+الهدف:
+
+تحويل النظام من مجرد صفحات إدخال بيانات إلى نظام ذكي يدير دورة العمل بالكامل.
+
+أي حدث داخل النظام يمكن أن يؤدي إلى:
+
+* إنشاء مهمة.
+* إرسال إشعار.
+* تغيير حالة.
+* إنشاء مستند.
+* طلب موافقة.
+* تحديث تقرير.
+* تشغيل Automation أخرى.
+
+---
+
+# 2. Workflow Architecture
+
+هيكل العمل:
+
+```
+Trigger
+   |
+   |
+Workflow Engine
+   |
+--------------------------
+|          |             |
+Action   Condition    Approval
+|
+|
+Update Database
+Send Notification
+Create Task
+Generate Document
+```
+
+---
+
+# 3. Workflow Components
+
+كل Workflow يتكون من:
+
+## Trigger
+
+الحدث الذي يبدأ العملية.
+
+أمثلة:
+
+* إنشاء عميل جديد.
+* تحويل Lead.
+* توقيع عقد.
+* إصدار فاتورة.
+* انتهاء موعد.
+* رفع مستند.
+* تغيير حالة مشروع.
+* تسجيل حضور.
+* اعتماد طلب.
+
+---
+
+## Conditions
+
+شروط تنفيذ العملية.
+
+مثال:
+
+إذا:
+
+```
+Project Status = Contract Signed
+```
+
+و
+
+```
+Payment Received > 40%
+```
+
+إذن:
+
+إنشاء مشروع تنفيذي.
+
+---
+
+## Actions
+
+الإجراءات الناتجة.
+
+مثل:
+
+* إنشاء Task.
+* إرسال Email.
+* إرسال WhatsApp.
+* إنشاء Folder.
+* تعديل Status.
+* إنشاء Invoice.
+* إرسال Approval Request.
+
+---
+
+# 4. CRM Automation
+
+## Lead Creation
+
+عند إنشاء Lead جديد:
+
+النظام يقوم تلقائياً بـ:
+
+1. إنشاء رقم Lead.
+2. تحديد مصدر العميل.
+3. تعيين مسؤول المبيعات.
+4. إرسال Notification.
+5. إنشاء أول Task للمتابعة.
+6. إضافة Timeline Event.
+
+---
+
+# 5. Lead Follow-up Automation
+
+إذا لم يتم التواصل مع العميل خلال:
+
+24 ساعة
+
+النظام:
+
+* يرسل Reminder لمسؤول المبيعات.
+* يظهر العميل في قائمة "متابعة عاجلة".
+
+---
+
+إذا مر:
+
+3 أيام بدون تحديث:
+
+* تصعيد للمدير.
+* تغيير درجة الأولوية إلى High.
+
+---
+
+# 6. Lead Conversion Workflow
+
+عند اختيار:
+
+```
+Convert Lead To Client
+```
+
+يحدث التالي:
+
+```
+Lead
+ |
+Client Creation
+ |
+Project Creation
+ |
+Document Folder Creation
+ |
+Contract Preparation
+ |
+Notification
+```
+
+يتم نقل:
+
+* بيانات العميل.
+* الملفات.
+* المحادثات.
+* الملاحظات.
+* Timeline.
+
+---
+
+# 7. Quotation Workflow
+
+عند إنشاء عرض سعر:
+
+الحالة:
+
+```
+Draft
+```
+
+ثم:
+
+```
+Pending Approval
+```
+
+ثم:
+
+```
+Sent To Client
+```
+
+ثم:
+
+```
+Negotiation
+```
+
+ثم:
+
+```
+Approved / Rejected
+```
+
+---
+
+## Automation
+
+إذا تم اعتماد العرض:
+
+يتم:
+
+* إنشاء عقد.
+* إنشاء مشروع.
+* إنشاء دفعات.
+* إرسال إشعار للفريق.
+
+---
+
+# 8. Contract Workflow
+
+عند إنشاء عقد:
+
+النظام يقوم بـ:
+
+* إنشاء رقم عقد.
+* ربط العميل.
+* ربط المشروع.
+* إنشاء جدول الدفعات.
+* إنشاء Folder للعقد.
+* إرسال نسخة للعميل.
+
+---
+
+# 9. Payment Workflow
+
+مثال:
+
+العقد:
+
+5000 د.ك
+
+الدفعة الأولى:
+
+40%
+
+عند تسجيل الدفع:
+
+النظام:
+
+* يحدث الحسابات.
+* يحدث نسبة التحصيل.
+* يغير حالة العقد.
+* يرسل إشعار.
+
+---
+
+# 10. Project Start Automation
+
+عند بدء مشروع جديد:
+
+يتم إنشاء:
+
+## Project Structure
+
+```
+Project Folder
+
+├── Contracts
+├── Drawings
+├── Municipality
+├── Fire Department
+├── Site Reports
+├── Correspondence
+├── Finance
+└── Archive
+```
+
+---
+
+## Tasks Automatically Created
+
+مثال:
+
+* مراجعة مستندات العميل.
+* تجهيز المخطط المعماري.
+* تجهيز المخطط الإنشائي.
+* اعتماد الكهرباء.
+* اعتماد الصحي.
+* متابعة الجهات الحكومية.
+
+---
+
+# 11. Project Progress Automation
+
+كل مشروع يحتوي على مراحل.
+
+مثال:
+
+```
+Design
+ ↓
+Approval
+ ↓
+Permit
+ ↓
+Construction
+ ↓
+Supervision
+ ↓
+Completion
+```
+
+عند إكمال مرحلة:
+
+النظام:
+
+* يحدث نسبة الإنجاز.
+* ينشئ المرحلة التالية.
+* يرسل تقرير للإدارة.
+
+---
+
+# 12. Engineering Workflow
+
+## Architectural Department
+
+عند إنشاء مهمة تصميم:
+
+يتم:
+
+تعيين مهندس معماري.
+
+إنشاء Checklist:
+
+* دراسة المتطلبات.
+* توزيع الفراغات.
+* Concept Design.
+* 3D Views.
+* Final Drawings.
+
+---
+
+## Structural Department
+
+يتم إنشاء:
+
+* مراجعة التربة.
+* النظام الإنشائي.
+* الحسابات.
+* المخططات التنفيذية.
+
+---
+
+## MEP Department
+
+يشمل:
+
+* الكهرباء.
+* الصحي.
+* HVAC.
+* Fire Fighting.
+
+---
+
+# 13. Municipality Workflow
+
+عند رفع معاملة:
+
+الحالة:
+
+```
+Preparing
+|
+Submitted
+|
+Under Review
+|
+Comments Received
+|
+Modified
+|
+Approved
+```
+
+كل تغيير:
+
+يسجل.
+
+---
+
+# 14. Document Workflow
+
+عند رفع ملف:
+
+النظام:
+
+1. يفحص نوع الملف.
+2. ينشئ Version.
+3. يسجل الرافع.
+4. يرسل إشعار.
+5. يطلب اعتماد إذا كان مطلوباً.
+
+---
+
+# 15. Approval Workflow
+
+يدعم النظام سلسلة موافقات:
+
+مثال:
+
+```
+Employee
+ |
+Project Manager
+ |
+Engineering Manager
+ |
+General Manager
+```
+
+كل موافقة تحتوي:
+
+* Approved
+* Rejected
+* Comments
+* Date
+* Signature
+
+---
+
+# 16. HR Automation
+
+## Attendance
+
+عند تسجيل الحضور:
+
+يتم:
+
+* تحديث سجل الموظف.
+* حساب التأخير.
+* تحديث التقارير.
+
+---
+
+## Leave Request
+
+الموظف يقدم طلب:
+
+↓
+
+Manager Approval
+
+↓
+
+HR Approval
+
+↓
+
+Payroll Update
+
+---
+
+# 17. Finance Automation
+
+## Invoice Generation
+
+عند وصول المشروع لمرحلة معينة:
+
+مثال:
+
+```
+Permit Approved
+```
+
+النظام:
+
+ينشئ Invoice تلقائياً.
+
+---
+
+## Collection Reminder
+
+إذا تأخرت دفعة:
+
+* Reminder للعميل.
+* Notification للمحاسب.
+* تقرير للإدارة.
+
+---
+
+# 18. Notification Engine
+
+يدعم:
+
+## In-App
+
+داخل النظام.
+
+## Email
+
+رسائل البريد.
+
+## WhatsApp
+
+رسائل العملاء.
+
+## Push Notification
+
+للهاتف.
+
+---
+
+# 19. Scheduled Automation
+
+النظام يحتوي على Jobs مجدولة:
+
+مثل:
+
+يوميًا:
+
+* تحديث التقارير.
+* إرسال المهام المتأخرة.
+
+أسبوعيًا:
+
+* تقرير المشاريع.
+
+شهريًا:
+
+* تقرير الإيرادات.
+* تقرير الموظفين.
+* تقرير الأداء.
+
+---
+
+# 20. AI Automation Layer
+
+المساعد الذكي يمكنه:
+
+* اقتراح توزيع المهام.
+* كشف المشاريع المتأخرة.
+* تحليل أسباب التأخير.
+* تلخيص الاجتماعات.
+* إنشاء تقارير الإدارة.
+* اقتراح متابعة العملاء.
+
+---
+
+# 21. Workflow Builder
+
+الإدارة تستطيع إنشاء Workflow بدون برمجة.
+
+واجهة Drag & Drop:
+
+```
+WHEN
+[Event]
+
+IF
+[Condition]
+
+THEN
+[Action]
+```
+
+مثال:
+
+```
+WHEN
+New Contract
+
+IF
+Payment Received
+
+THEN
+Create Project
+Assign Engineer
+Send Notification
+```
+
+---
+
+# 22. Audit & Tracking
+
+كل Workflow يسجل:
+
+* اسم العملية.
+* وقت التنفيذ.
+* المستخدم.
+* النتيجة.
+* الأخطاء.
+* الإجراءات المنفذة.
+
+---
+
+# 23. Final Workflow Principle
+
+أي عملية متكررة داخل الشركة يجب تحويلها إلى Workflow.
+
+الهدف النهائي:
+
+تقليل العمل اليدوي.
+
+رفع سرعة الإنجاز.
+
+منع نسيان المهام.
+
+زيادة الرقابة.
+
+تحويل Memar ERP إلى نظام تشغيل كامل للمكتب الهندسي.
+
+---
+
+✅ انتهى الجزء 19
+**Automation Rules & Workflow Engine**
+
+الجزء التالي:
+
+# PART 20 — FINAL MASTER PROMPT
+
+سيكون مرحلة التجميع النهائية:
+
+* دمج كل الوحدات.
+* قواعد البناء.
+* تعليمات AI Builder.
+* طريقة إعطاء البرومبت لـ Claude Code / Cursor.
+* Database + API + UI + Security كوثيقة واحدة جاهزة للتنفيذ.

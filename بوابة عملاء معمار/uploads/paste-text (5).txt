@@ -1,0 +1,529 @@
+MEMAR ERP MASTER PROMPT
+PART 05
+MUNICIPALITY, GOVERNMENT APPROVALS & ENGINEERING PERMITS
+Government Workflow Management System (GWMS)
+
+هذا الجزء مصمم خصيصًا لشركات الاستشارات الهندسية في الكويت، ويحول النظام إلى منصة لإدارة دورة التراخيص والاعتمادات الحكومية وربطها بالمشروع، وهو امتداد لوحدة المشاريع والوثائق والعمليات الموجودة في النظام.
+
+1. Government Workflow Philosophy
+
+كل مشروع هندسي لا يعتمد فقط على التصميم، بل يمر بسلسلة طويلة من الاعتمادات الحكومية.
+
+لذلك يجب أن يحتوي النظام على Government Workflow Engine.
+
+كل جهة حكومية تعتبر Workflow مستقل.
+
+لكن جميعها مرتبطة بالمشروع.
+
+2. Government Authorities
+
+يدعم النظام الجهات التالية:
+
+بلدية الكويت
+رخصة البناء
+اعتماد المخططات
+التعديلات
+شهادة الأوصاف
+شهادة إتمام البناء
+الإفراج النهائي
+وزارة الكهرباء والماء والطاقة المتجددة
+اعتماد الكهرباء
+اعتماد الأحمال
+اعتماد المحولات
+اعتماد المياه
+العدادات
+توصيل الخدمة
+وزارة الأشغال
+الصرف الصحي
+شبكات الأمطار
+الربط بالشبكة
+قوة الإطفاء العام
+Fire Fighting
+Fire Alarm
+Emergency Plan
+Occupancy Approval
+الهيئة العامة للطرق
+مداخل ومخارج
+الأرصفة
+الأعمال الخارجية
+الجهات الأخرى
+
+النظام يسمح بإضافة أي جهة حكومية جديدة دون تعديل الكود.
+
+3. Government Dashboard
+
+لكل مشروع Dashboard حكومي.
+
+يعرض:
+
+عدد المعاملات
+
+عدد الاعتمادات
+
+عدد الملاحظات
+
+عدد الرفض
+
+الموافقات النهائية
+
+المعاملات المنتهية
+
+المعاملات المتأخرة
+
+المعاملات المعلقة
+
+4. Permit Management
+
+كل تصريح يحتوي على:
+
+Permit ID
+
+Permit Number
+
+Authority
+
+Project
+
+Client
+
+Submission Date
+
+Current Status
+
+Assigned Engineer
+
+Priority
+
+Approval Date
+
+Expiry Date
+
+الحالات:
+
+Draft
+
+↓
+
+Preparing
+
+↓
+
+Submitted
+
+↓
+
+Under Review
+
+↓
+
+Comments Received
+
+↓
+
+Revision Required
+
+↓
+
+Resubmitted
+
+↓
+
+Approved
+
+↓
+
+Issued
+
+↓
+
+Expired
+
+↓
+
+Archived
+
+5. Municipality Submission Workflow
+
+عند تقديم مخطط:
+
+النظام يقوم بـ:
+
+إنشاء Submission Number
+حفظ النسخة المرسلة
+حفظ تاريخ الإرسال
+حفظ الموظف
+ربط الرسومات
+ربط الملاحظات
+إنشاء متابعة تلقائية
+6. Government Comments Management
+
+كل جهة قد ترسل ملاحظات.
+
+يجب تسجيل:
+
+Comment Number
+
+Authority
+
+Category
+
+Description
+
+Drawing Reference
+
+Priority
+
+Assigned Engineer
+
+Due Date
+
+Status
+
+الحالات:
+
+Open
+
+↓
+
+Assigned
+
+↓
+
+Under Review
+
+↓
+
+Solved
+
+↓
+
+Submitted
+
+↓
+
+Approved
+
+↓
+
+Closed
+
+7. Technical Review Center
+
+لكل ملاحظة:
+
+يمكن:
+
+إرفاق صورة
+
+إرفاق PDF
+
+إرفاق DWG
+
+إضافة Markup
+
+رسم على الصورة
+
+ربطها بالرسم
+
+ربطها بالمهمة
+
+ربطها بالمهندس
+
+8. Submission History
+
+كل عملية إرسال يتم حفظها.
+
+مثال
+
+Submission 01
+
+↓
+
+Rejected
+
+↓
+
+Submission 02
+
+↓
+
+Comments
+
+↓
+
+Submission 03
+
+↓
+
+Approved
+
+لا يتم حذف أي Submission.
+
+9. Drawing Package
+
+كل Submission يحتوي على:
+
+Architectural
+
+Structural
+
+Electrical
+
+Mechanical
+
+Fire
+
+BOQ
+
+Reports
+
+Calculations
+
+Letters
+
+Forms
+
+Approval Sheets
+
+Checklist
+
+10. Auto Checklist Engine
+
+قبل الإرسال.
+
+يقوم النظام تلقائياً بفحص:
+
+✓ جميع الرسومات موجودة
+
+✓ جميع التواقيع موجودة
+
+✓ جميع المراجعات منتهية
+
+✓ النسخة الصحيحة
+
+✓ المستندات المطلوبة
+
+✓ عدم وجود ملفات ناقصة
+
+إذا وجد نقص:
+
+يمنع الإرسال.
+
+11. Expiry Management
+
+كل اعتماد يحتوي على:
+
+Issue Date
+
+Expiry Date
+
+Remaining Days
+
+Renewal Status
+
+Notification Schedule
+
+قبل انتهاء الاعتماد:
+
+90 يوم
+
+60 يوم
+
+30 يوم
+
+7 أيام
+
+يتم إرسال تنبيهات تلقائياً.
+
+12. Authority Communication Center
+
+لكل جهة:
+
+Email History
+
+Letters
+
+Phone Calls
+
+Meetings
+
+Site Visits
+
+Official Responses
+
+Attachments
+
+Reference Numbers
+
+13. Official Letter Generator
+
+النظام ينشئ تلقائياً:
+
+كتب رسمية
+طلبات اعتماد
+طلبات تعديل
+طلبات استفسار
+كتب متابعة
+كتب استلام
+كتب تسليم
+
+اعتماداً على Templates.
+
+14. Site Inspection Management
+
+عند وجود زيارة حكومية.
+
+يسجل:
+
+Inspection Number
+
+Authority
+
+Inspector
+
+Date
+
+Time
+
+Location
+
+Result
+
+Photos
+
+Violations
+
+Recommendations
+
+Follow-up Date
+
+15. Violations
+
+النظام يدير:
+
+Violations
+
+Warnings
+
+Penalties
+
+Stop Orders
+
+Reinspection
+
+Corrective Actions
+
+Approval After Correction
+
+16. Workflow Automation
+
+إذا تم رفض الاعتماد:
+
+↓
+
+إنشاء Task
+
+↓
+
+إرسال Notification
+
+↓
+
+تعيين المهندس
+
+↓
+
+إرفاق الملاحظات
+
+↓
+
+تحديد موعد إعادة التقديم
+
+↓
+
+تحديث Dashboard
+
+إذا تمت الموافقة:
+
+↓
+
+إغلاق Workflow
+
+↓
+
+تحديث المشروع
+
+↓
+
+إرسال إشعار
+
+↓
+
+إنشاء المرحلة التالية تلقائياً
+
+17. Authority Analytics
+
+يعرض النظام:
+
+متوسط مدة الاعتماد
+
+عدد المعاملات
+
+عدد الملاحظات
+
+معدل الرفض
+
+معدل القبول
+
+عدد الإعادات
+
+أفضل مهندس
+
+أسوأ أسباب الرفض
+
+Performance حسب الجهة
+
+18. Kuwait Municipality Integration Layer
+
+يجب أن يكون النظام جاهزاً مستقبلاً للربط مع:
+
+أنظمة بلدية الكويت.
+أنظمة قوة الإطفاء.
+أنظمة وزارة الكهرباء والماء.
+أي بوابات حكومية إلكترونية.
+
+ويتم تصميم طبقة Integration Layer بحيث يمكن إضافة واجهات API مستقبلاً دون تغيير هيكل النظام.
+
+19. Government Archive
+
+كل معاملة يتم أرشفتها.
+
+الأرشيف يحتوي على:
+
+جميع الإصدارات.
+جميع الكتب الرسمية.
+جميع المخططات المرسلة.
+جميع الملاحظات.
+جميع الردود.
+جميع التوقيعات.
+جميع الاعتمادات.
+سجل زمني كامل.
+
+ولا يسمح بحذف أي سجل، وإنما يتم إغلاقه وأرشفته فقط.
+
+20. Integration With Existing Modules
+
+ترتبط وحدة الاعتمادات الحكومية مباشرة مع:
+
+Projects ← المشروع.
+Engineering Departments ← الرسومات والتعديلات.
+Document Center ← الكتب والمستندات.
+Task Manager ← معالجة الملاحظات.
+Meetings ← الاجتماعات مع الجهات.
+Finance ← رسوم التراخيص إن وجدت.
+Notifications ← التنبيهات.
+Reports ← مؤشرات الأداء الحكومية.
+Archive ← حفظ جميع المعاملات.
+نتيجة هذا الجزء
+
+بعد هذا الجزء يصبح Memar ERP قادراً على إدارة دورة الاعتمادات الحكومية بالكامل داخل النظام، من أول إعداد المخططات وحتى إصدار الموافقات النهائية، مع ربط كل خطوة بالمشروع، والرسومات، والمهندسين، والوثائق، والمهام، وهو ما يتوافق مع طبيعة النظام الهندسي ووحداته الحالية.

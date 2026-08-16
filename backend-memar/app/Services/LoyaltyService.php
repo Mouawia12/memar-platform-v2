@@ -49,10 +49,38 @@ class LoyaltyService
 
     /* ═══════════════ نقاط الموظفين (users) — الرصيد يُحسب من السجل مباشرة ═══════════════ */
 
-    /** رصيد نقاط الموظف الحالي (مجموع حركاته). */
+    /** رصيد نقاط الموظف الحالي (مجموع كل حركاته، بأي حالة). */
     public function userBalance(User $user): int
     {
         return (int) LoyaltyTransaction::where('user_id', $user->id)->sum('points');
+    }
+
+    /**
+     * الرصيد القابل للاستبدال فعليًا: حركات الحالة «available» فقط (يستثني المعلّقة والمستحقة
+     * التي تنتظر اعتماد الإدارة، والملغاة). الصرف (سالب) الحالته available يخصم بشكل صحيح.
+     */
+    public function userAvailableBalance(User $user): int
+    {
+        return (int) LoyaltyTransaction::where('user_id', $user->id)
+            ->where('status', LoyaltyTransaction::STATUS_AVAILABLE)
+            ->sum('points');
+    }
+
+    /**
+     * تفصيل محفظة الموظف حسب حالة النقاط (للعرض): معلّقة/مستحقة/متاحة/مستبدلة.
+     *
+     * @return array{pending:int, earned:int, available:int, redeemed:int}
+     */
+    public function userPointsByStatus(User $user): array
+    {
+        $base = fn (): \Illuminate\Database\Eloquent\Builder => LoyaltyTransaction::where('user_id', $user->id);
+
+        return [
+            'pending' => (int) $base()->where('status', LoyaltyTransaction::STATUS_PENDING)->where('points', '>', 0)->sum('points'),
+            'earned' => (int) $base()->where('status', LoyaltyTransaction::STATUS_EARNED)->where('points', '>', 0)->sum('points'),
+            'available' => $this->userAvailableBalance($user),
+            'redeemed' => (int) abs((int) $base()->where('points', '<', 0)->sum('points')),
+        ];
     }
 
     /** نقاط الموظف مدى الحياة (الموجبة فقط). */
@@ -61,14 +89,17 @@ class LoyaltyService
         return (int) LoyaltyTransaction::where('user_id', $user->id)->where('points', '>', 0)->sum('points');
     }
 
-    /** منح الموظف نقاطًا وتسجيل الحركة (contact_id = NULL كي لا تختلط برصيد عميل). */
-    public function awardUser(User $user, int $points, string $source, ?Model $reference = null, ?string $description = null): ?LoyaltyTransaction
+    /**
+     * منح الموظف نقاطًا وتسجيل الحركة (contact_id = NULL كي لا تختلط برصيد عميل).
+     * $status يحدّد مرحلة دورة الحياة (متاح افتراضيًا؛ يُمرَّر pending/earned في المسارات الجديدة).
+     */
+    public function awardUser(User $user, int $points, string $source, ?Model $reference = null, ?string $description = null, string $status = LoyaltyTransaction::STATUS_AVAILABLE): ?LoyaltyTransaction
     {
         if ($points <= 0) {
             return null;
         }
 
-        return DB::transaction(function () use ($user, $points, $source, $reference, $description): LoyaltyTransaction {
+        return DB::transaction(function () use ($user, $points, $source, $reference, $description, $status): LoyaltyTransaction {
             $balance = $this->userBalance($user) + $points;
 
             return LoyaltyTransaction::create([
@@ -77,11 +108,59 @@ class LoyaltyService
                 'points' => $points,
                 'balance_after' => $balance,
                 'source' => $source,
+                'status' => $status,
                 'description' => $description,
                 'reference_type' => $reference ? $reference::class : null,
                 'reference_id' => $reference?->getKey(),
             ]);
         });
+    }
+
+    /**
+     * صرف نقاط موظف (سالبة) عند اعتماد استبدالها بالراتب. تُكتب بحالة «available» كي تخصم
+     * من الرصيد المتاح بشكل صحيح (تفصيل «مستبدلة» في العرض يُحسب من الحركات السالبة).
+     */
+    public function redeemUserPoints(User $user, int $points, string $description, ?Model $reference = null): LoyaltyTransaction
+    {
+        return DB::transaction(function () use ($user, $points, $description, $reference): LoyaltyTransaction {
+            $balance = $this->userBalance($user) - $points;
+
+            return LoyaltyTransaction::create([
+                'user_id' => $user->id,
+                'contact_id' => null,
+                'points' => -$points,
+                'balance_after' => $balance,
+                'source' => 'salary_conversion',
+                'status' => LoyaltyTransaction::STATUS_AVAILABLE,
+                'description' => $description,
+                'reference_type' => $reference ? $reference::class : null,
+                'reference_id' => $reference?->getKey(),
+            ]);
+        });
+    }
+
+    /**
+     * اعتماد نقاط مستحقة → متاحة (خطوة موافقة الإدارة). يعمل فقط على حركة موظف مستحقة.
+     */
+    public function approveUserTransaction(LoyaltyTransaction $tx): LoyaltyTransaction
+    {
+        if ($tx->user_id === null || $tx->status !== LoyaltyTransaction::STATUS_EARNED) {
+            throw new RuntimeException('لا يمكن اعتماد هذه الحركة (ليست نقاطًا مستحقة لموظف).');
+        }
+        $tx->forceFill(['status' => LoyaltyTransaction::STATUS_AVAILABLE])->save();
+
+        return $tx;
+    }
+
+    /** إلغاء نقاط موظف (لا تُحتسب بعدها). يُسمح بإلغاء المعلّقة والمستحقة والمتاحة. */
+    public function cancelUserTransaction(LoyaltyTransaction $tx): LoyaltyTransaction
+    {
+        if ($tx->user_id === null || $tx->status === LoyaltyTransaction::STATUS_REDEEMED) {
+            throw new RuntimeException('لا يمكن إلغاء هذه الحركة.');
+        }
+        $tx->forceFill(['status' => LoyaltyTransaction::STATUS_CANCELLED])->save();
+
+        return $tx;
     }
 
     /**
@@ -97,7 +176,8 @@ class LoyaltyService
         $min = (int) config('loyalty.salary.min_points', 50);
 
         return DB::transaction(function () use ($user, $points, $rate, $min): array {
-            $balance = $this->userBalance($user);
+            // يُحوَّل من النقاط المتاحة فقط (المعلّقة/المستحقة تنتظر اعتماد الإدارة).
+            $balance = $this->userAvailableBalance($user);
             if ($points > $balance) {
                 throw new RuntimeException('النقاط غير كافية.');
             }

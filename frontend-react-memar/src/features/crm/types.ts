@@ -2,6 +2,7 @@
 export type Stage = string;
 export type ContactType = 'lead' | 'client' | 'contact';
 export type Temperature = 'hot' | 'warm' | 'cold' | 'normal';
+export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 /** مرحلة (عمود) في لوحة الفرص — تُدار من الأدمن. */
 export interface PipelineStage {
@@ -41,6 +42,22 @@ export interface Lead {
   // تقييم داخلي خاص بالفريق (اجتماع 2026-08-05)
   internal_rating: number | null;
   internal_notes: string | null;
+  // حقول الفرصة (المرحلة 3 — طلب أيمن 2026-08-15)
+  priority: Priority;
+  is_vip: boolean;
+  is_urgent: boolean;
+  price_1_kwd: string | null;
+  price_2_kwd: string | null;
+  price_3_kwd: string | null;
+  expected_price_kwd: string | null;
+  expected_points: number;
+  area_sqm: string | null;
+  region: string | null;
+  project_type: string | null;
+  address: string | null;
+  parent_contact_id: number | null;
+  // ملخّص العميل الأصل حين تكون فرصة لعميل موجود
+  parent: { id: number; full_name: string; internal_rating: number | null } | null;
   created_at: string | null;
 }
 
@@ -67,6 +84,19 @@ export interface LeadFormData {
   notes: string;
   project_name: string;
   project_details: string;
+  // حقول الفرصة (المرحلة 3)
+  priority: Priority;
+  is_vip: boolean;
+  is_urgent: boolean;
+  price_1_kwd: string;
+  price_2_kwd: string;
+  price_3_kwd: string;
+  expected_price_kwd: string;
+  area_sqm: string;
+  region: string;
+  project_type: string;
+  address: string;
+  parent_contact_id: number | '';
 }
 
 // حرارة الفرصة (طبق أصل PRIORITY_OPTS) — ساخنة/دافئة/باردة/عادية
@@ -77,6 +107,16 @@ export const TEMPERATURE_META: Record<Temperature, { label: string; icon: string
   warm: { label: 'دافئة', icon: '🌤', color: '#D97706' },
   cold: { label: 'باردة', icon: '❄️', color: '#0891B2' },
   normal: { label: 'عادية', icon: '⚪', color: '#6B7280' },
+};
+
+// أولوية الفرصة (منفصلة عن الحرارة) — طلب أيمن 2026-08-15
+export const PRIORITY_ORDER: Priority[] = ['urgent', 'high', 'medium', 'low'];
+
+export const PRIORITY_META: Record<Priority, { label: string; icon: string; color: string }> = {
+  urgent: { label: 'عاجلة', icon: '🔴', color: '#DC2626' },
+  high: { label: 'عالية', icon: '🟠', color: '#EA580C' },
+  medium: { label: 'متوسطة', icon: '🟡', color: '#CA8A04' },
+  low: { label: 'منخفضة', icon: '🟢', color: '#16A34A' },
 };
 
 /** تسميات/ألوان احتياطية للمراحل القديمة في السجل (لو حُذفت المرحلة من اللوحة). */

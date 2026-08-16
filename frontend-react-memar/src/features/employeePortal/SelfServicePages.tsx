@@ -578,18 +578,34 @@ export function ReferralEp() {
         </div>
       </div>
 
-      {/* تحويل النقاط إلى راتب — حيّ */}
+      {/* استبدال النقاط بالراتب — طلب يخضع لاعتماد الإدارة (المرحلة 6) */}
       <div className="ep-card" style={{ marginBottom: 20 }}>
-        <div className="ep-card-header"><div className="ep-card-title">💰 تحويل النقاط إلى راتب</div></div>
+        <div className="ep-card-header"><div className="ep-card-title">💰 استبدال النقاط بالراتب</div></div>
         <div className="ep-card-body">
           <p style={{ margin: '0 0 12px', color: '#475569', fontSize: 13 }}>
-            المعدّل <b>{rate} نقطة = 1 د.ك</b>. رصيدك <b>{data?.balance ?? 0}</b> نقطة ≈ <b style={{ color: '#2D9B6F' }}>{data?.convertible_kwd ?? 0} د.ك</b> قابلة للتحويل الآن.
+            المعدّل <b>{rate} نقطة = 1 د.ك</b>. المتاح للاستبدال <b>{data?.available_for_redemption ?? data?.balance ?? 0}</b> نقطة ≈ <b style={{ color: '#2D9B6F' }}>{data?.convertible_kwd ?? 0} د.ك</b>.
+            يُرسَل الطلب لاعتماد الإدارة ثم يُضاف لراتبك.
           </p>
           <button className="ep-btn ep-btn-primary" disabled={!maxConvertPoints || convert.isPending} onClick={() => convert.mutate(maxConvertPoints)}>
-            {convert.isPending ? '…جارٍ التحويل' : `تحويل ${maxConvertPoints} نقطة ← ${data?.convertible_kwd ?? 0} د.ك`}
+            {convert.isPending ? '…جارٍ الإرسال' : `طلب استبدال ${maxConvertPoints} نقطة ← ${data?.convertible_kwd ?? 0} د.ك`}
           </button>
-          {convert.isSuccess && <div style={{ marginTop: 8, color: '#2D9B6F', fontWeight: 700, fontSize: 12.5 }}>✓ تم التحويل — ستُضاف لراتبك.</div>}
-          {convert.isError && <div style={{ marginTop: 8, color: '#DC4A3D', fontWeight: 700, fontSize: 12.5 }}>{apiErrorMessage(convert.error) || 'تعذّر التحويل.'}</div>}
+          {convert.isSuccess && <div style={{ marginTop: 8, color: '#2D9B6F', fontWeight: 700, fontSize: 12.5 }}>✓ تم إرسال الطلب — بانتظار اعتماد الإدارة.</div>}
+          {convert.isError && <div style={{ marginTop: 8, color: '#DC4A3D', fontWeight: 700, fontSize: 12.5 }}>{apiErrorMessage(convert.error) || 'تعذّر إرسال الطلب.'}</div>}
+
+          {/* طلباتي الأخيرة بحالتها */}
+          {(data?.redemptions?.length ?? 0) > 0 && (
+            <div style={{ marginTop: 14, borderTop: '1px solid #EEF2F7', paddingTop: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#5A6478', marginBottom: 6 }}>طلبات الاستبدال</div>
+              {data!.redemptions!.map((r) => (
+                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '3px 0', color: '#475569' }}>
+                  <span>{r.points} نقطة ← {Number(r.amount_kwd).toFixed(3)} د.ك · {fmtDate(r.created_at)}</span>
+                  <b style={{ color: r.status === 'approved' ? '#2D9B6F' : r.status === 'rejected' ? '#DC4A3D' : '#D97706' }}>
+                    {r.status === 'approved' ? 'معتمد' : r.status === 'rejected' ? 'مرفوض' : 'بانتظار الاعتماد'}
+                  </b>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

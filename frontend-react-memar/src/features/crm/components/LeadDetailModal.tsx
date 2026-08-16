@@ -6,6 +6,7 @@ import { InternalRating } from '../../../components/InternalRating';
 import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
 import { crmApi } from '../api/crmApi';
 import { LeadReminders } from './LeadReminders';
+import { OpportunityTimeline } from './OpportunityTimeline';
 import { useLeadHistory, useSetTemperature } from '../hooks/useCrm';
 import { STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Stage, type Temperature } from '../types';
 
@@ -110,6 +111,13 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
         <div style={section}>
           <div style={secTitle}>🔔 تذكيرات المتابعة</div>
           <LeadReminders leadId={lead.id} />
+        </div>
+
+        {/* تحديثات الفرصة + الاختصارات + التايملاين (المرحلة 4) */}
+        <div style={section}>
+          <div style={secTitle}>📝 المتابعات والتحديثات</div>
+          {/* تسجيل المتابعة متاح لكل من يرى الفرصة (crm.view) — نشاط الموظف اليومي */}
+          <OpportunityTimeline leadId={lead.id} />
         </div>
 
         {/* التقييم الداخلي للعميل — خاص بالفريق (بند 27) */}

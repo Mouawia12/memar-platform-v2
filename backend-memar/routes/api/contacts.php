@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\ClientPortalController;
 use App\Http\Controllers\Api\V1\ContactController;
+use App\Http\Controllers\Api\V1\OpportunityUpdateController;
 use App\Http\Controllers\Api\V1\PipelineStageController;
+use App\Http\Controllers\Api\V1\QuickActionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,4 +38,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/contacts/{contact}/reminders', [ContactController::class, 'addReminder'])->middleware('permission:crm.manage');
     Route::patch('/reminders/{reminder}', [ContactController::class, 'toggleReminder'])->middleware('permission:crm.manage');
     Route::delete('/reminders/{reminder}', [ContactController::class, 'deleteReminder'])->middleware('permission:crm.manage');
+
+    // ─── تايملاين تحديثات الفرصة (المرحلة 4) ───
+    // تسجيل المتابعة نشاط يومي للموظف (crm.view) — لا يعدّل/يحذف بيانات الفرصة نفسها؛
+    // إعداد الاختصارات وتعديل/حذف الفرص يبقى crm.manage.
+    Route::get('/contacts/{contact}/updates', [OpportunityUpdateController::class, 'index'])->middleware('permission:crm.view');
+    Route::post('/contacts/{contact}/updates', [OpportunityUpdateController::class, 'store'])->middleware('permission:crm.view');
+
+    // ─── اختصارات المتابعة الجاهزة (عرض للجميع، إدارة للأدمن) ───
+    Route::get('/quick-actions', [QuickActionController::class, 'index'])->middleware('permission:crm.view');
+    Route::post('/quick-actions', [QuickActionController::class, 'store'])->middleware('permission:crm.manage');
+    Route::match(['put', 'patch'], '/quick-actions/{quickAction}', [QuickActionController::class, 'update'])->middleware('permission:crm.manage');
+    Route::delete('/quick-actions/{quickAction}', [QuickActionController::class, 'destroy'])->middleware('permission:crm.manage');
 });

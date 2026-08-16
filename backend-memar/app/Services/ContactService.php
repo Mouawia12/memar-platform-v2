@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Contact;
+use App\Models\LoyaltyTransaction;
 use App\Models\PipelineStage;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -17,6 +18,7 @@ class ContactService
     public function __construct(
         private readonly ProjectService $projects,
         private readonly LoyaltyService $loyalty,
+        private readonly LoyaltyRuleService $rules,
     ) {}
 
     public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
@@ -43,6 +45,7 @@ class ContactService
      */
     public function create(array $data): Contact
     {
+        $data = $this->withExpectedPoints($data);
         $contact = Contact::create($data);
         $this->maybeConvertToProject($contact);
 
@@ -54,10 +57,39 @@ class ContactService
      */
     public function update(Contact $contact, array $data): Contact
     {
+        $data = $this->withExpectedPoints($data, $contact);
         $contact->update($data);
         $this->maybeConvertToProject($contact);
 
         return $contact->load('owner', 'convertedProject');
+    }
+
+    /**
+     * يحسب النقاط المتوقّعة من قواعد النقاط بناءً على السعر المتوقّع ونوع المشروع، ويحقنها
+     * في البيانات (لا يقبلها من المستخدم منعًا للتلاعب). يُعاد الحساب عند تغيّر السعر/النوع.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withExpectedPoints(array $data, ?Contact $existing = null): array
+    {
+        $touchesPricing = array_key_exists('expected_price_kwd', $data) || array_key_exists('project_type', $data);
+        if (! $touchesPricing) {
+            return $data;
+        }
+
+        $price = array_key_exists('expected_price_kwd', $data)
+            ? $data['expected_price_kwd']
+            : $existing?->expected_price_kwd;
+        $type = array_key_exists('project_type', $data)
+            ? $data['project_type']
+            : $existing?->project_type;
+
+        $data['expected_points'] = $price !== null && $price !== ''
+            ? $this->rules->pointsFor((float) $price, $type !== '' ? $type : null)
+            : 0;
+
+        return $data;
     }
 
     public function delete(Contact $contact): void
@@ -92,6 +124,27 @@ class ContactService
             return;
         }
 
+        // القيمة المتفَق عليها (تسبق الخصم) — وإلا السعر المتوقّع.
+        $value = (float) ($contact->deal_value_kwd ?: $contact->expected_price_kwd);
+
+        // خصم الترحيب لأول مشروع لعميلٍ مُحال (المرحلة 5) — مرّة واحدة لكل عميل.
+        // يُتتبَّع على «هويّة العميل»: الأصل إن كانت فرصة لعميل موجود، وإلا الفرصة نفسها —
+        // فلا يتكرّر الخصم عبر فرص متعددة لنفس العميل.
+        $customer = $contact->parent_contact_id !== null
+            ? (Contact::find($contact->parent_contact_id) ?? $contact)
+            : $contact;
+        $wasReferred = $customer->referred_by_user_id !== null || $customer->referred_by_contact_id !== null;
+        $discountPct = ($wasReferred && ! $customer->welcome_discount_used && $value > 0)
+            ? (int) config('loyalty.welcome_discount_pct', 10)
+            : 0;
+        $discountKwd = round($value * $discountPct / 100, 3);
+        $finalValue = round($value - $discountKwd, 3);
+
+        $description = $contact->project_details;
+        if ($discountPct > 0) {
+            $description = trim(($description ? $description."\n" : '')."خصم ترحيبي {$discountPct}٪ (عميل مُحال): -".number_format($discountKwd, 3).' د.ك');
+        }
+
         $project = $this->projects->create([
             'name' => $contact->project_name ?: ($contact->company
                 ? "مشروع {$contact->company}"
@@ -99,23 +152,29 @@ class ContactService
             'client_id' => $contact->id,
             'manager_id' => $contact->owner_id,
             'status' => 'active',
-            'budget_kwd' => $contact->deal_value_kwd,
-            'description' => $contact->project_details,
+            'budget_kwd' => $finalValue > 0 ? $finalValue : $contact->deal_value_kwd,
+            'description' => $description,
         ]);
 
         $contact->forceFill(['converted_project_id' => $project->id])->saveQuietly();
+        if ($discountPct > 0) {
+            // نعلّم هويّة العميل (الأصل أو الفرصة نفسها) كي لا يتكرّر الخصم لاحقًا.
+            $customer->forceFill(['welcome_discount_used' => true, 'welcome_discount_kwd' => $discountKwd])->saveQuietly();
+        }
 
-        // اقتصاد نقاط الموظف (اجتماع 2026-08-07): صاحب الفرصة (owner) يكسب نقاطًا عند
-        // فوزها بالتعاقد — 500 نقطة من config. تُحوَّل لاحقًا إلى رصيد راتب.
+        // نقاط الموظف عند التعاقد (المرحلة 5): تُحسب من السعر النهائي عبر محرّك القواعد،
+        // وتُمنح بحالة «مستحقة» (تنتظر اعتماد الإدارة قبل أن تصبح متاحة للتحويل).
         if ($contact->owner_id !== null) {
             $owner = User::find($contact->owner_id);
-            if ($owner !== null) {
+            $points = $this->rules->pointsFor($finalValue, $contact->project_type);
+            if ($owner !== null && $points > 0) {
                 $this->loyalty->awardUser(
                     $owner,
-                    (int) config('loyalty.earn.referral_contracted', 500),
+                    $points,
                     'referral_contracted',
                     $project,
-                    "نقاط إحالة: فوز الفرصة «{$contact->full_name}» والتعاقد",
+                    "نقاط تعاقد الفرصة «{$contact->full_name}» ({$points}) — بانتظار اعتماد الإدارة",
+                    LoyaltyTransaction::STATUS_EARNED,
                 );
             }
         }

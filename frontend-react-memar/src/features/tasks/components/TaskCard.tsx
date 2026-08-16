@@ -35,9 +35,11 @@ export function TaskCard({ task, onOpen, onToggle, onDelete }: Props) {
       onClick={() => onOpen(task)}
       style={{
         ...card,
-        borderInlineStart: `4px solid ${pr}`,
-        border: `1px solid ${pr}22`,
-        background: done ? 'rgba(5,150,105,0.03)' : dueLabel(task).startsWith('تأخّر') || dueLabel(task) === 'أمس' ? 'rgba(220,38,38,0.04)' : '#fff',
+        borderInlineStart: `4px solid ${showBell ? '#F59E0B' : pr}`,
+        border: showBell ? '1px solid #F59E0B66' : `1px solid ${pr}22`,
+        // بطاقة عليها نشاط جديد: خلفية كهرمانية خفيفة + هالة تلفت الانتباه (طلب أيمن)
+        background: showBell ? '#FFFBEB' : done ? 'rgba(5,150,105,0.03)' : dueLabel(task).startsWith('تأخّر') || dueLabel(task) === 'أمس' ? 'rgba(220,38,38,0.04)' : '#fff',
+        boxShadow: showBell ? '0 0 0 2px rgba(245,158,11,0.28), 0 2px 10px rgba(245,158,11,0.15)' : undefined,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
@@ -107,4 +109,4 @@ const card: CSSProperties = { cursor: 'pointer', borderRadius: '10px', padding: 
 const chk: CSSProperties = { flexShrink: 0, width: '18px', height: '18px', borderRadius: '5px', border: '1.5px solid', cursor: 'pointer', fontSize: '11px', lineHeight: 1, display: 'grid', placeItems: 'center', marginTop: '1px', padding: 0 };
 const pill: CSSProperties = { fontSize: '10px', padding: '2px 7px', borderRadius: '10px', fontWeight: 700, whiteSpace: 'nowrap' };
 const delBtn: CSSProperties = { flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', opacity: 0.4, padding: '2px' };
-const bell: CSSProperties = { flexShrink: 0, width: '20px', height: '20px', borderRadius: '50%', background: '#FEF3C7', color: '#D97706', display: 'grid', placeItems: 'center', fontSize: '10px', border: 'none', cursor: 'pointer', padding: 0 };
+const bell: CSSProperties = { flexShrink: 0, width: '28px', height: '28px', borderRadius: '50%', background: '#F59E0B', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '14px', border: '2px solid #fff', cursor: 'pointer', padding: 0, boxShadow: '0 2px 6px rgba(245,158,11,0.5)' };

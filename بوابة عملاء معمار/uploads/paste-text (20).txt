@@ -1,0 +1,419 @@
+تمام، ننتقل إلى **القسم رقم 12 — AI Assistant + Smart Intelligence Module** داخل **MEMAR ERP Final Master Prompt**.
+
+هذا الجزء يحدد كيفية بناء طبقة الذكاء الاصطناعي داخل النظام، بحيث لا تكون مجرد Chatbot، بل مساعد إداري وهندسي مرتبط بكل بيانات الشركة.
+
+---
+
+# MEMAR ERP MASTER PROMPT
+
+# PART 12
+
+# AI ASSISTANT & SMART INTELLIGENCE ENGINE
+
+---
+
+# 1. AI MODULE VISION
+
+إنشاء مساعد ذكاء اصطناعي داخلي باسم:
+
+**MEMAR AI Assistant**
+
+يعمل كطبقة ذكاء فوق جميع وحدات النظام.
+
+وظيفته:
+
+* فهم بيانات الشركة.
+* تحليل المشاريع.
+* مساعدة الإدارة.
+* مساعدة الموظفين.
+* إنشاء التقارير.
+* اقتراح القرارات.
+* تسريع العمليات اليومية.
+
+لا يقوم الذكاء الاصطناعي بإنشاء بيانات حساسة أو تعديل بيانات رئيسية بدون صلاحية المستخدم.
+
+---
+
+# 2. AI Integration Architecture
+
+يتم ربط الذكاء الاصطناعي مع:
+
+```
+CRM
+ |
+Projects
+ |
+Documents
+ |
+Finance
+ |
+HR
+ |
+Reports
+ |
+Communication
+ |
+Pricing
+```
+
+ويعمل حسب صلاحيات المستخدم.
+
+مثال:
+
+المدير يرى:
+
+* كل المشاريع.
+* كل الإيرادات.
+* أداء الموظفين.
+
+المهندس يرى:
+
+* مشاريعه فقط.
+* ملفاته فقط.
+* مهامه فقط.
+
+---
+
+# 3. AI Assistant Interface
+
+تصميم الواجهة:
+
+Chat Interface مثل:
+
+* ChatGPT
+* Claude
+* Microsoft Copilot
+
+مع:
+
+* محادثات محفوظة.
+* ملفات مرفقة.
+* بحث داخل النظام.
+* اقتراحات ذكية.
+* أوامر سريعة.
+
+---
+
+# 4. AI Commands
+
+يدعم أوامر طبيعية مثل:
+
+## إدارة المشاريع
+
+مثال:
+
+"اعرض لي المشاريع المتأخرة"
+
+يقوم النظام:
+
+* تحليل المشاريع.
+* مقارنة Timeline.
+* عرض أسباب التأخير.
+* اقتراح الحلول.
+
+---
+
+## العملاء
+
+مثال:
+
+"ما العملاء الذين لم يتم التواصل معهم منذ أسبوع؟"
+
+يقوم النظام:
+
+* البحث في CRM.
+* إنشاء قائمة.
+* اقتراح مهام متابعة.
+
+---
+
+## التقارير
+
+مثال:
+
+"اعمل تقرير أداء شهر أغسطس"
+
+ينشئ:
+
+* عدد المشاريع.
+* الإيرادات.
+* المصروفات.
+* الإنجاز.
+* المشاكل.
+
+---
+
+# 5. AI Pricing Assistant
+
+ربط الذكاء الاصطناعي مع:
+
+Pricing Engine.
+
+وظائفه:
+
+* تحليل نوع المشروع.
+* اقتراح الخدمات المناسبة.
+* حساب السعر المبدئي.
+* مقارنة الأسعار السابقة.
+* اقتراح الخصومات.
+
+مثال:
+
+العميل:
+
+"فيلا مساحة 1000 متر"
+
+AI يقترح:
+
+* رخصة بناء.
+* مخططات.
+* تصميم واجهات.
+* إشراف.
+* قيمة تقريبية.
+
+---
+
+# 6. AI Document Assistant
+
+مساعد المستندات:
+
+يستطيع:
+
+* قراءة PDF.
+* تلخيص العقود.
+* استخراج البيانات.
+* مقارنة نسختين.
+* البحث داخل الملفات.
+* إنشاء ملخص مشروع.
+
+---
+
+# 7. AI Contract Assistant
+
+وظائف:
+
+* إنشاء مسودة عقد.
+* مراجعة البنود.
+* اكتشاف التعارضات.
+* اقتراح تحسينات.
+* استخراج الالتزامات.
+
+مع حفظ:
+
+* تاريخ المراجعة.
+* المستخدم.
+* النسخة.
+
+---
+
+# 8. AI Engineering Assistant
+
+مساعد للمهندسين:
+
+يساعد في:
+
+* مراجعة المتطلبات.
+* إعداد التقارير.
+* تلخيص المخططات.
+* تجهيز Checklists.
+* إعداد خطابات رسمية.
+* تجهيز محاضر الاجتماعات.
+
+---
+
+# 9. AI Project Risk Analysis
+
+محرك تحليل مخاطر المشاريع.
+
+يقوم بتحليل:
+
+* التأخير.
+* نسبة الإنجاز.
+* المهام المتأخرة.
+* نقص المستندات.
+* مشاكل الدفع.
+
+ويعطي:
+
+Risk Score
+
+مثال:
+
+```
+Project Risk:
+85%
+
+Reasons:
+- Delay 14 days
+- Missing approvals
+- Pending payment
+
+Recommendation:
+Schedule client meeting
+```
+
+---
+
+# 10. AI Employee Performance Analysis
+
+تحليل أداء الموظفين:
+
+يعتمد على:
+
+* المهام المكتملة.
+* سرعة الإنجاز.
+* التأخير.
+* الحضور.
+* المشاريع.
+
+يعرض:
+
+* KPI.
+* نقاط القوة.
+* نقاط التحسين.
+
+---
+
+# 11. AI Meeting Assistant
+
+داخل الاجتماعات:
+
+يقوم بـ:
+
+* تسجيل الملاحظات.
+* تلخيص الاجتماع.
+* استخراج Action Items.
+* إنشاء Tasks تلقائياً.
+
+مثال:
+
+بعد الاجتماع:
+
+```
+Action:
+Prepare electrical drawings
+
+Assigned:
+Engineer Ahmed
+
+Deadline:
+5 Days
+```
+
+---
+
+# 12. AI Notification Intelligence
+
+النظام لا يرسل إشعارات عشوائية.
+
+AI يحدد:
+
+الأولوية:
+
+High
+
+Medium
+
+Low
+
+مثال:
+
+"المشروع متوقف بسبب عدم استلام مخططات العميل منذ 10 أيام"
+
+يتم إرسال تنبيه للإدارة.
+
+---
+
+# 13. AI Search Engine
+
+بحث ذكي داخل النظام:
+
+يمكن البحث عن:
+
+* عميل.
+* مشروع.
+* عقد.
+* ملف.
+* موظف.
+* دفعة.
+
+حتى لو كتب المستخدم وصفاً وليس اسماً.
+
+مثال:
+
+"المشروع الذي كان في السالمية مع واجهة زجاجية"
+
+AI يبحث ويجد المشروع.
+
+---
+
+# 14. AI Knowledge Base
+
+إنشاء قاعدة معرفة داخلية تشمل:
+
+* عقود سابقة.
+* عروض أسعار.
+* إجراءات العمل.
+* نماذج الخطابات.
+* اللوائح.
+* المشاريع السابقة.
+
+---
+
+# 15. AI Security Rules
+
+قواعد أساسية:
+
+* لا يرى AI إلا البيانات المسموح بها.
+* كل استعلام يسجل.
+* لا حذف تلقائي.
+* لا تعديل بيانات مالية بدون اعتماد.
+* كل اقتراح AI قابل للمراجعة.
+
+---
+
+# 16. AI Future Expansion
+
+يجب تصميم النظام ليسمح بإضافة:
+
+* Voice Assistant.
+* OCR للمخططات.
+* تحليل الصور الهندسية.
+* قراءة DWG/ BIM.
+* توقع الإيرادات.
+* توقع ضغط العمل.
+* Automation Agents.
+
+---
+
+# AI BUILD COMMAND
+
+```text
+Build MEMAR AI Assistant as an integrated intelligence layer inside the ERP.
+
+It must understand all business modules, respect permissions, analyze company data, automate workflows, generate reports, assist engineers, support management decisions, and improve operational efficiency.
+
+The AI is not a chatbot only.
+It is a complete intelligent operating layer for the engineering consultancy ERP.
+```
+
+---
+
+تم إنهاء **Part 12 — AI Assistant Module**.
+
+الجزء التالي سيكون:
+
+# PART 13
+
+## REPORTS & ANALYTICS ENGINE
+
+وسيتضمن:
+
+* Dashboard Analytics
+* KPI System
+* Management Reports
+* Engineering Reports
+* Financial Reports
+* Employee Reports
+* Project Performance Reports
+* Predictive Analytics.

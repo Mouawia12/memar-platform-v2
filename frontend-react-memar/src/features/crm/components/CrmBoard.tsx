@@ -22,6 +22,8 @@ interface Props {
   onOpen: (l: Lead) => void;
   /** إعادة ترتيب عمود: قائمة المعرّفات بالترتيب الجديد (طلب أيمن 2026-08-15). */
   onReorder: (orderedIds: number[]) => void;
+  /** زر «+ إضافة فرصة» أسفل كل عمود — يظهر لمن يملك crm.manage (طبق أصل المرجع). */
+  onAdd?: () => void;
 }
 
 const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
@@ -98,7 +100,7 @@ function DraggableCard({ lead, children }: { lead: Lead; children: ReactNode }) 
   );
 }
 
-export function CrmBoard({ leads, stages, onMove, onOpen, onReorder }: Props) {
+export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Props) {
   /** تبديل موضع كرت مع جاره داخل العمود ثم إرسال الترتيب الجديد. */
   const moveInColumn = (colLeads: Lead[], index: number, dir: -1 | 1) => {
     const target = index + dir;
@@ -158,6 +160,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder }: Props) {
                   />
                 </DraggableCard>
               ))}
+              {onAdd && <button type="button" style={addBtn} onClick={onAdd} title="إضافة فرصة في هذه المرحلة">+ إضافة فرصة</button>}
             </DroppableColumn>
           );
         })}
@@ -183,6 +186,8 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder }: Props) {
   );
 }
 
+// زر «+ إضافة فرصة» أسفل العمود — طبق أصل .pipe-add-btn في المرجع.
+const addBtn: CSSProperties = { width: '100%', padding: '9px 12px', background: 'transparent', border: '1.5px dashed #CBD5E1', borderRadius: '8px', color: '#94A3B8', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', marginTop: '2px' };
 const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '14px', scrollbarWidth: 'thin', scrollbarColor: '#274A78 #E4EAF1' };
 const column: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '9px', minHeight: '140px', flex: '1 1 268px', minWidth: '268px', transition: 'background 0.15s ease, outline 0.15s ease' };
 const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78' };

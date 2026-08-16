@@ -64,8 +64,21 @@ class RolesAndAdminSeeder extends Seeder
                 && $p !== 'settings.manage',
         ));
 
-        // الموظف: أساس تشغيلي عام ضمن بوابة الموظف (مهام/مواعيد/CRM عرض/مشاريع عرض/مستندات/منتدى).
-        $employeePerms = ['crm.view', 'leads.view', 'requests.view', 'projects.view', 'tasks.view', 'tasks.manage', 'appointments.view', 'appointments.manage', 'documents.view', 'forum.view', 'self.view'];
+        // الموظف: دور تشغيلي كامل — يضيف ويعدّل في الوحدات التشغيلية (CRM/فرص/طلبات/مشاريع/
+        // مهام/مواعيد/مستندات) كي تظهر أزرار «+ جديد» و«تعديل» في بوابته (طلب أيمن 2026-08-16).
+        // الحذف والوحدات الحسّاسة (مالية/عقود/موارد بشرية/مستخدمون/أدوار/إعدادات/تسعير) تبقى للإدارة.
+        // القيمة المالية للمشروع تبقى مخفيّة عنه (finance.view غير ممنوحة).
+        $employeePerms = [
+            'crm.view', 'crm.manage',
+            'leads.view', 'leads.manage',
+            'requests.view', 'requests.manage',
+            'projects.view', 'projects.manage',
+            'tasks.view', 'tasks.manage',
+            'appointments.view', 'appointments.manage',
+            'documents.view', 'documents.manage',
+            'forum.view',
+            'self.view',
+        ];
 
         $roles = [
             'super_admin' => ['dashboard' => 'admin', 'perms' => $permissions],

@@ -18,7 +18,16 @@ const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
 const AVATAR_COLORS = ['#6366f1', '#22c55e', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444'];
-const fmtReminder = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+
+/** «تواصل بعد N يوم (التاريخ)» — طبق أصل بطاقة CRM في المرجع (opsReminderState). */
+function followUpLabel(iso: string): string {
+  const d = new Date(iso);
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOfDay(d) - startOfDay(new Date())) / 86_400_000);
+  const date = d.toLocaleDateString('ar', { day: 'numeric', month: 'short' });
+  if (diff <= 0) return '🔔 يحتاج تواصل اليوم';
+  return `⏰ تواصل بعد ${diff} يوم (${date})`;
+}
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM: صورة + اسم، وسم الجهة، القيمة + الحرارة، وتنبيه تذكير. */
 export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: Props) {
@@ -74,7 +83,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       {lead.expected_price_kwd && (
         <div style={expectedRow}>
           <span>🎯 المتوقّع: <b style={{ color: '#059669' }}>{money(lead.expected_price_kwd)}</b></span>
-          {lead.expected_points > 0 && <span style={pointsPill}>🏆 {lead.expected_points} نقطة</span>}
+          {lead.expected_points > 0 && <span style={pointsPill}>🎯 حتى {lead.expected_points} نقطة عند الفوز</span>}
         </div>
       )}
 
@@ -82,8 +91,8 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       {(lead.owner || (lead.reminder && !lead.reminder.due)) && (
         <div style={metaRow}>
           {lead.owner && <span style={metaItem} title={`المسؤول: ${lead.owner.name}`}>👤 {lead.owner.name}</span>}
-          {lead.reminder && !lead.reminder.due && (
-            <span style={upcomingPill} title={lead.reminder.note ?? 'تذكير قادم'}><i className="fas fa-clock" /> {fmtReminder(lead.reminder.remind_at)}</span>
+          {lead.reminder && !lead.reminder.due && lead.reminder.remind_at && (
+            <span style={upcomingPill} title={lead.reminder.note ?? 'تذكير قادم'}>{followUpLabel(lead.reminder.remind_at)}</span>
           )}
         </div>
       )}

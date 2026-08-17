@@ -54,3 +54,16 @@
 /* دخول البطاقة برفق */
 @keyframes crmCardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .crm-scope .crm-lead-card { animation: crmCardIn .2s ease; }
+
+/* بطاقات المؤشّرات: ترتفع عند المرور (طبق أصل .kpi-card:hover) */
+.crm-scope .crm-kpi-card { transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; }
+.crm-scope .crm-kpi-card:hover { box-shadow: 0 8px 24px rgba(27,108,168,.12); transform: translateY(-3px); }
+
+/* التوستر: يظهر عند نقل/إعادة ترتيب كرت (طبق أصل opsToast) */
+@keyframes crmToastIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.crm-toast-wrap { position: fixed; inset-inline-start: 20px; bottom: 20px; z-index: 700; display: flex; flex-direction: column; gap: 10px; }
+.crm-toast { background: #fff; border-radius: 12px; padding: 13px 18px; box-shadow: 0 8px 24px rgba(0,0,0,.12); font-size: 13px; font-weight: 600; color: #1E293B; min-width: 250px; animation: crmToastIn .3s ease; }
+.crm-toast.success { border-inline-start: 4px solid #2D9B6F; }
+.crm-toast.danger { border-inline-start: 4px solid #DC4A3D; }
+.crm-toast.info { border-inline-start: 4px solid #1B6CA8; }
+.crm-toast.leaving { opacity: 0; transform: translateY(8px); transition: all .3s ease; }

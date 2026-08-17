@@ -34,6 +34,13 @@ export function CrmPage() {
   const [scope, setScope] = useState<'all' | 'mine'>('all');
   const userId = useAuthStore((s) => s.user?.id);
   const exportDisabled = useExportDisabled();
+  // توستر يظهر عند نقل/إعادة ترتيب كرت الفرصة (طبق أصل opsToast).
+  const [toasts, setToasts] = useState<{ id: number; msg: string; type: 'success' | 'danger' | 'info' }[]>([]);
+  const showToast = (msg: string, type: 'success' | 'danger' | 'info' = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts((t) => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800);
+  };
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
@@ -63,7 +70,8 @@ export function CrmPage() {
       const name = l.project_name || l.company || l.full_name;
       if (!confirm(`تحويل الفرصة «${l.full_name}» لصفقة رابحة؟\nسيُنشأ مشروع «${name}» تلقائيًا في سجل المشاريع.`)) return;
     }
-    move.mutate({ id: l.id, stage });
+    const stageName = stageList.find((s) => s.key === stage)?.label ?? stage;
+    move.mutate({ id: l.id, stage }, { onSuccess: () => showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`) });
   };
 
   const handleAddTask = (l: Lead) => {
@@ -170,7 +178,7 @@ export function CrmPage() {
       {/* ── المؤشّرات الستة ── */}
       <div style={kpiGrid}>
         {KPIS.map((k) => (
-          <div key={k.label} style={kpiCard}>
+          <div key={k.label} className="crm-kpi-card" style={kpiCard}>
             <div style={{ ...kpiIcon, ...ICON_BG[k.color] }}>{k.icon}</div>
             <div style={{ minWidth: 0 }}>
               <div style={kpiLabel}>{k.label}</div>
@@ -226,7 +234,7 @@ export function CrmPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids)} onAdd={canManage ? openCreate : undefined} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canManage ? openCreate : undefined} />}
 
       {detailLead && (
         <LeadDetailModal
@@ -244,6 +252,13 @@ export function CrmPage() {
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
       {stagesOpen && <StagesManagerModal stages={stageList} onClose={() => setStagesOpen(false)} />}
       {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
+
+      {/* التوستر — يظهر عند نقل/ترتيب الفرص */}
+      {toasts.length > 0 && (
+        <div className="crm-toast-wrap">
+          {toasts.map((t) => <div key={t.id} className={`crm-toast ${t.type}`}>{t.msg}</div>)}
+        </div>
+      )}
     </div>
   );
 }

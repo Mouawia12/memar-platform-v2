@@ -2,6 +2,10 @@ import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useAuthStore } from '../../../store/auth';
+import { useExportDisabled } from '../../../components/ExportGuard';
+import { downloadCsv } from '../../../lib/csv';
+import { TEMPERATURE_META } from '../types';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
 import { CrmBoard } from '../components/CrmBoard';
@@ -26,6 +30,10 @@ export function CrmPage() {
   // فلاتر طبق الأصل: نوع العميل + المسؤول (المصدر عرضي لعدم تتبّعه).
   const [clientFilter, setClientFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
+  // مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
+  const [scope, setScope] = useState<'all' | 'mine'>('all');
+  const userId = useAuthStore((s) => s.user?.id);
+  const exportDisabled = useExportDisabled();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
@@ -80,13 +88,30 @@ export function CrmPage() {
     const cutoff = period === 'all' ? 0 : Date.now() - Number(period) * 86_400_000;
     return leads.filter((l) => {
       if (period !== 'all' && !(l.created_at && new Date(l.created_at).getTime() >= cutoff)) return false;
+      if (scope === 'mine' && l.owner?.id !== userId) return false;
       if (ownerFilter !== 'all' && String(l.owner?.id ?? '') !== ownerFilter) return false;
       if (clientFilter === 'vip' && !l.is_vip) return false;
       if (clientFilter === 'new' && l.stage !== 'new') return false;
       if ((clientFilter === 'hot' || clientFilter === 'warm' || clientFilter === 'cold') && l.temperature !== clientFilter) return false;
       return true;
     });
-  }, [leads, period, ownerFilter, clientFilter]);
+  }, [leads, period, scope, userId, ownerFilter, clientFilter]);
+
+  const stageLabel = (key: string) => stageList.find((s) => s.key === key)?.label ?? key;
+  /** تصدير الفرص المعروضة إلى CSV — مُخفى في بوابة الموظف (ExportGuard). */
+  const handleExport = () => {
+    if (visibleLeads.length === 0) { alert('لا توجد فرص للتصدير.'); return; }
+    downloadCsv('crm-opportunities', visibleLeads, [
+      { header: 'الاسم', value: (l) => l.full_name },
+      { header: 'الهاتف', value: (l) => l.phone ?? '' },
+      { header: 'الشركة', value: (l) => l.company ?? '' },
+      { header: 'المرحلة', value: (l) => stageLabel(l.stage) },
+      { header: 'الحرارة', value: (l) => TEMPERATURE_META[l.temperature]?.label ?? '' },
+      { header: 'الأهمية', value: (l) => l.priority },
+      { header: 'القيمة (د.ك)', value: (l) => l.deal_value_kwd },
+      { header: 'المسؤول', value: (l) => l.owner?.name ?? '' },
+    ]);
+  };
   const hiddenByPeriod = leads.length - visibleLeads.length;
   const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
 
@@ -138,6 +163,7 @@ export function CrmPage() {
           {canManage && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
           {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
           {canManage && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
+          {!exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
         </div>
       </div>
 
@@ -192,6 +218,12 @@ export function CrmPage() {
         {period !== 'all' && hiddenByPeriod > 0 && <span style={{ fontSize: '12px', color: '#94A3B8' }}>عرض {visibleLeads.length} — أُخفي {hiddenByPeriod}</span>}
       </div>
 
+      {/* ── مبدّل النطاق طبق الأصل ── */}
+      <div style={scopeRow}>
+        <button type="button" onClick={() => setScope('all')} style={{ ...scopeBtn, ...(scope === 'all' ? scopeOn : null) }}>جميع الفرص</button>
+        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(scope === 'mine' ? scopeOn : null) }}>الفرص المسؤول عنها</button>
+      </div>
+
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
       {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids)} onAdd={canManage ? openCreate : undefined} />}
@@ -240,4 +272,7 @@ const alertTitle: CSSProperties = { fontSize: '13.5px', fontWeight: 900, color: 
 const alertBody: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '7px' };
 const alertChip: CSSProperties = { background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: '20px', padding: '5px 12px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
 const alertSub: CSSProperties = { fontSize: '10.5px', color: '#8A5A08', marginTop: '6px', fontWeight: 700 };
-const filtersRow: CSSProperties = { display: 'flex', gap: '10px', marginBottom: '18px', flexWrap: 'wrap', alignItems: 'center' };
+const filtersRow: CSSProperties = { display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' };
+const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: 'center', flexWrap: 'wrap' };
+const scopeBtn: CSSProperties = { padding: '8px 18px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer' };
+const scopeOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };

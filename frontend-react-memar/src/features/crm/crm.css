@@ -92,12 +92,9 @@
 .crm-scope .crm-nav-arrow.crm-nav-up:hover,
 .crm-scope .crm-nav-arrow.crm-nav-down:hover { background: #0F766E; color: #fff; border-color: #0F766E; }
 
-/* توسّع العمود عند اقتراب الماوس (ops-col-hot) */
-.crm-scope .crm-pipe-col { transition: width .22s ease, min-width .22s ease, box-shadow .22s ease, border-color .22s ease; }
-.crm-scope .crm-pipe-col.crm-col-hot:not(.crm-col-full) {
-  width: 400px !important; min-width: 400px !important;
-  border-color: #0F766E; box-shadow: 0 14px 34px rgba(15,118,110,.18);
-}
+/* العمود ثابت العرض (طلب العميل: لا يتوسّع/يتقلّص بالمرور حتى لا يتوه المستخدم) — إبراز خفيف فقط عند المرور. */
+.crm-scope .crm-pipe-col { transition: box-shadow .2s ease, border-color .2s ease; }
+.crm-scope .crm-pipe-col.crm-col-hot:not(.crm-col-full) { border-color: #0F766E; box-shadow: 0 10px 26px rgba(15,118,110,.12); }
 /* تكبير العمود بكامل الصفحة (ops-col-full) — شبكة كروت */
 .crm-scope .crm-col-full { width: 100% !important; min-width: 100% !important; flex: 1 1 100% !important; max-height: none !important; }
 .crm-scope .crm-col-full .crm-col-body { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; align-content: start; }

@@ -57,6 +57,8 @@ export function CrmPage() {
   const reorder = useReorderLeads();
   const del = useDeleteLead();
   const canManage = usePermission('crm.manage');
+  // إنشاء/تعديل/نقل الفرص متاح للموظف (crm.view) — طلب العميل؛ أما تخصيص المراحل واعتماد الاختصارات فللمدير.
+  const canCreate = usePermission('crm.view');
   const canDelete = usePermission('crm.delete');
   const canLoyalty = usePermission('loyalty.view');
   const { data: crmTags } = useCrmTags();
@@ -185,7 +187,7 @@ export function CrmPage() {
           <div style={sectionSubtitle}>مركز العمليات التجارية — من أول تواصل حتى إغلاق المشروع</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {canManage && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
+          {canCreate && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
           {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
           {canManage && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
           {canManage && (
@@ -257,7 +259,7 @@ export function CrmPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canManage ? openCreate : undefined} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} />}
 
       {detailLead && (
         <LeadDetailModal
@@ -268,7 +270,7 @@ export function CrmPage() {
           onDelete={handleDelete}
           onMove={handleMove}
           onAddTask={handleAddTask}
-          canManage={canManage}
+          canManage={canCreate}
           canDelete={canDelete}
         />
       )}
@@ -305,11 +307,12 @@ const kpiLabel: CSSProperties = { fontSize: '12px', color: '#64748B', marginBott
 const kpiValue: CSSProperties = { fontSize: '26px', fontWeight: 800, color: '#1E293B', lineHeight: 1.1 };
 const kpiSub: CSSProperties = { fontSize: '11.5px', color: '#64748B', marginTop: '5px' };
 const up: CSSProperties = { color: '#2D9B6F', fontWeight: 700 };
-const alertStrong: CSSProperties = { border: '2px solid #DC4A3D', borderRadius: '12px', padding: '11px 13px', background: 'linear-gradient(180deg,rgba(220,74,61,.12),#fff)', boxShadow: '0 6px 18px rgba(220,74,61,.16)', marginBottom: '16px' };
-const alertHd: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px' };
-const alertTitle: CSSProperties = { fontSize: '13.5px', fontWeight: 900, color: '#B23B30' };
-const alertBody: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '7px' };
-const alertChip: CSSProperties = { background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: '20px', padding: '5px 12px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
+// صندوق تنبيه مُختصر الارتفاع (طلب العميل: أقل ارتفاعًا، غير مبالغ) — صفّ واحد.
+const alertStrong: CSSProperties = { border: '1.5px solid #DC4A3D', borderRadius: '10px', padding: '7px 12px', background: 'linear-gradient(180deg,rgba(220,74,61,.10),#fff)', boxShadow: '0 3px 10px rgba(220,74,61,.12)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' };
+const alertHd: CSSProperties = { display: 'flex', alignItems: 'center', gap: '7px' };
+const alertTitle: CSSProperties = { fontSize: '12.5px', fontWeight: 900, color: '#B23B30' };
+const alertBody: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' };
+const alertChip: CSSProperties = { background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: '20px', padding: '3px 10px', fontSize: '10.5px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
 const alertSub: CSSProperties = { fontSize: '10.5px', color: '#8A5A08', marginTop: '6px', fontWeight: 700 };
 const filtersRow: CSSProperties = { display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' };
 const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: 'center', flexWrap: 'wrap' };

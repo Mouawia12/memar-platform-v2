@@ -22,11 +22,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::delete('/pipeline-stages/{pipelineStage}', [PipelineStageController::class, 'destroy'])->middleware('permission:crm.manage');
 
     Route::get('/contacts', [ContactController::class, 'index'])->middleware('permission:crm.view');
-    Route::post('/contacts', [ContactController::class, 'store'])->middleware('permission:crm.manage');
+    // إنشاء/تعديل الفرص متاح للموظف (crm.view) — طلب العميل (فيديو 2026-08-17)؛ الحذف للمدير فقط.
+    Route::post('/contacts', [ContactController::class, 'store'])->middleware('permission:crm.view|crm.manage');
     // إعادة ترتيب الفرص داخل العمود — متاح لكل الأدوار التي ترى اللوحة (طلب أيمن 2026-08-15)
     Route::post('/contacts/reorder', [ContactController::class, 'reorder'])->middleware('permission:crm.view');
     Route::get('/contacts/{contact}', [ContactController::class, 'show'])->middleware('permission:crm.view');
-    Route::match(['put', 'patch'], '/contacts/{contact}', [ContactController::class, 'update'])->middleware('permission:crm.manage');
+    Route::match(['put', 'patch'], '/contacts/{contact}', [ContactController::class, 'update'])->middleware('permission:crm.view|crm.manage');
     Route::delete('/contacts/{contact}', [ContactController::class, 'destroy'])->middleware('permission:crm.manage');
 
     // بروفيل العميل للموظف/الأدمن — نفس صفحة العميل داخل الداشبورد (اجتماع 2026-08-05)

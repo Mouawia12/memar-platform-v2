@@ -61,6 +61,21 @@ class ContactsRegistryTest extends TestCase
         $this->assertDatabaseHas('contacts', ['full_name' => 'سالم المنصور', 'client_kind' => 'company']);
     }
 
+    public function test_employee_with_view_can_create_and_edit_but_not_delete(): void
+    {
+        // طلب العميل (فيديو 2026-08-17): الموظف (crm.view بلا crm.manage) يُنشئ/يعدّل الفرص، والحذف للمدير.
+        $this->actingAsUserWith(['crm.view']);
+
+        $id = $this->postJson('/api/v1/contacts', ['full_name' => 'فرصة موظف', 'type' => 'lead', 'stage' => 'new'])
+            ->assertCreated()->json('data.id');
+
+        // تعديل/نقل مرحلة مسموح
+        $this->patchJson("/api/v1/contacts/{$id}", ['deal_value_kwd' => 1500, 'stage' => 'contacted'])->assertOk();
+
+        // الحذف ممنوع على الموظف
+        $this->deleteJson("/api/v1/contacts/{$id}")->assertForbidden();
+    }
+
     public function test_reorder_sets_board_position_and_is_allowed_for_view_only_roles(): void
     {
         // متاح لكل الأدوار: يكفي crm.view (بلا crm.manage) — طلب أيمن 2026-08-15.

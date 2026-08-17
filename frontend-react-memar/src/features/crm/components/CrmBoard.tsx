@@ -186,7 +186,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
     return () => window.removeEventListener('resize', onResize);
   }, [syncArrows, leads, maxStage, hotStage]);
 
-  /** تنقّل بأربع اتجاهات (طبق أصل opsScrollBoard). */
+  /** تنقّل بأربع اتجاهات بالنقر (طبق أصل opsScrollBoard). */
   const scrollBoard = (dir: 'prev' | 'next' | 'up' | 'down') => {
     if (dir === 'up' || dir === 'down') {
       activeBody()?.scrollBy({ top: 260 * (dir === 'down' ? 1 : -1), behavior: 'smooth' });
@@ -200,6 +200,25 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
     b.scrollBy({ left: step, behavior: 'smooth' });
     setTimeout(syncArrows, 420);
   };
+
+  /** تمرير مستمرّ أثناء المرور على السهم (طلب العميل: التحويم يحرّك اللوحة). */
+  const hoverRef = useRef<number | null>(null);
+  const hoverStep = (dir: 'prev' | 'next' | 'up' | 'down') => {
+    if (dir === 'up' || dir === 'down') { activeBody()?.scrollBy({ top: 60 * (dir === 'down' ? 1 : -1) }); return; }
+    const b = boardRef.current;
+    if (!b) return;
+    const rtl = getComputedStyle(b).direction === 'rtl';
+    b.scrollBy({ left: 70 * (dir === 'next' ? 1 : -1) * (rtl ? -1 : 1) });
+  };
+  const startHoverScroll = (dir: 'prev' | 'next' | 'up' | 'down') => {
+    if (hoverRef.current) window.clearInterval(hoverRef.current);
+    hoverStep(dir);
+    hoverRef.current = window.setInterval(() => hoverStep(dir), 130);
+  };
+  const stopHoverScroll = () => {
+    if (hoverRef.current) { window.clearInterval(hoverRef.current); hoverRef.current = null; }
+  };
+  useEffect(() => () => { if (hoverRef.current) window.clearInterval(hoverRef.current); }, []);
 
   const moveInColumn = (colLeads: Lead[], index: number, dir: -1 | 1) => {
     const target = index + dir;
@@ -295,15 +314,15 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
           })}
         </div>
 
-        {/* أسهم التنقّل الأربعة — طبق أصل ops-nav-arrow */}
+        {/* أسهم التنقّل الأربعة — تعمل بالنقر وبالمرور (hover) — طبق أصل ops-nav-arrow */}
         {!maxStage && (
           <>
-            <button type="button" className={`crm-nav-arrow crm-nav-next${arrowOff.next ? ' crm-nav-off' : ''}`} title="الأعمدة المخفية يساراً" onClick={() => scrollBoard('next')}>‹</button>
-            <button type="button" className={`crm-nav-arrow crm-nav-prev${arrowOff.prev ? ' crm-nav-off' : ''}`} title="الأعمدة المخفية يميناً" onClick={() => scrollBoard('prev')}>›</button>
+            <button type="button" className={`crm-nav-arrow crm-nav-next${arrowOff.next ? ' crm-nav-off' : ''}`} title="الأعمدة المخفية يساراً" onClick={() => scrollBoard('next')} onMouseEnter={() => startHoverScroll('next')} onMouseLeave={stopHoverScroll}>‹</button>
+            <button type="button" className={`crm-nav-arrow crm-nav-prev${arrowOff.prev ? ' crm-nav-off' : ''}`} title="الأعمدة المخفية يميناً" onClick={() => scrollBoard('prev')} onMouseEnter={() => startHoverScroll('prev')} onMouseLeave={stopHoverScroll}>›</button>
           </>
         )}
-        <button type="button" className={`crm-nav-arrow crm-nav-up${arrowOff.up ? ' crm-nav-off' : ''}`} title="أعلى العمود النشط" onClick={() => scrollBoard('up')}>⌃</button>
-        <button type="button" className={`crm-nav-arrow crm-nav-down${arrowOff.down ? ' crm-nav-off' : ''}`} title="أسفل العمود النشط" onClick={() => scrollBoard('down')}>⌄</button>
+        <button type="button" className={`crm-nav-arrow crm-nav-up${arrowOff.up ? ' crm-nav-off' : ''}`} title="أعلى العمود النشط" onClick={() => scrollBoard('up')} onMouseEnter={() => startHoverScroll('up')} onMouseLeave={stopHoverScroll}>⌃</button>
+        <button type="button" className={`crm-nav-arrow crm-nav-down${arrowOff.down ? ' crm-nav-off' : ''}`} title="أسفل العمود النشط" onClick={() => scrollBoard('down')} onMouseEnter={() => startHoverScroll('down')} onMouseLeave={stopHoverScroll}>⌄</button>
       </div>
 
       <DragOverlay>
@@ -322,7 +341,7 @@ const addBtn: CSSProperties = { width: '100%', padding: '9px 12px', background: 
 // اللوحة: صفّ أعمدة بتمرير أفقي، ارتفاع ثابت وكل عمود يمرّر داخليًا (طبق أصل .crm-pipeline).
 const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '14px', scrollbarWidth: 'thin', scrollbarColor: '#274A78 #E4EAF1' };
 // عمود بارتفاع ثابت (يمرّر داخليًا) — طبق أصل .pipe-col (max-height calc(100vh - 320px)).
-const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', maxHeight: 'calc(100vh - 300px)', flex: '0 0 300px', width: '300px', minWidth: '300px', border: '1px solid transparent' };
+const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', maxHeight: 'calc(100vh - 300px)', flex: '0 0 340px', width: '340px', minWidth: '340px', border: '1px solid transparent' };
 const colFull: CSSProperties = { flex: '1 1 100%', width: '100%', minWidth: '100%', maxHeight: 'calc(100vh - 300px)' };
 const colBody: CSSProperties = { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0', paddingInlineEnd: '2px', minHeight: '60px' };
 const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78' };

@@ -71,8 +71,12 @@ class TaskService
                     fn (Task $t): bool => $t->due_date !== null && $t->due_date->lt($today) && $t->status !== 'done',
                 )->count();
 
+                // القسم الغالب على مهام الموظف (الأكثر تكرارًا) — لعمود «القسم» في جدول التوزيع.
+                $department = $tasks->pluck('department')->filter()->countBy()->sortDesc()->keys()->first();
+
                 return [
                     'user' => ['id' => $first->assignee_id, 'name' => $first->assignee?->name ?? '—'],
+                    'department' => $department,
                     'total' => $tasks->count(),
                     'todo' => $tasks->where('status', 'todo')->count(),
                     'in_progress' => $tasks->where('status', 'in_progress')->count(),

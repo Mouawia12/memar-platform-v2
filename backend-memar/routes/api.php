@@ -32,6 +32,7 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/companies.php';
     require __DIR__.'/api/projects.php';
     require __DIR__.'/api/tasks.php';
+    require __DIR__.'/api/followups.php';
     require __DIR__.'/api/appointments.php';
     require __DIR__.'/api/invoices.php';
     require __DIR__.'/api/services.php';

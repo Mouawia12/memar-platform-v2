@@ -4,10 +4,15 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
+import { TeamWorkloadTable } from '../components/TeamWorkloadTable';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { useDeleteTask, useMoveTask, useTasks, useToggleTask } from '../hooks/useTasks';
 import { isDone, isTerminal, type Task, type TaskStatus } from '../types';
+import { FollowupBoard } from '../../followups/components/FollowupBoard';
+import { FollowupFormModal } from '../../followups/components/FollowupFormModal';
+import { useFollowups, useMoveFollowup } from '../../followups/hooks/useFollowups';
+import type { Followup, FollowupStage } from '../../followups/types';
 import '../../crm/crm.css';
 
 /**
@@ -27,11 +32,18 @@ export function TasksPage() {
   const [detail, setDetail] = useState<Task | null>(null);
   const [confirming, setConfirming] = useState<Task | null>(null);
 
+  // ── لوحة المتابعة ──
+  const [fuScope, setFuScope] = useState<'all' | 'mine'>('all');
+  const [fuFormOpen, setFuFormOpen] = useState(false);
+  const [fuInitialStage, setFuInitialStage] = useState<'scheduled' | 'today' | 'late'>('scheduled');
+
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
+  const { data: followups } = useFollowups({ assigned_to: fuScope === 'mine' && userId ? userId : undefined });
   const move = useMoveTask();
   const toggle = useToggleTask();
   const del = useDeleteTask();
+  const moveFollowup = useMoveFollowup();
 
   const scopedTasks = useMemo(() => {
     const list = tasks ?? [];
@@ -64,6 +76,20 @@ export function TasksPage() {
   const confirmComplete = () => {
     if (confirming) toggle.mutate({ id: confirming.id, done: true });
     setConfirming(null);
+  };
+
+  const openFuCreate = (stage: 'scheduled' | 'today' | 'late' = 'scheduled') => { setFuInitialStage(stage); setFuFormOpen(true); };
+  /** نقل المتابعة بين الأعمدة — تُترجَم المرحلة إلى (done + due_date). */
+  const handleFollowupMove = (f: Followup, stage: FollowupStage) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const soon = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
+    const payload =
+      stage === 'done' ? { done: true }
+        : stage === 'today' ? { done: false, due_date: today }
+          : stage === 'late' ? { done: false, due_date: yesterday }
+            : { done: false, due_date: soon }; // scheduled
+    moveFollowup.mutate({ id: f.id, payload });
   };
 
   const KPIS: { icon: string; color: keyof typeof ICON_BG; label: string; value: number; sub: string }[] = [
@@ -116,7 +142,25 @@ export function TasksPage() {
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
       {tasks && <TaskStatusBoard tasks={scopedTasks} onOpen={setDetail} onMove={handleStatusMove} onAdd={canManage ? openCreate : undefined} />}
 
+      {/* ── 🔁 لوحة المتابعة (كانبان) — متابعات العملاء ── */}
+      <div style={{ ...headerRow, marginTop: '26px' }}>
+        <div>
+          <div style={sectionTitle}>🔁 لوحة المتابعة (كانبان)</div>
+          <div style={sectionSubtitle}>متابعات العملاء — اسحب البطاقة بين الأعمدة لتحديث حالتها</div>
+        </div>
+        {canManage && <button className="crm-btn crm-btn-primary" onClick={() => openFuCreate('scheduled')} type="button">+ متابعة جديدة</button>}
+      </div>
+      <div style={scopeRow}>
+        <button type="button" onClick={() => setFuScope('all')} style={{ ...scopeBtn, ...(fuScope === 'all' ? scopeOn : null) }}>جميع المتابعات</button>
+        <button type="button" onClick={() => setFuScope('mine')} style={{ ...scopeBtn, ...(fuScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
+      </div>
+      <FollowupBoard followups={followups ?? []} onMove={handleFollowupMove} onAdd={canManage ? () => openFuCreate('scheduled') : undefined} />
+
+      {/* ── 📊 توزيع المهام على الفريق (مجمّع في الباك اند عبر /tasks/workload) ── */}
+      <TeamWorkloadTable />
+
       {formOpen && <TaskFormModal task={editing} onClose={() => setFormOpen(false)} />}
+      {fuFormOpen && <FollowupFormModal initialStage={fuInitialStage} onClose={() => setFuFormOpen(false)} />}
       {detail && (
         <TaskDetailModal
           task={detail}

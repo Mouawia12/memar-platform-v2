@@ -9,6 +9,7 @@ export interface TasksQuery {
 
 export interface EmployeeWorkload {
   user: { id: number; name: string };
+  department: string | null;
   total: number;
   todo: number;
   in_progress: number;

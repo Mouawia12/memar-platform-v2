@@ -41,3 +41,16 @@
 /* زر «+ إضافة فرصة» أسفل العمود */
 .crm-scope .crm-add-btn { transition: all .2s; }
 .crm-scope .crm-add-btn:hover { border-color: #1B6CA8; color: #1B6CA8; background: #F5FAFF; }
+
+/* ── الحركات والتأثيرات طبق أصل المرجع ── */
+@keyframes crmPulse { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
+@keyframes crmModalIn { from { opacity: 0; transform: translateY(-16px) scale(.97); } to { opacity: 1; transform: none; } }
+.crm-scope .crm-pulse { animation: crmPulse 1.5s ease-in-out infinite; }
+.crm-modal-in { animation: crmModalIn .25s cubic-bezier(.34, 1.56, .64, 1); }
+/* أثناء السحب: شفافية + ميل خفيف (ops-dragging) */
+.crm-scope .crm-dragging { opacity: .45; transform: rotate(-1deg); }
+/* منطقة الإفلات النشطة (ops-drop-active) */
+.crm-scope .crm-drop-active { outline: 2px dashed #1B6CA8; outline-offset: 3px; background: rgba(27,108,168,.06) !important; }
+/* دخول البطاقة برفق */
+@keyframes crmCardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.crm-scope .crm-lead-card { animation: crmCardIn .2s ease; }

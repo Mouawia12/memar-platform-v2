@@ -184,7 +184,7 @@ export function CrmPage() {
       {/* ── تنبيه الفرص المتأخرة ── */}
       {dueLeads.length > 0 && (
         <div style={alertStrong}>
-          <div style={alertHd}><span style={{ fontSize: '17px' }}>🚨</span><span style={alertTitle}>{dueLeads.length} فرصة تحتاج تواصل الآن</span></div>
+          <div style={alertHd}><span className="crm-pulse" style={{ fontSize: '17px' }}>🚨</span><span style={alertTitle}>{dueLeads.length} فرصة تحتاج تواصل الآن</span></div>
           <div style={alertBody}>
             {dueLeads.slice(0, 4).map((l) => <button key={l.id} type="button" style={alertChip} onClick={() => setDetailId(l.id)}>{l.full_name}</button>)}
             {dueLeads.length > 4 && <span style={{ fontSize: '10.5px', color: '#64748B' }}>+{dueLeads.length - 4} أخرى</span>}

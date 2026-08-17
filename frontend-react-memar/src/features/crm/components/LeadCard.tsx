@@ -65,7 +65,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       onClick={() => onOpen(lead)}
       style={{ ...card, borderInlineEnd: `4px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
     >
-      {urgent && <div style={urgentFlag}>🚨 عاجلة — بانتظار تحديث الموظف</div>}
+      {urgent && <div className="crm-pulse" style={urgentFlag}>🚨 عاجلة — بانتظار تحديث الموظف</div>}
 
       <div style={cardTop}>
         <div style={cardMain}>

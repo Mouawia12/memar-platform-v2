@@ -1,4 +1,5 @@
 import {
+  closestCenter,
   DndContext,
   type DragEndEvent,
   DragOverlay,
@@ -91,10 +92,20 @@ function StageExpand({ stage, leads, onOpen, onClose }: { stage: PipelineStage; 
   );
 }
 
-function DraggableCard({ lead, children }: { lead: Lead; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: lead.id });
+/** بطاقة قابلة للسحب وللإفلات عليها معًا: الإفلات على بطاقة أخرى يعيد الترتيب داخل العمود
+ *  (أو ينقل المرحلة عبر الأعمدة) — طلب أيمن 2026-08-17: نقل الكروت أعلى/أسفل بالسحب. */
+function DragCard({ lead, children }: { lead: Lead; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef: setDrag, isDragging } = useDraggable({ id: lead.id });
+  const { setNodeRef: setDrop, isOver } = useDroppable({ id: lead.id });
+  const ref = (node: HTMLElement | null) => { setDrag(node); setDrop(node); };
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners} style={{ cursor: 'grab', opacity: isDragging ? 0.4 : 1, touchAction: 'pan-x pan-y' }}>
+    <div
+      ref={ref}
+      {...attributes}
+      {...listeners}
+      className={isDragging ? 'crm-dragging' : isOver ? 'crm-drop-active' : ''}
+      style={{ cursor: 'grab', touchAction: 'pan-x pan-y', borderRadius: '10px', transition: 'outline .12s ease' }}
+    >
       {children}
     </div>
   );
@@ -129,14 +140,36 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
     const { active: a, over } = e;
     if (!over) return;
     const lead = leads.find((l) => l.id === a.id);
-    const newStage = over.id as Stage;
-    if (lead && stageKeys.has(newStage) && lead.stage !== newStage) {
-      onMove(lead, newStage);
+    if (!lead) return;
+    const overId = over.id;
+
+    // أُفلِت على منطقة عمود فارغة → تغيير المرحلة
+    if (typeof overId === 'string' && stageKeys.has(overId)) {
+      if (lead.stage !== overId) onMove(lead, overId);
+      return;
+    }
+    // أُفلِت على بطاقة أخرى
+    if (typeof overId === 'number' && overId !== lead.id) {
+      const overLead = leads.find((l) => l.id === overId);
+      if (!overLead) return;
+      if (overLead.stage === lead.stage) {
+        // إعادة ترتيب داخل العمود: انقل المسحوبة إلى موضع الهدف
+        const colIds = leads.filter((l) => l.stage === lead.stage).map((l) => l.id);
+        const from = colIds.indexOf(lead.id);
+        const to = colIds.indexOf(overLead.id);
+        if (from === -1 || to === -1 || from === to) return;
+        colIds.splice(from, 1);
+        colIds.splice(to, 0, lead.id);
+        onReorder(colIds);
+      } else {
+        // بطاقة في عمود آخر → نقل المرحلة
+        onMove(lead, overLead.stage);
+      }
     }
   };
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="crm-hscroll" style={board}>
         {visibleStages.map((stage) => {
           const colLeads = leads.filter((l) => l.stage === stage.key);
@@ -148,7 +181,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
             <DroppableColumn key={stage.key} stage={stage} count={colLeads.length} total={total} onExpand={() => setExpanded(stage)}>
               {colLeads.length === 0 && <p style={{ opacity: 0.4, fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>أفلت هنا</p>}
               {colLeads.map((lead, i) => (
-                <DraggableCard key={lead.id} lead={lead}>
+                <DragCard key={lead.id} lead={lead}>
                   <LeadCard
                     lead={lead}
                     onOpen={onOpen}
@@ -158,7 +191,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
                     canMoveUp={i > 0}
                     canMoveDown={i < colLeads.length - 1}
                   />
-                </DraggableCard>
+                </DragCard>
               ))}
               {onAdd && <button type="button" className="crm-add-btn" style={addBtn} onClick={onAdd} title="إضافة فرصة في هذه المرحلة">+ إضافة فرصة</button>}
             </DroppableColumn>

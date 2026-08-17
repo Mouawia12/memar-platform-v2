@@ -62,7 +62,7 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
 
   return (
     <div className="crm-scope" style={overlay} onClick={onClose}>
-      <div style={modal} onClick={(e) => e.stopPropagation()}>
+      <div className="crm-modal-in" style={modal} onClick={(e) => e.stopPropagation()}>
         <div style={modalHeader}>
           <span style={modalTitle}>🎯 تفاصيل الفرصة</span>
           <button type="button" onClick={onClose} aria-label="إغلاق" style={closeBtn}>×</button>

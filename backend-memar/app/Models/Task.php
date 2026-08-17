@@ -19,7 +19,7 @@ class Task extends Model
 
     protected $fillable = [
         'title', 'description', 'project_id', 'assignee_id', 'created_by',
-        'status', 'priority', 'progress', 'department', 'due_date', 'position', 'video_room', 'rating',
+        'status', 'priority', 'due_date', 'position', 'video_room', 'rating',
     ];
 
     /**

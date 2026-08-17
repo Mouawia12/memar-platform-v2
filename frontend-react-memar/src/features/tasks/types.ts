@@ -10,16 +10,10 @@ export interface TaskRef {
 
 export interface Task {
   id: number;
-  /** رمز المهمة المشتقّ (TSK-0001) — طبق أصل كرت المهمة. */
-  code?: string;
   title: string;
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
-  /** نسبة الإنجاز 0-100 (شريط التقدّم على الكرت). */
-  progress?: number;
-  /** القسم المسؤول (المعماري/الإنشائي…) — وسم الكرت. */
-  department?: string | null;
   due_date: string | null;
   project: TaskRef | null;
   assignee: TaskRef | null;
@@ -74,20 +68,10 @@ export interface TaskFormData {
   assignee_id: number | '';
   status: TaskStatus;
   priority: TaskPriority;
-  progress: number | '';
-  department: string;
   due_date: string;
 }
 
 export const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'review', 'done'];
-
-/** تسميات أعمدة لوحة الحالة طبق أصل المرجع (TASK_STAGES). */
-export const STATUS_BOARD: { key: TaskStatus; label: string; icon: string; color: string }[] = [
-  { key: 'todo', label: 'جديدة', icon: '🆕', color: '#1B6CA8' },
-  { key: 'in_progress', label: 'قيد التنفيذ', icon: '🔄', color: '#E8A838' },
-  { key: 'review', label: 'مراجعة', icon: '🔍', color: '#7C3AED' },
-  { key: 'done', label: 'مكتملة', icon: '✅', color: '#2D9B6F' },
-];
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'قيد الانتظار',

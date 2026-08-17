@@ -13,14 +13,13 @@ class TaskWorkloadTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function task(int $assignee, string $status, ?string $due = null, ?string $department = null): void
+    private function task(int $assignee, string $status, ?string $due = null): void
     {
         Task::query()->create([
             'title' => 'مهمة '.$status,
             'assignee_id' => $assignee,
             'status' => $status,
             'due_date' => $due,
-            'department' => $department,
             'position' => 0,
         ]);
     }
@@ -31,11 +30,11 @@ class TaskWorkloadTest extends TestCase
         $busy = User::factory()->create(['name' => 'موظف مشغول']);
         $light = User::factory()->create(['name' => 'موظف خفيف']);
 
-        // مشغول: 2 قيد التنفيذ + 1 منجزة + 1 متأخّرة (todo بموعد ماضٍ) — القسم الغالب «المعماري»
-        $this->task($busy->id, 'in_progress', null, 'المعماري');
-        $this->task($busy->id, 'in_progress', null, 'المعماري');
-        $this->task($busy->id, 'done', null, 'الإنشائي');
-        $this->task($busy->id, 'todo', '2020-01-01', 'المعماري');
+        // مشغول: 2 قيد التنفيذ + 1 منجزة + 1 متأخّرة (todo بموعد ماضٍ)
+        $this->task($busy->id, 'in_progress');
+        $this->task($busy->id, 'in_progress');
+        $this->task($busy->id, 'done');
+        $this->task($busy->id, 'todo', '2020-01-01');
         // خفيف: 1 منجزة فقط
         $this->task($light->id, 'done');
         // مهمة بلا مكلَّف — تُتجاهَل
@@ -54,7 +53,6 @@ class TaskWorkloadTest extends TestCase
         $this->assertSame(1, $data[0]['done']);
         $this->assertSame(3, $data[0]['open']); // 4 - 1 منجزة
         $this->assertSame(1, $data[0]['overdue']);
-        $this->assertSame('المعماري', $data[0]['department']); // القسم الأكثر تكرارًا (3 مقابل 1)
 
         $this->assertSame($light->id, $data[1]['user']['id']);
         $this->assertSame(0, $data[1]['open']);

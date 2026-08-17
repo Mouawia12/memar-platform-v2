@@ -20,14 +20,10 @@ class TaskResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            // رمز المهمة المشتقّ (TSK-0001) — طبق أصل كرت المهمة في المرجع.
-            'code' => 'TSK-'.str_pad((string) $this->id, 4, '0', STR_PAD_LEFT),
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,
             'priority' => $this->priority,
-            'progress' => (int) $this->progress,
-            'department' => $this->department,
             'due_date' => $this->due_date?->toDateString(),
             // بيانات المشروع الموحّدة — الاسم والرقم مصدرهما سجل المشاريع (مصدر الحقيقة)
             'project' => $this->whenLoaded('project', fn () => $this->project ? [

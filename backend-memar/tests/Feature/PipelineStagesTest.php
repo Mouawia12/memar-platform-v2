@@ -16,7 +16,8 @@ class PipelineStagesTest extends TestCase
 
     private const VIEW = 'crm.view';
 
-    private const MANAGE = 'crm.manage';
+    // تخصيص المراحل صار للمدير فقط (crm.delete) — الموظف بـ crm.manage لا يخصّص المراحل (طلب العميل).
+    private const MANAGE = 'crm.delete';
 
     public function test_default_stages_are_seeded_and_listed(): void
     {

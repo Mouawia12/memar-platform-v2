@@ -27,7 +27,8 @@ class CrmTagController extends ApiController
 
     public function store(StoreCrmTagRequest $request): JsonResponse
     {
-        $isManager = (bool) $request->user()?->can('crm.manage');
+        // «المدير» = crm.delete (الموظف يملك crm.manage لكن ليس crm.delete): المدير يعتمد مباشرة، والموظف يُرسل طلبًا.
+        $isManager = (bool) $request->user()?->can('crm.delete');
         $tag = $this->tags->createOrRequest($request->string('name')->toString(), $request->user()?->id, $isManager);
 
         $message = $tag->status === 'approved' ? 'تم إضافة الاختصار واعتماده' : 'تم إرسال الاختصار كطلب للإدارة';

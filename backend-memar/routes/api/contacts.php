@@ -16,10 +16,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->group(function (): void {
     // مراحل مسار الفرص (أعمدة اللوحة) — قابلة للتعديل والإضافة من الأدمن
     Route::get('/pipeline-stages', [PipelineStageController::class, 'index'])->middleware('permission:crm.view');
-    Route::post('/pipeline-stages', [PipelineStageController::class, 'store'])->middleware('permission:crm.manage');
-    Route::patch('/pipeline-stages/reorder', [PipelineStageController::class, 'reorder'])->middleware('permission:crm.manage');
-    Route::match(['put', 'patch'], '/pipeline-stages/{pipelineStage}', [PipelineStageController::class, 'update'])->middleware('permission:crm.manage');
-    Route::delete('/pipeline-stages/{pipelineStage}', [PipelineStageController::class, 'destroy'])->middleware('permission:crm.manage');
+    // تخصيص المراحل = للمدير فقط (crm.delete)؛ الموظف يملك crm.manage لكن ليس crm.delete — طلب العميل.
+    Route::post('/pipeline-stages', [PipelineStageController::class, 'store'])->middleware('permission:crm.delete');
+    Route::patch('/pipeline-stages/reorder', [PipelineStageController::class, 'reorder'])->middleware('permission:crm.delete');
+    Route::match(['put', 'patch'], '/pipeline-stages/{pipelineStage}', [PipelineStageController::class, 'update'])->middleware('permission:crm.delete');
+    Route::delete('/pipeline-stages/{pipelineStage}', [PipelineStageController::class, 'destroy'])->middleware('permission:crm.delete');
 
     Route::get('/contacts', [ContactController::class, 'index'])->middleware('permission:crm.view');
     // إنشاء/تعديل الفرص متاح للموظف (crm.view) — طلب العميل (فيديو 2026-08-17)؛ الحذف للمدير فقط.

@@ -56,8 +56,7 @@ export function CrmPage() {
   const move = useMoveLead();
   const reorder = useReorderLeads();
   const del = useDeleteLead();
-  const canManage = usePermission('crm.manage');
-  // إنشاء/تعديل/نقل الفرص متاح للموظف (crm.view) — طلب العميل؛ أما تخصيص المراحل واعتماد الاختصارات فللمدير.
+  // إنشاء/تعديل/نقل الفرص متاح للموظف (crm.view)؛ وتخصيص المراحل/اعتماد الاختصارات للمدير (crm.delete) — طلب العميل.
   const canCreate = usePermission('crm.view');
   const canDelete = usePermission('crm.delete');
   const canLoyalty = usePermission('loyalty.view');
@@ -189,13 +188,15 @@ export function CrmPage() {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {canCreate && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
           {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
-          {canManage && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
-          {canManage && (
+          {/* «المدير» = من يملك crm.delete (الموظف يملك crm.manage لكن ليس crm.delete) — طلب العميل:
+              تخصيص المراحل واعتماد الاختصارات للمدير فقط، ولا تظهر للموظف. */}
+          {canDelete && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
+          {canDelete && (
             <button className="crm-btn crm-btn-outline" onClick={() => setTagsPanelOpen(true)} type="button">
               📨 طلبات الاختصارات{pendingTagCount > 0 ? ` (${pendingTagCount})` : ''}
             </button>
           )}
-          {!exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
+          {canDelete && !exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
           <SoundToggle />
         </div>
       </div>

@@ -15,7 +15,7 @@ class CrmTagTest extends TestCase
 
     public function test_manager_add_tag_is_approved_immediately(): void
     {
-        $this->actingAsUserWith(['crm.view', 'crm.manage']);
+        $this->actingAsUserWith(['crm.view', 'crm.delete']); // المدير = crm.delete
 
         $this->postJson('/api/v1/crm/tags', ['name' => 'حكومي'])
             ->assertCreated()
@@ -26,7 +26,8 @@ class CrmTagTest extends TestCase
 
     public function test_employee_add_tag_becomes_pending_request(): void
     {
-        $this->actingAsUserWith(['crm.view']); // بلا crm.manage → طلب
+        // الموظف يملك crm.view + crm.manage لكن ليس crm.delete → طلب معلّق (طلب العميل).
+        $this->actingAsUserWith(['crm.view', 'crm.manage']);
 
         $this->postJson('/api/v1/crm/tags', ['name' => 'مشروع ضخم'])
             ->assertCreated()
@@ -35,9 +36,18 @@ class CrmTagTest extends TestCase
         $this->assertDatabaseHas('crm_tags', ['name' => 'مشروع ضخم', 'status' => 'pending']);
     }
 
+    public function test_employee_with_manage_cannot_approve(): void
+    {
+        // نورة: crm.view + crm.manage (بلا crm.delete) → لا تعتمد الاختصارات.
+        $this->actingAsUserWith(['crm.view', 'crm.manage']);
+        $tag = CrmTag::create(['name' => 'قيد', 'status' => 'pending']);
+
+        $this->postJson("/api/v1/crm/tags/{$tag->id}/approve")->assertForbidden();
+    }
+
     public function test_manager_approves_pending_tag(): void
     {
-        $this->actingAsUserWith(['crm.view', 'crm.manage']);
+        $this->actingAsUserWith(['crm.view', 'crm.delete']);
         $tag = CrmTag::create(['name' => 'عاجل', 'status' => 'pending']);
 
         $this->postJson("/api/v1/crm/tags/{$tag->id}/approve")
@@ -48,7 +58,7 @@ class CrmTagTest extends TestCase
 
     public function test_manager_rejects_pending_tag(): void
     {
-        $this->actingAsUserWith(['crm.view', 'crm.manage']);
+        $this->actingAsUserWith(['crm.view', 'crm.delete']);
         $tag = CrmTag::create(['name' => 'مرفوض', 'status' => 'pending']);
 
         $this->postJson("/api/v1/crm/tags/{$tag->id}/reject")
@@ -67,7 +77,7 @@ class CrmTagTest extends TestCase
 
     public function test_duplicate_name_is_idempotent(): void
     {
-        $this->actingAsUserWith(['crm.view', 'crm.manage']);
+        $this->actingAsUserWith(['crm.view', 'crm.delete']);
         CrmTag::create(['name' => 'مكرر', 'status' => 'approved']);
 
         $this->postJson('/api/v1/crm/tags', ['name' => 'مكرر'])->assertCreated();

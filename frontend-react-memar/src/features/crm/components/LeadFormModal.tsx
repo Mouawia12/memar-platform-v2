@@ -204,7 +204,8 @@ export function LeadFormModal({ lead, onClose }: Props) {
  * وإضافة اختصار جديد (المدير يعتمده مباشرة، وغيره يُرسل طلبًا للإدارة) + صندوق الطلبات المعلّقة.
  */
 function TagsSection({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
-  const isManager = usePermission('crm.manage');
+  // «المدير» = crm.delete (الموظف يملك crm.manage لكن ليس crm.delete): الموظف يطلب الاختصار، والمدير يعتمد.
+  const isManager = usePermission('crm.delete');
   const { data: catalog } = useCrmTags();
   const createTag = useCreateCrmTag();
   const approveTag = useApproveCrmTag();

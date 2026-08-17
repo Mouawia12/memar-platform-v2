@@ -1,6 +1,7 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useCreateCrmTag } from '../hooks/useCrm';
 import { STAGE_COLOR_FALLBACK, type Lead, type Priority } from '../types';
 
 interface Props {
@@ -46,6 +47,23 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
   const reorderable = !!(onMoveUp || onMoveDown);
   // النقاط تُخفى عن غير مدير الولاء (المهندس/الموظف يرى الأسعار فقط) — طبق أصل V42 opsIsAdmin.
   const showPoints = usePermission('loyalty.manage');
+  // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
+  const isTagManager = usePermission('crm.delete');
+  const createTag = useCreateCrmTag();
+  const [tagOpen, setTagOpen] = useState(false);
+  const [tagVal, setTagVal] = useState('');
+  const [tagMsg, setTagMsg] = useState('');
+  const submitTag = () => {
+    const nameV = tagVal.trim();
+    if (!nameV) return;
+    createTag.mutate(nameV, {
+      onSuccess: (t) => {
+        setTagVal(''); setTagOpen(false);
+        setTagMsg(t.status === 'approved' ? `✓ أُضيف الاختصار «${t.name}»` : `📨 أُرسل «${t.name}» كطلب للإدارة`);
+        window.setTimeout(() => setTagMsg(''), 2600);
+      },
+    });
+  };
   const imp = IMPORTANCE[lead.priority] ?? IMPORTANCE.medium;
   const rating = lead.parent?.internal_rating ?? lead.internal_rating ?? 0;
   const urgent = lead.is_urgent;
@@ -112,7 +130,30 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         {lead.project_type && <span style={{ ...tag, ...tagArch }}>{lead.project_type}</span>}
         {(lead.tags ?? []).map((t) => <span key={t} style={{ ...tag, ...tagCrm }}>{t}</span>)}
         {lead.is_vip && <span style={{ ...tag, ...tagVip }}>⭐ VIP</span>}
+        {/* طلب اختصار من داخل الكرت (طلب العميل) */}
+        <button
+          type="button"
+          title={isTagManager ? 'إضافة اختصار' : 'طلب اختصار للإدارة'}
+          onClick={(e) => { stop(e); setTagOpen((v) => !v); }}
+          onPointerDown={stop}
+          style={tagAddBtn}
+        >🏷️ +</button>
       </div>
+
+      {tagOpen && (
+        <div style={tagRow} onClick={stop} onPointerDown={stop}>
+          <input
+            autoFocus
+            value={tagVal}
+            onChange={(e) => setTagVal(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitTag(); } if (e.key === 'Escape') setTagOpen(false); }}
+            placeholder={isTagManager ? 'اختصار جديد…' : 'اطلب اختصارًا…'}
+            style={tagInput}
+          />
+          <button type="button" onClick={submitTag} disabled={createTag.isPending} style={tagSendBtn}>{isTagManager ? 'إضافة' : 'إرسال'}</button>
+        </div>
+      )}
+      {tagMsg && <div style={tagMsgStyle}>{tagMsg}</div>}
 
       <div style={last}>📝 {lead.notes ? lead.notes : 'لا يوجد تحديث من الموظف بعد'}</div>
     </div>
@@ -150,6 +191,12 @@ const tag: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8p
 const tagArch: CSSProperties = { background: '#EDE9FE', color: '#7C3AED' };
 const tagCrm: CSSProperties = { background: '#E0F2FE', color: '#0369A1' };
 const tagVip: CSSProperties = { background: 'linear-gradient(90deg,#B45309,#D97706)', color: '#fff' };
+// طلب اختصار من داخل الكرت
+const tagAddBtn: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '20px', border: '1px dashed #93C5FD', background: '#F0F7FF', color: '#0369A1', cursor: 'pointer', fontFamily: 'inherit', lineHeight: 1.4 };
+const tagRow: CSSProperties = { display: 'flex', gap: '5px', marginTop: '7px', cursor: 'default' };
+const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', padding: '5px 8px', border: '1.5px solid #CBD5E1', borderRadius: '7px', fontFamily: 'inherit', outline: 'none' };
+const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
+const tagMsgStyle: CSSProperties = { marginTop: '6px', fontSize: '10.5px', fontWeight: 700, color: '#0F766E' };
 const last: CSSProperties = { fontSize: '10.5px', color: '#64748B', borderTop: '1px dashed #E2E8F0', marginTop: '8px', paddingTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };
 const reorderBtn: CSSProperties = { width: '18px', height: '13px', display: 'grid', placeItems: 'center', border: '1px solid #E4E8EF', background: '#F7F9FC', color: '#5A6478', borderRadius: '4px', cursor: 'pointer', fontSize: '7px', lineHeight: 1, padding: 0 };

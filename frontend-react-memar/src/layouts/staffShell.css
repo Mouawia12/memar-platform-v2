@@ -55,19 +55,22 @@
   position: relative;
 }
 .app .nav-item:hover { background: rgba(27, 108, 168, 0.06) !important; color: #1B6CA8 !important; }
-.app .nav-item.active { background: rgba(27, 108, 168, 0.08) !important; color: #1B6CA8 !important; font-weight: 700 !important; }
+/* العنصر النشط بأسلوب V42 (بالأبيض): خلفية خفيفة + ظلّ ناعم + خطّ ذهبي متوهّج على حافة البدء (يمين RTL). */
+.app .nav-item.active { background: rgba(27, 108, 168, 0.08) !important; color: #0D4A7A !important; font-weight: 700 !important; box-shadow: 0 2px 8px rgba(13, 74, 122, 0.07) !important; }
 .app .nav-item.active::before {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
-  background: #1B6CA8;
-  border-radius: 3px 0 0 3px;
+  content: '' !important;
+  position: absolute !important;
+  right: 0 !important;
+  left: auto !important;
+  top: 20% !important;
+  bottom: 20% !important;
+  width: 3px !important;
+  background: #E8A838 !important;
+  border-radius: 3px 0 0 3px !important;
+  box-shadow: 0 0 8px rgba(232, 168, 56, 0.6) !important;
 }
-.app .nav-item .nav-icon { color: #5A6478; }
-.app .nav-item.active .nav-icon, .app .nav-item:hover .nav-icon { color: #1B6CA8; }
+.app .nav-item .nav-icon { color: #5A6478; opacity: 0.85; }
+.app .nav-item.active .nav-icon, .app .nav-item:hover .nav-icon { color: #1B6CA8; opacity: 1; }
 
 /* ── عرض السايدبار 280px كبوابة العميل (دسكتوب فقط، ومع احترام حالة الطي) ── */
 @media (min-width: 992px) {

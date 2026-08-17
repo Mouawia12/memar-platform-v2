@@ -2,6 +2,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // المنفذ 3015 (سجل المنافذ) + بروكسي /api إلى Laravel :8010 لتجنّب CORS في التطوير.
+// إعداد الاختبارات (vitest) في ملف منفصل vitest.config.ts لتفادي تعارض أنواع vite المتداخلة.
 export default defineConfig({
   plugins: [react()],
   server: {

@@ -10,7 +10,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { LeadCard } from './LeadCard';
 import { isStageCollapsed, setStageCollapsed, useCollapsedStages, useHiddenStages } from '../boardPrefs';
@@ -150,7 +150,8 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
   const collapsedMap = useCollapsedStages();
   const hiddenMap = useHiddenStages();
-  const visibleStages = stages.filter((s) => !hiddenMap[s.key]);
+  // memo: مرجع ثابت ما لم تتغيّر المراحل/المخفية — يمنع إعادة إنشاء activeBody/syncArrows كل رندر.
+  const visibleStages = useMemo(() => stages.filter((s) => !hiddenMap[s.key]), [stages, hiddenMap]);
   const stageKeys = new Set(stages.map((s) => s.key));
   const colorOf = (key: string) => stages.find((s) => s.key === key)?.color;
 
@@ -171,11 +172,16 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
     const body = activeBody();
     const maxY = body ? body.scrollHeight - body.clientHeight : 0;
     const posY = body ? body.scrollTop : 0;
-    setArrowOff({
-      next: maxX <= 6 || posX >= maxX - 6,
-      prev: maxX <= 6 || posX <= 6,
-      up: maxY <= 6 || posY <= 6,
-      down: maxY <= 6 || posY >= maxY - 6,
+    // تحديث مشروط: يعيد نفس المرجع عند عدم التغيّر فيتخطّى React الرندر — يمنع حلقة إعادة الرندر اللانهائية.
+    setArrowOff((prev) => {
+      const next = {
+        next: maxX <= 6 || posX >= maxX - 6,
+        prev: maxX <= 6 || posX <= 6,
+        up: maxY <= 6 || posY <= 6,
+        down: maxY <= 6 || posY >= maxY - 6,
+      };
+
+      return prev.next === next.next && prev.prev === next.prev && prev.up === next.up && prev.down === next.down ? prev : next;
     });
   }, [activeBody]);
 

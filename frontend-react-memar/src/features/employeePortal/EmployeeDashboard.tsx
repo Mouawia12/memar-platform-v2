@@ -87,7 +87,13 @@ export function EmployeeDashboard({ onGo }: { onGo: (id: string) => void }) {
             <div className="ep-ws-item"><span className="ep-ws-num">{pointsBal}</span><span className="ep-ws-label">نقاط الإحالة</span></div>
           </div>
         </div>
-        <div className="ep-welcome-visual">🏗️</div>
+        {/* أزرار علوية طبق أصل dash-welcome-actions — طلب العميل (فيديو 2026-08-17). */}
+        <div className="ep-welcome-actions">
+          <button type="button" className="ep-wa-btn primary" onClick={() => onGo('ep-tasks')}>📋 مهامي</button>
+          <button type="button" className="ep-wa-btn" onClick={() => onGo('ep-appointments')}>📅 مواعيدي</button>
+          <button type="button" className="ep-wa-btn" onClick={() => onGo('ep-projects')}>🏗️ مشاريعي</button>
+          <button type="button" className="ep-wa-btn" onClick={() => onGo('ep-tasks')}>🔁 متابعاتي</button>
+        </div>
       </div>
 
       {/* Quick actions */}

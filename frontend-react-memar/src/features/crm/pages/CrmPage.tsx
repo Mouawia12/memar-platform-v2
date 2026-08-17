@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { usePermission } from '../../auth/hooks/usePermission';
@@ -13,6 +13,8 @@ import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
 import { TagRequestsPanel } from '../components/TagRequestsPanel';
+import { SoundToggle } from '../components/SoundToggle';
+import { celebrate, playSound } from '../opsNotify';
 import { useCrmTags, useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
@@ -75,7 +77,11 @@ export function CrmPage() {
       if (!confirm(`تحويل الفرصة «${l.full_name}» لصفقة رابحة؟\nسيُنشأ مشروع «${name}» تلقائيًا في سجل المشاريع.`)) return;
     }
     const stageName = stageList.find((s) => s.key === stage)?.label ?? stage;
-    move.mutate({ id: l.id, stage }, { onSuccess: () => showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`) });
+    move.mutate({ id: l.id, stage }, { onSuccess: () => {
+      showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
+      // احتفال (Confetti + صوت) عند نقل الفرصة إلى «صفقة رابحة» — طبق أصل V42 celebrate.
+      if (wonKeys.has(stage)) celebrate('فرصة رابحة! 🎉', `مبروك — ${l.full_name}`);
+    } });
   };
 
   const handleAddTask = (l: Lead) => {
@@ -154,6 +160,13 @@ export function CrmPage() {
   const dueLeads = leads.filter((l) => l.reminder?.due);
   const urgentCount = leads.filter((l) => l.is_urgent).length;
 
+  // صوت تنبيه عند وجود فرص عاجلة/مستحقّة (throttle دقيقة) — طبق أصل V42 playSound.
+  useEffect(() => {
+    if (dueLeads.length > 0 || urgentCount > 0) {
+      playSound(urgentCount > 0 ? 'urgent' : 'reminder', { throttleMs: 60_000 });
+    }
+  }, [dueLeads.length, urgentCount]);
+
   const KPIS: { icon: string; color: keyof typeof ICON_BG; label: string; value: number; sub: ReactNode }[] = [
     { icon: '👥', color: 'blue', label: 'إجمالي العملاء المحتملين', value: kpi.total, sub: <><span style={up}>↑ {kpi.monthPct}%</span> هذا الشهر</> },
     { icon: '🆕', color: 'green', label: 'جدد هذا الأسبوع', value: kpi.newWeek, sub: 'فرص جديدة' },
@@ -181,6 +194,7 @@ export function CrmPage() {
             </button>
           )}
           {!exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
+          <SoundToggle />
         </div>
       </div>
 

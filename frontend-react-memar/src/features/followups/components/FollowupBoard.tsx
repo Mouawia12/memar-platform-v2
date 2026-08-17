@@ -19,7 +19,8 @@ interface Props {
   followups: Followup[];
   onOpen?: (f: Followup) => void;
   onMove: (f: Followup, stage: FollowupStage) => void;
-  onAdd?: () => void;
+  /** يُستدعى بمرحلة العمود الذي ضُغط زرّه — تُضاف البطاقة في نفس العمود. */
+  onAdd?: (stage: FollowupStage) => void;
 }
 
 function Column({ color, label, icon, count, stage, children }: { color: string; label: string; icon: string; count: number; stage: FollowupStage; children: ReactNode }) {
@@ -69,7 +70,7 @@ export function FollowupBoard({ followups, onOpen, onMove, onAdd }: Props) {
               <Column key={s.key} stage={s.key} color={s.color} label={s.label} icon={s.icon} count={colItems.length}>
                 {colItems.length === 0 && <p style={empty}>أفلت هنا</p>}
                 {colItems.map((f) => <DragCard key={f.id} followup={f}><FollowupCard followup={f} onOpen={onOpen} /></DragCard>)}
-                {onAdd && <button type="button" className="crm-add-btn" style={addBtn} onClick={onAdd}>+ متابعة جديدة</button>}
+                {onAdd && <button type="button" className="crm-add-btn" style={addBtn} onClick={() => onAdd(s.key)}>+ متابعة جديدة</button>}
               </Column>
             );
           })}

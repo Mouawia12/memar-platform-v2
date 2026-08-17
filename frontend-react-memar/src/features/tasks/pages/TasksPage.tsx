@@ -35,7 +35,7 @@ export function TasksPage() {
   // ── لوحة المتابعة ──
   const [fuScope, setFuScope] = useState<'all' | 'mine'>('all');
   const [fuFormOpen, setFuFormOpen] = useState(false);
-  const [fuInitialStage, setFuInitialStage] = useState<'scheduled' | 'today' | 'late'>('scheduled');
+  const [fuInitialStage, setFuInitialStage] = useState<FollowupStage>('scheduled');
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
@@ -78,7 +78,7 @@ export function TasksPage() {
     setConfirming(null);
   };
 
-  const openFuCreate = (stage: 'scheduled' | 'today' | 'late' = 'scheduled') => { setFuInitialStage(stage); setFuFormOpen(true); };
+  const openFuCreate = (stage: FollowupStage = 'scheduled') => { setFuInitialStage(stage); setFuFormOpen(true); };
   /** نقل المتابعة بين الأعمدة — تُترجَم المرحلة إلى (done + due_date). */
   const handleFollowupMove = (f: Followup, stage: FollowupStage) => {
     const today = new Date().toISOString().slice(0, 10);
@@ -154,7 +154,7 @@ export function TasksPage() {
         <button type="button" onClick={() => setFuScope('all')} style={{ ...scopeBtn, ...(fuScope === 'all' ? scopeOn : null) }}>جميع المتابعات</button>
         <button type="button" onClick={() => setFuScope('mine')} style={{ ...scopeBtn, ...(fuScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
       </div>
-      <FollowupBoard followups={followups ?? []} onMove={handleFollowupMove} onAdd={canManage ? () => openFuCreate('scheduled') : undefined} />
+      <FollowupBoard followups={followups ?? []} onMove={handleFollowupMove} onAdd={canManage ? openFuCreate : undefined} />
 
       {/* ── 📊 توزيع المهام على الفريق (مجمّع في الباك اند عبر /tasks/workload) ── */}
       <TeamWorkloadTable />

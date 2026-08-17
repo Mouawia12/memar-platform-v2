@@ -24,6 +24,7 @@ export interface FollowupFormData {
   due_date: string;
   priority: FollowupPriority;
   notes: string;
+  done: boolean;
 }
 
 export interface FollowupStats { scheduled: number; today: number; late: number; done: number }

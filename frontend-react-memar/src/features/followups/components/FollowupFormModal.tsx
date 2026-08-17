@@ -3,16 +3,19 @@ import { type CSSProperties, type FormEvent, useState } from 'react';
 import { apiErrorMessage } from '../../../lib/api';
 import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveFollowup } from '../hooks/useFollowups';
-import { FU_CHANNELS, type FollowupFormData, type FollowupPriority } from '../types';
+import { FU_BOARD, FU_CHANNELS, type FollowupFormData, type FollowupPriority, type FollowupStage } from '../types';
 
 interface Props {
-  /** مرحلة العمود الذي انطلق منه الزر (يحدّد تاريخ الاستحقاق الابتدائي). */
-  initialStage?: 'scheduled' | 'today' | 'late';
+  /** مرحلة العمود الذي انطلق منه الزر — تحدّد تاريخ الاستحقاق (وحالة الإنجاز لعمود «منجزة»). */
+  initialStage?: FollowupStage;
   onClose: () => void;
 }
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const plusDays = (n: number) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+
+/** تاريخ الاستحقاق الابتدائي بحسب العمود المنطلق منه. */
+const dueForStage = (s: FollowupStage) => (s === 'today' || s === 'done' ? todayStr() : s === 'late' ? plusDays(-1) : plusDays(3));
 
 const PRIORITIES: { value: FollowupPriority; label: string }[] = [
   { value: 'urgent', label: 'عاجلة' },
@@ -30,11 +33,13 @@ export function FollowupFormModal({ initialStage = 'scheduled', onClose }: Props
     client_name: '',
     channel: 'اتصال هاتفي',
     assigned_to: '',
-    due_date: initialStage === 'today' ? todayStr() : initialStage === 'late' ? plusDays(-1) : plusDays(3),
+    due_date: dueForStage(initialStage),
     priority: 'high',
     notes: '',
+    done: initialStage === 'done',
   });
   const [err, setErr] = useState('');
+  const col = FU_BOARD.find((s) => s.key === initialStage);
 
   const set = <K extends keyof FollowupFormData>(key: K, value: FollowupFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -47,7 +52,8 @@ export function FollowupFormModal({ initialStage = 'scheduled', onClose }: Props
   return (
     <div style={overlay} onClick={onClose}>
       <form className="card crm-modal-in" style={modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-        <h2 style={{ marginTop: 0, fontSize: '17px' }}>🔁 إضافة متابعة جديدة</h2>
+        <h2 style={{ marginTop: 0, marginBottom: '4px', fontSize: '17px' }}>🔁 إضافة متابعة جديدة</h2>
+        {col && <div style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '6px' }}>ستُضاف في عمود: <b style={{ color: col.color }}>{col.icon} {col.label}</b></div>}
 
         <label style={label}>اسم العميل *
           <input className="input" style={input} value={form.client_name} onChange={(e) => set('client_name', e.target.value)} placeholder="مثال: شركة الخليج للمقاولات" />

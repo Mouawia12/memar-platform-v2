@@ -45,6 +45,19 @@ class FollowupTest extends TestCase
         $this->assertSame('done', $doneFup->stage()); // منجزة رغم أن تاريخها ماضٍ
     }
 
+    public function test_create_into_done_column_starts_done(): void
+    {
+        // إضافة متابعة من عمود «منجزة» مباشرة (done=true) → مرحلتها منجزة فورًا
+        $this->actingAsUserWith(['tasks.view', 'tasks.manage']);
+
+        $this->postJson('/api/v1/followups', [
+            'client_name' => 'صفقة منجزة',
+            'channel' => 'اجتماع',
+            'due_date' => today()->toDateString(),
+            'done' => true,
+        ])->assertCreated()->assertJsonPath('data.stage', 'done');
+    }
+
     public function test_moving_to_done_marks_done(): void
     {
         $this->actingAsUserWith(['tasks.view', 'tasks.manage']);

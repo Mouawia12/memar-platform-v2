@@ -15,8 +15,10 @@ interface Props {
 
 const empty: TaskFormData = {
   title: '', description: '', project_id: '', assignee_id: '',
-  status: 'todo', priority: 'medium', due_date: '',
+  status: 'todo', priority: 'medium', progress: '', department: '', due_date: '',
 };
+
+const DEPARTMENTS = ['المعماري', 'الإنشائي', 'الكهرباء', 'الميكانيكا', 'كميات', 'الاعتمادات'];
 
 type FieldErrors = Partial<Record<'title' | 'assignee_id' | 'due_date', string>>;
 
@@ -42,6 +44,8 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
         assignee_id: task.assignee?.id ?? '',
         status: task.status,
         priority: task.priority,
+        progress: task.progress ?? '',
+        department: task.department ?? '',
         due_date: task.due_date ?? '',
       });
     } else {
@@ -118,6 +122,18 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
           </label>
         </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <label style={label}>القسم
+            <select className="input" style={input} value={form.department} onChange={(e) => set('department', e.target.value)}>
+              <option value="">— بدون —</option>
+              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+          <label style={label}>نسبة الإنجاز: {form.progress === '' ? 0 : form.progress}%
+            <input type="range" min={0} max={100} step={5} value={form.progress === '' ? 0 : form.progress} onChange={(e) => set('progress', Number(e.target.value))} style={{ width: '100%', marginTop: '10px', accentColor: '#1B6CA8' }} />
+          </label>
+        </div>
+
         <label style={label}>تاريخ الاستحقاق
           <input className="input" style={{ ...input, ...(errors.due_date ? inputErr : null) }} type="date" min={task ? undefined : todayStr()} value={form.due_date} onChange={(e) => set('due_date', e.target.value)} />
         </label>
@@ -141,7 +157,7 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
 
         {/* تلميح وجهة المهمة */}
         <div style={hint}>
-          📋 بعد الحفظ تظهر المهمة في <b>«المهام والمتابعة»</b> ضمن عمود موعدها ({form.due_date ? 'حسب تاريخ الاستحقاق' : 'قادمة — بلا موعد'})،
+          📋 بعد الحفظ تظهر المهمة في <b>«المهام والمتابعة»</b> ضمن عمود حالتها (<b>{STATUS_LABELS[form.status]}</b>)،
           ويصل <b>المكلَّف</b> إشعار «مهام مسندة إليك».
         </div>
 

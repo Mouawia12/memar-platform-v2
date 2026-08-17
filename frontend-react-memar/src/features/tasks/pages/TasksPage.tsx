@@ -2,11 +2,11 @@ import { useMemo, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useProjects } from '../../projects/hooks/useProjects';
-import { FollowUpBoard } from '../components/FollowUpBoard';
+import { TaskStatusBoard } from '../components/TaskStatusBoard';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { useDeleteTask, useMoveTask, useTasks, useToggleTask } from '../hooks/useTasks';
-import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
+import { isDone, isTerminal, type Task, type TaskStatus } from '../types';
 
 /**
  * المهام والمتابعة — لوحة استحقاق بأربعة أعمدة (متأخرة/اليوم/قادمة/مكتملة)،
@@ -30,15 +30,23 @@ export function TasksPage() {
   const del = useDeleteTask();
 
   const kpis = useMemo(() => {
-    const c = { overdue: 0, today: 0, upcoming: 0, done: 0 };
-    for (const t of tasks ?? []) c[taskColumn(t)]++;
-
-    return c;
+    const list = tasks ?? [];
+    const overdue = list.filter((t) => !isTerminal(t) && t.due_date && t.due_date.slice(0, 10) < new Date().toISOString().slice(0, 10)).length;
+    return {
+      total: list.length,
+      inProgress: list.filter((t) => t.status === 'in_progress').length,
+      overdue,
+      done: list.filter((t) => t.status === 'done').length,
+    };
   }, [tasks]);
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const handleDelete = (t: Task) => { if (confirm(`حذف مهمة "${t.title}"؟`)) del.mutate(t.id); };
-  const handleMove = (t: Task, payload: { due_date?: string; status?: TaskStatus }) => move.mutate({ id: t.id, payload });
+  // نقل بالسحب بين أعمدة الحالة: النقل إلى «مكتملة» يتطلّب تأكيدًا (طلب العميل).
+  const handleStatusMove = (t: Task, status: TaskStatus) => {
+    if (status === 'done') { setConfirming(t); return; }
+    move.mutate({ id: t.id, payload: { status } });
+  };
   // إكمال المهمة يتطلّب تأكيدًا (طلب العميل) — لا يُنقل مباشرة لـ«مكتملة». إعادة الفتح فورية.
   const handleToggle = (t: Task) => {
     if (!isDone(t)) { setConfirming(t); return; }
@@ -59,11 +67,11 @@ export function TasksPage() {
         {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ مهمة جديدة</button>}
       </div>
 
-      {/* مؤشرات */}
+      {/* مؤشرات حسب الحالة (طبق الأصل) */}
       <div className="kpi-grid" style={{ marginBottom: '14px' }}>
+        <Kpi icon="📋" color="#274A78" label="إجمالي المهام" value={kpis.total} />
+        <Kpi icon="🔄" color="#D97706" label="قيد التنفيذ" value={kpis.inProgress} />
         <Kpi icon="🔴" color="#DC2626" label="متأخرة" value={kpis.overdue} />
-        <Kpi icon="⏰" color="#D97706" label="اليوم" value={kpis.today} />
-        <Kpi icon="📅" color="#2563EB" label="قادمة" value={kpis.upcoming} />
         <Kpi icon="✅" color="#059669" label="مكتملة" value={kpis.done} />
       </div>
 
@@ -79,13 +87,11 @@ export function TasksPage() {
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
       {tasks && (
-        <FollowUpBoard
+        <TaskStatusBoard
           tasks={tasks}
-          canDelete={canDelete}
           onOpen={setDetail}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onMove={handleMove}
+          onMove={handleStatusMove}
+          onAdd={canManage ? openCreate : undefined}
         />
       )}
 

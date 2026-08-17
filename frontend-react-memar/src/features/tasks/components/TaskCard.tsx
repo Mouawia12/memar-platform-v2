@@ -1,112 +1,75 @@
 import type { CSSProperties } from 'react';
 
 import { useMarkTaskRead } from '../hooks/useTasks';
-import { PRIORITY_COLORS, PRIORITY_LABELS, dueLabel, isDone, type Task } from '../types';
+import { type Task } from '../types';
 
 interface Props {
   task: Task;
   onOpen: (t: Task) => void;
-  onToggle: (t: Task) => void;
-  onDelete?: (t: Task) => void; // يُمرَّر فقط لمن يملك صلاحية الحذف (سوبر أدمن)
+  onToggle?: (t: Task) => void;
+  onDelete?: (t: Task) => void;
 }
 
-/** لون تسمية الاستحقاق حسب حالته. */
-function dueColor(t: Task): { fg: string; bg: string } {
-  if (isDone(t)) return { fg: '#059669', bg: '#05966915' };
-  const label = dueLabel(t);
-  if (label.startsWith('تأخّر') || label === 'أمس') return { fg: '#DC2626', bg: '#DC262615' };
-  if (label === 'اليوم') return { fg: '#D97706', bg: '#D9770615' };
+/** لون شريط الأولوية (يمين الكرت) — طبق أصل .kanban-card-priority. */
+const PRIO_BAR: Record<string, string> = { urgent: '#DC4A3D', high: '#E8A838', medium: '#1B6CA8', low: '#2D9B6F' };
+/** وسم القسم بلون حسب اسمه — طبق أصل .ktag. */
+const DEPT_TAGS: { test: RegExp; bg: string; fg: string }[] = [
+  { test: /معمار/, bg: '#EDE9FE', fg: '#7C3AED' },
+  { test: /إنشائ|انشائ/, bg: '#FEF3C7', fg: '#D97706' },
+  { test: /كهرب|ميكانيك|MEP/i, bg: '#DBEAFE', fg: '#2563EB' },
+  { test: /كميات/, bg: '#D1FAE5', fg: '#059669' },
+  { test: /اعتماد|حكوم|ترخيص/, bg: '#FEE2E2', fg: '#DC2626' },
+];
+const deptStyle = (d: string) => DEPT_TAGS.find((x) => x.test.test(d)) ?? { bg: '#E0E7FF', fg: '#4338CA' };
 
-  return { fg: '#2563EB', bg: '#2563EB15' };
-}
-
-/** بطاقة مهمة — بتصميم لوحة المتابعة القديمة (حدّ أولوية، مربع إكمال، وسم استحقاق). */
-export function TaskCard({ task, onOpen, onToggle, onDelete }: Props) {
-  const pr = PRIORITY_COLORS[task.priority];
-  const done = isDone(task);
-  const due = dueColor(task);
-  const commentsCount = task.comments_count ?? 0;
+/** بطاقة مهمة — طبق أصل .kanban-card من معمار customer portal (رمز/عنوان/مسؤول/موعد/تقدّم/قسم). */
+export function TaskCard({ task, onOpen }: Props) {
   const markRead = useMarkTaskRead();
-  // جرس «نشاط جديد» خاصّ بالمستخدم الحالي (has_unread من الباك اند) — يختفي عند التعليم كمقروء.
-  const showBell = !done && !!task.has_unread;
+  const progress = Math.max(0, Math.min(100, task.progress ?? 0));
+  const bar = PRIO_BAR[task.priority] ?? '#1B6CA8';
+  const dep = task.department ? deptStyle(task.department) : null;
+  const showBell = task.status !== 'done' && !!task.has_unread;
+  const due = task.due_date ? task.due_date.slice(0, 10) : '—';
+  const code = task.code ?? `TSK-${String(task.id).padStart(4, '0')}`;
 
   return (
-    <div
-      onClick={() => onOpen(task)}
-      style={{
-        ...card,
-        borderInlineStart: `4px solid ${showBell ? '#F59E0B' : pr}`,
-        border: showBell ? '1px solid #F59E0B66' : `1px solid ${pr}22`,
-        // بطاقة عليها نشاط جديد: خلفية كهرمانية خفيفة + هالة تلفت الانتباه (طلب أيمن)
-        background: showBell ? '#FFFBEB' : done ? 'rgba(5,150,105,0.03)' : dueLabel(task).startsWith('تأخّر') || dueLabel(task) === 'أمس' ? 'rgba(220,38,38,0.04)' : '#fff',
-        boxShadow: showBell ? '0 0 0 2px rgba(245,158,11,0.28), 0 2px 10px rgba(245,158,11,0.15)' : undefined,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onToggle(task); }}
-          title={done ? 'إعادة فتح' : 'تحديد كمكتملة'}
-          style={{ ...chk, background: done ? '#059669' : '#fff', borderColor: done ? '#059669' : '#CBD5E1', color: '#fff' }}
-        >
-          {done ? '✓' : ''}
-        </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '3px' }}>
-            <div style={{ flex: 1, minWidth: 0, fontSize: '13px', fontWeight: 700, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>
-              {task.title}
-            </div>
-            {/* جرس «نشاط جديد» متحرّك — اضغط لتعليمه كمقروء فيختفي لك وحدك (طلب أيمن) */}
-            {showBell && (
-              <button
-                type="button"
-                className="task-bell-ring"
-                title="نشاط/تعليق جديد — اضغط لتعليمه كمقروء"
-                onClick={(e) => { e.stopPropagation(); markRead.mutate(task.id); }}
-                disabled={markRead.isPending}
-                style={bell}
-              >
-                <i className="fas fa-bell" />
-              </button>
-            )}
-          </div>
-          {task.description && (
-            <div style={{ fontSize: '11px', color: '#5A6478', marginBottom: '5px', opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {task.description}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-            <span style={{ ...pill, background: `${pr}18`, color: pr, border: `1px solid ${pr}33` }}>{PRIORITY_LABELS[task.priority]}</span>
-            {task.project && <span style={{ ...pill, background: '#274A7810', color: '#274A78', border: '1px solid #274A7822' }}>🏗️ {task.project.name}</span>}
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', fontSize: '10.5px' }}>
-            <span style={{ color: '#8A93A3' }}>📝 {task.assignee?.name ?? 'غير مُسند'}</span>
-            {task.due_date && <span style={{ color: '#8A93A3' }}>📅 {task.due_date.slice(0, 10)}</span>}
-            {commentsCount > 0 && <span style={{ ...pill, background: '#EAF2FB', color: '#1B6CA8', border: '1px solid #CFE2F5' }}><i className="fas fa-comment-dots" /> {commentsCount}</span>}
-            <span style={{ ...pill, background: due.bg, color: due.fg, fontWeight: 700 }}>{dueLabel(task)}</span>
-          </div>
-        </div>
-
-        {onDelete && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onDelete(task); }}
-            title="حذف (مدير النظام)"
-            style={delBtn}
-          >
-            🗑
+    <div className="crm-lead-card" style={card} onClick={() => onOpen(task)}>
+      <span style={{ ...prio, background: bar }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+        <div style={cardId}>#{code}</div>
+        {showBell && (
+          <button type="button" className="task-bell-ring" title="نشاط جديد — اضغط لتعليمه كمقروء" onClick={(e) => { e.stopPropagation(); markRead.mutate(task.id); }} disabled={markRead.isPending} style={bell}>
+            <i className="fas fa-bell" />
           </button>
         )}
       </div>
+      <div style={cardTitle}>{task.title}</div>
+      <div style={cardMeta}>
+        <span>👤 {task.assignee?.name ?? '—'}</span>
+        <span>📅 {due}</span>
+      </div>
+      <div style={cardProgress}>
+        <div style={track}><div style={{ ...fill, width: `${progress}%`, background: progress >= 100 ? '#2D9B6F' : '#1B6CA8' }} /></div>
+        <span style={progText}>{progress}%</span>
+      </div>
+      {task.department && dep && (
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+          <span style={{ ...ktag, background: dep.bg, color: dep.fg }}>{task.department}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-const card: CSSProperties = { cursor: 'pointer', borderRadius: '10px', padding: '11px 12px', marginBottom: '9px', transition: 'box-shadow .15s' };
-const chk: CSSProperties = { flexShrink: 0, width: '18px', height: '18px', borderRadius: '5px', border: '1.5px solid', cursor: 'pointer', fontSize: '11px', lineHeight: 1, display: 'grid', placeItems: 'center', marginTop: '1px', padding: 0 };
-const pill: CSSProperties = { fontSize: '10px', padding: '2px 7px', borderRadius: '10px', fontWeight: 700, whiteSpace: 'nowrap' };
-const delBtn: CSSProperties = { flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', opacity: 0.4, padding: '2px' };
-const bell: CSSProperties = { flexShrink: 0, width: '28px', height: '28px', borderRadius: '50%', background: '#F59E0B', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '14px', border: '2px solid #fff', cursor: 'pointer', padding: 0, boxShadow: '0 2px 6px rgba(245,158,11,0.5)' };
+// ── أنماط طبق أصل CSS المرجع (.kanban-card…) ──
+const card: CSSProperties = { position: 'relative', background: '#fff', borderRadius: '10px', padding: '12px', paddingInlineStart: '14px', border: '1px solid #E2E8F0', marginBottom: '9px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(27,108,168,.05)' };
+const prio: CSSProperties = { position: 'absolute', top: 0, insetInlineStart: 0, width: '4px', height: '100%', borderStartStartRadius: '10px', borderEndStartRadius: '10px' };
+const cardId: CSSProperties = { fontSize: '10px', color: '#64748B', fontWeight: 600 };
+const cardTitle: CSSProperties = { fontSize: '12px', fontWeight: 700, color: '#1E293B', margin: '4px 0 8px', lineHeight: 1.4 };
+const cardMeta: CSSProperties = { display: 'flex', gap: '8px', fontSize: '10px', color: '#64748B', flexWrap: 'wrap', marginBottom: '6px' };
+const cardProgress: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' };
+const track: CSSProperties = { flex: 1, height: '5px', background: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' };
+const fill: CSSProperties = { height: '100%', borderRadius: '3px', transition: 'width .3s ease' };
+const progText: CSSProperties = { fontSize: '10px', fontWeight: 700, color: '#64748B', minWidth: '30px', textAlign: 'end' };
+const ktag: CSSProperties = { fontSize: '9px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 };
+const bell: CSSProperties = { background: 'none', border: 'none', color: '#F59E0B', cursor: 'pointer', fontSize: '12px', padding: 0, flexShrink: 0 };

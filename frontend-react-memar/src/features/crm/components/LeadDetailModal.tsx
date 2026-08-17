@@ -3,6 +3,7 @@ import { type CSSProperties, type ReactNode } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { InternalRating } from '../../../components/InternalRating';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
 import { crmApi } from '../api/crmApi';
 import { LeadReminders } from './LeadReminders';
@@ -36,6 +37,8 @@ const money = (v: string | number) => `${Number(v).toLocaleString('ar', { maximu
 /** تفاصيل الفرصة — طبق أصل نافذة «🎯 تفاصيل الفرصة» من معمار customer portal (أقسام مرقّمة). */
 export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
+  // النقاط تُخفى عن غير مدير الولاء (طبق أصل V42) — المهندس يرى «رينج السعر» فقط.
+  const showPoints = usePermission('loyalty.manage');
   const setTemp = useSetTemperature();
   const qc = useQueryClient();
   const saveRating = useMutation({
@@ -92,25 +95,29 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
           </div>
           {lead.notes && <div style={noteBox}><div style={dlabel}>ملاحظات وتفاصيل المشروع</div><div style={{ fontSize: '13px', lineHeight: 1.7 }}>{lead.notes}</div></div>}
 
-          <div style={secTitle}>③ رينج السعر والنقاط</div>
+          <div style={secTitle}>③ {showPoints ? 'رينج السعر والنقاط' : 'رينج السعر'}</div>
           {priceList.length > 0 ? (
             <div style={priceStrip}>
               <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
                 {priceList.map((p, i) => <span key={i} style={{ ...psPrice, ...(lead.expected_price_kwd && p === lead.expected_price_kwd ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(p)}</span>)}
               </div>
-              <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-                {priceList.map((p, i) => {
-                  const pts = lead.expected_price_kwd && p === lead.expected_price_kwd ? lead.expected_points : 0;
-                  return <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(pts ? null : { color: '#B47612' }) }}>{pts ? `${pts} نقطة` : '—'}</span>;
-                })}
-              </div>
+              {showPoints && (
+                <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
+                  {priceList.map((p, i) => {
+                    const pts = lead.expected_price_kwd && p === lead.expected_price_kwd ? lead.expected_points : 0;
+                    return <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(pts ? null : { color: '#B47612' }) }}>{pts ? `${pts} نقطة` : '—'}</span>;
+                  })}
+                </div>
+              )}
             </div>
           ) : <div style={{ ...noteBox, fontSize: '12.5px', color: '#94A3B8' }}>لم تُحدَّد الأسعار بعد.</div>}
-          <div style={{ marginTop: '8px' }}>
-            {lead.expected_points > 0
-              ? <span style={{ ...badge, background: '#ECFDF5', color: '#2D9B6F' }}>🎯 تُمنح حتى {lead.expected_points} نقطة عند الفوز</span>
-              : <span style={{ ...badge, background: '#FFFBEB', color: '#E8A838' }}>النقاط تُمنح عند نقل الفرصة إلى «صفقة رابحة»</span>}
-          </div>
+          {showPoints && (
+            <div style={{ marginTop: '8px' }}>
+              {lead.expected_points > 0
+                ? <span style={{ ...badge, background: '#ECFDF5', color: '#2D9B6F' }}>🎯 تُمنح حتى {lead.expected_points} نقطة عند الفوز</span>
+                : <span style={{ ...badge, background: '#FFFBEB', color: '#E8A838' }}>النقاط تُمنح عند نقل الفرصة إلى «صفقة رابحة»</span>}
+            </div>
+          )}
 
           <div style={secTitle}>④ تذكير التواصل</div>
           <LeadReminders leadId={lead.id} />

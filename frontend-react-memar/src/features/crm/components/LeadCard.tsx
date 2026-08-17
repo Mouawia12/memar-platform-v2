@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { STAGE_COLOR_FALLBACK, type Lead, type Priority } from '../types';
 
 interface Props {
@@ -43,6 +44,8 @@ function Stars({ rating }: { rating: number }) {
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
 export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
+  // النقاط تُخفى عن غير مدير الولاء (المهندس/الموظف يرى الأسعار فقط) — طبق أصل V42 opsIsAdmin.
+  const showPoints = usePermission('loyalty.manage');
   const imp = IMPORTANCE[lead.priority] ?? IMPORTANCE.medium;
   const rating = lead.parent?.internal_rating ?? lead.internal_rating ?? 0;
   const urgent = lead.is_urgent;
@@ -92,18 +95,20 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
               <span key={i} style={{ ...psPrice, ...(accepted && p === accepted ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(p)}</span>
             ))}
           </div>
-          <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-            {priceList.map((p, i) => {
-              const pts = accepted && p === accepted ? lead.expected_points : 0;
-              return <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(pts ? null : psWait) }}>{pts ? `${pts} نقطة` : '—'}</span>;
-            })}
-          </div>
+          {showPoints && (
+            <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
+              {priceList.map((p, i) => {
+                const pts = accepted && p === accepted ? lead.expected_points : 0;
+                return <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(pts ? null : psWait) }}>{pts ? `${pts} نقطة` : '—'}</span>;
+              })}
+            </div>
+          )}
         </div>
       )}
 
       <div style={foot}>
         {rem && <span style={{ ...remBase, ...rem.style }}>{rem.label}</span>}
-        {lead.expected_points > 0 && <span style={{ ...chip, ...chipPoints }}>🎯 حتى {lead.expected_points} نقطة عند الفوز</span>}
+        {showPoints && lead.expected_points > 0 && <span style={{ ...chip, ...chipPoints }}>🎯 حتى {lead.expected_points} نقطة عند الفوز</span>}
         {lead.project_type && <span style={{ ...tag, ...tagArch }}>{lead.project_type}</span>}
         {lead.is_vip && <span style={{ ...tag, ...tagVip }}>⭐ VIP</span>}
       </div>

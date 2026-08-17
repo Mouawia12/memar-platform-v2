@@ -72,6 +72,10 @@
 .app .nav-item .nav-icon { color: #5A6478; opacity: 0.85; }
 .app .nav-item.active .nav-icon, .app .nav-item:hover .nav-icon { color: #1B6CA8; opacity: 1; }
 
+/* بطاقة المستخدم المنسدلة (V42): إبراز صفوف الإجراءات عند المرور. */
+.app .sb-user-card button:hover:not([disabled]) { background: #EEF3F9 !important; }
+.app .sb-user-card > div[role="button"]:hover { background: #F7F9FC; }
+
 /* ── عرض السايدبار 280px كبوابة العميل (دسكتوب فقط، ومع احترام حالة الطي) ── */
 @media (min-width: 992px) {
   .app:not(.sidebar-collapsed) .sidebar { width: 280px !important; min-width: 280px !important; }

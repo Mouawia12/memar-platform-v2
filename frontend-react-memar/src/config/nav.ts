@@ -52,8 +52,11 @@ export function landingPath(u: LandingCtx): string {
  */
 export function visibleNavSections(
   sections: NavSection[],
-  ctx: { permissions?: string[] | null; roles?: string[] | null; dashboard?: string | null },
+  ctx: { permissions?: string[] | null; roles?: string[] | null; dashboard?: string | null; navHidden?: string[] | null },
 ): NavSection[] {
+  // أقسام/عناصر أخفاها الأدمن لدور المستخدم (بمعرّف القسم أو مفتاح العنصر) — طلب أيمن 2026-08-17.
+  const hidden = new Set(ctx.navHidden ?? []);
+
   if (isClientOnly(ctx)) {
     return sections
       .map((s) => ({ ...s, items: s.items.filter((i) => CLIENT_ONLY_NAV_KEYS.has(i.key)) }))
@@ -64,7 +67,8 @@ export function visibleNavSections(
   const allow = (perm?: string) => !perm || (ctx.permissions ?? []).includes(perm);
 
   return sections
-    .map((s) => ({ ...s, items: s.items.filter((i) => allow(i.perm)) }))
+    .filter((s) => !hidden.has(s.id)) // إخفاء القسم كاملًا إن أخفاه الأدمن للدور
+    .map((s) => ({ ...s, items: s.items.filter((i) => allow(i.perm) && !hidden.has(i.key)) }))
     .filter((s) => s.items.length > 0);
 }
 
@@ -81,15 +85,16 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: 'home',
     title: '🏠 الرئيسية',
+    // ترتيب طلب العميل (فيديو 2026-08-17): لوحة التحكم ← المهام ← الاجتماعات ← الطلبات، ثم البقية.
     items: [
       { key: 'dashboard', label: 'لوحة التحكم', icon: '⊞', path: '/dashboard' },
+      { key: 'tasks', label: 'المهام والمتابعة', icon: '✅', path: '/tasks', perm: 'tasks.view' },
+      { key: 'meetings', label: 'الاجتماعات', icon: '📹', path: '/meetings', perm: 'appointments.view' },
+      { key: 'requests', label: 'الطلبات', icon: '📩', path: '/requests', perm: 'requests.view' },
       { key: 'engineer_portal', label: 'بوابة المهندس', icon: '🧑\u200d💼', path: '/engineer-portal' },
       { key: 'client_portal', label: 'بوابة العميل', icon: '🏛️', path: '/client-portal' },
       { key: 'my_projects', label: 'مشاريعي', icon: '🗂️', path: '/my-projects' },
-      { key: 'tasks', label: 'المهام والمتابعة', icon: '✅', path: '/tasks', perm: 'tasks.view' },
-      { key: 'meetings', label: 'الاجتماعات', icon: '📹', path: '/meetings', perm: 'appointments.view' },
       { key: 'forum', label: 'المنتدى', icon: '🗨️', path: '/forum' },
-      { key: 'requests', label: 'الطلبات', icon: '📩', path: '/requests', perm: 'requests.view' },
     ],
   },
   {

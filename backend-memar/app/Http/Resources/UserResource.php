@@ -39,8 +39,36 @@ class UserResource extends JsonResource
             'permissions' => $this->getAllPermissions()->pluck('name'),
             // تفضيلات القائمة الجانبية (المخفي/المطوي) — تُحمَّل عند الدخول لتبقى ثابتة عبر الأجهزة.
             'ui_prefs' => $this->ui_prefs ?? (object) [],
+            // أقسام/عناصر السايدبار المخفية حسب دور المستخدم (يضبطها الأدمن لكل دور) — طلب أيمن 2026-08-17.
+            'role_nav_hidden' => $this->computeRoleNavHidden(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * أقسام/عناصر السايدبار المخفية للمستخدم = المخفية لدى كل أدواره (تقاطع): يظهر العنصر إن أظهره أيّ دور.
+     *
+     * @return array<int, string>
+     */
+    private function computeRoleNavHidden(): array
+    {
+        $lists = $this->resource->roles
+            ->map(fn ($r): array => array_values(array_filter(
+                (array) (($r->getAttribute('settings')['nav_hidden'] ?? [])),
+                'is_string',
+            )))
+            ->all();
+
+        if ($lists === []) {
+            return [];
+        }
+
+        $hidden = array_shift($lists);
+        foreach ($lists as $list) {
+            $hidden = array_intersect($hidden, $list);
+        }
+
+        return array_values($hidden);
     }
 
     /** أعلى نوع لوحة بين أدوار المستخدم (أدمن > موظف > عميل)؛ الافتراضي موظف. */

@@ -32,8 +32,8 @@ import './employeePortal.css';
 interface SbLink { id: string; icon: string; text: string; badge?: string; badgeRed?: boolean; perm?: string }
 
 // ترتيب اجتماع 2026-08-07: نظرة عامة (أعلى) ثم مجموعات دروب-داون قابلة للطي.
-const TOP: SbLink = { id: 'ep-dashboard', icon: '🏠', text: 'نظرة عامة' };
-const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
+export const TOP: SbLink = { id: 'ep-dashboard', icon: '🏠', text: 'نظرة عامة' };
+export const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
   {
     id: 'g-business', icon: '💼', title: 'إدارة الأعمال',
     links: [
@@ -74,7 +74,7 @@ const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
   },
 ];
 // حسابي — بيانات المستخدم الشخصية؛ محكومة بصلاحية self.view (لا تظهر لدور بلا خدمة ذاتية).
-const ACCOUNT: SbLink[] = [
+export const ACCOUNT: SbLink[] = [
   { id: 'ep-profile', icon: '👤', text: 'ملفي الشخصي', perm: 'self.view' },
   { id: 'ep-referral', icon: '🎁', text: 'كود الإحالة', perm: 'self.view' },
 ];
@@ -128,13 +128,19 @@ export function EmployeePortalPage() {
   // لا يظهر إلا «نظرة عامة» (الهبوط) وما مُنح صلاحيته صراحةً؛ حتى شؤونه/حسابه/تواصله محكومة بالصلاحية.
   // fail-closed: إن غابت الصلاحيات (undefined) نعاملها كفارغة فلا يظهر إلا ما لا يحتاج صلاحية.
   const perms = user?.permissions ?? [];
+  // أقسام/عناصر أخفاها الأدمن لدور المستخدم (طلب أيمن 2026-08-17) — بمعرّف المجموعة (g-*) أو العنصر (ep-*).
+  const navHidden = useMemo(() => new Set(user?.role_nav_hidden ?? []), [user?.role_nav_hidden]);
   const permittedGroups = useMemo(
     () => GROUPS
-      .map((g) => ({ ...g, links: g.links.filter((l) => !l.perm || perms.includes(l.perm)) }))
+      .filter((g) => !navHidden.has(g.id))
+      .map((g) => ({ ...g, links: g.links.filter((l) => (!l.perm || perms.includes(l.perm)) && !navHidden.has(l.id)) }))
       .filter((g) => g.links.length > 0),
-    [perms],
+    [perms, navHidden],
   );
-  const permittedAccount = useMemo(() => ACCOUNT.filter((l) => !l.perm || perms.includes(l.perm)), [perms]);
+  const permittedAccount = useMemo(
+    () => (navHidden.has('g-account') ? [] : ACCOUNT.filter((l) => (!l.perm || perms.includes(l.perm)) && !navHidden.has(l.id))),
+    [perms, navHidden],
+  );
 
   // حراسة المحتوى: حتى لو ظهر رابط (نسخة قديمة/حالة حافّة) لا نعرض صفحة لا يملك المستخدم
   // صلاحيتها — نُظهر «لا صلاحية» بدل تحميل الصفحة وفشل بياناتها (طلب أيمن 2026-08-12).
@@ -185,10 +191,12 @@ export function EmployeePortalPage() {
 
         <nav className="ep-sb-nav">
           <div className="ep-sb-section-label">القائمة الرئيسية</div>
-          {/* نظرة عامة — عنصر مفرد أعلى القائمة */}
-          <a className={`ep-sb-link${active === TOP.id ? ' ep-active' : ''}`} onClick={() => go(TOP.id)}>
-            <span className="ep-sb-icon">{TOP.icon}</span><span className="ep-sb-text">{TOP.text}</span>
-          </a>
+          {/* نظرة عامة — عنصر مفرد أعلى القائمة (يُخفى إن أخفاه الأدمن للدور) */}
+          {!navHidden.has(TOP.id) && (
+            <a className={`ep-sb-link${active === TOP.id ? ' ep-active' : ''}`} onClick={() => go(TOP.id)}>
+              <span className="ep-sb-icon">{TOP.icon}</span><span className="ep-sb-text">{TOP.text}</span>
+            </a>
+          )}
 
           {/* مجموعات قابلة للطي (دروب-داون) — مفلترة حسب صلاحيات الموظف */}
           {permittedGroups.map((g) => (
@@ -211,7 +219,7 @@ export function EmployeePortalPage() {
             </div>
           ))}
 
-          {permittedAccount.length > 0 && <div className="ep-sb-section-label">حسابي</div>}
+          {permittedAccount.length > 0 && !navHidden.has('g-account') && <div className="ep-sb-section-label">حسابي</div>}
           {permittedAccount.map((l) => (
             <a key={l.id} className={`ep-sb-link${active === l.id ? ' ep-active' : ''}`} onClick={() => go(l.id)}>
               <span className="ep-sb-icon">{l.icon}</span><span className="ep-sb-text">{l.text}</span>

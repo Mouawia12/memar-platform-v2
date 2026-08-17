@@ -31,6 +31,8 @@ export interface AuthUser {
   /** نوع اللوحة التي يهبط عليها المستخدم حسب دوره: admin | employee | client. */
   dashboard?: 'admin' | 'employee' | 'client';
   ui_prefs?: UiPrefs;
+  /** أقسام/عناصر السايدبار المخفية حسب دور المستخدم (يضبطها الأدمن لكل دور). */
+  role_nav_hidden?: string[];
   /** رقم حساب الموظف الثابت (MEM-YYYY-NNN) — من الباك اند. */
   account_number?: string | null;
   /** كود إحالة الموظف الثابت (MEMAR-…) — من الباك اند. */

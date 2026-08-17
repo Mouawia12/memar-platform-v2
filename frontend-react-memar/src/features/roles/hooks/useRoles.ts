@@ -28,3 +28,12 @@ export function useDeleteRole() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+/** ضبط ظهور أقسام/عناصر السايدبار للدور (طلب أيمن 2026-08-17). */
+export function useSetRoleNav() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, navHidden }: { id: number; navHidden: string[] }) => rolesApi.setNavVisibility(id, navHidden),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}

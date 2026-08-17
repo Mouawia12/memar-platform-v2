@@ -100,12 +100,14 @@ export function Sidebar({ open, onNavigate }: Props) {
   const permissions = useAuthStore((s) => s.user?.permissions);
   const roles = useAuthStore((s) => s.user?.roles);
   const dashboard = useAuthStore((s) => s.user?.dashboard);
+  // أقسام/عناصر أخفاها الأدمن لدور المستخدم (طلب أيمن 2026-08-17) — إخفاء ثابت لا يملك المستخدم إظهاره.
+  const roleNavHidden = useAuthStore((s) => s.user?.role_nav_hidden);
 
   // إظهار العناصر حسب الصلاحية والدور: العميل يرى بوابته فقط (AUTH-1)،
   // وبقية المستخدمين يرون ما يملكون صلاحيته — ويُخفى القسم إذا فرغ.
   const permitted = useMemo(
-    () => visibleNavSections(NAV_SECTIONS, { permissions, roles, dashboard }),
-    [permissions, roles, dashboard],
+    () => visibleNavSections(NAV_SECTIONS, { permissions, roles, dashboard, navHidden: roleNavHidden }),
+    [permissions, roles, dashboard, roleNavHidden],
   );
 
   // الروابط غير المحدَّدة لا تُحذف بعد الآن؛ تبقى ظاهرة لكن معطّلة (باهتة وغير قابلة

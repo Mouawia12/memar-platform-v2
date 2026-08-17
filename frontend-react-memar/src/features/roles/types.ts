@@ -42,6 +42,8 @@ export interface Role {
   modules: string[];
   modules_count: number;
   rbac: RbacSettings;
+  /** أقسام/عناصر السايدبار المخفية لهذا الدور (يضبطها الأدمن). */
+  nav_hidden?: string[];
 }
 
 export interface PermissionItem {

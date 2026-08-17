@@ -16,6 +16,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/roles/permissions', [RoleController::class, 'permissions'])->middleware('permission:users.view');
     Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:users.manage');
     Route::match(['put', 'patch'], '/roles/{role}', [RoleController::class, 'update'])->middleware('permission:users.manage');
+    Route::patch('/roles/{role}/nav-visibility', [RoleController::class, 'navVisibility'])->middleware('permission:users.manage');
     Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:users.manage');
 
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view');

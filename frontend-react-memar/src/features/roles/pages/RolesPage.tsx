@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useState } from 'react';
 
 import { useDeleteRole, usePermissionGroups, useRolesCatalog, useSaveRole } from '../hooks/useRoles';
+import { RoleNavPanel } from '../components/RoleNavPanel';
 import { type DashboardType, type RbacSettings, type Role } from '../types';
 
 /**
@@ -199,6 +200,16 @@ export function RolesPage() {
                   </div>
                 </div>
               </fieldset>
+
+              {/* 6. أقسام القائمة الجانبية — تحكّم لكل دور في ظهور الأقسام/العناصر (طلب أيمن 2026-08-17) */}
+              <div style={{ padding: '0 20px 20px' }}>
+                <div style={sectionBox}>
+                  <div style={sectionTitle}>6. أقسام القائمة الجانبية</div>
+                  <div style={{ padding: '14px' }}>
+                    <RoleNavPanel role={selected} />
+                  </div>
+                </div>
+              </div>
 
               {/* 5. المستخدمون المرتبطون (طبق الأصل — خارج الحقول: للعرض فقط حتى للمدير العام) */}
               <div style={{ padding: '0 20px 20px' }}>

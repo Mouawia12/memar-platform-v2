@@ -147,6 +147,8 @@ class RoleController extends ApiController
                     'modules' => $rbac['modules'],
                     'modules_count' => count($rbac['modules']),
                     'rbac' => $rbac,
+                    // أقسام/عناصر السايدبار المخفية لهذا الدور (يضبطها الأدمن) — طلب أيمن 2026-08-17.
+                    'nav_hidden' => array_values(array_filter((array) ($role->getAttribute('settings')['nav_hidden'] ?? []), 'is_string')),
                 ];
             });
 
@@ -213,12 +215,37 @@ class RoleController extends ApiController
         $role->update(['name' => $data['name']]);
         $role->dashboard = $dashboard;
         if ($data['settings'] !== null) {
-            $role->settings = $data['settings'];
+            $newSettings = $data['settings'];
+            // إعداد ظهور القائمة يُدار من نقطة منفصلة (navVisibility)؛ نحافظ عليه إن لم يُرسَل هنا.
+            $existingNav = $role->getAttribute('settings')['nav_hidden'] ?? null;
+            if (! array_key_exists('nav_hidden', $newSettings) && $existingNav !== null) {
+                $newSettings['nav_hidden'] = $existingNav;
+            }
+            $role->settings = $newSettings;
         }
         $role->save();
         $role->syncPermissions($this->clampPermissions($data['permissions'], $dashboard));
 
         return $this->ok(['id' => $role->id], 'تم تحديث الدور وصلاحياته');
+    }
+
+    /**
+     * ضبط ظهور أقسام/عناصر القائمة الجانبية لهذا الدور (طلب أيمن 2026-08-17):
+     * قائمة مفاتيح مخفية (معرّفات أقسام + مفاتيح عناصر) تُخزَّن في settings.nav_hidden.
+     */
+    public function navVisibility(Request $request, Role $role): JsonResponse
+    {
+        $data = $request->validate([
+            'nav_hidden' => ['present', 'array'],
+            'nav_hidden.*' => ['string', 'max:60'],
+        ]);
+
+        $settings = (array) ($role->getAttribute('settings') ?? []);
+        $settings['nav_hidden'] = array_values(array_unique(array_filter($data['nav_hidden'], 'is_string')));
+        $role->settings = $settings;
+        $role->save();
+
+        return $this->ok(['nav_hidden' => $settings['nav_hidden']], 'تم تحديث ظهور القائمة للدور');
     }
 
     public function destroy(Role $role): JsonResponse

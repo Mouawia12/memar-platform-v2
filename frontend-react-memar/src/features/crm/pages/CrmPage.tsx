@@ -12,7 +12,8 @@ import { CrmBoard } from '../components/CrmBoard';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
-import { useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
+import { TagRequestsPanel } from '../components/TagRequestsPanel';
+import { useCrmTags, useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
 import '../crm.css';
@@ -46,6 +47,7 @@ export function CrmPage() {
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [stagesOpen, setStagesOpen] = useState(false);
+  const [tagsPanelOpen, setTagsPanelOpen] = useState(false);
 
   const { data, isLoading, isError } = useLeads({ search: search || undefined, type: 'lead', per_page: 200 });
   const { data: stages } = usePipelineStages();
@@ -55,6 +57,8 @@ export function CrmPage() {
   const canManage = usePermission('crm.manage');
   const canDelete = usePermission('crm.delete');
   const canLoyalty = usePermission('loyalty.view');
+  const { data: crmTags } = useCrmTags();
+  const pendingTagCount = (crmTags ?? []).filter((t) => t.status === 'pending').length;
 
   const stageList = useMemo(() => [...(stages ?? [])].sort((a, b) => a.position - b.position), [stages]);
   const wonKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won).map((s) => s.key)), [stageList]);
@@ -171,6 +175,11 @@ export function CrmPage() {
           {canManage && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
           {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
           {canManage && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
+          {canManage && (
+            <button className="crm-btn crm-btn-outline" onClick={() => setTagsPanelOpen(true)} type="button">
+              📨 طلبات الاختصارات{pendingTagCount > 0 ? ` (${pendingTagCount})` : ''}
+            </button>
+          )}
           {!exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
         </div>
       </div>
@@ -251,6 +260,7 @@ export function CrmPage() {
       )}
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
       {stagesOpen && <StagesManagerModal stages={stageList} onClose={() => setStagesOpen(false)} />}
+      {tagsPanelOpen && <TagRequestsPanel onClose={() => setTagsPanelOpen(false)} />}
       {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
 
       {/* التوستر — يظهر عند نقل/ترتيب الفرص */}

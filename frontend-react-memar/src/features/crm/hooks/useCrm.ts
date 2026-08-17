@@ -74,6 +74,28 @@ export function useQuickActions() {
   return useQuery({ queryKey: ['quick-actions'], queryFn: () => crmApi.quickActions(), staleTime: 300_000 });
 }
 
+/** كتالوج اختصارات (وسوم) الفرص + طلبات الاعتماد (طبق أصل V42). */
+const TAGS_KEY = ['crm-tags'];
+export function useCrmTags() {
+  return useQuery({ queryKey: TAGS_KEY, queryFn: () => crmApi.tags(), staleTime: 60_000 });
+}
+export function useCreateCrmTag() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (name: string) => crmApi.createTag(name), onSuccess: () => qc.invalidateQueries({ queryKey: TAGS_KEY }) });
+}
+export function useApproveCrmTag() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: number) => crmApi.approveTag(id), onSuccess: () => qc.invalidateQueries({ queryKey: TAGS_KEY }) });
+}
+export function useRejectCrmTag() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: number) => crmApi.rejectTag(id), onSuccess: () => qc.invalidateQueries({ queryKey: TAGS_KEY }) });
+}
+export function useDeleteCrmTag() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: number) => crmApi.deleteTag(id), onSuccess: () => qc.invalidateQueries({ queryKey: TAGS_KEY }) });
+}
+
 /** تسجيل تحديث على الفرصة — يُبطل التايملاين والقائمة (لتحديث حالة العاجل/الموعد فورًا). */
 export function useLogUpdate(id: number) {
   const qc = useQueryClient();

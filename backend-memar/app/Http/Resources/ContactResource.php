@@ -44,6 +44,7 @@ class ContactResource extends JsonResource
             'area_sqm' => $this->area_sqm,
             'region' => $this->region,
             'project_type' => $this->project_type,
+            'tags' => $this->tags ?? [],
             'address' => $this->address,
             'parent_contact_id' => $this->parent_contact_id,
             'welcome_discount_used' => (bool) $this->welcome_discount_used,

@@ -1,7 +1,8 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
-import { useSaveLead } from '../hooks/useCrm';
+import { usePermission } from '../../auth/hooks/usePermission';
+import { useApproveCrmTag, useCreateCrmTag, useCrmTags, useRejectCrmTag, useSaveLead } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import { PRIORITY_META, PRIORITY_ORDER, TEMPERATURE_ORDER, TEMPERATURE_META, type ContactType, type Lead, type LeadFormData, type Priority, type Stage, type Temperature } from '../types';
 
@@ -16,7 +17,7 @@ const empty: LeadFormData = {
   project_name: '', project_details: '',
   priority: 'medium', is_vip: false, is_urgent: false,
   price_1_kwd: '', price_2_kwd: '', price_3_kwd: '', expected_price_kwd: '',
-  area_sqm: '', region: '', project_type: '', address: '', parent_contact_id: '',
+  area_sqm: '', region: '', project_type: '', tags: [], address: '', parent_contact_id: '',
 };
 
 const num = (v: string | null) => (Number(v) ? String(v) : '');
@@ -44,6 +45,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
     price_1_kwd: num(lead.price_1_kwd), price_2_kwd: num(lead.price_2_kwd), price_3_kwd: num(lead.price_3_kwd),
     expected_price_kwd: num(lead.expected_price_kwd),
     area_sqm: num(lead.area_sqm), region: lead.region ?? '', project_type: lead.project_type ?? '',
+    tags: lead.tags ?? [],
     address: lead.address ?? '', parent_contact_id: lead.parent_contact_id ?? '',
   } : empty), [lead]);
 
@@ -173,6 +175,8 @@ export function LeadFormModal({ lead, onClose }: Props) {
           </label>
         </div>
 
+        <TagsSection tags={form.tags} onChange={(t) => set('tags', t)} />
+
         <label style={label}>التصنيف
           <select className="input" style={input} value={form.type} onChange={(e) => set('type', e.target.value as ContactType)}>
             <option value="lead">عميل محتمل</option>
@@ -194,6 +198,83 @@ export function LeadFormModal({ lead, onClose }: Props) {
     </div>
   );
 }
+
+/**
+ * قسم الاختصارات (الوسوم) — طبق أصل V42: تبديل الاختصارات المعتمدة على الفرصة،
+ * وإضافة اختصار جديد (المدير يعتمده مباشرة، وغيره يُرسل طلبًا للإدارة) + صندوق الطلبات المعلّقة.
+ */
+function TagsSection({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
+  const isManager = usePermission('crm.manage');
+  const { data: catalog } = useCrmTags();
+  const createTag = useCreateCrmTag();
+  const approveTag = useApproveCrmTag();
+  const rejectTag = useRejectCrmTag();
+  const [newTag, setNewTag] = useState('');
+
+  const approved = (catalog ?? []).filter((t) => t.status === 'approved');
+  const pending = (catalog ?? []).filter((t) => t.status === 'pending');
+  const toggle = (name: string) => onChange(tags.includes(name) ? tags.filter((t) => t !== name) : [...tags, name]);
+  const add = () => {
+    const name = newTag.trim();
+    if (!name) return;
+    createTag.mutate(name, { onSuccess: (t) => { if (t.status === 'approved') onChange([...new Set([...tags, t.name])]); } });
+    setNewTag('');
+  };
+
+  return (
+    <div style={label}>الاختصارات المهمة (المعتمدة من الإدارة)
+      <div style={tagWrap}>
+        {approved.length === 0 && <span style={{ fontSize: '12px', color: '#94A3B8' }}>لا اختصارات معتمدة بعد.</span>}
+        {approved.map((t) => {
+          const on = tags.includes(t.name);
+          return (
+            <button key={t.id} type="button" onClick={() => toggle(t.name)} style={{ ...tagToggle, ...(on ? tagToggleOn : null) }}>
+              {on ? '✓ ' : '+ '}{t.name}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '8px', alignItems: 'stretch' }}>
+        <input className="input" style={{ ...input, flex: 1 }} value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="اختصار جديد — مثال: حكومي" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} />
+        <button type="button" className="btn" onClick={add} disabled={createTag.isPending} style={{ whiteSpace: 'nowrap' }}>
+          {isManager ? '➕ إضافة الاختصار' : '📨 إرسال طلب للإدارة'}
+        </button>
+      </div>
+      <div style={tagNote}>
+        {isManager
+          ? 'الاختصار الذي تضيفه الإدارة يظهر مباشرة على السيستم.'
+          : 'الاختصار الجديد يُسجَّل باسمك ويُرسل كطلب للإدارة — ولا يظهر إلا بعد اعتماده.'}
+      </div>
+
+      {pending.length > 0 && (
+        <div style={pendingBox}>
+          <div style={pendingTitle}>📨 اختصارات بانتظار اعتماد الإدارة ({pending.length})</div>
+          {pending.map((r) => (
+            <div key={r.id} style={pendingRow}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#92400E' }}>{r.name}</span>
+              <span style={{ fontSize: '10.5px', color: '#A16207', fontWeight: 700 }}>👤 {r.requested_by ?? '—'}</span>
+              {isManager ? (
+                <span style={{ display: 'flex', gap: '6px', marginInlineStart: 'auto' }}>
+                  <button type="button" onClick={() => approveTag.mutate(r.id)} style={{ ...miniBtn, background: '#0F766E', color: '#fff' }}>✔ اعتماد</button>
+                  <button type="button" onClick={() => rejectTag.mutate(r.id)} style={{ ...miniBtn, background: '#FEE2E2', color: '#B91C1C' }}>✕ رفض</button>
+                </span>
+              ) : <span style={{ fontSize: '10.5px', color: '#A16207', fontWeight: 800, marginInlineStart: 'auto' }}>بانتظار الإدارة</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const tagWrap: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' };
+const tagToggle: CSSProperties = { border: '1.5px solid #CBD5E1', background: '#fff', color: '#475569', borderRadius: '999px', padding: '5px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' };
+const tagToggleOn: CSSProperties = { background: '#0369A1', color: '#fff', borderColor: '#0369A1' };
+const tagNote: CSSProperties = { fontSize: '11.5px', color: '#5A6478', background: '#eaeff6', borderRadius: '8px', padding: '7px 10px', lineHeight: 1.6, marginTop: '8px' };
+const pendingBox: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' };
+const pendingTitle: CSSProperties = { fontSize: '11.5px', fontWeight: 900, color: '#8A5A08' };
+const pendingRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#FFFBEB', border: '1px dashed #F59E0B', borderRadius: '10px', padding: '7px 10px' };
+const miniBtn: CSSProperties = { border: 'none', borderRadius: '8px', padding: '4px 9px', fontSize: '10.5px', fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' };
 
 const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', zIndex: 50, padding: '20px' };
 const modal: CSSProperties = { padding: '24px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' };

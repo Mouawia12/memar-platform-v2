@@ -110,6 +110,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         {rem && <span style={{ ...remBase, ...rem.style }}>{rem.label}</span>}
         {showPoints && lead.expected_points > 0 && <span style={{ ...chip, ...chipPoints }}>🎯 حتى {lead.expected_points} نقطة عند الفوز</span>}
         {lead.project_type && <span style={{ ...tag, ...tagArch }}>{lead.project_type}</span>}
+        {(lead.tags ?? []).map((t) => <span key={t} style={{ ...tag, ...tagCrm }}>{t}</span>)}
         {lead.is_vip && <span style={{ ...tag, ...tagVip }}>⭐ VIP</span>}
       </div>
 
@@ -147,6 +148,7 @@ const remToday: CSSProperties = { background: 'rgba(232,168,56,.16)', color: '#B
 const remLate: CSSProperties = { background: 'rgba(220,74,61,.14)', color: '#DC4A3D' };
 const tag: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px' };
 const tagArch: CSSProperties = { background: '#EDE9FE', color: '#7C3AED' };
+const tagCrm: CSSProperties = { background: '#E0F2FE', color: '#0369A1' };
 const tagVip: CSSProperties = { background: 'linear-gradient(90deg,#B45309,#D97706)', color: '#fff' };
 const last: CSSProperties = { fontSize: '10.5px', color: '#64748B', borderTop: '1px dashed #E2E8F0', marginTop: '8px', paddingTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };

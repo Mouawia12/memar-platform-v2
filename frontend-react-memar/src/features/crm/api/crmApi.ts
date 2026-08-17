@@ -28,6 +28,17 @@ export interface OpportunityUpdate {
   created_at: string | null;
 }
 
+/** اختصار (وسم) فرصة — كتالوج + طلب اعتماد (طبق أصل V42). */
+export interface CrmTag {
+  id: number;
+  name: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_by: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  created_at: string | null;
+}
+
 /** اختصار متابعة جاهز يحرّره الأدمن. */
 export interface QuickAction {
   id: number;
@@ -57,6 +68,13 @@ export const crmApi = {
   logUpdate: (id: number, payload: { action_key?: string; note?: string; next_followup_at?: string }) =>
     apiPost<OpportunityUpdate>(`/contacts/${id}/updates`, payload),
   quickActions: () => apiGet<QuickAction[]>('/quick-actions'),
+
+  // اختصارات (وسوم) الفرص + طلبات الاعتماد (طبق أصل V42)
+  tags: () => apiGet<CrmTag[]>('/crm/tags'),
+  createTag: (name: string) => apiPost<CrmTag>('/crm/tags', { name }),
+  approveTag: (id: number) => apiPost<CrmTag>(`/crm/tags/${id}/approve`),
+  rejectTag: (id: number) => apiPost<CrmTag>(`/crm/tags/${id}/reject`),
+  deleteTag: (id: number) => apiDelete<null>(`/crm/tags/${id}`),
 
   // تذكيرات المتابعة (اجتماع 2026-08-05)
   reminders: (id: number) => apiGet<LeadReminder[]>(`/contacts/${id}/reminders`),

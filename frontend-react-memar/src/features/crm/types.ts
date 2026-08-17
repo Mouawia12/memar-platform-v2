@@ -54,6 +54,8 @@ export interface Lead {
   area_sqm: string | null;
   region: string | null;
   project_type: string | null;
+  /** وسوم/اختصارات معتمدة ملصقة على الفرصة (طبق أصل V42). */
+  tags: string[] | null;
   address: string | null;
   parent_contact_id: number | null;
   // ملخّص العميل الأصل حين تكون فرصة لعميل موجود
@@ -95,6 +97,7 @@ export interface LeadFormData {
   area_sqm: string;
   region: string;
   project_type: string;
+  tags: string[];
   address: string;
   parent_contact_id: number | '';
 }

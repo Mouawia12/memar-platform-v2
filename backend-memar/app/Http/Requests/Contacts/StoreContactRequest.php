@@ -56,6 +56,8 @@ class StoreContactRequest extends FormRequest
             'area_sqm' => ['nullable', 'numeric', 'min:0'],
             'region' => ['nullable', 'string', 'max:120'],
             'project_type' => ['nullable', 'string', 'max:60'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],
             'parent_contact_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('contacts', 'id')],
         ];

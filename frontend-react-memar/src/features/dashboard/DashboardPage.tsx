@@ -1,6 +1,7 @@
 import { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useAuthStore } from '../../store/auth';
 import { usePermission } from '../auth/hooks/usePermission';
 import { useAppointments } from '../appointments/hooks/useAppointments';
 import { TYPE_LABELS as APPT_TYPE_LABELS, STATUS_LABELS as APPT_STATUS_LABELS } from '../appointments/types';
@@ -58,10 +59,24 @@ export function DashboardPage() {
   const employeesTotal = employees.data?.meta.total ?? 0;
 
   const today = new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const userName = useAuthStore((s) => s.user?.name)?.split(' ').slice(0, 2).join(' ') ?? 'زميلنا';
+  const greeting = new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير';
 
   return (
     <div>
-      {/* هيرو أخبار الشركة الداخلية (اجتماع 2026-08-05) — أعلى لوحة الموظف */}
+      {/* بنر ترحيبي — بطاقة منفصلة فوق بنر الإعلان (طبق أصل المرجع، طلب أيمن) */}
+      <div style={welcomeBanner}>
+        <div>
+          <div style={welcomeTitle}>{greeting}، {userName} 👋</div>
+          <div style={welcomeSub}>مرحباً بك في لوحة تحكم معمار ERP — {today}</div>
+        </div>
+        <div style={welcomeBtns}>
+          {canTasks && <Link to="/tasks" className="v42-wbtn primary">📋 مهامي</Link>}
+          {canAppts && <Link to="/appointments" className="v42-wbtn outline">📅 مواعيدي</Link>}
+        </div>
+      </div>
+
+      {/* هيرو أخبار الشركة الداخلية (اجتماع 2026-08-05) — بنر منفصل تحت الترحيبي */}
       <InternalNewsHero />
 
       {/* شريط التنبيهات — كل مؤشّر حسب صلاحيته؛ يُخفى الشريط كليًّا إن لم يملك المستخدم شيئًا منه */}
@@ -155,6 +170,10 @@ export function DashboardPage() {
   );
 }
 
+const welcomeBanner: CSSProperties = { background: '#fff', border: '1px solid #E4E8EF', borderRadius: '14px', padding: '18px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap', boxShadow: '0 1px 3px rgba(0,0,0,.05)', marginBottom: '16px' };
+const welcomeTitle: CSSProperties = { fontSize: '22px', fontWeight: 800, color: '#1A1F2E' };
+const welcomeSub: CSSProperties = { fontSize: '13px', color: '#5A6478', marginTop: '4px' };
+const welcomeBtns: CSSProperties = { display: 'flex', gap: '10px', flexWrap: 'wrap' };
 const alertStrip: CSSProperties = { background: '#fff', border: '1px solid #E4E8EF', borderRadius: '12px', padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', boxShadow: '0 1px 3px rgba(0,0,0,.05)', marginBottom: '20px' };
 const boltIcon: CSSProperties = { width: '26px', height: '26px', borderRadius: '8px', background: 'linear-gradient(135deg,#1B6CA8,#2D9B6F)', display: 'grid', placeItems: 'center', fontSize: '14px' };
 const pill: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 600 };

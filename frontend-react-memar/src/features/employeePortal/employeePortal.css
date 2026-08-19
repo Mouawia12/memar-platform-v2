@@ -664,3 +664,146 @@
 .ep-root .ep-sb-group-header { color: #334155 !important; }
 .ep-root .ep-sb-group-header:hover { background: #F1F5F9 !important; color: #1B6CA8 !important; }
 .ep-root .ep-sb-group-arrow { opacity: 0.55 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ترويسة الشعار = طبق أصل شعار سايدبار لوحة الإدارة (.app .sb-logo في
+   staffShell.css + erp-inline.css): نفس المقاسات والتدرّج والظلّ والفاصل
+   المتدرّج، ونفس النصّ («معمار ERP» / «مجموعة معمار للاستشارات») — طلب أيمن.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ep-root .ep-sb-header {
+  padding: 20px 18px !important;
+  border-bottom: 1px solid #EEF2F7 !important;
+  margin-bottom: 4px !important;
+  position: relative !important;
+}
+/* الفاصل المتدرّج أسفل الشعار — نظير .sb-logo::after */
+.ep-root .ep-sb-header::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important; right: 18px !important; left: 18px !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(39,74,120,.2), transparent) !important;
+}
+.ep-root .ep-sb-logo { gap: 12px !important; }
+.ep-root .ep-sb-logo-icon {
+  width: 44px !important; height: 44px !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #1B6CA8 0%, #0D4A7A 100%) !important;
+  box-shadow: 0 4px 12px rgba(27, 108, 168, 0.2) !important;
+  font-size: 20px !important; font-weight: 800 !important;
+  flex-shrink: 0 !important;
+}
+.ep-root .ep-sb-logo-title {
+  font-size: 15px !important; font-weight: 800 !important;
+  color: #1E293B !important; line-height: 1.1 !important;
+}
+.ep-root .ep-sb-logo-sub {
+  font-size: 10.5px !important; font-weight: 500 !important;
+  color: #64748B !important; letter-spacing: .02em !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   «المشاريع الأخيرة» + «المهام العاجلة» — طبق أصل تصميم لوحة الإدارة (Atoms
+   index.html: .proj-card / .proj-meta / .progress-* و .task-item / .task-due).
+   منقولة بأصناف ep- معزولة تحت .ep-root، مربوطة ببيانات الموظف الحيّة. 2026-08-18.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ep-root .ep-rp-grid { display: grid !important; grid-template-columns: 1fr !important; gap: 12px !important; }
+.ep-root .ep-rp-card {
+  background: var(--white) !important; border: 1px solid var(--border) !important;
+  border-radius: var(--r-md) !important; padding: 18px 20px !important;
+  box-shadow: var(--shadow-sm) !important; cursor: pointer !important;
+  position: relative !important; overflow: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.ep-root .ep-rp-card::before {
+  content: '' !important; position: absolute !important; top: 0 !important; right: 0 !important; left: 0 !important;
+  height: 3px !important; background: linear-gradient(90deg, var(--primary), var(--secondary)) !important;
+  transform: scaleX(0) !important; transform-origin: right !important; transition: transform 0.3s ease !important;
+}
+.ep-root .ep-rp-card:hover { box-shadow: var(--shadow-lg) !important; transform: translateY(-3px) !important; border-color: var(--primary) !important; }
+.ep-root .ep-rp-card:hover::before { transform: scaleX(1) !important; }
+.ep-root .ep-rp-head { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; margin-bottom: 12px !important; gap: 10px !important; }
+.ep-root .ep-rp-num { font-size: 11px !important; color: var(--primary) !important; font-weight: 700 !important; background: var(--primary-50) !important; padding: 2px 8px !important; border-radius: 10px !important; display: inline-block !important; margin-bottom: 4px !important; }
+.ep-root .ep-rp-name { font-size: 14px !important; font-weight: 800 !important; color: var(--text-1) !important; margin: 2px 0 !important; }
+.ep-root .ep-rp-type { font-size: 12px !important; color: var(--text-3) !important; }
+.ep-root .ep-rp-meta { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; margin: 12px 0 !important; padding: 12px !important; background: var(--bg) !important; border-radius: var(--r-sm) !important; }
+.ep-root .ep-rp-mlabel { font-size: 10.5px !important; color: var(--text-3) !important; margin-bottom: 2px !important; }
+.ep-root .ep-rp-mvalue { font-size: 12.5px !important; font-weight: 700 !important; color: var(--text-1) !important; }
+.ep-root .ep-rp-bar { height: 7px !important; background: var(--bg-2) !important; border-radius: 10px !important; overflow: hidden !important; margin-top: 10px !important; }
+.ep-root .ep-rp-fill { height: 100% !important; border-radius: 10px !important; transition: width 0.5s ease !important; position: relative !important; }
+.ep-root .ep-rp-fill::after { content: '' !important; position: absolute !important; inset: 0 !important; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%) !important; animation: epShimmerProgress 2s ease infinite !important; }
+@keyframes epShimmerProgress { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.ep-root .ep-rp-fill.ep-blue { background: var(--primary) !important; }
+.ep-root .ep-rp-fill.ep-green { background: var(--success) !important; }
+.ep-root .ep-rp-fill.ep-orange { background: var(--warning) !important; }
+.ep-root .ep-rp-fill.ep-red { background: var(--danger) !important; }
+
+/* المهام العاجلة — بند بحدّ يمينيّ ملوّن + مربّع رمز + شارة استحقاق */
+.ep-root .ep-ut-item {
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  padding: 12px 14px !important; background: var(--bg) !important; border-radius: var(--r-sm) !important;
+  border: 1.5px solid transparent !important; border-right-width: 3px !important;
+  cursor: pointer !important; transition: all 0.2s !important; margin-bottom: 8px !important;
+}
+.ep-root .ep-ut-item:hover { border-color: var(--primary) !important; background: var(--white) !important; box-shadow: var(--shadow-sm) !important; }
+.ep-root .ep-ut-item.ep-c-overdue { border-right-color: var(--danger) !important; }
+.ep-root .ep-ut-item.ep-c-today { border-right-color: var(--warning) !important; }
+.ep-root .ep-ut-item.ep-c-future { border-right-color: var(--success) !important; }
+.ep-root .ep-ut-item.ep-done { border-color: var(--success) !important; background: var(--success-50) !important; opacity: 0.75 !important; }
+.ep-root .ep-ut-item.ep-done .ep-ut-chk { background: var(--success) !important; border-color: var(--success) !important; color: #fff !important; }
+.ep-root .ep-ut-chk { width: 22px !important; height: 22px !important; border-radius: 6px !important; border: 2px solid var(--border) !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 11px !important; flex-shrink: 0 !important; }
+.ep-root .ep-ut-body { flex: 1 !important; min-width: 0 !important; }
+.ep-root .ep-ut-title { font-size: 13px !important; font-weight: 700 !important; color: var(--text-1) !important; }
+.ep-root .ep-ut-sub { font-size: 11px !important; color: var(--text-3) !important; margin-top: 2px !important; }
+.ep-root .ep-ut-due { font-size: 10.5px !important; padding: 3px 8px !important; border-radius: 20px !important; font-weight: 600 !important; white-space: nowrap !important; flex-shrink: 0 !important; }
+.ep-root .ep-ut-due.ep-overdue { background: var(--danger-50) !important; color: var(--danger) !important; }
+.ep-root .ep-ut-due.ep-today { background: var(--warning-50) !important; color: var(--warning) !important; }
+.ep-root .ep-ut-due.ep-future { background: var(--success-50) !important; color: var(--success) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   «📋 إدارة المهام والمتابعة» — تبويبات + كروت مهام موحّدة (طبق أصل لوحة الإدارة
+   Atoms: .dash-task-tabs / .dash-task-card / .dtask-*). أصناف ep- معزولة. 2026-08-18.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ep-root .ep-dtabs { display: flex !important; gap: 6px !important; margin-bottom: 16px !important; padding: 4px !important; background: var(--bg-2) !important; border-radius: 10px !important; flex-wrap: wrap !important; }
+.ep-root .ep-dtab { padding: 8px 16px !important; border-radius: 8px !important; border: none !important; background: transparent !important; font-size: 12px !important; font-weight: 700 !important; color: var(--text-3) !important; cursor: pointer !important; transition: all 0.25s !important; display: flex !important; align-items: center !important; gap: 6px !important; font-family: inherit !important; }
+.ep-root .ep-dtab:hover { background: var(--white) !important; color: var(--text-1) !important; }
+.ep-root .ep-dtab.ep-active { background: var(--primary) !important; color: #fff !important; box-shadow: var(--shadow-sm) !important; }
+.ep-root .ep-tab-count { background: rgba(15,23,42,0.08) !important; padding: 2px 7px !important; border-radius: 10px !important; font-size: 10px !important; font-weight: 700 !important; }
+.ep-root .ep-dtab.ep-active .ep-tab-count { background: rgba(255,255,255,0.3) !important; color: #fff !important; }
+.ep-root .ep-tab-count.ep-red { background: var(--danger) !important; color: #fff !important; }
+.ep-root .ep-tab-count.ep-green { background: var(--success) !important; color: #fff !important; }
+
+.ep-root .ep-dtask-panel { animation: epFadeIn 0.3s ease !important; }
+@keyframes epFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ep-root .ep-dtask-card { display: flex !important; gap: 0 !important; border: 1px solid var(--border) !important; border-radius: 10px !important; margin-bottom: 10px !important; overflow: hidden !important; transition: all 0.25s !important; background: var(--white) !important; cursor: pointer !important; }
+.ep-root .ep-dtask-card:hover { border-color: var(--primary) !important; box-shadow: var(--shadow-sm) !important; transform: translateY(-1px) !important; }
+.ep-root .ep-dtask-card.ep-overdue-card { border-color: var(--danger) !important; background: var(--danger-50) !important; }
+.ep-root .ep-dtask-card.ep-completed-card { opacity: 0.75 !important; }
+.ep-root .ep-dtask-card.ep-completed-card:hover { opacity: 1 !important; }
+.ep-root .ep-dtask-priority { width: 5px !important; flex-shrink: 0 !important; }
+.ep-root .ep-dtask-priority.ep-critical { background: var(--danger) !important; }
+.ep-root .ep-dtask-priority.ep-high { background: var(--warning) !important; }
+.ep-root .ep-dtask-priority.ep-medium { background: var(--primary) !important; }
+.ep-root .ep-dtask-priority.ep-low { background: var(--success) !important; }
+.ep-root .ep-dtask-body { flex: 1 !important; padding: 12px 16px !important; min-width: 0 !important; }
+.ep-root .ep-dtask-header { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 6px !important; }
+.ep-root .ep-dtask-id { font-size: 10px !important; color: var(--text-3) !important; font-weight: 600 !important; font-family: monospace !important; }
+.ep-root .ep-dtask-status { font-size: 10px !important; padding: 3px 8px !important; border-radius: 6px !important; font-weight: 700 !important; white-space: nowrap !important; }
+.ep-root .ep-dtask-status.ep-status-new { background: #E0F2FE !important; color: #0369A1 !important; }
+.ep-root .ep-dtask-status.ep-status-assigned { background: #F3E8FF !important; color: #7C3AED !important; }
+.ep-root .ep-dtask-status.ep-status-progress { background: #DBEAFE !important; color: #1D4ED8 !important; }
+.ep-root .ep-dtask-status.ep-status-waiting { background: #FEF3C7 !important; color: #92400E !important; }
+.ep-root .ep-dtask-status.ep-status-overdue { background: #FEE2E2 !important; color: #DC2626 !important; }
+.ep-root .ep-dtask-status.ep-status-done { background: #DCFCE7 !important; color: #16A34A !important; }
+.ep-root .ep-dtask-title { font-size: 13px !important; font-weight: 700 !important; color: var(--text-1) !important; margin-bottom: 6px !important; }
+.ep-root .ep-dtask-meta { display: flex !important; gap: 12px !important; font-size: 11px !important; color: var(--text-3) !important; flex-wrap: wrap !important; margin-bottom: 8px !important; }
+.ep-root .ep-dtask-progress { display: flex !important; align-items: center !important; gap: 8px !important; }
+.ep-root .ep-dtask-progress-track { flex: 1 !important; height: 5px !important; background: var(--border) !important; border-radius: 3px !important; overflow: hidden !important; }
+.ep-root .ep-dtask-progress-bar { height: 100% !important; background: var(--primary) !important; border-radius: 3px !important; transition: width 0.4s !important; }
+.ep-root .ep-dtask-progress-bar.ep-overdue { background: var(--danger) !important; }
+.ep-root .ep-dtask-progress span { font-size: 10px !important; font-weight: 700 !important; color: var(--text-2) !important; min-width: 30px !important; }
+
+@media (max-width: 640px) {
+  .ep-root .ep-dtabs { flex-direction: column !important; }
+  .ep-root .ep-dtask-meta { flex-direction: column !important; gap: 4px !important; }
+}

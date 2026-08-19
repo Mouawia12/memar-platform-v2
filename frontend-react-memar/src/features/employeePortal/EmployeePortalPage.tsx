@@ -179,8 +179,8 @@ export function EmployeePortalPage() {
           <div className="ep-sb-logo">
             <div className="ep-sb-logo-icon">م</div>
             <div className="ep-sb-logo-text">
-              <div className="ep-sb-logo-title">بوابة الموظف</div>
-              <div className="ep-sb-logo-sub">مجموعة معمار</div>
+              <div className="ep-sb-logo-title">معمار ERP</div>
+              <div className="ep-sb-logo-sub">مجموعة معمار للاستشارات</div>
             </div>
           </div>
         </div>
@@ -233,10 +233,7 @@ export function EmployeePortalPage() {
       <header className="ep-topbar">
         <div className="ep-topbar-right">
           <button className="ep-menu-toggle" onClick={() => setSbOpen((o) => !o)}>☰</button>
-          <div className="ep-topbar-greeting">
-            <span className="ep-greeting-text">صباح الخير، {firstName} 👋</span>
-            <span className="ep-greeting-date">{new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
-          </div>
+          {/* التحيّة نُقلت من التوب-بار إلى بنر مستقلّ تحته (طلب أيمن — طبق أصل V42). */}
         </div>
         <div className="ep-topbar-left">
           <EpNotifBell onSeeAll={() => go('ep-notifications')} />
@@ -248,6 +245,24 @@ export function EmployeePortalPage() {
       {/* ═══ MAIN ═══ */}
       {/* منع تصدير البيانات (CSV/إكسل) من بوابة الموظف — يُخفي كل أزرار التصدير داخلها */}
       <main className="ep-main">
+        {/* بنر التحيّة — يظهر في «نظرة عامة» فقط (طلب أيمن). طبق أصل V42 (dash-welcome). */}
+        {active === 'ep-dashboard' && (
+          <div style={{ background: '#fff', border: '1px solid #E4E8EF', borderRadius: '14px', padding: '16px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#1A1F2E' }}>
+                {new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير'}، {firstName} 👋
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#64748B', marginTop: '4px' }}>
+                مرحباً بك في لوحة تحكم معمار ERP — {new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button type="button" className="v42-wbtn primary" onClick={() => go('ep-tasks')}>📋 مهامي</button>
+              <button type="button" className="v42-wbtn outline" onClick={() => go('ep-appointments')}>📅 مواعيدي</button>
+            </div>
+          </div>
+        )}
+
         <ExportDisabledProvider>
         {!activeAllowed ? <EpNoAccess />
           : active === 'ep-dashboard' ? <EmployeeDashboard onGo={go} />
@@ -258,7 +273,7 @@ export function EmployeePortalPage() {
           // صفحات مشتركة تحمل ترويسة خاصة بها → غلاف مجرّد بلا ترويسة مكرّرة
           : active === 'ep-appointments' ? <Bare><AppointmentsPage /></Bare>
           : active === 'ep-tasks' ? <Bare><TasksPage /></Bare>
-          : active === 'ep-crm' ? <Bare><CrmPage /></Bare>
+          : active === 'ep-crm' ? <Bare><CrmPage hideKpis /></Bare>
           : active === 'ep-projects' ? <Bare><MyProjectsPage /></Bare>
           // السجلات المكتبية العامة (كل المشاريع/العملاء/الشركات)
           : active === 'ep-rec-projects' ? <Bare><ProjectsPage /></Bare>

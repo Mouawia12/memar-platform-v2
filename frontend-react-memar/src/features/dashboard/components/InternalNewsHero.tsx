@@ -4,20 +4,17 @@ import { useInternalNews } from '../hooks/useInternalNews';
 import type { InternalNewsItem } from '../api/internalNewsApi';
 
 /**
- * هيرو «أخبار الشركة الداخلية» — أعلى لوحة الموظف (اجتماع 2026-08-05).
- * كاروسيل بستايل هيرو بوابة العميل (تدرّج أزرق) — قرارات/إعلانات/تنبيهات داخلية.
+ * هيرو «أخبار الشركة الداخلية» — منقول طبق الأصل من مرجع V42 (dash-hero-slider).
+ * لكل نوع تدرّج ولون وأيقونة إيموجي خاصّة، مع نقاط تنقّل وتدوير تلقائي.
  */
-const TYPE_UI: Record<InternalNewsItem['type'], { label: string; icon: string; color: string }> = {
-  decision: { label: 'قرار', icon: 'fa-gavel', color: '#E8A838' },
-  announcement: { label: 'إعلان', icon: 'fa-bullhorn', color: '#2D9B6F' },
-  alert: { label: 'تنبيه', icon: 'fa-triangle-exclamation', color: '#DC4A3D' },
-  update: { label: 'تحديث', icon: 'fa-arrows-rotate', color: '#1B6CA8' },
+const TYPE_UI: Record<InternalNewsItem['type'], { label: string; emoji: string; gradient: string }> = {
+  announcement: { label: '📢 إعلان إداري', emoji: '🚀', gradient: 'linear-gradient(135deg,#1B6CA8,#2d8fd4)' },
+  decision: { label: '📋 تعميم داخلي', emoji: '📣', gradient: 'linear-gradient(135deg,#2D9B6F,#34d399)' },
+  alert: { label: '⚠️ تنبيه تشغيلي', emoji: '⚡', gradient: 'linear-gradient(135deg,#E8A838,#fbbf24)' },
+  update: { label: '🔧 تحديث', emoji: '🔄', gradient: 'linear-gradient(135deg,#4F46E5,#818cf8)' },
 };
 
-const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long' }) : '');
-
-/** تاريخ اليوم — نُقل من شريط الهيدر إلى أسفل يسار البنر (طلب أيمن). */
-const todayLong = new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
 
 export function InternalNewsHero() {
   const { data, isLoading } = useInternalNews();
@@ -41,56 +38,46 @@ export function InternalNewsHero() {
   const ui = TYPE_UI[item.type];
 
   return (
-    <div style={hero} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      <div style={pattern} />
-      <div style={content}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <span style={{ ...badge, background: ui.color }}><i className={`fas ${ui.icon}`} /> {ui.label}</span>
-          <h2 style={title}>{item.title}</h2>
+    <div style={slider} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      {/* key={idx} يُعيد تشغيل حركة الظهور عند كل تبدّل شريحة (طبق أصل V42). */}
+      <div key={idx} style={{ ...slide, background: ui.gradient, animation: 'v42FadeIn .5s ease' }}>
+        <div style={content}>
+          <span style={badge}>{ui.label}</span>
+          <h3 style={h3}>{item.title}</h3>
           {item.body && <p style={body}>{item.body}</p>}
           <div style={metaRow}>
-            {item.date && <span style={meta}><i className="fas fa-clock" /> {fmtDate(item.date)}</span>}
+            {item.date && <span>📅 {fmtDate(item.date)}</span>}
             {item.cta_label && (
               <a href={item.cta_url ?? '#'} style={cta} onClick={(e) => { if (!item.cta_url) e.preventDefault(); }}>
-                {item.cta_label} <i className="fas fa-arrow-left" />
+                {item.cta_label} ←
               </a>
             )}
           </div>
         </div>
-        <div style={heroIcon}><i className={`fas ${ui.icon}`} /></div>
+        <div style={icon}>{ui.emoji}</div>
       </div>
 
       {news.length > 1 && (
-        <div style={controls}>
-          <button type="button" style={navBtn} onClick={() => setIdx((i) => (i - 1 + news.length) % news.length)} aria-label="السابق"><i className="fas fa-chevron-right" /></button>
-          <div style={dots}>
-            {news.map((_, i) => (
-              <button key={i} type="button" onClick={() => setIdx(i)} aria-label={`خبر ${i + 1}`} style={{ ...dot, ...(i === idx ? dotActive : null) }} />
-            ))}
-          </div>
-          <button type="button" style={navBtn} onClick={() => setIdx((i) => (i + 1) % news.length)} aria-label="التالي"><i className="fas fa-chevron-left" /></button>
+        <div style={dots}>
+          {news.map((_, i) => (
+            <span key={i} onClick={() => setIdx(i)} role="button" aria-label={`خبر ${i + 1}`} style={{ ...dot, ...(i === idx ? dotActive : null) }} />
+          ))}
         </div>
       )}
-
-      {/* تاريخ اليوم — أسفل يسار البنر (نُقل من الهيدر) */}
-      <span style={dateBadge}><i className="fas fa-calendar-day" /> {todayLong}</span>
     </div>
   );
 }
 
-const hero: CSSProperties = { position: 'relative', overflow: 'hidden', borderRadius: '16px', background: 'linear-gradient(135deg,#0D4A7A 0%,#1B6CA8 100%)', color: '#fff', padding: '22px 24px 46px', marginBottom: '20px', boxShadow: '0 6px 22px rgba(13,74,122,.22)', minHeight: '150px' };
-const dateBadge: CSSProperties = { position: 'absolute', left: '24px', bottom: '16px', zIndex: 2, fontSize: '12.5px', fontWeight: 600, color: 'rgba(255,255,255,.92)', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.22)', borderRadius: '999px', padding: '5px 13px', display: 'inline-flex', alignItems: 'center', gap: '7px', backdropFilter: 'blur(4px)' };
-const pattern: CSSProperties = { position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 85% 15%, rgba(255,255,255,.10) 0, transparent 45%), radial-gradient(circle at 10% 90%, rgba(232,168,56,.14) 0, transparent 40%)', pointerEvents: 'none' };
-const content: CSSProperties = { position: 'relative', display: 'flex', alignItems: 'center', gap: '18px' };
-const badge: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '999px', color: '#fff' };
-const title: CSSProperties = { margin: '10px 0 6px', fontSize: '21px', fontWeight: 800, lineHeight: 1.4 };
-const body: CSSProperties = { margin: 0, fontSize: '13.5px', color: 'rgba(255,255,255,.85)', lineHeight: 1.8, maxWidth: '680px' };
-const metaRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px', flexWrap: 'wrap' };
-const meta: CSSProperties = { fontSize: '12.5px', color: 'rgba(255,255,255,.8)', display: 'inline-flex', alignItems: 'center', gap: '6px' };
-const cta: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(255,255,255,.16)', color: '#fff', textDecoration: 'none', padding: '7px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: 700 };
-const heroIcon: CSSProperties = { width: '84px', height: '84px', borderRadius: '20px', background: 'rgba(255,255,255,.12)', display: 'grid', placeItems: 'center', fontSize: '34px', flexShrink: 0 };
-const controls: CSSProperties = { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginTop: '14px' };
-const navBtn: CSSProperties = { width: '30px', height: '30px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: '12px' };
-const dots: CSSProperties = { display: 'flex', gap: '7px', alignItems: 'center' };
-const dot: CSSProperties = { width: '8px', height: '8px', borderRadius: '999px', border: 'none', background: 'rgba(255,255,255,.4)', cursor: 'pointer', padding: 0 };
-const dotActive: CSSProperties = { width: '22px', background: '#fff' };
+// أنماط dash-hero طبق الأصل من V42 (style.css).
+const slider: CSSProperties = { position: 'relative', borderRadius: '14px', overflow: 'hidden', marginBottom: '16px', minHeight: '160px' };
+const slide: CSSProperties = { display: 'flex', alignItems: 'center', padding: '28px 30px', color: '#fff', minHeight: '160px', position: 'relative', borderRadius: '14px' };
+const content: CSSProperties = { flex: 1, position: 'relative', zIndex: 1 };
+const badge: CSSProperties = { display: 'inline-block', padding: '4px 12px', borderRadius: '20px', background: 'rgba(255,255,255,0.2)', fontSize: '11px', fontWeight: 700, marginBottom: '10px' };
+const h3: CSSProperties = { fontSize: '18px', fontWeight: 800, margin: '0 0 8px' };
+const body: CSSProperties = { fontSize: '13px', opacity: 0.9, margin: '0 0 10px', lineHeight: 1.6, maxWidth: '680px' };
+const metaRow: CSSProperties = { display: 'flex', gap: '16px', fontSize: '11px', opacity: 0.85, alignItems: 'center', flexWrap: 'wrap' };
+const cta: CSSProperties = { color: '#fff', textDecoration: 'none', fontWeight: 700, background: 'rgba(255,255,255,.18)', padding: '4px 12px', borderRadius: '8px' };
+const icon: CSSProperties = { fontSize: '56px', opacity: 0.3, position: 'absolute', left: '30px', top: '50%', transform: 'translateY(-50%)' };
+const dots: CSSProperties = { position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '8px' };
+const dot: CSSProperties = { width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all .3s' };
+const dotActive: CSSProperties = { background: '#fff', transform: 'scale(1.3)' };

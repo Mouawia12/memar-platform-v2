@@ -11,6 +11,24 @@ body {
   font-family: 'Cairo', 'Inter', system-ui, sans-serif;
 }
 
+/* حركة ظهور شريحة بنر الإعلان — طبق أصل V42 (.dash-hero-slide.active). */
+@keyframes v42FadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* أزرار بنر الترحيب (مهامي/مواعيدي) — طبق أصل V42 (.btn): تأثير رفع + ظل عند المرور. */
+.v42-wbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 10px; padding: 9px 18px;
+  font-size: 13.5px; font-weight: 700; line-height: 1.4;
+  cursor: pointer; border: none; font-family: inherit; text-decoration: none;
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+}
+.v42-wbtn.primary { background: linear-gradient(135deg, #0D4A7A, #1B6CA8); color: #fff; }
+.v42-wbtn.primary:hover { background: linear-gradient(135deg, #0A3E68, #145A8C); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(27, 108, 168, .35); }
+.v42-wbtn.primary:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(27, 108, 168, .3); }
+.v42-wbtn.outline { background: #fff; color: #274A78; border: 1.5px solid #CBD8E8; }
+.v42-wbtn.outline:hover { background: #E3F0FA; border-color: #1B6CA8; transform: translateY(-1px); }
+.v42-wbtn.outline:active { transform: translateY(0); }
+
 /* ═══ هيكل التصفّح-كـ (impersonation): شريط التنبيه مثبّت فوق كل القوالب دون تغطية البيانات ═══ */
 .imp-shell {
   height: 100vh;

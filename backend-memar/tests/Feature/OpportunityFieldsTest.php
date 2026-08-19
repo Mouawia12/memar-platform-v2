@@ -89,4 +89,29 @@ class OpportunityFieldsTest extends TestCase
             'full_name' => 'x', 'type' => 'lead', 'stage' => 'new', 'priority' => 'super',
         ])->assertStatus(422);
     }
+
+    public function test_admin_sets_and_sees_price_points(): void
+    {
+        // المدير (loyalty.manage) يحدّد نقاط كل سعر ويراها في الاستجابة.
+        $this->actingAsUserWith(['crm.manage', 'loyalty.manage']);
+        $lead = Contact::create(['full_name' => 'ع', 'type' => 'lead', 'stage' => 'new', 'price_1_kwd' => 42000, 'price_2_kwd' => 55000]);
+
+        $res = $this->putJson("/api/v1/contacts/{$lead->id}", ['points_1' => 20, 'points_2' => 50])->assertOk();
+
+        $this->assertSame(20, $res->json('data.points_1'));
+        $this->assertSame(50, $res->json('data.points_2'));
+        $this->assertDatabaseHas('contacts', ['id' => $lead->id, 'points_1' => 20, 'points_2' => 50]);
+    }
+
+    public function test_employee_sees_points_but_cannot_set_them(): void
+    {
+        // الموظف (بلا loyalty.manage): يرى نقاطه في الاستجابة، لكن لا يستطيع تعديلها.
+        $this->actingAsUserWith(['crm.manage']);
+        $lead = Contact::create(['full_name' => 'ن', 'type' => 'lead', 'stage' => 'new', 'price_1_kwd' => 42000, 'points_1' => 7]);
+
+        $res = $this->putJson("/api/v1/contacts/{$lead->id}", ['points_1' => 999])->assertOk();
+
+        $this->assertDatabaseHas('contacts', ['id' => $lead->id, 'points_1' => 7]); // لم يتغيّر (تُهمَل محاولته)
+        $this->assertSame(7, $res->json('data.points_1')); // لكنه يراها
+    }
 }

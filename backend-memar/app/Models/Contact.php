@@ -34,6 +34,7 @@ class Contact extends Model
         'internal_rating', 'internal_notes',
         // حقول الفرصة (المرحلة 3)
         'price_1_kwd', 'price_2_kwd', 'price_3_kwd', 'expected_price_kwd', 'expected_points',
+        'points_1', 'points_2', 'points_3',
         'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'project_type', 'tags', 'address', 'parent_contact_id',
         // خصم الترحيب لأول مشروع (المرحلة 5)
         'welcome_discount_used', 'welcome_discount_kwd',
@@ -99,6 +100,9 @@ class Contact extends Model
             'price_3_kwd' => 'decimal:3',
             'expected_price_kwd' => 'decimal:3',
             'expected_points' => 'integer',
+            'points_1' => 'integer',
+            'points_2' => 'integer',
+            'points_3' => 'integer',
             'is_vip' => 'boolean',
             'is_urgent' => 'boolean',
             'area_sqm' => 'decimal:2',

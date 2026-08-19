@@ -51,6 +51,10 @@ export interface Lead {
   price_3_kwd: string | null;
   expected_price_kwd: string | null;
   expected_points: number;
+  // نقاط كل خيار سعر — يحددها المدير؛ يرسلها الخادم للإدارة فقط (loyalty.manage).
+  points_1?: number | null;
+  points_2?: number | null;
+  points_3?: number | null;
   area_sqm: string | null;
   region: string | null;
   project_type: string | null;

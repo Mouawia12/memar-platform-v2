@@ -41,6 +41,11 @@ class ContactResource extends JsonResource
             'price_3_kwd' => $this->price_3_kwd,
             'expected_price_kwd' => $this->expected_price_kwd,
             'expected_points' => (int) $this->expected_points,
+            // نقاط كل خيار سعر — يراها الجميع (الموظف يعرف نقاطه)، لكن تحديدها للإدارة فقط
+            // (loyalty.manage عبر UpdateContactRequest)، وقيمتها بالدينار تُعرض للإدارة في الواجهة فقط.
+            'points_1' => (int) $this->points_1,
+            'points_2' => (int) $this->points_2,
+            'points_3' => (int) $this->points_3,
             'area_sqm' => $this->area_sqm,
             'region' => $this->region,
             'project_type' => $this->project_type,

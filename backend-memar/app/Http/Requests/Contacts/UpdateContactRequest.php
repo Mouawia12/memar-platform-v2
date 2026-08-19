@@ -19,7 +19,17 @@ class UpdateContactRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        // نقاط الأسعار (رينج السعر والنقاط) — يحددها المدير (loyalty.manage) فقط.
+        // لغير المدير لا نُضيف القواعد، فتُهمَل القيم تلقائيًا من validated().
+        $pointsRules = $this->user()?->can('loyalty.manage')
+            ? [
+                'points_1' => ['nullable', 'integer', 'min:0', 'max:100000'],
+                'points_2' => ['nullable', 'integer', 'min:0', 'max:100000'],
+                'points_3' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            ]
+            : [];
+
+        return [...$pointsRules,
             'full_name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],

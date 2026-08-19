@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode, useState } from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -33,6 +33,15 @@ const FIELD_LABELS: Record<string, string> = { stage: 'المرحلة', temperat
 const EVENT_COLOR: Record<string, string> = { created: '#2D9B6F', updated: '#1B6CA8', deleted: '#DC4A3D' };
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const money = (v: string | number) => `${Number(v).toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`;
+// قيمة النقطة بالدينار للإدارة (طبق أصل V42: 10 د.ك لكل 100 نقطة) — الموظف يرى العدد فقط.
+const KD_PER_POINT = 0.1;
+const pointsKd = (pts: number) => `${Math.round(pts * KD_PER_POINT * 100) / 100} د.ك`;
+// مفاتيح خيارات السعر الثلاثة ونقاطها المقابلة.
+const PRICE_KEYS = [
+  { price: 'price_1_kwd', pts: 'points_1', name: 'السعر 1' },
+  { price: 'price_2_kwd', pts: 'points_2', name: 'السعر 2' },
+  { price: 'price_3_kwd', pts: 'points_3', name: 'السعر 3' },
+] as const;
 
 /** تفاصيل الفرصة — طبق أصل نافذة «🎯 تفاصيل الفرصة» من معمار customer portal (أقسام مرقّمة). */
 export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
@@ -45,6 +54,18 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
     mutationFn: (p: { internal_rating: number; internal_notes: string }) => crmApi.update(lead.id, p),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['crm-leads'] }),
   });
+
+  // محرّر «تحديد نقاط الأسعار» — للإدارة فقط.
+  const [ptsOpen, setPtsOpen] = useState(false);
+  const [ptsForm, setPtsForm] = useState({ points_1: '', points_2: '', points_3: '' });
+  const savePoints = useMutation({
+    mutationFn: (p: { points_1: number; points_2: number; points_3: number }) => crmApi.update(lead.id, p),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['crm-leads'] }); setPtsOpen(false); },
+  });
+  const openPtsEditor = () => {
+    setPtsForm({ points_1: String(lead.points_1 ?? ''), points_2: String(lead.points_2 ?? ''), points_3: String(lead.points_3 ?? '') });
+    setPtsOpen(true);
+  };
   const rows = data?.data ?? [];
   const imp = IMPORTANCE[lead.priority] ?? IMPORTANCE.medium;
   const rating = lead.parent?.internal_rating ?? lead.internal_rating ?? 0;
@@ -60,8 +81,10 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
     return v;
   };
 
-  const tiers = [lead.price_1_kwd, lead.price_2_kwd, lead.price_3_kwd].filter((v): v is string => !!v && Number(v) > 0);
-  const priceList = tiers.length ? tiers : (lead.expected_price_kwd && Number(lead.expected_price_kwd) > 0 ? [lead.expected_price_kwd] : []);
+  // صفوف رينج السعر — كل خيار له قيمة موجبة، مع نقاطه (يراها المدير فقط).
+  const priceRows = PRICE_KEYS
+    .map((r) => ({ ...r, value: lead[r.price], points: lead[r.pts] ?? 0 }))
+    .filter((r) => r.value != null && Number(r.value) > 0);
 
   return (
     <div className="crm-scope" style={overlay} onClick={onClose}>
@@ -95,27 +118,57 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
           </div>
           {lead.notes && <div style={noteBox}><div style={dlabel}>ملاحظات وتفاصيل المشروع</div><div style={{ fontSize: '13px', lineHeight: 1.7 }}>{lead.notes}</div></div>}
 
-          <div style={secTitle}>③ {showPoints ? 'رينج السعر والنقاط' : 'رينج السعر'}</div>
-          {priceList.length > 0 ? (
-            <div style={priceStrip}>
-              <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-                {priceList.map((p, i) => <span key={i} style={{ ...psPrice, ...(lead.expected_price_kwd && p === lead.expected_price_kwd ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(p)}</span>)}
-              </div>
-              {showPoints && (
-                <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-                  {priceList.map((p, i) => {
-                    const pts = lead.expected_price_kwd && p === lead.expected_price_kwd ? lead.expected_points : 0;
-                    return <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(pts ? null : { color: '#B47612' }) }}>{pts ? `${pts} نقطة` : '—'}</span>;
-                  })}
-                </div>
-              )}
-            </div>
+          <div style={secTitle}>③ رينج السعر والنقاط</div>
+          {priceRows.length > 0 ? (
+            <table style={ptTable}>
+              <thead>
+                <tr>
+                  <th style={{ ...ptTh, textAlign: 'right' }}>الخيار</th>
+                  <th style={ptTh}>القيمة</th>
+                  <th style={ptTh}>النقاط</th>
+                </tr>
+              </thead>
+              <tbody>
+                {priceRows.map((r) => {
+                  const accepted = !!lead.expected_price_kwd && Number(r.value) === Number(lead.expected_price_kwd);
+                  return (
+                    <tr key={r.pts}>
+                      <td style={ptTdName}><b>{r.name}</b>{accepted && <span style={acceptedBadge}>السعر المعتمد</span>}</td>
+                      <td style={ptTd}>{money(r.value!)}</td>
+                      <td style={ptTd}>
+                        {/* الموظف يرى عدد النقاط فقط؛ الإدارة (loyalty.manage) ترى قيمتها بالدينار أيضًا. */}
+                        {r.points > 0
+                          ? <span style={ptsPill}>● {r.points} نقطة{showPoints ? ` — ${pointsKd(r.points)}` : ''}</span>
+                          : <span style={waitPill}>بانتظار المدير</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           ) : <div style={{ ...noteBox, fontSize: '12.5px', color: '#94A3B8' }}>لم تُحدَّد الأسعار بعد.</div>}
-          {showPoints && (
-            <div style={{ marginTop: '8px' }}>
-              {lead.expected_points > 0
-                ? <span style={{ ...badge, background: '#ECFDF5', color: '#2D9B6F' }}>🎯 تُمنح حتى {lead.expected_points} نقطة عند الفوز</span>
-                : <span style={{ ...badge, background: '#FFFBEB', color: '#E8A838' }}>النقاط تُمنح عند نقل الفرصة إلى «صفقة رابحة»</span>}
+
+          {/* الملاحظة تظهر للجميع؛ زر تحديد النقاط للإدارة (loyalty.manage) فقط. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+            {showPoints && <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" onClick={openPtsEditor}>🏆 تحديد نقاط الأسعار (الإدارة)</button>}
+            <span style={{ flex: 1 }} />
+            <span style={{ ...badge, background: '#FFFBEB', color: '#E8A838' }}>تُمنح النقاط عند نقل الفرصة إلى «صفقة رابحة»</span>
+          </div>
+          {showPoints && ptsOpen && (
+            <div style={{ ...noteBox, display: 'grid', gap: '10px', marginTop: '10px' }}>
+              <div style={{ fontSize: '12px', color: '#64748B' }}>حدِّد نقاط كل سعر — الموظف يرى العدد فقط، والإدارة ترى قيمتها بالدينار.</div>
+              {(priceRows.length ? priceRows : PRICE_KEYS.map((r) => ({ ...r, value: lead[r.price], points: 0 }))).map((r) => (
+                <label key={r.pts} style={ptsEditRow}>
+                  <span style={{ minWidth: '58px', fontWeight: 700 }}>{r.name}</span>
+                  <span style={{ color: '#94A3B8', fontSize: '12px' }}>{r.value != null && Number(r.value) > 0 ? money(r.value) : '—'}</span>
+                  <span style={{ flex: 1 }} />
+                  <input type="number" min={0} value={ptsForm[r.pts]} onChange={(e) => setPtsForm((f) => ({ ...f, [r.pts]: e.target.value }))} style={ptsInput} placeholder="نقاط" />
+                </label>
+              ))}
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button className="crm-btn crm-btn-outline crm-btn-sm" type="button" onClick={() => setPtsOpen(false)}>إلغاء</button>
+                <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" disabled={savePoints.isPending} onClick={() => savePoints.mutate({ points_1: Number(ptsForm.points_1) || 0, points_2: Number(ptsForm.points_2) || 0, points_3: Number(ptsForm.points_3) || 0 })}>{savePoints.isPending ? 'جارٍ الحفظ…' : 'حفظ النقاط'}</button>
+              </div>
             </div>
           )}
 
@@ -214,12 +267,15 @@ const urgentNote: CSSProperties = { background: '#FEF2F2', border: '1px solid #F
 const badge: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 700 };
 const chipsRow: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' };
 const chip: CSSProperties = { padding: '5px 12px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, color: '#5A6478' };
-const priceStrip: CSSProperties = { border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC', marginTop: '4px' };
-const psRow: CSSProperties = { display: 'grid' };
-const psPrice: CSSProperties = { textAlign: 'center', padding: '7px 4px', fontSize: '12px', fontWeight: 800, borderInlineStart: '1px solid #E2E8F0', color: '#2D9B6F', background: '#fff' };
-const psPt: CSSProperties = { textAlign: 'center', padding: '5px 4px', fontSize: '11px', fontWeight: 700, borderInlineStart: '1px solid #E2E8F0', borderTop: '1px solid #E2E8F0', color: '#7C3AED' };
-const psFirst: CSSProperties = { borderInlineStart: 'none' };
-const psOn: CSSProperties = { background: 'rgba(45,155,111,.14)' };
+const ptTable: CSSProperties = { width: '100%', borderCollapse: 'collapse', marginTop: '4px', border: '1px solid #E2E8F0', borderRadius: '10px', overflow: 'hidden' };
+const ptTh: CSSProperties = { background: '#F1F5F9', color: '#64748B', fontSize: '11.5px', fontWeight: 800, padding: '11px 14px', textAlign: 'center' };
+const ptTd: CSSProperties = { padding: '14px', textAlign: 'center', fontSize: '13.5px', fontWeight: 700, color: '#1E293B', borderTop: '1px solid #EEF2F7' };
+const ptTdName: CSSProperties = { padding: '14px', textAlign: 'right', fontSize: '14px', fontWeight: 800, color: '#1E293B', borderTop: '1px solid #EEF2F7', whiteSpace: 'nowrap' };
+const ptsPill: CSSProperties = { display: 'inline-block', background: '#F3EEFF', color: '#7C3AED', fontSize: '11.5px', fontWeight: 800, padding: '6px 14px', borderRadius: '999px', whiteSpace: 'nowrap' };
+const waitPill: CSSProperties = { display: 'inline-block', background: '#FFFBEB', color: '#E8A838', fontSize: '11.5px', fontWeight: 700, padding: '6px 14px', borderRadius: '999px', whiteSpace: 'nowrap' };
+const acceptedBadge: CSSProperties = { display: 'inline-block', background: '#ECFDF5', color: '#2D9B6F', fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '999px', marginInlineStart: '6px' };
+const ptsEditRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px' };
+const ptsInput: CSSProperties = { width: '96px', padding: '7px 9px', border: '1px solid #CBD5E1', borderRadius: '8px', fontFamily: 'inherit', fontSize: '12.5px' };
 const actionsBar: CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center', paddingTop: '14px', marginTop: '8px', borderTop: '1px solid #E2E8F0', flexWrap: 'wrap' };
 const line: CSSProperties = { position: 'absolute', insetInlineStart: '4px', top: '6px', bottom: '6px', width: '2px', background: '#E2E8F0' };
 const item: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '8px 0', position: 'relative' };

@@ -26,7 +26,7 @@ import '../crm.css';
  * فلاتر، ثم لوحة الأعمدة (طلب أيمن 2026-08-17). ميزاتنا محفوظة: فتح/غلق الفرص،
  * السحب، الترتيب ▲▼، تخصيص المراحل، تحويل الفرصة الرابحة لمشروع.
  */
-export function CrmPage() {
+export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
@@ -80,8 +80,11 @@ export function CrmPage() {
     const stageName = stageList.find((s) => s.key === stage)?.label ?? stage;
     move.mutate({ id: l.id, stage }, { onSuccess: () => {
       showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
-      // احتفال (Confetti + صوت) عند نقل الفرصة إلى «صفقة رابحة» — طبق أصل V42 celebrate.
+      // صوت عند نقل الفرصة لعمود آخر (طلب العميل): احتفال للرابحة، نغمة خسارة للمغلقة،
+      // ونغمة نقل عادية لبقية الأعمدة — كلها تحترم مفتاح الصوت (SoundToggle).
       if (wonKeys.has(stage)) celebrate('فرصة رابحة! 🎉', `مبروك — ${l.full_name}`);
+      else if (terminalKeys.has(stage)) playSound('late');
+      else playSound('notification');
     } });
   };
 
@@ -201,19 +204,21 @@ export function CrmPage() {
         </div>
       </div>
 
-      {/* ── المؤشّرات الستة ── */}
-      <div style={kpiGrid}>
-        {KPIS.map((k) => (
-          <div key={k.label} className="crm-kpi-card" style={kpiCard}>
-            <div style={{ ...kpiIcon, ...ICON_BG[k.color] }}>{k.icon}</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={kpiLabel}>{k.label}</div>
-              <div style={kpiValue}>{k.value.toLocaleString('ar')}</div>
-              <div style={kpiSub}>{k.sub}</div>
+      {/* ── المؤشّرات الستة ── (مخفيّة في بوابة الموظف — طلب أيمن 2026-08-18) */}
+      {!hideKpis && (
+        <div style={kpiGrid}>
+          {KPIS.map((k) => (
+            <div key={k.label} className="crm-kpi-card" style={kpiCard}>
+              <div style={{ ...kpiIcon, ...ICON_BG[k.color] }}>{k.icon}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={kpiLabel}>{k.label}</div>
+                <div style={kpiValue}>{k.value.toLocaleString('ar')}</div>
+                <div style={kpiSub}>{k.sub}</div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* ── تنبيه الفرص المتأخرة ── */}
       {dueLeads.length > 0 && (

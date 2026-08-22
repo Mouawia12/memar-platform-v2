@@ -15,7 +15,6 @@ import { LeadFormModal } from '../components/LeadFormModal';
 import { PointsSettingsModal } from '../components/PointsSettingsModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
 import { TagRequestsPanel } from '../components/TagRequestsPanel';
-import { SoundToggle } from '../components/SoundToggle';
 import { celebrate, playSound } from '../opsNotify';
 import { useCrmTags, useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
@@ -91,7 +90,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     move.mutate({ id: l.id, stage }, { onSuccess: () => {
       showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
       // صوت عند نقل الفرصة لعمود آخر (طلب العميل): احتفال للرابحة، نغمة خسارة للمغلقة،
-      // ونغمة نقل عادية لبقية الأعمدة — كلها تحترم مفتاح الصوت (SoundToggle).
+      // ونغمة نقل عادية لبقية الأعمدة — الصوت مفعّل دائمًا بلا مفتاح إيقاف.
       if (wonKeys.has(stage)) celebrate('فرصة رابحة! 🎉', `مبروك — ${l.full_name}`);
       else if (terminalKeys.has(stage)) playSound('late');
       else playSound('notification');
@@ -215,7 +214,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
             </button>
           )}
           {canDelete && !exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
-          <SoundToggle />
         </div>
       </div>
 

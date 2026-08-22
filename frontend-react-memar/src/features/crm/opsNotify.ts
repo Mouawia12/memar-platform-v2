@@ -1,9 +1,8 @@
 /* نظام التنبيهات الصوتية والاحتفال — طبق أصل V42 ops-notify.js.
    • نغمات مولّدة عبر WebAudio (بدون ملفات صوت خارجية).
    • احتفال (Confetti + بانر) عند الفرصة الرابحة.
-   • مفتاح تشغيل/إيقاف الصوت محفوظ في localStorage. */
-
-const SOUND_KEY = 'memar_sound_enabled';
+   • الصوت مفعّل دائمًا لجميع الموظفين (طلب أيمن 2026-08-22) — لا مفتاح إيقاف،
+     وأي تفضيل إيقاف قديم في localStorage يُتجاهل. */
 
 /** نغمات كل حالة: [تردد Hz, مدة ثانية] لكل نوتة. */
 const TONES: Record<string, [number, number][]> = {
@@ -20,23 +19,6 @@ const TONES: Record<string, [number, number][]> = {
 let audioCtx: AudioContext | null = null;
 const lastPlayed: Record<string, number> = {};
 
-export function isSoundEnabled(): boolean {
-  try {
-    return localStorage.getItem(SOUND_KEY) !== '0';
-  } catch {
-    return true;
-  }
-}
-
-export function toggleSound(): boolean {
-  const next = !isSoundEnabled();
-  try {
-    localStorage.setItem(SOUND_KEY, next ? '1' : '0');
-  } catch { /* ignore */ }
-  if (next) playSound('success');
-  return next;
-}
-
 function ensureCtx(): AudioContext | null {
   if (audioCtx) return audioCtx;
   const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -49,9 +31,19 @@ function ensureCtx(): AudioContext | null {
   return audioCtx;
 }
 
+// سياسة المتصفحات تمنع الصوت قبل أول تفاعل من المستخدم. وبما أن الصوت صار مفعّلًا
+// دائمًا، نفكّ قفل سياق الصوت عند أول نقرة/ضغطة مفتاح فتُسمع التنبيهات اللاحقة كلها.
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    const ctx = ensureCtx();
+    if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
+  };
+  window.addEventListener('pointerdown', unlock, { once: true });
+  window.addEventListener('keydown', unlock, { once: true });
+}
+
 /** تشغيل نغمة تنبيه حسب النوع، مع throttle اختياري لمنع التكرار السريع. */
 export function playSound(type: string, options: { throttleMs?: number } = {}): void {
-  if (!isSoundEnabled()) return;
   const tones = TONES[type] || TONES.notification;
   const throttle = Number(options.throttleMs || 0);
   const now = Date.now();

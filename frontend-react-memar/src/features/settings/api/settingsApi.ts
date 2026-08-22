@@ -9,6 +9,8 @@ export interface CrmSettings {
     unit_kwd?: number;
     suggested: { price_1: number; price_2: number; price_3: number };
   };
+  /** تكرار نغمة جرس الفرصة العاجلة بالدقائق (0 = مرّة واحدة). */
+  alerts: { urgent_repeat_minutes: number };
   finance_privacy: { hide_totals_from_staff: boolean };
 }
 
@@ -28,5 +30,6 @@ export const settingsApi = {
 /** القيم الافتراضية — تُستخدم قبل وصول الإعدادات أو لمن لا يملك صلاحية قراءتها. */
 export const CRM_SETTINGS_FALLBACK: CrmSettings = {
   points: { enabled: true, unit_points: 100, unit_kwd: 10, suggested: { price_1: 10, price_2: 20, price_3: 50 } },
+  alerts: { urgent_repeat_minutes: 30 },
   finance_privacy: { hide_totals_from_staff: true },
 };

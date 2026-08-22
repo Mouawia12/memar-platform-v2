@@ -11,6 +11,11 @@ const TONES: Record<string, [number, number][]> = {
   delay: [[440, 0.18], [392, 0.22]],
   late: [[330, 0.2], [294, 0.2], [247, 0.3]],
   urgent: [[988, 0.1], [0, 0.06], [988, 0.1], [0, 0.06], [988, 0.16]],
+  // جرس الفرصة العاجلة — نغمة خاصة به وحده (طلب أيمن 2026-08-22): رنّة مزدوجة
+  // صاعدة تتكرّر، مميّزة عن نغمة urgent القصيرة وعن بقية التنبيهات.
+  urgentBell: [[1318, 0.14], [1046, 0.12], [0, 0.05], [1318, 0.14], [1046, 0.12], [0, 0.07], [1568, 0.34]],
+  // نقل كرت الفرصة بين الأعمدة — نغمة قصيرة صاعدة خاصة بالنقل وحده.
+  move: [[587, 0.07], [784, 0.07], [1046, 0.1]],
   success: [[659, 0.12], [880, 0.2]],
   error: [[311, 0.16], [233, 0.26]],
   reminder: [[784, 0.12], [988, 0.12], [784, 0.16]],
@@ -89,6 +94,10 @@ function ensureCelebrationStyles(): void {
   @keyframes crmWinPop { to { transform:translate(-50%,-50%) scale(1); } }
   @keyframes crmWinSpin { 0%,100%{ transform:rotate(-9deg) } 50%{ transform:rotate(9deg) scale(1.1) } }
   .crm-win-banner.cwb-out { animation: crmWinOut .45s ease forwards; }
+  .crm-balloon { position:absolute; bottom:-150px; width:42px; height:53px; border-radius:50% 50% 47% 47%; opacity:0; box-shadow: inset -7px -9px 14px rgba(0,0,0,.13); animation: crmBalloonRise ease-in forwards; }
+  .crm-balloon::before { content:''; position:absolute; top:9px; left:9px; width:11px; height:15px; border-radius:50%; background:rgba(255,255,255,.42); }
+  .crm-balloon::after { content:''; position:absolute; left:50%; top:100%; width:1.5px; height:46px; background:rgba(148,163,184,.6); transform:translateX(-50%); }
+  @keyframes crmBalloonRise { 0% { transform:translate(0,0) rotate(-5deg); opacity:0; } 10% { opacity:.96; } 100% { transform:translate(var(--sway,18px),-122vh) rotate(5deg); opacity:.9; } }
   @keyframes crmWinOut { to { opacity:0; transform:translate(-50%,-90%) scale(.85); } }
   `;
   document.head.appendChild(style);
@@ -111,15 +120,37 @@ export function celebrate(title?: string, subtitle?: string): void {
     piece.style.height = `${10 + Math.random() * 11}px`;
     layer.appendChild(piece);
   }
+  // بالونات تصعد مع القصاصات (طلب أيمن 2026-08-22) — تفاعل الفوز بالصفقة.
+  for (let i = 0; i < 14; i += 1) {
+    const balloon = document.createElement('div');
+    balloon.className = 'crm-balloon';
+    balloon.style.left = `${4 + Math.random() * 90}%`;
+    balloon.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    balloon.style.animationDuration = `${3.4 + Math.random() * 2.2}s`;
+    balloon.style.animationDelay = `${Math.random() * 1.1}s`;
+    balloon.style.setProperty('--sway', `${Math.random() * 60 - 30}px`);
+    const scale = 0.75 + Math.random() * 0.7;
+    balloon.style.width = `${42 * scale}px`;
+    balloon.style.height = `${53 * scale}px`;
+    layer.appendChild(balloon);
+  }
   document.body.appendChild(layer);
 
+  // نصّ البانر عبر textContent لا innerHTML — الاسم يأتي من بيانات العميل.
   const banner = document.createElement('div');
   banner.className = 'crm-win-banner';
-  banner.innerHTML = '<span class="cwb-icon">🏆</span>'
-    + `<div class="cwb-title">${title || 'فرصة رابحة!'}</div>`
-    + `<div class="cwb-sub">${subtitle || 'مبروك — تم نقل الفرصة إلى «صفقة رابحة»'}</div>`;
+  const icon = document.createElement('span');
+  icon.className = 'cwb-icon';
+  icon.textContent = '🏆';
+  const ttl = document.createElement('div');
+  ttl.className = 'cwb-title';
+  ttl.textContent = title || 'مبروك الصفقة! 🎉';
+  const sub = document.createElement('div');
+  sub.className = 'cwb-sub';
+  sub.textContent = subtitle || 'تم نقل الفرصة إلى «صفقة رابحة»';
+  banner.append(icon, ttl, sub);
   document.body.appendChild(banner);
 
   setTimeout(() => { banner.classList.add('cwb-out'); setTimeout(() => banner.remove(), 480); }, 2600);
-  setTimeout(() => layer.remove(), 4200);
+  setTimeout(() => layer.remove(), 6200);
 }

@@ -67,6 +67,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   // خصوصية الأرقام المالية (إعدادات النقاط): الإجماليات تُخفى عن غير الإدارة إن فُعّلت.
   const { settings: crmSettings } = useCrmSettings();
   const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
+  const urgentRepeatMinutes = crmSettings.alerts?.urgent_repeat_minutes ?? 30;
 
   const stageList = useMemo(() => [...(stages ?? [])].sort((a, b) => a.position - b.position), [stages]);
   const wonKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won).map((s) => s.key)), [stageList]);
@@ -85,11 +86,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     const stageName = stageList.find((s) => s.key === stage)?.label ?? stage;
     move.mutate({ id: l.id, stage }, { onSuccess: () => {
       showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
-      // صوت عند نقل الفرصة لعمود آخر (طلب العميل): احتفال للرابحة، نغمة خسارة للمغلقة،
-      // ونغمة نقل عادية لبقية الأعمدة — الصوت مفعّل دائمًا بلا مفتاح إيقاف.
-      if (wonKeys.has(stage)) celebrate('فرصة رابحة! 🎉', `مبروك — ${l.full_name}`);
+      // صوت عند نقل الفرصة لعمود آخر: احتفال ببالونات للرابحة، نغمة خسارة للمغلقة،
+      // ونغمة «move» الخاصة بالنقل لبقية الأعمدة — الصوت مفعّل دائمًا بلا مفتاح إيقاف.
+      if (wonKeys.has(stage)) celebrate('مبروك الصفقة! 🎉', `تم الفوز بالفرصة — ${l.full_name}`);
       else if (terminalKeys.has(stage)) playSound('late');
-      else playSound('notification');
+      else playSound('move');
     } });
   };
 
@@ -175,10 +176,17 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
   // صوت تنبيه عند وجود فرص عاجلة/مستحقّة (throttle دقيقة) — طبق أصل V42 playSound.
   useEffect(() => {
-    if (dueLeads.length > 0 || urgentCount > 0) {
-      playSound(urgentCount > 0 ? 'urgent' : 'reminder', { throttleMs: 60_000 });
-    }
-  }, [dueLeads.length, urgentCount]);
+    if (dueLeads.length === 0 && urgentCount === 0) return;
+
+    // رنّة فورية عند فتح اللوحة أو ظهور فرصة عاجلة.
+    playSound(urgentCount > 0 ? 'urgentBell' : 'reminder', { throttleMs: 60_000 });
+
+    // ثم تتكرّر نغمة الجرس ما دامت هناك فرصة عاجلة، كل urgent_repeat_minutes
+    // (نصف ساعة افتراضًا) — طلب أيمن 2026-08-22.
+    if (urgentCount === 0 || urgentRepeatMinutes <= 0) return;
+    const id = window.setInterval(() => playSound('urgentBell'), urgentRepeatMinutes * 60_000);
+    return () => window.clearInterval(id);
+  }, [dueLeads.length, urgentCount, urgentRepeatMinutes]);
 
   const KPIS: { icon: string; color: keyof typeof ICON_BG; label: string; value: number; sub: ReactNode }[] = [
     { icon: '👥', color: 'blue', label: 'إجمالي العملاء المحتملين', value: kpi.total, sub: <><span style={up}>↑ {kpi.monthPct}%</span> هذا الشهر</> },

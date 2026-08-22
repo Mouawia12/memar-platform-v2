@@ -34,6 +34,10 @@ const EDGE_ZONE = 96;
 const EDGE_SLACK = 40;   // يبقى التمرير عاملًا لو تجاوز المؤشّر الحافة قليلًا
 const EDGE_MIN_STEP = 6;
 const EDGE_MAX_STEP = 26;
+// المحور الرأسي داخل العمود: منطقة أضيق وخطوة أهدأ لأن العمود أقصر من عرض اللوحة.
+const EDGE_ZONE_Y = 64;
+const EDGE_MIN_STEP_Y = 4;
+const EDGE_MAX_STEP_Y = 18;
 
 /** فلترة الفترة داخل العمود المكبّر — طبق أصل OPS_RANGES + opsInRange. */
 const RANGES: { key: string; label: string }[] = [
@@ -233,58 +237,92 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
   useEffect(() => () => { if (hoverRef.current) window.clearInterval(hoverRef.current); }, []);
 
   /**
-   * تمرير تلقائي عند اقتراب المؤشّر من حافّة اللوحة يمينًا أو يسارًا (طلب أيمن
-   * 2026-08-22) — لا يلزم إصابة سهم التنقّل بدقّة، وكلما اقترب المؤشّر من الحافة
-   * زادت السرعة. يستمع على window فيعمل أثناء سحب الكرت أيضًا (طبقة السحب
-   * تلتقط أحداث المؤشّر فلا تصل للّوحة نفسها).
+   * تمرير تلقائي عند اقتراب المؤشّر من الحواف (طلب أيمن 2026-08-22):
+   *  • أفقيًا — حافّتا اللوحة تحرّكان الأعمدة يمينًا/يسارًا.
+   *  • رأسيًا — أعلى/أسفل العمود الذي يقف فوقه المؤشّر يحرّك قائمة فرصه.
+   * كلما اقترب المؤشّر من الحافة زادت السرعة. الاستماع على window ليعمل أثناء
+   * سحب الكرت أيضًا (طبقة السحب تلتقط أحداث المؤشّر فلا تصل للعناصر تحتها).
    */
   const edgeStep = useRef(0);
   const edgeTimer = useRef<number | null>(null);
+  const vStep = useRef(0);
+  const vTarget = useRef<HTMLDivElement | null>(null);
+  const vTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    const stop = () => {
+    const stopH = () => {
       edgeStep.current = 0;
       if (edgeTimer.current) { window.clearInterval(edgeTimer.current); edgeTimer.current = null; }
+    };
+    const stopV = () => {
+      vStep.current = 0;
+      vTarget.current = null;
+      if (vTimer.current) { window.clearInterval(vTimer.current); vTimer.current = null; }
+    };
+    const stopAll = () => { stopH(); stopV(); };
+
+    /** الاتجاه والسرعة من بُعد المؤشّر عن حافّتين متقابلتين. */
+    const edgeVelocity = (fromStart: number, fromEnd: number, zone: number, min: number, max: number) => {
+      if (fromStart > -EDGE_SLACK && fromStart < zone) {
+        return -(min + (1 - Math.max(0, fromStart) / zone) * (max - min));
+      }
+      if (fromEnd > -EDGE_SLACK && fromEnd < zone) {
+        return min + (1 - Math.max(0, fromEnd) / zone) * (max - min);
+      }
+      return 0;
     };
 
     const onPointerMove = (e: PointerEvent) => {
       const b = boardRef.current;
-      // العمود المكبَّر يملأ العرض فلا تمرير أفقي فيه.
-      if (!b || maxStage) { stop(); return; }
+      if (!b) { stopAll(); return; }
       const r = b.getBoundingClientRect();
-      if (e.clientY < r.top || e.clientY > r.bottom) { stop(); return; }
+      const insideBoard = e.clientY >= r.top && e.clientY <= r.bottom && e.clientX >= r.left - EDGE_SLACK && e.clientX <= r.right + EDGE_SLACK;
+      if (!insideBoard) { stopAll(); return; }
 
-      const fromLeft = e.clientX - r.left;
-      const fromRight = r.right - e.clientX;
-      let dir = 0;
-      let nearness = 0;
-      if (fromLeft > -EDGE_SLACK && fromLeft < EDGE_ZONE) {
-        dir = -1;
-        nearness = 1 - Math.max(0, fromLeft) / EDGE_ZONE;
-      } else if (fromRight > -EDGE_SLACK && fromRight < EDGE_ZONE) {
-        dir = 1;
-        nearness = 1 - Math.max(0, fromRight) / EDGE_ZONE;
+      // ── أفقي: حافّتا اللوحة (معطَّل في وضع العمود المكبَّر لأنه يملأ العرض) ──
+      const hv = maxStage ? 0 : edgeVelocity(e.clientX - r.left, r.right - e.clientX, EDGE_ZONE, EDGE_MIN_STEP, EDGE_MAX_STEP);
+      if (hv === 0) stopH();
+      else {
+        // scrollBy أفقي فيزيائي — يعمل في RTL وLTR سواء (لا يحتاج قلب الاتجاه).
+        edgeStep.current = hv;
+        if (!edgeTimer.current) {
+          // onScroll على اللوحة يحدّث الأسهم تلقائيًا، فلا نستدعي syncArrows هنا.
+          edgeTimer.current = window.setInterval(() => {
+            const el = boardRef.current;
+            if (el && edgeStep.current !== 0) el.scrollBy({ left: edgeStep.current });
+          }, 16);
+        }
       }
-      if (!dir) { stop(); return; }
 
-      // scrollBy أفقي فيزيائي — يعمل في RTL وLTR سواء (لا يحتاج قلب الاتجاه).
-      edgeStep.current = dir * (EDGE_MIN_STEP + nearness * (EDGE_MAX_STEP - EDGE_MIN_STEP));
-      if (edgeTimer.current) return;
-      // onScroll على اللوحة يحدّث الأسهم تلقائيًا، فلا نستدعي syncArrows هنا.
-      edgeTimer.current = window.setInterval(() => {
-        const el = boardRef.current;
-        if (el && edgeStep.current !== 0) el.scrollBy({ left: edgeStep.current });
-      }, 16);
+      // ── رأسي: جسم العمود الذي يقف فوقه المؤشّر، وفقط إن كان قابلًا للتمرير ──
+      const body = Object.values(bodyRefs.current).find((el) => {
+        if (!el) return false;
+        const q = el.getBoundingClientRect();
+        return e.clientX >= q.left && e.clientX <= q.right && e.clientY >= q.top && e.clientY <= q.bottom;
+      });
+      if (!body || body.scrollHeight - body.clientHeight <= 8) { stopV(); return; }
+
+      const q = body.getBoundingClientRect();
+      const vv = edgeVelocity(e.clientY - q.top, q.bottom - e.clientY, EDGE_ZONE_Y, EDGE_MIN_STEP_Y, EDGE_MAX_STEP_Y);
+      if (vv === 0) { stopV(); return; }
+      vStep.current = vv;
+      vTarget.current = body;
+      if (!vTimer.current) {
+        vTimer.current = window.setInterval(() => {
+          const el = vTarget.current;
+          if (el && vStep.current !== 0) el.scrollBy({ top: vStep.current });
+        }, 16);
+      }
     };
 
     window.addEventListener('pointermove', onPointerMove, { passive: true });
-    window.addEventListener('pointerleave', stop);
-    window.addEventListener('blur', stop);
+    window.addEventListener('pointerleave', stopAll);
+    window.addEventListener('blur', stopAll);
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerleave', stop);
-      window.removeEventListener('blur', stop);
-      stop();
+      window.removeEventListener('pointerleave', stopAll);
+      window.removeEventListener('blur', stopAll);
+      stopAll();
     };
   }, [maxStage]);
 

@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     // مراحل مسار الفرص (أعمدة اللوحة) — قابلة للتعديل والإضافة من الأدمن
+    // عدّاد الفرص العاجلة لتنبيه الجرس في كل الصفحات
+    Route::get('/crm/urgent-count', [ContactController::class, 'urgentCount'])->middleware('permission:crm.view');
     Route::get('/pipeline-stages', [PipelineStageController::class, 'index'])->middleware('permission:crm.view');
     // تخصيص المراحل = للمدير فقط (crm.delete)؛ الموظف يملك crm.manage لكن ليس crm.delete — طلب العميل.
     Route::post('/pipeline-stages', [PipelineStageController::class, 'store'])->middleware('permission:crm.delete');

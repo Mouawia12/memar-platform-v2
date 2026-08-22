@@ -75,6 +75,23 @@ class ContactController extends ApiController
         return $this->ok(null, 'تم تحديث الترتيب');
     }
 
+    /**
+     * عدّاد خفيف للفرص العاجلة/المستحقّة — يستدعيه تنبيه الجرس في كل صفحات النظام
+     * (طلب أيمن 2026-08-22) بدل جلب قائمة الفرص كاملة لمجرّد معرفة العدد.
+     */
+    public function urgentCount(): JsonResponse
+    {
+        $urgent = Contact::query()->where('type', 'lead')->where('is_urgent', true)->count();
+
+        $due = LeadReminder::query()
+            ->where('done', false)
+            ->where('remind_at', '<=', now())
+            ->whereHas('contact', fn ($q) => $q->where('type', 'lead'))
+            ->count();
+
+        return $this->ok(['urgent' => $urgent, 'due' => $due]);
+    }
+
     // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───
 
     /** تذكيرات الفرصة (الأحدث أولًا). */

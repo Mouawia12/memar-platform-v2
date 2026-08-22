@@ -16,7 +16,7 @@ import { LeadFormModal } from '../components/LeadFormModal';
 import { PointsSettingsModal } from '../components/PointsSettingsModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
 import { celebrate, playSound } from '../opsNotify';
-import { useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
+import { useCrmTags, useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
 import '../crm.css';
@@ -65,6 +65,10 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const canLoyalty = usePermission('loyalty.view');
   // إعدادات النقاط والاختصارات للإدارة فقط (نفس صلاحية مسار /settings).
   const canManagePoints = usePermission('loyalty.manage');
+  // عدّاد طلبات الاختصارات المعلّقة على زر الإعدادات — الاستعلام نفسه الذي
+  // تستعمله الكروت، فلا طلب إضافي (نقطة الاطّلاع العامة للإدارة).
+  const { data: crmTags } = useCrmTags();
+  const pendingTagCount = (crmTags ?? []).filter((t) => t.status === 'pending').length;
   // خصوصية الأرقام المالية (إعدادات النقاط): الإجماليات تُخفى عن غير الإدارة إن فُعّلت.
   const { settings: crmSettings } = useCrmSettings();
   const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
@@ -203,7 +207,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {canCreate && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
-          {canManagePoints && <button className="crm-btn crm-btn-outline" onClick={() => setPointsSettingsOpen(true)} type="button">⚙️ إعدادات النقاط</button>}
+          {canManagePoints && (
+            <button className="crm-btn crm-btn-outline" onClick={() => setPointsSettingsOpen(true)} type="button">
+              ⚙️ إعدادات النقاط{pendingTagCount > 0 ? <span style={pendingDot}>📨 {pendingTagCount}</span> : null}
+            </button>
+          )}
           {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
           {/* «المدير» = من يملك crm.delete (الموظف يملك crm.manage لكن ليس crm.delete) — طلب العميل:
               تخصيص المراحل واعتماد الاختصارات للمدير فقط، ولا تظهر للموظف. */}
@@ -337,6 +345,8 @@ const alertTitle: CSSProperties = { fontSize: '12.5px', fontWeight: 900, color: 
 const alertBody: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' };
 const alertChip: CSSProperties = { background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: '20px', padding: '3px 10px', fontSize: '10.5px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
 const alertSub: CSSProperties = { fontSize: '10.5px', color: '#8A5A08', marginTop: '6px', fontWeight: 700 };
+// عدّاد طلبات الاختصارات المعلّقة على زر الإعدادات.
+const pendingDot: CSSProperties = { marginInlineStart: '6px', background: '#FFFBEB', color: '#B45309', border: '1px solid #F59E0B', borderRadius: '999px', padding: '1px 7px', fontSize: '10.5px', fontWeight: 900 };
 const filtersRow: CSSProperties = { display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' };
 const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: 'center', flexWrap: 'wrap' };
 const scopeBtn: CSSProperties = { padding: '8px 18px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer' };

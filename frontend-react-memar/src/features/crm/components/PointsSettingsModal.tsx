@@ -2,7 +2,7 @@ import { type CSSProperties, type FormEvent, type ReactNode, useEffect, useState
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useCrmSettings, useSaveCrmSettings } from '../../settings/hooks/useSettings';
-import { useCreateCrmTag, useCrmTags, useUpdateCrmTag } from '../hooks/useCrm';
+import { useApproveCrmTag, useCreateCrmTag, useCrmTags, useRejectCrmTag, useUpdateCrmTag } from '../hooks/useCrm';
 import { tagColor } from '../types';
 
 /**
@@ -16,6 +16,8 @@ export function PointsSettingsModal({ onClose }: { onClose: () => void }) {
   const { data: tags } = useCrmTags();
   const updateTag = useUpdateCrmTag();
   const createTag = useCreateCrmTag();
+  const approveTag = useApproveCrmTag();
+  const rejectTag = useRejectCrmTag();
 
   const [enabled, setEnabled] = useState('1');
   const [unitPoints, setUnitPoints] = useState('100');
@@ -51,6 +53,8 @@ export function PointsSettingsModal({ onClose }: { onClose: () => void }) {
   };
 
   const approved = (tags ?? []).filter((t) => t.status === 'approved');
+  // طلبات الموظفين المعلّقة — مكان الإدارة العام لملاحظتها واعتمادها.
+  const pending = (tags ?? []).filter((t) => t.status === 'pending');
   const addTag = () => {
     const name = newTag.trim();
     if (!name) return;
@@ -114,7 +118,22 @@ export function PointsSettingsModal({ onClose }: { onClose: () => void }) {
           </Section>
 
           {/* ── ③ الاختصارات وألوانها ── */}
-          <Section n="③" title="الاختصارات وألوانها">
+          <Section n="③" title={<>الاختصارات وألوانها{pending.length > 0 && <span style={pendingBadge}>📨 {pending.length} بانتظار الاعتماد</span>}</>}>
+            {pending.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                {pending.map((r) => (
+                  <div key={r.id} style={pendingRow}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#92400E' }}>{r.name}</span>
+                    <span style={{ fontSize: '10.5px', color: '#A16207', fontWeight: 700 }}>👤 {r.requested_by ?? '—'}</span>
+                    <span style={{ fontSize: '10.5px', color: '#A16207' }}>{r.created_at ?? ''}</span>
+                    <span style={{ display: 'flex', gap: '6px', marginInlineStart: 'auto' }}>
+                      <button type="button" onClick={() => approveTag.mutate(r.id)} style={{ ...miniBtn, background: '#0F766E', color: '#fff' }}>✔ اعتماد</button>
+                      <button type="button" onClick={() => rejectTag.mutate(r.id)} style={{ ...miniBtn, background: '#FEE2E2', color: '#B91C1C' }}>✕ رفض</button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             {approved.length === 0 && <div style={noteBox}>لا اختصارات معتمدة بعد.</div>}
             {approved.map((t, i) => {
               const c = t.color ?? tagColor(t.name);
@@ -163,7 +182,7 @@ export function PointsSettingsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Section({ n, title, children }: { n: string; title: string; children: ReactNode }) {
+function Section({ n, title, children }: { n: string; title: ReactNode; children: ReactNode }) {
   return (
     <div style={sectionCard}>
       <div style={secTitle}>{n} {title}</div>
@@ -195,6 +214,9 @@ const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(aut
 const label: CSSProperties = { display: 'block', marginTop: '4px', fontSize: '12.5px', fontWeight: 700, color: '#334155' };
 const input: CSSProperties = { width: '100%', marginTop: '5px' };
 const noteBox: CSSProperties = { fontSize: '11.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '8px 11px', marginTop: '10px', lineHeight: 1.6 };
+const pendingBadge: CSSProperties = { marginInlineStart: '8px', background: '#FFFBEB', color: '#B45309', border: '1px solid #F59E0B', borderRadius: '999px', padding: '2px 9px', fontSize: '10.5px', fontWeight: 900 };
+const pendingRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#FFFBEB', border: '1px dashed #F59E0B', borderRadius: '10px', padding: '8px 11px' };
+const miniBtn: CSSProperties = { border: 'none', borderRadius: '8px', padding: '5px 10px', fontSize: '10.5px', fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' };
 const footer: CSSProperties = { display: 'flex', gap: '8px', padding: '14px 22px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px', flexShrink: 0 };
 const colorRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', marginTop: '5px' };
 const colorInput: CSSProperties = { width: '52px', height: '34px', padding: '2px', border: '1px solid #CBD5E1', borderRadius: '8px', background: '#fff', cursor: 'pointer' };

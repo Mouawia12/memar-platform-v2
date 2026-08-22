@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCreateCrmTag } from '../hooks/useCrm';
-import { STAGE_COLOR_FALLBACK, type Lead, type Priority } from '../types';
+import { STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
 
 interface Props {
   lead: Lead;
@@ -128,7 +128,11 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         {rem && <span style={{ ...remBase, ...rem.style }}>{rem.label}</span>}
         {showPoints && lead.expected_points > 0 && <span style={{ ...chip, ...chipPoints }}>🎯 حتى {lead.expected_points} نقطة عند الفوز</span>}
         {lead.project_type && <span style={{ ...tag, ...tagArch }}>{lead.project_type}</span>}
-        {(lead.tags ?? []).map((t) => <span key={t} style={{ ...tag, ...tagCrm }}>{t}</span>)}
+        {/* كل اختصار بلونه — نفس ألوان نموذج الفرصة (tagColor)، بخلفية مخفّفة لتبقى مقروءة على الكرت. */}
+        {(lead.tags ?? []).map((t) => {
+          const c = tagColor(t);
+          return <span key={t} style={{ ...tag, background: `${c}1A`, color: c, border: `1px solid ${c}59` }}>{t}</span>;
+        })}
         {lead.is_vip && <span style={{ ...tag, ...tagVip }}>⭐ VIP</span>}
         {/* طلب اختصار من داخل الكرت (طلب العميل) */}
         <button
@@ -189,7 +193,6 @@ const remToday: CSSProperties = { background: 'rgba(232,168,56,.16)', color: '#B
 const remLate: CSSProperties = { background: 'rgba(220,74,61,.14)', color: '#DC4A3D' };
 const tag: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px' };
 const tagArch: CSSProperties = { background: '#EDE9FE', color: '#7C3AED' };
-const tagCrm: CSSProperties = { background: '#E0F2FE', color: '#0369A1' };
 const tagVip: CSSProperties = { background: 'linear-gradient(90deg,#B45309,#D97706)', color: '#fff' };
 // طلب اختصار من داخل الكرت
 const tagAddBtn: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '20px', border: '1px dashed #93C5FD', background: '#F0F7FF', color: '#0369A1', cursor: 'pointer', fontFamily: 'inherit', lineHeight: 1.4 };

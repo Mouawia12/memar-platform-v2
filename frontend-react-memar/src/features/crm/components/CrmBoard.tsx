@@ -29,6 +29,12 @@ interface Props {
 
 const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
 
+// منطقة التمرير التلقائي عند حافّتي اللوحة (بكسل)، ومقدار الخطوة في كل إطار.
+const EDGE_ZONE = 96;
+const EDGE_SLACK = 40;   // يبقى التمرير عاملًا لو تجاوز المؤشّر الحافة قليلًا
+const EDGE_MIN_STEP = 6;
+const EDGE_MAX_STEP = 26;
+
 /** فلترة الفترة داخل العمود المكبّر — طبق أصل OPS_RANGES + opsInRange. */
 const RANGES: { key: string; label: string }[] = [
   { key: 'all', label: 'الكل' }, { key: 'day', label: 'اليوم' },
@@ -225,6 +231,62 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
     if (hoverRef.current) { window.clearInterval(hoverRef.current); hoverRef.current = null; }
   };
   useEffect(() => () => { if (hoverRef.current) window.clearInterval(hoverRef.current); }, []);
+
+  /**
+   * تمرير تلقائي عند اقتراب المؤشّر من حافّة اللوحة يمينًا أو يسارًا (طلب أيمن
+   * 2026-08-22) — لا يلزم إصابة سهم التنقّل بدقّة، وكلما اقترب المؤشّر من الحافة
+   * زادت السرعة. يستمع على window فيعمل أثناء سحب الكرت أيضًا (طبقة السحب
+   * تلتقط أحداث المؤشّر فلا تصل للّوحة نفسها).
+   */
+  const edgeStep = useRef(0);
+  const edgeTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    const stop = () => {
+      edgeStep.current = 0;
+      if (edgeTimer.current) { window.clearInterval(edgeTimer.current); edgeTimer.current = null; }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      const b = boardRef.current;
+      // العمود المكبَّر يملأ العرض فلا تمرير أفقي فيه.
+      if (!b || maxStage) { stop(); return; }
+      const r = b.getBoundingClientRect();
+      if (e.clientY < r.top || e.clientY > r.bottom) { stop(); return; }
+
+      const fromLeft = e.clientX - r.left;
+      const fromRight = r.right - e.clientX;
+      let dir = 0;
+      let nearness = 0;
+      if (fromLeft > -EDGE_SLACK && fromLeft < EDGE_ZONE) {
+        dir = -1;
+        nearness = 1 - Math.max(0, fromLeft) / EDGE_ZONE;
+      } else if (fromRight > -EDGE_SLACK && fromRight < EDGE_ZONE) {
+        dir = 1;
+        nearness = 1 - Math.max(0, fromRight) / EDGE_ZONE;
+      }
+      if (!dir) { stop(); return; }
+
+      // scrollBy أفقي فيزيائي — يعمل في RTL وLTR سواء (لا يحتاج قلب الاتجاه).
+      edgeStep.current = dir * (EDGE_MIN_STEP + nearness * (EDGE_MAX_STEP - EDGE_MIN_STEP));
+      if (edgeTimer.current) return;
+      // onScroll على اللوحة يحدّث الأسهم تلقائيًا، فلا نستدعي syncArrows هنا.
+      edgeTimer.current = window.setInterval(() => {
+        const el = boardRef.current;
+        if (el && edgeStep.current !== 0) el.scrollBy({ left: edgeStep.current });
+      }, 16);
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerleave', stop);
+    window.addEventListener('blur', stop);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerleave', stop);
+      window.removeEventListener('blur', stop);
+      stop();
+    };
+  }, [maxStage]);
 
   const moveInColumn = (colLeads: Lead[], index: number, dir: -1 | 1) => {
     const target = index + dir;

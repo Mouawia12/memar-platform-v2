@@ -43,6 +43,8 @@ export interface Lead {
   owner: { id: number; name: string } | null;
   // أقرب تذكير معلّق + هل حان وقته (لتنبيه الكرت) — اجتماع 2026-08-05
   reminder: { id: number; remind_at: string | null; note: string | null; due: boolean } | null;
+  /** آخر تحديث سجّله الموظف على الفرصة — يظهر أسفل الكرت. */
+  last_update: { note: string | null; user: string | null; at: string | null } | null;
   // تقييم داخلي خاص بالفريق (اجتماع 2026-08-05)
   internal_rating: number | null;
   internal_notes: string | null;

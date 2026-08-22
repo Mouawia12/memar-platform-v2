@@ -32,7 +32,8 @@ function reminderState(iso: string | null, due: boolean): { label: string; style
   const d = new Date(iso);
   const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const diff = Math.round((startOfDay(d) - startOfDay(new Date())) / 86_400_000);
-  const date = d.toLocaleDateString('ar', { day: 'numeric', month: 'short' });
+  // التاريخ بصيغة YYYY-MM-DD كما في تصميم الكرت (لا «21 أغسطس»).
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   if (diff < 0 || due) return { label: `🚨 تواصل متأخر ${Math.abs(diff)} يوم (${date})`, style: remLate };
   if (diff === 0) return { label: '🔔 يحتاج تواصل اليوم', style: remToday };
   return { label: `⏰ تواصل بعد ${diff} يوم (${date})`, style: diff <= 3 ? remSoon : remOk };
@@ -45,8 +46,6 @@ function Stars({ rating }: { rating: number }) {
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
 export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
-  // النقاط تُخفى عن غير مدير الولاء (المهندس/الموظف يرى الأسعار فقط) — طبق أصل V42 opsIsAdmin.
-  const showPoints = usePermission('loyalty.manage');
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
   const createTag = useCreateCrmTag();
@@ -71,14 +70,30 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
   const urgent = lead.is_urgent;
   const rem = reminderState(lead.reminder?.remind_at ?? null, !!lead.reminder?.due);
 
-  // شريط الأسعار: الطبقات الثلاث (أو المتوقّع) وتحت السعر المعتمَد نقاطه.
-  const tiers = [lead.price_1_kwd, lead.price_2_kwd, lead.price_3_kwd].filter((v): v is string => !!v && Number(v) > 0);
-  const priceList = tiers.length ? tiers : (lead.expected_price_kwd && Number(lead.expected_price_kwd) > 0 ? [lead.expected_price_kwd] : []);
+  // شريط الأسعار: كل سعر ونقاطه الخاصّة تحته (points_1/2/3) — والموظف يرى العدد
+  // كالإدارة، فالمحجوب عنه قيمته بالدينار لا عدده (خصوصية الأرقام المالية).
+  const tiers = [
+    { price: lead.price_1_kwd, points: lead.points_1 ?? 0 },
+    { price: lead.price_2_kwd, points: lead.points_2 ?? 0 },
+    { price: lead.price_3_kwd, points: lead.points_3 ?? 0 },
+  ].filter((t) => !!t.price && Number(t.price) > 0);
+  const priceList = tiers.length
+    ? tiers
+    : (lead.expected_price_kwd && Number(lead.expected_price_kwd) > 0
+      ? [{ price: lead.expected_price_kwd, points: lead.expected_points ?? 0 }]
+      : []);
   const accepted = lead.expected_price_kwd;
+  const anyPoints = priceList.some((t) => t.points > 0);
+  // «VIP» قد يكون اختصارًا مُسندًا وقد يكون علَم is_vip — نعرضه مرّة واحدة بلون الاختصار.
+  const vipChip = lead.is_vip && !(lead.tags ?? []).includes('VIP');
+  const vipColor = tagCatalog?.find((x) => x.name === 'VIP')?.color ?? tagColor('VIP');
 
+  // سطر المشروع طبق التصميم: الاسم — المنطقة · قطعة · قسيمة · المساحة
   const service = [
     lead.effective_project_name ?? lead.project_name ?? lead.project_type ?? 'فرصة',
     lead.region ? `— ${lead.region}` : '',
+    lead.block_no ? `· قطعة ${lead.block_no}` : '',
+    lead.plot_no ? `· قسيمة ${lead.plot_no}` : '',
     lead.area_sqm && Number(lead.area_sqm) > 0 ? `· ${Number(lead.area_sqm).toLocaleString('ar')} م²` : '',
   ].filter(Boolean).join(' ');
 
@@ -111,31 +126,35 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       {priceList.length > 0 && (
         <div style={priceStrip}>
           <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-            {priceList.map((p, i) => (
-              <span key={i} style={{ ...psPrice, ...(accepted && p === accepted ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(p)}</span>
+            {priceList.map((t, i) => (
+              <span key={i} style={{ ...psPrice, ...(accepted && t.price === accepted ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(t.price!)}</span>
             ))}
           </div>
-          {showPoints && (
-            <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-              {priceList.map((p, i) => {
-                const pts = accepted && p === accepted ? lead.expected_points : 0;
-                return <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(pts ? null : psWait) }}>{pts ? `${pts} نقطة` : '—'}</span>;
-              })}
-            </div>
-          )}
+          <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
+            {priceList.map((t, i) => (
+              <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(t.points > 0 ? null : psWait) }}>
+                {t.points > 0 ? `${t.points} نقطة` : 'بانتظار النقاط'}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
       <div style={foot}>
         {rem && <span style={{ ...remBase, ...rem.style }}>{rem.label}</span>}
-        {showPoints && lead.expected_points > 0 && <span style={{ ...chip, ...chipPoints }}>🎯 حتى {lead.expected_points} نقطة عند الفوز</span>}
-        {lead.project_type && <span style={{ ...tag, ...tagArch }}>{lead.project_type}</span>}
-        {/* كل اختصار بلونه — نفس ألوان نموذج الفرصة (tagColor)، بخلفية مخفّفة لتبقى مقروءة على الكرت. */}
+        {/* حالة النقاط: عددها عند تحديدها، وإلا «بانتظار تحديد المدير» كما في التصميم. */}
+        {priceList.length > 0 && (anyPoints
+          ? <span style={{ ...chip, ...chipPoints }}>🎯 حتى {Math.max(...priceList.map((t) => t.points))} نقطة عند الفوز</span>
+          : <span style={{ ...chip, ...chipWait }}>⏳ نقاط بانتظار تحديد المدير</span>)}
+      </div>
+
+      <div style={foot}>
+        {/* الاختصارات بشكل مفرّغ بلونها — نفس شرائح نموذج الفرصة. */}
+        {vipChip && <span style={{ ...tag, ...tagOutline, borderColor: vipColor, color: vipColor }}>VIP</span>}
         {(lead.tags ?? []).map((t) => {
           const c = tagCatalog?.find((x) => x.name === t)?.color ?? tagColor(t);
-          return <span key={t} style={{ ...tag, background: `${c}1A`, color: c, border: `1px solid ${c}59` }}>{t}</span>;
+          return <span key={t} style={{ ...tag, ...tagOutline, borderColor: c, color: c }}>{t}</span>;
         })}
-        {lead.is_vip && <span style={{ ...tag, ...tagVip }}>⭐ VIP</span>}
         {/* طلب اختصار من داخل الكرت (طلب العميل) */}
         <button
           type="button"
@@ -161,7 +180,8 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       )}
       {tagMsg && <div style={tagMsgStyle}>{tagMsg}</div>}
 
-      <div style={last}>📝 {lead.notes ? lead.notes : 'لا يوجد تحديث من الموظف بعد'}</div>
+      {/* آخر تحديث سجّله الموظف على الفرصة (لا الملاحظات) — طبق التصميم. */}
+      <div style={last}>📝 {lead.last_update?.note?.trim() || 'لا يوجد تحديث من الموظف بعد'}</div>
     </div>
   );
 }
@@ -179,6 +199,7 @@ const sub: CSSProperties = { fontSize: '10.5px', color: '#64748B', marginTop: '2
 const leadSvc: CSSProperties = { fontSize: '10.5px', color: '#64748B', lineHeight: 1.4, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const chip: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', background: 'rgba(27,108,168,.1)', color: '#1B6CA8', whiteSpace: 'nowrap' };
 const chipPoints: CSSProperties = { background: 'rgba(45,155,111,.12)', color: '#2D9B6F' };
+const chipWait: CSSProperties = { background: 'rgba(45,155,111,.10)', color: '#2D9B6F' };
 const owner: CSSProperties = { fontSize: '9.5px', color: '#64748B', fontWeight: 700, whiteSpace: 'nowrap' };
 const priceStrip: CSSProperties = { margin: '7px 0 4px', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC' };
 const psRow: CSSProperties = { display: 'grid' };
@@ -194,8 +215,7 @@ const remSoon: CSSProperties = { background: 'rgba(27,108,168,.1)', color: '#1B6
 const remToday: CSSProperties = { background: 'rgba(232,168,56,.16)', color: '#B47612' };
 const remLate: CSSProperties = { background: 'rgba(220,74,61,.14)', color: '#DC4A3D' };
 const tag: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px' };
-const tagArch: CSSProperties = { background: '#EDE9FE', color: '#7C3AED' };
-const tagVip: CSSProperties = { background: 'linear-gradient(90deg,#B45309,#D97706)', color: '#fff' };
+const tagOutline: CSSProperties = { border: '1.5px solid', background: '#fff', padding: '3px 11px', fontWeight: 800 };
 // طلب اختصار من داخل الكرت
 const tagAddBtn: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '20px', border: '1px dashed #93C5FD', background: '#F0F7FF', color: '#0369A1', cursor: 'pointer', fontFamily: 'inherit', lineHeight: 1.4 };
 const tagRow: CSSProperties = { display: 'flex', gap: '5px', marginTop: '7px', cursor: 'default' };

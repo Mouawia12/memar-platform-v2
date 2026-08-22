@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -171,6 +172,17 @@ class Contact extends Model
     public function reminders(): HasMany
     {
         return $this->hasMany(LeadReminder::class);
+    }
+
+    /**
+     * آخر تحديث سجّله الموظف على الفرصة — يظهر أسفل كرت الفرصة في لوحة CRM
+     * («لا يوجد تحديث من الموظف بعد» إن لم يوجد). طلب أيمن 2026-08-22.
+     *
+     * @return HasOne<OpportunityUpdate, $this>
+     */
+    public function latestUpdate(): HasOne
+    {
+        return $this->hasOne(OpportunityUpdate::class)->latestOfMany();
     }
 
     /**

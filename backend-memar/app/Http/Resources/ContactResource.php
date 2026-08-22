@@ -81,6 +81,12 @@ class ContactResource extends JsonResource
                 'name' => $this->convertedProject->name,
                 'status' => $this->convertedProject->status,
             ] : null),
+            // آخر تحديث سجّله الموظف (يظهر أسفل كرت الفرصة)
+            'last_update' => $this->whenLoaded('latestUpdate', fn () => $this->latestUpdate ? [
+                'note' => $this->latestUpdate->note,
+                'user' => $this->latestUpdate->user?->name,
+                'at' => $this->latestUpdate->created_at?->toDateString(),
+            ] : null),
             // أقرب تذكير معلّق + هل حان وقته (لتنبيه الكرت) — اجتماع 2026-08-05
             'reminder' => $this->whenLoaded('reminders', function () {
                 $next = $this->reminders->first();

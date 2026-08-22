@@ -33,7 +33,7 @@ class ContactService
                 });
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
-            ->with(['owner', 'convertedProject', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
+            ->with(['owner', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
             // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).
             ->orderBy('board_position')
             ->latest()

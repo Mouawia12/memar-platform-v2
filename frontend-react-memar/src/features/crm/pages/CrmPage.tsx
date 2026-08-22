@@ -217,8 +217,9 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
         </div>
       </div>
 
-      {/* ── المؤشّرات الستة ── (مخفيّة في بوابة الموظف — طلب أيمن 2026-08-18) */}
-      {!hideKpis && (
+      {/* ── المؤشّرات الستة ── للإدارة فقط: مخفيّة في بوابة الموظف (2026-08-18)
+          وعن الموظف في لوحة CRM نفسها أيضًا (طلب أيمن 2026-08-22). */}
+      {!hideKpis && canDelete && (
         <div style={kpiGrid}>
           {KPIS.map((k) => (
             <div key={k.label} className="crm-kpi-card" style={kpiCard}>

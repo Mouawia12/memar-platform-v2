@@ -14,9 +14,8 @@ import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
 import { PointsSettingsModal } from '../components/PointsSettingsModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
-import { TagRequestsPanel } from '../components/TagRequestsPanel';
 import { celebrate, playSound } from '../opsNotify';
-import { useCrmTags, useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
+import { useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
 import '../crm.css';
@@ -52,7 +51,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [stagesOpen, setStagesOpen] = useState(false);
-  const [tagsPanelOpen, setTagsPanelOpen] = useState(false);
   const [pointsSettingsOpen, setPointsSettingsOpen] = useState(false);
 
   const { data, isLoading, isError } = useLeads({ search: search || undefined, type: 'lead', per_page: 200 });
@@ -69,8 +67,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   // خصوصية الأرقام المالية (إعدادات النقاط): الإجماليات تُخفى عن غير الإدارة إن فُعّلت.
   const { settings: crmSettings } = useCrmSettings();
   const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
-  const { data: crmTags } = useCrmTags();
-  const pendingTagCount = (crmTags ?? []).filter((t) => t.status === 'pending').length;
 
   const stageList = useMemo(() => [...(stages ?? [])].sort((a, b) => a.position - b.position), [stages]);
   const wonKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won).map((s) => s.key)), [stageList]);
@@ -208,11 +204,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
           {/* «المدير» = من يملك crm.delete (الموظف يملك crm.manage لكن ليس crm.delete) — طلب العميل:
               تخصيص المراحل واعتماد الاختصارات للمدير فقط، ولا تظهر للموظف. */}
           {canDelete && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
-          {canDelete && (
-            <button className="crm-btn crm-btn-outline" onClick={() => setTagsPanelOpen(true)} type="button">
-              📨 طلبات الاختصارات{pendingTagCount > 0 ? ` (${pendingTagCount})` : ''}
-            </button>
-          )}
           {canDelete && !exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
         </div>
       </div>
@@ -301,7 +292,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       )}
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
       {stagesOpen && <StagesManagerModal stages={stageList} onClose={() => setStagesOpen(false)} />}
-      {tagsPanelOpen && <TagRequestsPanel onClose={() => setTagsPanelOpen(false)} />}
       {pointsSettingsOpen && <PointsSettingsModal onClose={() => setPointsSettingsOpen(false)} />}
       {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
 

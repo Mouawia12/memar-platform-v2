@@ -9,6 +9,7 @@ import { usePipelineStages } from '../hooks/usePipelineStages';
 import {
   FOLLOWUP_PRESETS, LEAD_SOURCE_META, LEAD_SOURCE_ORDER, PRIORITY_META, PRIORITY_ORDER, PROJECT_TYPES,
   TEMPERATURE_ORDER, TEMPERATURE_META,
+  tagColor,
   type ContactType, type Lead, type LeadFormData, type LeadSource, type Priority, type Stage, type Temperature,
 } from '../types';
 
@@ -419,8 +420,11 @@ function TagsSection({ tags, onChange }: { tags: string[]; onChange: (t: string[
         {approved.length === 0 && <span style={{ fontSize: '12px', color: '#94A3B8' }}>لا اختصارات معتمدة بعد.</span>}
         {approved.map((t) => {
           const on = tags.includes(t.name);
+          // كل اختصار بلونه: مفرَّغ بحدّ ونصّ ملوّنين، ويمتلئ باللون نفسه حين يُختار.
+          const c = tagColor(t.name);
           return (
-            <button key={t.id} type="button" onClick={() => toggle(t.name)} style={{ ...tagToggle, ...(on ? tagToggleOn : null) }}>
+            <button key={t.id} type="button" onClick={() => toggle(t.name)}
+              style={{ ...tagToggle, borderColor: c, color: on ? '#fff' : c, background: on ? c : '#fff' }}>
               {on ? '✓ ' : '+ '}{t.name}
             </button>
           );
@@ -460,8 +464,7 @@ function TagsSection({ tags, onChange }: { tags: string[]; onChange: (t: string[
 }
 
 const tagWrap: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' };
-const tagToggle: CSSProperties = { border: '1.5px solid #CBD5E1', background: '#fff', color: '#475569', borderRadius: '999px', padding: '5px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' };
-const tagToggleOn: CSSProperties = { background: '#0369A1', color: '#fff', borderColor: '#0369A1' };
+const tagToggle: CSSProperties = { border: '2px solid', borderRadius: '999px', padding: '6px 15px', fontSize: '12.5px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', transition: 'background .15s, color .15s' };
 const tagNote: CSSProperties = { fontSize: '11.5px', color: '#5A6478', background: '#eaeff6', borderRadius: '8px', padding: '7px 10px', lineHeight: 1.6, marginTop: '8px' };
 const pendingBox: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' };
 const pendingTitle: CSSProperties = { fontSize: '11.5px', fontWeight: 900, color: '#8A5A08' };

@@ -182,3 +182,24 @@ export const FOLLOWUP_PRESETS: { key: string; label: string; days: number | null
   { key: '14d', label: 'بعد أسبوعين', days: 14 },
   { key: '30d', label: 'بعد شهر', days: 30 },
 ];
+
+// ── ألوان الاختصارات (الوسوم) ──
+// الخمسة المعتمدة لها ألوان ثابتة من لوحة معمار؛ وأي اختصار تضيفه الإدارة لاحقًا
+// يأخذ لونًا ثابتًا مشتقًّا من اسمه (نفس اللون في كل مرة) بدل الرمادي.
+const TAG_PALETTE = ['#7C3AED', '#DC4A3D', '#E8A838', '#1B6CA8', '#2D9B6F', '#0F766E', '#DB2777'];
+
+const TAG_COLORS: Record<string, string> = {
+  VIP: '#7C3AED',
+  'عاجل': '#DC4A3D',
+  'مهم': '#E8A838',
+  'معماري': '#1B6CA8',
+  'إنشائي': '#2D9B6F',
+};
+
+export function tagColor(name: string): string {
+  const fixed = TAG_COLORS[name.trim()];
+  if (fixed) return fixed;
+  let h = 0;
+  for (const ch of name) h = (h * 31 + (ch.codePointAt(0) ?? 0)) % 99991;
+  return TAG_PALETTE[h % TAG_PALETTE.length];
+}

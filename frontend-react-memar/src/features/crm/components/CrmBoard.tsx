@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useStaffAvatars } from '../../users/hooks/useUsers';
 import { LeadCard } from './LeadCard';
 import { isStageCollapsed, setStageCollapsed, useCollapsedStages, useHiddenStages } from '../boardPrefs';
 import type { Lead, PipelineStage, Stage } from '../types';
@@ -153,6 +154,13 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
   /** العمود «الساخن» (يتوسّع عند مرور الماوس) — طبق أصل ops-col-hot. */
   const [hotStage, setHotStage] = useState<string | null>(null);
   const [arrowOff, setArrowOff] = useState({ prev: true, next: true, up: true, down: true });
+
+  // صور أصحاب الفرص: طلب واحد لكل اللوحة (لا صورة داخل كل فرصة).
+  const ownerIds = useMemo(
+    () => [...new Set(leads.map((l) => l.owner?.id).filter((v): v is number => !!v))],
+    [leads],
+  );
+  const { data: avatars } = useStaffAvatars(ownerIds);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const bodyRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -373,6 +381,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
             lead={lead}
             onOpen={onOpen}
             stageColor={stage.color}
+            avatarUrl={lead.owner ? avatars?.[String(lead.owner.id)] ?? null : null}
             onMoveUp={() => moveInColumn(colLeads, i, -1)}
             onMoveDown={() => moveInColumn(colLeads, i, 1)}
             canMoveUp={i > 0}
@@ -434,7 +443,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
       <DragOverlay>
         {active ? (
           <div style={{ transform: 'rotate(2deg)', cursor: 'grabbing' }}>
-            <LeadCard lead={active} onOpen={() => {}} stageColor={colorOf(active.stage)} />
+            <LeadCard lead={active} onOpen={() => {}} stageColor={colorOf(active.stage)} avatarUrl={active.owner ? avatars?.[String(active.owner.id)] ?? null : null} />
           </div>
         ) : null}
       </DragOverlay>

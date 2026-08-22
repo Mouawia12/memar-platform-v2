@@ -22,6 +22,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view');
     // قائمة الطاقم للإسناد (اسم فقط) — لأي عضو طاقم بلا users.view. تُسجَّل قبل /users/{user}.
     Route::get('/users/assignable', [UserController::class, 'assignable']);
+    // صور الطاقم لكروت الفرص (دفعة واحدة) — تُسجَّل قبل /users/{user}.
+    Route::get('/users/avatars', [UserController::class, 'avatars']);
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('permission:users.view');
     Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update'])->middleware('permission:users.manage');

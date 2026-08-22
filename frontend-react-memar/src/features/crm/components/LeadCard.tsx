@@ -13,6 +13,8 @@ interface Props {
   onMoveDown?: () => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  /** صورة صاحب الفرصة (data URI) — إن غابت تُعرض أحرف اسمه بلونه. */
+  avatarUrl?: string | null;
 }
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
@@ -44,7 +46,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
-export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: Props) {
+export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
@@ -118,10 +120,12 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       <div style={cardTop}>
         {/* دائرة صاحب الفرصة: لون ثابت لكل موظف + أحرف اسمه، والاسم كاملًا في التلميح. */}
         {lead.owner && (
-          <span
-            title={`صاحب الفرصة: ${lead.owner.name}`}
-            style={{ ...ownerAvatar, background: ownerColor }}
-          >{personInitials(lead.owner.name)}</span>
+          avatarUrl
+            ? <img src={avatarUrl} alt={lead.owner.name} title={`صاحب الفرصة: ${lead.owner.name}`}
+                style={{ ...ownerAvatar, objectFit: 'cover', border: `2px solid ${ownerColor}` }} />
+            : <span title={`صاحب الفرصة: ${lead.owner.name}`} style={{ ...ownerAvatar, background: ownerColor }}>
+                {personInitials(lead.owner.name)}
+              </span>
         )}
         <div style={cardMain}>
           <div style={leadNm}>{lead.full_name} {rating > 0 && <Stars rating={Math.min(5, rating)} />}</div>

@@ -33,6 +33,37 @@ class UserController extends ApiController
      * تخصّ إدارة المستخدمين) — طلب أيمن 2026-08-17: الموظف يضيف مهمة ويسندها دون كشف بيانات
      * إدارة المستخدمين. حسابات العملاء ممنوعة.
      */
+    /**
+     * صور الطاقم الشخصية دفعةً واحدة (ids=1,2,3) — تستدعيها لوحة CRM مرّة واحدة
+     * لأصحاب الفرص المعروضين بدل تضمين صورة في كل فرصة (طلب أيمن 2026-08-22).
+     * يُرجع من لديه صورة فقط، ومن لا صورة له تعرض الواجهة أحرف اسمه.
+     */
+    public function avatars(Request $request): JsonResponse
+    {
+        $ids = collect(explode(',', $request->string('ids')->toString()))
+            ->map(fn (string $v): int => (int) trim($v))
+            ->filter()
+            ->unique()
+            ->take(100)
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return $this->ok([]);
+        }
+
+        $avatars = User::query()
+            ->whereIn('id', $ids)
+            ->whereNotNull('avatar_file_id')
+            ->with('avatarFile')
+            ->get()
+            ->mapWithKeys(fn (User $u): array => [(string) $u->id => $u->avatarDataUri()])
+            ->filter()
+            ->all();
+
+        return $this->ok($avatars);
+    }
+
     public function assignable(Request $request): JsonResponse
     {
         abort_if($request->user()?->contact_id !== null, 403, 'غير متاح لحسابات العملاء.');

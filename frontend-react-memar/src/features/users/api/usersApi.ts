@@ -18,6 +18,8 @@ export const usersApi = {
   list: (params: UsersQuery) => apiGetPaginated<User>('/users', { params }),
   /** قائمة الطاقم للإسناد (المكلّف/المدير) — بلا صلاحية users.view. */
   assignable: () => apiGet<AssignableUser[]>('/users/assignable'),
+  /** صور الطاقم دفعة واحدة: { "3": "data:image/…" } — من له صورة فقط. */
+  avatars: (ids: number[]) => apiGet<Record<string, string>>('/users/avatars', { params: { ids: ids.join(',') } }),
   create: (payload: Record<string, unknown>) => apiPost<User>('/users', payload),
   update: (id: number, payload: Record<string, unknown>) => apiPatch<User>(`/users/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/users/${id}`),

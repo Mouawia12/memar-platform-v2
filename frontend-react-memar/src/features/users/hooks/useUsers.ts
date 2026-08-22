@@ -27,6 +27,20 @@ export function useAssignableUsers() {
   });
 }
 
+/**
+ * صور أصحاب الفرص المعروضين — طلب واحد لكل لوحة بدل صورة داخل كل فرصة.
+ * من لا صورة له لا يظهر في النتيجة فتعرض الواجهة أحرف اسمه.
+ */
+export function useStaffAvatars(ids: number[]) {
+  const key = [...ids].sort((a, b) => a - b);
+  return useQuery({
+    queryKey: ['staff-avatars', key.join(',')],
+    queryFn: () => usersApi.avatars(key),
+    enabled: key.length > 0,
+    staleTime: 10 * 60_000,
+  });
+}
+
 export function useRoles() {
   return useQuery({
     queryKey: ['roles'],

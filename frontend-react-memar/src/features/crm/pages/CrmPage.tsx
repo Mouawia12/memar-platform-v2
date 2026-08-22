@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCrmSettings } from '../../settings/hooks/useSettings';
+import { useStaffAvatars } from '../../users/hooks/useUsers';
 import { useAuthStore } from '../../../store/auth';
 import { useExportDisabled } from '../../../components/ExportGuard';
 import { downloadCsv } from '../../../lib/csv';
@@ -126,6 +127,13 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       return true;
     });
   }, [leads, period, scope, userId, ownerFilter, clientFilter, sourceFilter]);
+
+  // نفس مجموعة المعرّفات التي تطلبها اللوحة → نفس مفتاح الاستعلام → بلا طلب إضافي.
+  const ownerIds = useMemo(
+    () => [...new Set(visibleLeads.map((l) => l.owner?.id).filter((v): v is number => !!v))],
+    [visibleLeads],
+  );
+  const { data: staffAvatars } = useStaffAvatars(ownerIds);
 
   const stageLabel = (key: string) => stageList.find((s) => s.key === key)?.label ?? key;
   /** تصدير الفرص المعروضة إلى CSV — مُخفى في بوابة الموظف (ExportGuard). */
@@ -276,6 +284,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       {detailLead && (
         <LeadDetailModal
           lead={detailLead}
+          ownerAvatarUrl={detailLead.owner ? staffAvatars?.[String(detailLead.owner.id)] ?? null : null}
           stages={stageList}
           onClose={() => setDetailId(null)}
           onEdit={openEdit}

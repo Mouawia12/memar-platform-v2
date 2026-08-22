@@ -14,6 +14,8 @@ import { LEAD_SOURCE_META, personColor, personInitials, STAGE_COLOR_FALLBACK, ST
 
 interface Props {
   lead: Lead;
+  /** صورة صاحب الفرصة (data URI) — إن غابت تُعرض أحرف اسمه. */
+  ownerAvatarUrl?: string | null;
   stages: PipelineStage[];
   onClose: () => void;
   onEdit: (l: Lead) => void;
@@ -44,7 +46,7 @@ const PRICE_KEYS = [
 ] as const;
 
 /** تفاصيل الفرصة — طبق أصل نافذة «🎯 تفاصيل الفرصة» من معمار customer portal (أقسام مرقّمة). */
-export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
+export function LeadDetailModal({ lead, ownerAvatarUrl, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
   // النقاط تُخفى عن غير مدير الولاء (طبق أصل V42) — المهندس يرى «رينج السعر» فقط.
   const showPoints = usePermission('loyalty.manage');
@@ -200,7 +202,10 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
           <div style={dgrid}>
             <DRow label="منشئ الفرصة" value={lead.owner ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
-                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: personColor(lead.owner.id), color: '#fff', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.owner.name)}</span>
+                {/* صورته الشخصية إن رفعها، وإلا أحرف اسمه بلونه الثابت — كما على الكرت. */}
+                {ownerAvatarUrl
+                  ? <img src={ownerAvatarUrl} alt={lead.owner.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${personColor(lead.owner.id)}` }} />
+                  : <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: personColor(lead.owner.id), color: '#fff', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.owner.name)}</span>}
                 {lead.owner.name}
               </span>
             ) : ''} />

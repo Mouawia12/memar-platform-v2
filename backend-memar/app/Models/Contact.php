@@ -39,7 +39,7 @@ class Contact extends Model
         // حقول الفرصة (المرحلة 3)
         'price_1_kwd', 'price_2_kwd', 'price_3_kwd', 'expected_price_kwd', 'expected_points',
         'points_1', 'points_2', 'points_3',
-        'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'project_type', 'source', 'tags', 'address', 'parent_contact_id',
+        'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'block_no', 'plot_no', 'project_type', 'source', 'tags', 'address', 'parent_contact_id',
         // خصم الترحيب لأول مشروع (المرحلة 5)
         'welcome_discount_used', 'welcome_discount_kwd',
     ];

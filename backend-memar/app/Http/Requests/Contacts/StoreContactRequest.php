@@ -51,17 +51,24 @@ class StoreContactRequest extends FormRequest
             'price_2_kwd' => ['nullable', 'numeric', 'min:0'],
             'price_3_kwd' => ['nullable', 'numeric', 'min:0'],
             'expected_price_kwd' => ['nullable', 'numeric', 'min:0'],
-            'priority' => ['nullable', \Illuminate\Validation\Rule::in(['low', 'medium', 'high', 'urgent'])],
+            'priority' => ['nullable', Rule::in(['low', 'medium', 'high', 'urgent'])],
             'is_vip' => ['sometimes', 'boolean'],
             'is_urgent' => ['sometimes', 'boolean'],
             'area_sqm' => ['nullable', 'numeric', 'min:0'],
             'region' => ['nullable', 'string', 'max:120'],
+            'block_no' => ['nullable', 'string', 'max:20'],
+            'plot_no' => ['nullable', 'string', 'max:20'],
             'project_type' => ['nullable', 'string', 'max:60'],
             'source' => ['nullable', Rule::in(Contact::SOURCES)],
+            // منشئ الفرصة — يختاره المستخدم في نموذج الفرصة؛ إن غاب فالمستخدم الحالي.
+            'owner_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            // تقييم العميل الداخلي (نجوم + تعليق) — كان في التحديث فقط، وصار في الإنشاء أيضًا.
+            'internal_rating' => ['nullable', 'integer', 'min:0', 'max:5'],
+            'internal_notes' => ['nullable', 'string', 'max:2000'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],
-            'parent_contact_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('contacts', 'id')],
+            'parent_contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')],
         ];
     }
 }

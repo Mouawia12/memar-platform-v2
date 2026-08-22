@@ -32,6 +32,18 @@ function invalidateCrm(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['lead-history'] });
 }
 
+/**
+ * ضبط تذكير تواصل على فرصة — يستدعيه نموذج الفرصة بعد الحفظ (قسم ④ تذكير التواصل).
+ */
+export function useAddLeadReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, remind_at, note }: { id: number; remind_at: string; note?: string }) =>
+      crmApi.addReminder(id, { remind_at, note }),
+    onSuccess: () => invalidateCrm(qc),
+  });
+}
+
 export function useMoveLead() {
   const qc = useQueryClient();
 

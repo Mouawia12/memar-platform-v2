@@ -26,6 +26,8 @@ export interface Lead {
   company: string | null;
   position: string | null;
   type: ContactType;
+  /** فرد أو شركة — يشتقّه الخادم من وجود اسم شركة إن لم يُحدَّد. */
+  client_kind: 'individual' | 'company';
   status: string;
   stage: Stage;
   temperature: Temperature;
@@ -59,6 +61,9 @@ export interface Lead {
   points_3?: number | null;
   area_sqm: string | null;
   region: string | null;
+  /** عنوان الموقع الكويتي — قطعة/قسيمة (نصّية لأنها قد تحمل حروفًا). */
+  block_no: string | null;
+  plot_no: string | null;
   project_type: string | null;
   /** مصدر الفرصة (موقع إلكتروني/إحالة/إعلان/معرض/اتصال) — قد يكون فارغًا للفرص القديمة. */
   source: LeadSource | null;
@@ -104,11 +109,19 @@ export interface LeadFormData {
   expected_price_kwd: string;
   area_sqm: string;
   region: string;
+  block_no: string;
+  plot_no: string;
   project_type: string;
   source: LeadSource | '';
   tags: string[];
   address: string;
   parent_contact_id: number | '';
+  // ① بيانات العميل: نوع العميل + تقييمه الداخلي (نجوم وتعليق)
+  client_kind: 'individual' | 'company';
+  internal_rating: number;
+  internal_notes: string;
+  // ⑤ بيانات الفرصة: منشئ الفرصة (يُختار من الطاقم)
+  owner_id: number | '';
 }
 
 // حرارة الفرصة (طبق أصل PRIORITY_OPTS) — ساخنة/دافئة/باردة/عادية
@@ -152,3 +165,20 @@ export const LEAD_SOURCE_META: Record<LeadSource, { label: string; icon: string;
 
 /** تسمية المصدر للعرض — «غير محدّد» للفرص التي لم يُسجَّل مصدرها. */
 export const sourceLabel = (s: LeadSource | null | undefined) => (s ? LEAD_SOURCE_META[s]?.label ?? s : 'غير محدّد');
+
+/** أنواع المشاريع الشائعة في نموذج الفرصة — «أخرى» تفتح إدخالًا حرًّا. */
+export const PROJECT_TYPES: string[] = [
+  'فيلا سكنية', 'بيت حكومي', 'شقة / دور', 'عمارة استثمارية', 'مبنى تجاري',
+  'مبنى إداري', 'مجمع تجاري', 'مسجد', 'مخزن / مستودع', 'تصميم داخلي', 'ترميم / إضافة',
+];
+
+/** خيارات «يحتاج تواصل» — كل خيار يضبط تاريخ التذكير تلقائيًا بعدد أيامه. */
+export const FOLLOWUP_PRESETS: { key: string; label: string; days: number | null }[] = [
+  { key: '', label: 'بلا تذكير', days: null },
+  { key: 'today', label: 'اليوم', days: 0 },
+  { key: 'tomorrow', label: 'غدًا', days: 1 },
+  { key: '3d', label: 'بعد 3 أيام', days: 3 },
+  { key: '7d', label: 'بعد أسبوع (7 أيام)', days: 7 },
+  { key: '14d', label: 'بعد أسبوعين', days: 14 },
+  { key: '30d', label: 'بعد شهر', days: 30 },
+];

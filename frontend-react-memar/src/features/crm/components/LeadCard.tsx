@@ -108,7 +108,10 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
     <div
       className="crm-lead-card"
       onClick={() => onOpen(lead)}
-      style={{ ...card, borderInlineStart: `4px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
+      // شريط اللون البارز على يمين الكرت = لون صاحب الفرصة (طلب أيمن 2026-08-22)،
+      // فيُعرف صاحبها بلمحة. الأهمية تبقى ظاهرة كشريحة مكتوبة، والعاجلة بإطارها الأحمر.
+      // borderRight صراحةً (لا borderInlineStart) كي لا ينقلب مع اتجاه الحاوية.
+      style={{ ...card, borderRight: `5px solid ${lead.owner ? ownerColor : stageColor ?? imp.color ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
     >
       {urgent && <div style={urgentFlag}><span className="crm-bell">🔔</span> فرصة عاجلة — بانتظار تحديث الموظف</div>}
 

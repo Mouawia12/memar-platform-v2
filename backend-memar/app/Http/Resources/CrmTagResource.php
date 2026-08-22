@@ -21,6 +21,8 @@ class CrmTagResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            // لون الشريحة كما ضبطته الإدارة؛ null = تشتقّه الواجهة من الاسم.
+            'color' => $this->color,
             'status' => $this->status,
             'requested_by' => $this->whenLoaded('requester', fn () => $this->requester?->name),
             'decided_by' => $this->whenLoaded('decider', fn () => $this->decider?->name),

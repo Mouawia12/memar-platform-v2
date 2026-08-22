@@ -95,6 +95,15 @@ export function useCreateCrmTag() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (name: string) => crmApi.createTag(name), onSuccess: () => qc.invalidateQueries({ queryKey: TAGS_KEY }) });
 }
+/** تعديل اسم الاختصار و/أو لونه (إعدادات النقاط) — يحدّث الكتالوج وكروت الفرص معًا. */
+export function useUpdateCrmTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: number; name?: string; color?: string | null }) => crmApi.updateTag(id, payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: TAGS_KEY }); invalidateCrm(qc); },
+  });
+}
+
 export function useApproveCrmTag() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: number) => crmApi.approveTag(id), onSuccess: () => qc.invalidateQueries({ queryKey: TAGS_KEY }) });

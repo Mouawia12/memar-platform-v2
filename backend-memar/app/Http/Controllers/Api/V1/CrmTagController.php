@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Crm\StoreCrmTagRequest;
+use App\Http\Requests\Crm\UpdateCrmTagRequest;
 use App\Http\Resources\CrmTagResource;
 use App\Models\CrmTag;
 use App\Services\CrmTagService;
@@ -34,6 +35,14 @@ class CrmTagController extends ApiController
         $message = $tag->status === 'approved' ? 'تم إضافة الاختصار واعتماده' : 'تم إرسال الاختصار كطلب للإدارة';
 
         return $this->created(new CrmTagResource($tag->load(['requester:id,name', 'decider:id,name'])), $message);
+    }
+
+    /** تعديل اسم الاختصار و/أو لونه — من نافذة إعدادات النقاط (الإدارة). */
+    public function update(UpdateCrmTagRequest $request, CrmTag $crmTag): JsonResponse
+    {
+        $crmTag->update($request->validated());
+
+        return $this->ok(new CrmTagResource($crmTag->load(['requester:id,name', 'decider:id,name'])), 'تم تحديث الاختصار');
     }
 
     public function approve(Request $request, CrmTag $crmTag): JsonResponse

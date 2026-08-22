@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { InternalRating } from '../../../components/InternalRating';
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
 import { crmApi } from '../api/crmApi';
 import { LeadReminders } from './LeadReminders';
@@ -33,9 +34,8 @@ const FIELD_LABELS: Record<string, string> = { stage: 'المرحلة', temperat
 const EVENT_COLOR: Record<string, string> = { created: '#2D9B6F', updated: '#1B6CA8', deleted: '#DC4A3D' };
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const money = (v: string | number) => `${Number(v).toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`;
-// قيمة النقطة بالدينار للإدارة (طبق أصل V42: 10 د.ك لكل 100 نقطة) — الموظف يرى العدد فقط.
-const KD_PER_POINT = 0.1;
-const pointsKd = (pts: number) => `${Math.round(pts * KD_PER_POINT * 100) / 100} د.ك`;
+// قيمة النقطة بالدينار — تُشتقّ من إعدادات النقاط (عدد النقاط ↔ د.ك) لا من رقم ثابت.
+const pointsKd = (pts: number, kdPerPoint: number) => `${Math.round(pts * kdPerPoint * 100) / 100} د.ك`;
 // مفاتيح خيارات السعر الثلاثة ونقاطها المقابلة.
 const PRICE_KEYS = [
   { price: 'price_1_kwd', pts: 'points_1', name: 'السعر 1' },
@@ -48,6 +48,9 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
   const { data, isLoading } = useLeadHistory(lead.id);
   // النقاط تُخفى عن غير مدير الولاء (طبق أصل V42) — المهندس يرى «رينج السعر» فقط.
   const showPoints = usePermission('loyalty.manage');
+  const { settings } = useCrmSettings();
+  const pointsOn = settings.points.enabled;
+  const kdPerPoint = settings.points.unit_points > 0 ? (settings.points.unit_kwd ?? 0) / settings.points.unit_points : 0;
   const setTemp = useSetTemperature();
   const qc = useQueryClient();
   const saveRating = useMutation({
@@ -139,7 +142,7 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
                       <td style={ptTd}>
                         {/* الموظف يرى عدد النقاط فقط؛ الإدارة (loyalty.manage) ترى قيمتها بالدينار أيضًا. */}
                         {r.points > 0
-                          ? <span style={ptsPill}>● {r.points} نقطة{showPoints ? ` — ${pointsKd(r.points)}` : ''}</span>
+                          ? <span style={ptsPill}>● {r.points} نقطة{showPoints && kdPerPoint > 0 ? ` — ${pointsKd(r.points, kdPerPoint)}` : ''}</span>
                           : <span style={waitPill}>بانتظار المدير</span>}
                       </td>
                     </tr>
@@ -151,11 +154,11 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
 
           {/* الملاحظة تظهر للجميع؛ زر تحديد النقاط للإدارة (loyalty.manage) فقط. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-            {showPoints && <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" onClick={openPtsEditor}>🏆 تحديد نقاط الأسعار (الإدارة)</button>}
+            {showPoints && pointsOn && <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" onClick={openPtsEditor}>🏆 تحديد نقاط الأسعار (الإدارة)</button>}
             <span style={{ flex: 1 }} />
             <span style={{ ...badge, background: '#FFFBEB', color: '#E8A838' }}>تُمنح النقاط عند نقل الفرصة إلى «صفقة رابحة»</span>
           </div>
-          {showPoints && ptsOpen && (
+          {showPoints && pointsOn && ptsOpen && (
             <div style={{ ...noteBox, display: 'grid', gap: '10px', marginTop: '10px' }}>
               <div style={{ fontSize: '12px', color: '#64748B' }}>حدِّد نقاط كل سعر — الموظف يرى العدد فقط، والإدارة ترى قيمتها بالدينار.</div>
               {(priceRows.length ? priceRows : PRICE_KEYS.map((r) => ({ ...r, value: lead[r.price], points: 0 }))).map((r) => (
@@ -167,6 +170,13 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
                 </label>
               ))}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                {/* تعبئة سريعة بالنقاط المقترحة من «إعدادات النقاط» */}
+                <button className="crm-btn crm-btn-outline crm-btn-sm" type="button"
+                  onClick={() => setPtsForm({
+                    points_1: String(settings.points.suggested.price_1),
+                    points_2: String(settings.points.suggested.price_2),
+                    points_3: String(settings.points.suggested.price_3),
+                  })}>⚡ النقاط المقترحة</button>
                 <button className="crm-btn crm-btn-outline crm-btn-sm" type="button" onClick={() => setPtsOpen(false)}>إلغاء</button>
                 <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" disabled={savePoints.isPending} onClick={() => savePoints.mutate({ points_1: Number(ptsForm.points_1) || 0, points_2: Number(ptsForm.points_2) || 0, points_3: Number(ptsForm.points_3) || 0 })}>{savePoints.isPending ? 'جارٍ الحفظ…' : 'حفظ النقاط'}</button>
               </div>

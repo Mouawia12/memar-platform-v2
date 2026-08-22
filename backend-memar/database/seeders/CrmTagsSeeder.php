@@ -15,15 +15,27 @@ use Illuminate\Support\Carbon;
  */
 class CrmTagsSeeder extends Seeder
 {
-    private const TAGS = ['VIP', 'عاجل', 'مهم', 'معماري', 'إنشائي'];
+    /** الاسم => اللون الافتراضي (لوحة ألوان معمار) — تعدّله الإدارة من إعدادات النقاط. */
+    private const TAGS = [
+        'VIP' => '#7C3AED',
+        'عاجل' => '#DC4A3D',
+        'مهم' => '#E8A838',
+        'معماري' => '#1B6CA8',
+        'إنشائي' => '#2D9B6F',
+    ];
 
     public function run(): void
     {
-        foreach (self::TAGS as $name) {
-            CrmTag::firstOrCreate(
+        foreach (self::TAGS as $name => $color) {
+            $tag = CrmTag::firstOrCreate(
                 ['name' => $name],
-                ['status' => 'approved', 'decided_at' => Carbon::now()],
+                ['color' => $color, 'status' => 'approved', 'decided_at' => Carbon::now()],
             );
+
+            // اللون الافتراضي يُملأ للاختصارات القديمة التي أُنشئت قبل عمود color.
+            if ($tag->color === null) {
+                $tag->update(['color' => $color]);
+            }
         }
     }
 }

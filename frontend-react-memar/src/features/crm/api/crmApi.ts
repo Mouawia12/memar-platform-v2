@@ -32,6 +32,8 @@ export interface OpportunityUpdate {
 export interface CrmTag {
   id: number;
   name: string;
+  /** لون الشريحة كما ضبطته الإدارة؛ null = تشتقّه الواجهة من الاسم. */
+  color: string | null;
   status: 'pending' | 'approved' | 'rejected';
   requested_by: string | null;
   decided_by: string | null;
@@ -72,6 +74,7 @@ export const crmApi = {
   // اختصارات (وسوم) الفرص + طلبات الاعتماد (طبق أصل V42)
   tags: () => apiGet<CrmTag[]>('/crm/tags'),
   createTag: (name: string) => apiPost<CrmTag>('/crm/tags', { name }),
+  updateTag: (id: number, payload: { name?: string; color?: string | null }) => apiPatch<CrmTag>(`/crm/tags/${id}`, payload),
   approveTag: (id: number) => apiPost<CrmTag>(`/crm/tags/${id}/approve`),
   rejectTag: (id: number) => apiPost<CrmTag>(`/crm/tags/${id}/reject`),
   deleteTag: (id: number) => apiDelete<null>(`/crm/tags/${id}`),

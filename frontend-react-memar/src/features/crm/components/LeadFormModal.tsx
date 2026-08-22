@@ -421,7 +421,7 @@ function TagsSection({ tags, onChange }: { tags: string[]; onChange: (t: string[
         {approved.map((t) => {
           const on = tags.includes(t.name);
           // كل اختصار بلونه: مفرَّغ بحدّ ونصّ ملوّنين، ويمتلئ باللون نفسه حين يُختار.
-          const c = tagColor(t.name);
+          const c = t.color ?? tagColor(t.name);
           return (
             <button key={t.id} type="button" onClick={() => toggle(t.name)}
               style={{ ...tagToggle, borderColor: c, color: on ? '#fff' : c, background: on ? c : '#fff' }}>

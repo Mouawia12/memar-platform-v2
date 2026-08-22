@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
-import { useCreateCrmTag } from '../hooks/useCrm';
+import { useCreateCrmTag, useCrmTags } from '../hooks/useCrm';
 import { STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
 
 interface Props {
@@ -50,6 +50,8 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
   const createTag = useCreateCrmTag();
+  // كتالوج الاختصارات لقراءة ألوانها كما ضبطتها الإدارة (كاش مشترك، بلا طلب لكل كرت).
+  const { data: tagCatalog } = useCrmTags();
   const [tagOpen, setTagOpen] = useState(false);
   const [tagVal, setTagVal] = useState('');
   const [tagMsg, setTagMsg] = useState('');
@@ -130,7 +132,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         {lead.project_type && <span style={{ ...tag, ...tagArch }}>{lead.project_type}</span>}
         {/* كل اختصار بلونه — نفس ألوان نموذج الفرصة (tagColor)، بخلفية مخفّفة لتبقى مقروءة على الكرت. */}
         {(lead.tags ?? []).map((t) => {
-          const c = tagColor(t);
+          const c = tagCatalog?.find((x) => x.name === t)?.color ?? tagColor(t);
           return <span key={t} style={{ ...tag, background: `${c}1A`, color: c, border: `1px solid ${c}59` }}>{t}</span>;
         })}
         {lead.is_vip && <span style={{ ...tag, ...tagVip }}>⭐ VIP</span>}

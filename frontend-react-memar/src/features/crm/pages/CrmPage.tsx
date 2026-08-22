@@ -2,6 +2,7 @@ import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from
 import { useNavigate } from 'react-router-dom';
 
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { useAuthStore } from '../../../store/auth';
 import { useExportDisabled } from '../../../components/ExportGuard';
 import { downloadCsv } from '../../../lib/csv';
@@ -11,6 +12,7 @@ import { TaskFormModal } from '../../tasks/components/TaskFormModal';
 import { CrmBoard } from '../components/CrmBoard';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
+import { PointsSettingsModal } from '../components/PointsSettingsModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
 import { TagRequestsPanel } from '../components/TagRequestsPanel';
 import { SoundToggle } from '../components/SoundToggle';
@@ -52,6 +54,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const [detailId, setDetailId] = useState<number | null>(null);
   const [stagesOpen, setStagesOpen] = useState(false);
   const [tagsPanelOpen, setTagsPanelOpen] = useState(false);
+  const [pointsSettingsOpen, setPointsSettingsOpen] = useState(false);
 
   const { data, isLoading, isError } = useLeads({ search: search || undefined, type: 'lead', per_page: 200 });
   const { data: stages } = usePipelineStages();
@@ -62,6 +65,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const canCreate = usePermission('crm.view');
   const canDelete = usePermission('crm.delete');
   const canLoyalty = usePermission('loyalty.view');
+  // إعدادات النقاط والاختصارات للإدارة فقط (نفس صلاحية مسار /settings).
+  const canManagePoints = usePermission('loyalty.manage');
+  // خصوصية الأرقام المالية (إعدادات النقاط): الإجماليات تُخفى عن غير الإدارة إن فُعّلت.
+  const { settings: crmSettings } = useCrmSettings();
+  const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
   const { data: crmTags } = useCrmTags();
   const pendingTagCount = (crmTags ?? []).filter((t) => t.status === 'pending').length;
 
@@ -180,7 +188,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const KPIS: { icon: string; color: keyof typeof ICON_BG; label: string; value: number; sub: ReactNode }[] = [
     { icon: '👥', color: 'blue', label: 'إجمالي العملاء المحتملين', value: kpi.total, sub: <><span style={up}>↑ {kpi.monthPct}%</span> هذا الشهر</> },
     { icon: '🆕', color: 'green', label: 'جدد هذا الأسبوع', value: kpi.newWeek, sub: 'فرص جديدة' },
-    { icon: '🤝', color: 'orange', label: 'قيد التفاوض', value: kpi.negCount, sub: `بقيمة ${money(kpi.negValue)}` },
+    { icon: '🤝', color: 'orange', label: 'قيد التفاوض', value: kpi.negCount, sub: showTotals ? `بقيمة ${money(kpi.negValue)}` : 'فرص مفتوحة' },
     { icon: '📋', color: 'purple', label: 'عروض مرسلة', value: kpi.proposals, sub: 'بانتظار الرد' },
     { icon: '✅', color: 'green', label: 'عقود موقعة', value: kpi.won, sub: <><span style={up}>↑ {kpi.conversion}%</span> معدل التحويل</> },
     { icon: '📊', color: 'red', label: 'متوسط إغلاق الصفقة', value: kpi.avgClose, sub: 'يوم عمل' },
@@ -196,6 +204,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {canCreate && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
+          {canManagePoints && <button className="crm-btn crm-btn-outline" onClick={() => setPointsSettingsOpen(true)} type="button">⚙️ إعدادات النقاط</button>}
           {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
           {/* «المدير» = من يملك crm.delete (الموظف يملك crm.manage لكن ليس crm.delete) — طلب العميل:
               تخصيص المراحل واعتماد الاختصارات للمدير فقط، ولا تظهر للموظف. */}
@@ -294,6 +303,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
       {stagesOpen && <StagesManagerModal stages={stageList} onClose={() => setStagesOpen(false)} />}
       {tagsPanelOpen && <TagRequestsPanel onClose={() => setTagsPanelOpen(false)} />}
+      {pointsSettingsOpen && <PointsSettingsModal onClose={() => setPointsSettingsOpen(false)} />}
       {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
 
       {/* التوستر — يظهر عند نقل/ترتيب الفرص */}

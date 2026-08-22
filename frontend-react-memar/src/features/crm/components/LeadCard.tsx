@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCreateCrmTag, useCrmTags } from '../hooks/useCrm';
-import { STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
+import { personColor, personInitials, STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
 
 interface Props {
   lead: Lead;
@@ -82,20 +82,27 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
     : (lead.expected_price_kwd && Number(lead.expected_price_kwd) > 0
       ? [{ price: lead.expected_price_kwd, points: lead.expected_points ?? 0 }]
       : []);
-  const accepted = lead.expected_price_kwd;
-  const anyPoints = priceList.some((t) => t.points > 0);
   // «VIP» قد يكون اختصارًا مُسندًا وقد يكون علَم is_vip — نعرضه مرّة واحدة بلون الاختصار.
   const vipChip = lead.is_vip && !(lead.tags ?? []).includes('VIP');
   const vipColor = tagCatalog?.find((x) => x.name === 'VIP')?.color ?? tagColor('VIP');
 
-  // سطر المشروع طبق التصميم: الاسم — المنطقة · قطعة · قسيمة · المساحة
+  // الكرت يعرض الأساسي فقط (طلب أيمن 2026-08-22): اسم المشروع والمنطقة.
+  // القطعة والقسيمة والمساحة وبقيّة التفاصيل تظهر عند فتح الفرصة.
   const service = [
     lead.effective_project_name ?? lead.project_name ?? lead.project_type ?? 'فرصة',
     lead.region ? `— ${lead.region}` : '',
-    lead.block_no ? `· قطعة ${lead.block_no}` : '',
-    lead.plot_no ? `· قسيمة ${lead.plot_no}` : '',
-    lead.area_sqm && Number(lead.area_sqm) > 0 ? `· ${Number(lead.area_sqm).toLocaleString('ar')} م²` : '',
   ].filter(Boolean).join(' ');
+
+  // مدى السعر في سطر واحد بدل شبكة الأسعار الثلاثة ونقاطها (تفاصيلها في النافذة).
+  const priceValues = priceList.map((t) => Number(t.price)).filter((n) => n > 0);
+  const priceRange = priceValues.length === 0
+    ? ''
+    : priceValues.length === 1
+      ? money(priceValues[0])
+      : `${money(Math.min(...priceValues))} — ${money(Math.max(...priceValues))}`;
+
+  // هوية صاحب الفرصة: دائرة بلونه الثابت وأحرف اسمه — تُعرَف الفرصة بلمحة.
+  const ownerColor = lead.owner ? personColor(lead.owner.id) : '#94A3B8';
 
   return (
     <div
@@ -106,14 +113,19 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       {urgent && <div style={urgentFlag}><span className="crm-bell">🔔</span> فرصة عاجلة — بانتظار تحديث الموظف</div>}
 
       <div style={cardTop}>
+        {/* دائرة صاحب الفرصة: لون ثابت لكل موظف + أحرف اسمه، والاسم كاملًا في التلميح. */}
+        {lead.owner && (
+          <span
+            title={`صاحب الفرصة: ${lead.owner.name}`}
+            style={{ ...ownerAvatar, background: ownerColor }}
+          >{personInitials(lead.owner.name)}</span>
+        )}
         <div style={cardMain}>
           <div style={leadNm}>{lead.full_name} {rating > 0 && <Stars rating={Math.min(5, rating)} />}</div>
-          {lead.company && <div style={sub}>{lead.position || 'جهة اتصال'} — {lead.company}</div>}
           <div style={leadSvc} title={service}>{service}</div>
         </div>
         <div style={cardSide}>
           <span style={{ ...chip, background: `${imp.color}1a`, color: imp.color }}>{imp.label}</span>
-          {lead.owner && <span style={owner}>👤 {lead.owner.name}</span>}
           {reorderable && (
             <span style={reorderGroup} onClick={stop} onPointerDown={stop}>
               <button type="button" title="تحريك لأعلى" aria-label="تحريك لأعلى" disabled={!canMoveUp} style={{ ...reorderBtn, ...(canMoveUp ? null : reorderBtnOff) }} onClick={(e) => { stop(e); onMoveUp?.(); }} onPointerDown={stop}>▲</button>
@@ -123,32 +135,10 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         </div>
       </div>
 
-      {priceList.length > 0 && (
-        <div style={priceStrip}>
-          <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-            {priceList.map((t, i) => (
-              <span key={i} style={{ ...psPrice, ...(accepted && t.price === accepted ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(t.price!)}</span>
-            ))}
-          </div>
-          <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-            {priceList.map((t, i) => (
-              <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(t.points > 0 ? null : psWait) }}>
-                {t.points > 0 ? `${t.points} نقطة` : 'بانتظار النقاط'}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {priceRange && <div style={priceLine}>{priceRange}</div>}
 
       <div style={foot}>
         {rem && <span style={{ ...remBase, ...rem.style }}>{rem.label}</span>}
-        {/* حالة النقاط: عددها عند تحديدها، وإلا «بانتظار تحديد المدير» كما في التصميم. */}
-        {priceList.length > 0 && (anyPoints
-          ? <span style={{ ...chip, ...chipPoints }}>🎯 حتى {Math.max(...priceList.map((t) => t.points))} نقطة عند الفوز</span>
-          : <span style={{ ...chip, ...chipWait }}>⏳ نقاط بانتظار تحديد المدير</span>)}
-      </div>
-
-      <div style={foot}>
         {/* الاختصارات بشكل مفرّغ بلونها — نفس شرائح نموذج الفرصة. */}
         {vipChip && <span style={{ ...tag, ...tagOutline, borderColor: vipColor, color: vipColor }}>VIP</span>}
         {(lead.tags ?? []).map((t) => {
@@ -180,8 +170,6 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       )}
       {tagMsg && <div style={tagMsgStyle}>{tagMsg}</div>}
 
-      {/* آخر تحديث سجّله الموظف على الفرصة (لا الملاحظات) — طبق التصميم. */}
-      <div style={last}>📝 {lead.last_update?.note?.trim() || 'لا يوجد تحديث من الموظف بعد'}</div>
     </div>
   );
 }
@@ -195,19 +183,12 @@ const cardMain: CSSProperties = { minWidth: 0, flex: 1 };
 const cardSide: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', flexShrink: 0 };
 const leadNm: CSSProperties = { fontSize: '12px', fontWeight: 800, color: '#1A1F2E', marginBottom: '2px' };
 const stars: CSSProperties = { color: '#E8A838', fontSize: '11px', letterSpacing: '1px', whiteSpace: 'nowrap' };
-const sub: CSSProperties = { fontSize: '10.5px', color: '#64748B', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const leadSvc: CSSProperties = { fontSize: '10.5px', color: '#64748B', lineHeight: 1.4, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+// دائرة صاحب الفرصة (أحرف اسمه بلونه الثابت) — التعرّف عليها بلمحة.
+const ownerAvatar: CSSProperties = { width: '28px', height: '28px', borderRadius: '50%', color: '#fff', fontSize: '10.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, letterSpacing: '.5px', boxShadow: '0 1px 3px rgba(15,23,42,.22)' };
+// مدى السعر في سطر واحد بدل شبكة الأسعار.
+const priceLine: CSSProperties = { fontSize: '11.5px', fontWeight: 800, color: '#2D9B6F', margin: '7px 0 2px' };
 const chip: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', background: 'rgba(27,108,168,.1)', color: '#1B6CA8', whiteSpace: 'nowrap' };
-const chipPoints: CSSProperties = { background: 'rgba(45,155,111,.12)', color: '#2D9B6F' };
-const chipWait: CSSProperties = { background: 'rgba(45,155,111,.10)', color: '#2D9B6F' };
-const owner: CSSProperties = { fontSize: '9.5px', color: '#64748B', fontWeight: 700, whiteSpace: 'nowrap' };
-const priceStrip: CSSProperties = { margin: '7px 0 4px', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC' };
-const psRow: CSSProperties = { display: 'grid' };
-const psPrice: CSSProperties = { textAlign: 'center', padding: '4px 3px', fontSize: '10px', fontWeight: 800, borderInlineStart: '1px solid #E2E8F0', color: '#2D9B6F', background: '#fff' };
-const psPt: CSSProperties = { textAlign: 'center', padding: '4px 3px', fontSize: '9.5px', fontWeight: 700, borderInlineStart: '1px solid #E2E8F0', borderTop: '1px solid #E2E8F0', color: '#7C3AED' };
-const psFirst: CSSProperties = { borderInlineStart: 'none' };
-const psOn: CSSProperties = { background: 'rgba(45,155,111,.14)' };
-const psWait: CSSProperties = { color: '#B47612' };
 const foot: CSSProperties = { display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' };
 const remBase: CSSProperties = { fontSize: '10.5px', fontWeight: 700, padding: '5px 8px', borderRadius: '6px' };
 const remOk: CSSProperties = { background: 'rgba(45,155,111,.1)', color: '#2D9B6F' };
@@ -222,7 +203,6 @@ const tagRow: CSSProperties = { display: 'flex', gap: '5px', marginTop: '7px', c
 const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', padding: '5px 8px', border: '1.5px solid #CBD5E1', borderRadius: '7px', fontFamily: 'inherit', outline: 'none' };
 const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
 const tagMsgStyle: CSSProperties = { marginTop: '6px', fontSize: '10.5px', fontWeight: 700, color: '#0F766E' };
-const last: CSSProperties = { fontSize: '10.5px', color: '#64748B', borderTop: '1px dashed #E2E8F0', marginTop: '8px', paddingTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };
 const reorderBtn: CSSProperties = { width: '18px', height: '13px', display: 'grid', placeItems: 'center', border: '1px solid #E4E8EF', background: '#F7F9FC', color: '#5A6478', borderRadius: '4px', cursor: 'pointer', fontSize: '7px', lineHeight: 1, padding: 0 };
 const reorderBtnOff: CSSProperties = { opacity: 0.3, cursor: 'default' };

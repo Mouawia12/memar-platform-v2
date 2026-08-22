@@ -205,3 +205,27 @@ export function tagColor(name: string): string {
   for (const ch of name) h = (h * 31 + (ch.codePointAt(0) ?? 0)) % 99991;
   return TAG_PALETTE[h % TAG_PALETTE.length];
 }
+
+// ── هوية الموظف صاحب الفرصة ──
+// لون ثابت لكل موظف يُشتقّ من معرّفه، فيُعرَف صاحب الفرصة من لون الدائرة على
+// الكرت دون قراءة الاسم (طلب أيمن 2026-08-22). ألوان متباعدة كي يسهل تمييزها.
+const PERSON_PALETTE = [
+  '#1B6CA8', '#2D9B6F', '#DC4A3D', '#7C3AED', '#E8A838',
+  '#0F766E', '#DB2777', '#4338CA', '#B45309', '#0EA5E9',
+  '#65A30D', '#9333EA',
+];
+
+export function personColor(seed: string | number): string {
+  const str = String(seed);
+  let h = 0;
+  for (const ch of str) h = (h * 31 + (ch.codePointAt(0) ?? 0)) % 99991;
+  return PERSON_PALETTE[h % PERSON_PALETTE.length];
+}
+
+/** أول حرفين دالّين من الاسم («م. سارة الحربي» → «سا»). */
+export function personInitials(name: string): string {
+  const words = name.replace(/[.،]/g, ' ').split(/\s+/).filter((w) => w.length > 1);
+  if (words.length === 0) return name.slice(0, 2);
+  if (words.length === 1) return words[0].slice(0, 2);
+  return `${words[0][0]}${words[1][0]}`;
+}

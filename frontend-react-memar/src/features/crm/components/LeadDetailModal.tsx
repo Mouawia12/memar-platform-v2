@@ -10,7 +10,7 @@ import { crmApi } from '../api/crmApi';
 import { LeadReminders } from './LeadReminders';
 import { OpportunityTimeline } from './OpportunityTimeline';
 import { useLeadHistory, useSetTemperature } from '../hooks/useCrm';
-import { LEAD_SOURCE_META, STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Priority, type Stage, type Temperature } from '../types';
+import { LEAD_SOURCE_META, personColor, personInitials, STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Priority, type Stage, type Temperature } from '../types';
 
 interface Props {
   lead: Lead;
@@ -118,6 +118,8 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
             <DRow label="مصدر الفرصة" value={lead.source ? `${LEAD_SOURCE_META[lead.source].icon} ${LEAD_SOURCE_META[lead.source].label}` : ''} />
             <DRow label="العنوان / الموقع" value={lead.address} />
             <DRow label="المنطقة" value={lead.region} />
+            <DRow label="قطعة" value={lead.block_no} />
+            <DRow label="قسيمة" value={lead.plot_no} />
             <DRow label="المساحة" value={lead.area_sqm && Number(lead.area_sqm) > 0 ? `${Number(lead.area_sqm).toLocaleString('ar')} م²` : ''} />
           </div>
           {lead.notes && <div style={noteBox}><div style={dlabel}>ملاحظات وتفاصيل المشروع</div><div style={{ fontSize: '13px', lineHeight: 1.7 }}>{lead.notes}</div></div>}
@@ -196,7 +198,12 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
 
           <div style={secTitle}>⑤ بيانات الفرصة</div>
           <div style={dgrid}>
-            <DRow label="منشئ الفرصة" value={lead.owner?.name} />
+            <DRow label="منشئ الفرصة" value={lead.owner ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: personColor(lead.owner.id), color: '#fff', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.owner.name)}</span>
+                {lead.owner.name}
+              </span>
+            ) : ''} />
             <DRow label="تاريخ الفرصة" value={lead.created_at ? lead.created_at.slice(0, 10) : ''} />
             <DRow label="المرحلة الحالية" value={<span style={{ color: colorOf(lead.stage), fontWeight: 800 }}>{labelOf(lead.stage)}</span>} />
             <DRow label="مستوى الأهمية" value={<span style={{ color: imp.color, fontWeight: 800 }}>{imp.label}</span>} />

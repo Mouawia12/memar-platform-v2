@@ -5,7 +5,7 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 import { useExportDisabled } from '../../../components/ExportGuard';
 import { downloadCsv } from '../../../lib/csv';
-import { TEMPERATURE_META } from '../types';
+import { LEAD_SOURCE_META, LEAD_SOURCE_ORDER, TEMPERATURE_META, sourceLabel } from '../types';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
 import { CrmBoard } from '../components/CrmBoard';
@@ -30,8 +30,10 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
-  // فلاتر طبق الأصل: نوع العميل + المسؤول (المصدر عرضي لعدم تتبّعه).
+  // فلاتر طبق الأصل: نوع العميل + المصدر + المسؤول. المصدر صار حقلًا حقيقيًا
+  // على الفرصة (طلب أيمن 2026-08-22) بعد أن كان قائمة عرضية في المرجع.
   const [clientFilter, setClientFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
   // مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
   const [scope, setScope] = useState<'all' | 'mine'>('all');
@@ -112,12 +114,15 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       if (period !== 'all' && !(l.created_at && new Date(l.created_at).getTime() >= cutoff)) return false;
       if (scope === 'mine' && l.owner?.id !== userId) return false;
       if (ownerFilter !== 'all' && String(l.owner?.id ?? '') !== ownerFilter) return false;
+      // «بلا مصدر» يلتقط الفرص القديمة التي لم يُسجَّل مصدرها
+      if (sourceFilter === 'none' && l.source) return false;
+      if (sourceFilter !== 'all' && sourceFilter !== 'none' && l.source !== sourceFilter) return false;
       if (clientFilter === 'vip' && !l.is_vip) return false;
       if (clientFilter === 'new' && l.stage !== 'new') return false;
       if ((clientFilter === 'hot' || clientFilter === 'warm' || clientFilter === 'cold') && l.temperature !== clientFilter) return false;
       return true;
     });
-  }, [leads, period, scope, userId, ownerFilter, clientFilter]);
+  }, [leads, period, scope, userId, ownerFilter, clientFilter, sourceFilter]);
 
   const stageLabel = (key: string) => stageList.find((s) => s.key === key)?.label ?? key;
   /** تصدير الفرص المعروضة إلى CSV — مُخفى في بوابة الموظف (ExportGuard). */
@@ -131,6 +136,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       { header: 'الحرارة', value: (l) => TEMPERATURE_META[l.temperature]?.label ?? '' },
       { header: 'الأهمية', value: (l) => l.priority },
       { header: 'القيمة (د.ك)', value: (l) => l.deal_value_kwd },
+      { header: 'المصدر', value: (l) => sourceLabel(l.source) },
       { header: 'المسؤول', value: (l) => l.owner?.name ?? '' },
     ]);
   };
@@ -241,6 +247,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
           <option value="hot">ساخن</option>
           <option value="warm">دافئ</option>
           <option value="cold">بارد</option>
+        </select>
+        <select className="crm-filter-select" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+          <option value="all">جميع المصادر</option>
+          {LEAD_SOURCE_ORDER.map((k) => <option key={k} value={k}>{LEAD_SOURCE_META[k].label}</option>)}
+          <option value="none">بلا مصدر</option>
         </select>
         <select className="crm-filter-select" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
           <option value="all">جميع الموظفين</option>

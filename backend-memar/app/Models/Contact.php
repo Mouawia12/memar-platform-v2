@@ -25,6 +25,10 @@ class Contact extends Model
     // أولوية الفرصة (منفصلة عن «الحرارة») — طلب أيمن 2026-08-15.
     public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
+    // مصادر الفرص (من أين جاء العميل المحتمل) — طلب أيمن 2026-08-22.
+    // المفاتيح ثابتة في القاعدة، والتسميات العربية في الواجهة (LEAD_SOURCE_META).
+    public const SOURCES = ['website', 'referral', 'ads', 'exhibition', 'direct'];
+
     protected $fillable = [
         'full_name', 'kunya', 'email', 'phone', 'company', 'head_office', 'company_about', 'position',
         'type', 'client_kind', 'status', 'stage', 'board_position', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
@@ -35,7 +39,7 @@ class Contact extends Model
         // حقول الفرصة (المرحلة 3)
         'price_1_kwd', 'price_2_kwd', 'price_3_kwd', 'expected_price_kwd', 'expected_points',
         'points_1', 'points_2', 'points_3',
-        'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'project_type', 'tags', 'address', 'parent_contact_id',
+        'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'project_type', 'source', 'tags', 'address', 'parent_contact_id',
         // خصم الترحيب لأول مشروع (المرحلة 5)
         'welcome_discount_used', 'welcome_discount_kwd',
     ];

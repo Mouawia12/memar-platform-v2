@@ -4,7 +4,7 @@ import { apiErrorMessage } from '../../../lib/api';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useApproveCrmTag, useCreateCrmTag, useCrmTags, useRejectCrmTag, useSaveLead } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
-import { PRIORITY_META, PRIORITY_ORDER, TEMPERATURE_ORDER, TEMPERATURE_META, type ContactType, type Lead, type LeadFormData, type Priority, type Stage, type Temperature } from '../types';
+import { LEAD_SOURCE_META, LEAD_SOURCE_ORDER, PRIORITY_META, PRIORITY_ORDER, TEMPERATURE_ORDER, TEMPERATURE_META, type ContactType, type Lead, type LeadFormData, type LeadSource, type Priority, type Stage, type Temperature } from '../types';
 
 interface Props {
   lead: Lead | null;
@@ -17,7 +17,7 @@ const empty: LeadFormData = {
   project_name: '', project_details: '',
   priority: 'medium', is_vip: false, is_urgent: false,
   price_1_kwd: '', price_2_kwd: '', price_3_kwd: '', expected_price_kwd: '',
-  area_sqm: '', region: '', project_type: '', tags: [], address: '', parent_contact_id: '',
+  area_sqm: '', region: '', project_type: '', source: '', tags: [], address: '', parent_contact_id: '',
 };
 
 const num = (v: string | null) => (Number(v) ? String(v) : '');
@@ -45,6 +45,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
     price_1_kwd: num(lead.price_1_kwd), price_2_kwd: num(lead.price_2_kwd), price_3_kwd: num(lead.price_3_kwd),
     expected_price_kwd: num(lead.expected_price_kwd),
     area_sqm: num(lead.area_sqm), region: lead.region ?? '', project_type: lead.project_type ?? '',
+    source: lead.source ?? '',
     tags: lead.tags ?? [],
     address: lead.address ?? '', parent_contact_id: lead.parent_contact_id ?? '',
   } : empty), [lead]);
@@ -164,6 +165,12 @@ export function LeadFormModal({ lead, onClose }: Props) {
             </label>
             <label style={label}>نوع المشروع
               <input className="input" style={input} value={form.project_type} onChange={(e) => set('project_type', e.target.value)} placeholder="مثال: فيلا، مبنى إداري…" />
+            </label>
+            <label style={label}>مصدر الفرصة
+              <select className="input" style={input} value={form.source} onChange={(e) => set('source', e.target.value as LeadSource | '')}>
+                <option value="">غير محدّد</option>
+                {LEAD_SOURCE_ORDER.map((k) => <option key={k} value={k}>{LEAD_SOURCE_META[k].icon} {LEAD_SOURCE_META[k].label}</option>)}
+              </select>
             </label>
             <label style={label}>العنوان
               <input className="input" style={input} value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="القطعة، الشارع…" />

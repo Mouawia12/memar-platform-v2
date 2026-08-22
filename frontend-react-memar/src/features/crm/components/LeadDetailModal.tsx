@@ -9,7 +9,7 @@ import { crmApi } from '../api/crmApi';
 import { LeadReminders } from './LeadReminders';
 import { OpportunityTimeline } from './OpportunityTimeline';
 import { useLeadHistory, useSetTemperature } from '../hooks/useCrm';
-import { STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Priority, type Stage, type Temperature } from '../types';
+import { LEAD_SOURCE_META, STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Priority, type Stage, type Temperature } from '../types';
 
 interface Props {
   lead: Lead;
@@ -112,6 +112,7 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
           <div style={dgrid}>
             <DRow label="اسم المشروع" value={lead.project ? <ProjectNameInline projectId={lead.project.id} name={lead.project.name} code={lead.project.code} prefix="🏗️" /> : projectName} />
             <DRow label="نوع المشروع" value={lead.project_type} />
+            <DRow label="مصدر الفرصة" value={lead.source ? `${LEAD_SOURCE_META[lead.source].icon} ${LEAD_SOURCE_META[lead.source].label}` : ''} />
             <DRow label="العنوان / الموقع" value={lead.address} />
             <DRow label="المنطقة" value={lead.region} />
             <DRow label="المساحة" value={lead.area_sqm && Number(lead.area_sqm) > 0 ? `${Number(lead.area_sqm).toLocaleString('ar')} م²` : ''} />

@@ -49,6 +49,8 @@ class ContactResource extends JsonResource
             'area_sqm' => $this->area_sqm,
             'region' => $this->region,
             'project_type' => $this->project_type,
+            // مصدر الفرصة (موقع/إحالة/إعلان/معرض/اتصال) — يُفلتر عليه في لوحة CRM
+            'source' => $this->source,
             'tags' => $this->tags ?? [],
             'address' => $this->address,
             'parent_contact_id' => $this->parent_contact_id,

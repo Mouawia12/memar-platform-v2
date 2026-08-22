@@ -3,6 +3,8 @@ export type Stage = string;
 export type ContactType = 'lead' | 'client' | 'contact';
 export type Temperature = 'hot' | 'warm' | 'cold' | 'normal';
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
+// مصدر الفرصة — من أين جاء العميل المحتمل (طلب أيمن 2026-08-22)
+export type LeadSource = 'website' | 'referral' | 'ads' | 'exhibition' | 'direct';
 
 /** مرحلة (عمود) في لوحة الفرص — تُدار من الأدمن. */
 export interface PipelineStage {
@@ -58,6 +60,8 @@ export interface Lead {
   area_sqm: string | null;
   region: string | null;
   project_type: string | null;
+  /** مصدر الفرصة (موقع إلكتروني/إحالة/إعلان/معرض/اتصال) — قد يكون فارغًا للفرص القديمة. */
+  source: LeadSource | null;
   /** وسوم/اختصارات معتمدة ملصقة على الفرصة (طبق أصل V42). */
   tags: string[] | null;
   address: string | null;
@@ -101,6 +105,7 @@ export interface LeadFormData {
   area_sqm: string;
   region: string;
   project_type: string;
+  source: LeadSource | '';
   tags: string[];
   address: string;
   parent_contact_id: number | '';
@@ -133,3 +138,17 @@ export const STAGE_LABELS_FALLBACK: Record<string, string> = {
 };
 
 export const STAGE_COLOR_FALLBACK = '#6B7280';
+
+// مصادر الفرص (طبق أصل قائمة «جميع المصادر» في المرجع) — الترتيب هو ترتيب القائمة.
+export const LEAD_SOURCE_ORDER: LeadSource[] = ['website', 'referral', 'ads', 'exhibition', 'direct'];
+
+export const LEAD_SOURCE_META: Record<LeadSource, { label: string; icon: string; color: string }> = {
+  website: { label: 'موقع إلكتروني', icon: '\u{1F310}', color: '#1B6CA8' },
+  referral: { label: 'إحالة عميل', icon: '\u{1F91D}', color: '#2D9B6F' },
+  ads: { label: 'إعلان مدفوع', icon: '\u{1F4E2}', color: '#E8A838' },
+  exhibition: { label: 'معرض', icon: '\u{1F3DB}\u{FE0F}', color: '#7C3AED' },
+  direct: { label: 'اتصال مباشر', icon: '\u{1F4DE}', color: '#DC4A3D' },
+};
+
+/** تسمية المصدر للعرض — «غير محدّد» للفرص التي لم يُسجَّل مصدرها. */
+export const sourceLabel = (s: LeadSource | null | undefined) => (s ? LEAD_SOURCE_META[s]?.label ?? s : 'غير محدّد');

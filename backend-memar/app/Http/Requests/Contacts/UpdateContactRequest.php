@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Contacts;
 
+use App\Models\Contact;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -58,6 +59,7 @@ class UpdateContactRequest extends FormRequest
             'area_sqm' => ['nullable', 'numeric', 'min:0'],
             'region' => ['nullable', 'string', 'max:120'],
             'project_type' => ['nullable', 'string', 'max:60'],
+            'source' => ['nullable', Rule::in(Contact::SOURCES)],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],

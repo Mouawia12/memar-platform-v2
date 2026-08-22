@@ -320,9 +320,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 const headerRow: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' };
 const sectionTitle: CSSProperties = { fontSize: '16px', fontWeight: 800, color: '#1E293B' };
 const sectionSubtitle: CSSProperties = { fontSize: '12px', color: '#64748B', marginTop: '3px' };
-const kpiGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '14px', marginBottom: '16px' };
-const kpiCard: CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 2px 8px rgba(27,108,168,.06)', display: 'flex', alignItems: 'flex-start', gap: '14px' };
-const kpiIcon: CSSProperties = { width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 };
+// بطاقات مضغوطة (طلب أيمن 2026-08-22): ستّها تدخل في صفّ واحد على الشاشات العريضة
+// بدل صفّين، فتقصر المسافة قبل لوحة الفرص.
+const kpiGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(178px, 1fr))', gap: '10px', marginBottom: '12px' };
+const kpiCard: CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '11px 13px', boxShadow: '0 2px 8px rgba(27,108,168,.06)', display: 'flex', alignItems: 'center', gap: '10px' };
+const kpiIcon: CSSProperties = { width: '36px', height: '36px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 };
 const ICON_BG: Record<'blue' | 'green' | 'orange' | 'purple' | 'red', CSSProperties> = {
   blue: { background: '#EBF5FF', color: '#1B6CA8' },
   green: { background: '#ECFDF5', color: '#2D9B6F' },
@@ -330,9 +332,9 @@ const ICON_BG: Record<'blue' | 'green' | 'orange' | 'purple' | 'red', CSSPropert
   purple: { background: '#F5F3FF', color: '#7C3AED' },
   red: { background: '#FEF2F2', color: '#DC4A3D' },
 };
-const kpiLabel: CSSProperties = { fontSize: '12px', color: '#64748B', marginBottom: '6px', fontWeight: 600 };
-const kpiValue: CSSProperties = { fontSize: '26px', fontWeight: 800, color: '#1E293B', lineHeight: 1.1 };
-const kpiSub: CSSProperties = { fontSize: '11.5px', color: '#64748B', marginTop: '5px' };
+const kpiLabel: CSSProperties = { fontSize: '11px', color: '#64748B', marginBottom: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+const kpiValue: CSSProperties = { fontSize: '20px', fontWeight: 800, color: '#1E293B', lineHeight: 1.15 };
+const kpiSub: CSSProperties = { fontSize: '10.5px', color: '#64748B', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 const up: CSSProperties = { color: '#2D9B6F', fontWeight: 700 };
 // صندوق تنبيه مُختصر الارتفاع (طلب العميل: أقل ارتفاعًا، غير مبالغ) — صفّ واحد.
 const alertStrong: CSSProperties = { border: '1.5px solid #DC4A3D', borderRadius: '10px', padding: '7px 12px', background: 'linear-gradient(180deg,rgba(220,74,61,.10),#fff)', boxShadow: '0 3px 10px rgba(220,74,61,.12)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' };

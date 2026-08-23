@@ -232,10 +232,23 @@ export function LeadFormModal({ lead, onClose }: Props) {
                 </>
               )}
               <Field label="تقييم العميل (نجوم)">
-                <select className="input" style={input} value={form.internal_rating} onChange={(e) => set('internal_rating', Number(e.target.value))}>
-                  <option value={0}>0 — غير مقيّم</option>
-                  {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{'★'.repeat(n)} ({n}/5)</option>)}
-                </select>
+                {/* نجوم قابلة للنقر بدل قائمة منسدلة: النظام يرسم عناصر القائمة
+                    بنفسه فلا تُلوَّن نجومها ذهبيًا (طلب أيمن 2026-08-23). */}
+                <div style={starsRow}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => set('internal_rating', form.internal_rating === n ? 0 : n)}
+                      style={{ ...starBtn, color: n <= form.internal_rating ? '#E8A838' : '#D1D5DB' }}
+                      title={`${n} من 5`}
+                      aria-label={`تقييم ${n} من 5`}
+                    >★</button>
+                  ))}
+                  <span style={starsHint}>
+                    {form.internal_rating > 0 ? `${form.internal_rating}/5` : 'غير مقيّم'}
+                  </span>
+                </div>
               </Field>
               <Field label="تعليق تقييم العميل">
                 <input className="input" style={input} value={form.internal_notes} onChange={(e) => set('internal_notes', e.target.value)} placeholder="ملاحظة على تعامل العميل" />
@@ -537,6 +550,10 @@ const input: CSSProperties = { width: '100%', marginTop: '4px' };
 const dupWarn: CSSProperties = { background: '#FFFBEB', border: '1px solid #F59E0B', color: '#8A5A08', borderRadius: '8px', padding: '8px 11px', fontSize: '11.5px', lineHeight: 1.7, marginTop: '6px', fontWeight: 700 };
 // مربّع «الأنسب» داخل حقل السعر (طلب أيمن 2026-08-23): مربّع فقط بلا كلمة،
 // وعلامة صحّه خضراء. الحقل يحجز فراغًا في طرفه كي لا يركب الرقمَ المكتوب.
+// نجوم التقييم — ذهبية للمختار ورمادية لما بعده، والنقر على نجمة مختارة يصفّر التقييم.
+const starsRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '2px', marginTop: '4px', border: '1.5px solid #E2E8F0', borderRadius: '8px', padding: '4px 9px', background: '#fff', height: '32px' };
+const starBtn: CSSProperties = { background: 'none', border: 'none', padding: '0 1px', fontSize: '17px', lineHeight: 1, cursor: 'pointer', fontFamily: 'inherit' };
+const starsHint: CSSProperties = { fontSize: '10.5px', color: '#94A3B8', fontWeight: 700, marginInlineStart: '6px' };
 const priceWrap: CSSProperties = { position: 'relative', display: 'block', marginTop: '4px' };
 const bestBox: CSSProperties = { position: 'absolute', insetInlineEnd: '10px', top: '50%', transform: 'translateY(-50%)', accentColor: '#2D9B6F', width: '15px', height: '15px', cursor: 'pointer', margin: 0 };
 const noteBox: CSSProperties = { fontSize: '10.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '7px 10px', marginTop: '8px', lineHeight: 1.55 };

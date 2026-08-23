@@ -80,6 +80,12 @@ class RolesAndAdminSeeder extends Seeder
             'self.view',
         ];
 
+        // حدّ قائمة الموظف الجانبية (اعتماد أيمن 2026-08-23): يرى قسمَي «الرئيسية»
+        // و«إدارة الأعمال» كاملَين حتى «التواصل»، وما بعدهما يُخفى عنه — التسعير
+        // والموظفين والصلاحيات والحسابات. وداخل القسمين لا يظهر له إلا ما يملك
+        // صلاحيته أصلًا (الإخفاء طبقة عرض، والصلاحيات تحمي المسارات).
+        $employeeNavHidden = ['pricing', 'employees', 'permissions', 'accounts'];
+
         $roles = [
             'super_admin' => ['dashboard' => 'admin', 'perms' => $permissions],
             'admin' => ['dashboard' => 'admin', 'perms' => $adminPerms],
@@ -89,6 +95,13 @@ class RolesAndAdminSeeder extends Seeder
         foreach ($roles as $roleName => $spec) {
             $role = Role::findOrCreate($roleName, 'web');
             $role->dashboard = $spec['dashboard'];
+
+            if ($roleName === 'employee') {
+                $settings = (array) ($role->getAttribute('settings') ?? []);
+                $settings['nav_hidden'] = $employeeNavHidden;
+                $role->settings = $settings;
+            }
+
             $role->save();
             $role->syncPermissions($spec['perms']);
         }

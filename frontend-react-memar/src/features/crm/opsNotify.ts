@@ -84,10 +84,10 @@ function ensureCelebrationStyles(): void {
   const style = document.createElement('style');
   style.id = 'crm-celebrate-styles';
   style.textContent = `
-  .crm-celebrate-layer { position:fixed; inset:0; pointer-events:none; z-index:12000; overflow:hidden; }
+  .crm-celebrate-layer { position:fixed; inset:0; pointer-events:none; z-index:1000001; overflow:hidden; }
   .crm-confetti { position:absolute; top:-16px; width:9px; height:15px; border-radius:2px; opacity:.95; animation: crmConfettiFall linear forwards; }
   @keyframes crmConfettiFall { 0% { transform: translateY(-20px) rotate(0deg); opacity:1; } 100% { transform: translateY(105vh) rotate(760deg); opacity:.15; } }
-  .crm-win-banner { position:fixed; top:16%; left:50%; transform:translate(-50%,-50%) scale(.7); background:linear-gradient(135deg,#2D9B6F,#1B6CA8); color:#fff; border-radius:18px; padding:20px 34px; text-align:center; z-index:12001; font-family:'Cairo',sans-serif; box-shadow:0 22px 60px rgba(15,23,42,.35); animation: crmWinPop .5s cubic-bezier(.2,1.4,.4,1) forwards; }
+  .crm-win-banner { position:fixed; top:16%; left:50%; transform:translate(-50%,-50%) scale(.7); background:linear-gradient(135deg,#2D9B6F,#1B6CA8); color:#fff; border-radius:18px; padding:20px 34px; text-align:center; z-index:1000001; font-family:'Cairo',sans-serif; box-shadow:0 22px 60px rgba(15,23,42,.35); animation: crmWinPop .5s cubic-bezier(.2,1.4,.4,1) forwards; }
   .crm-win-banner .cwb-icon { font-size:40px; display:block; margin-bottom:6px; animation: crmWinSpin 1.5s ease-in-out infinite; }
   .crm-win-banner .cwb-title { font-size:19px; font-weight:900; }
   .crm-win-banner .cwb-sub { font-size:12.5px; font-weight:600; opacity:.92; margin-top:5px; }

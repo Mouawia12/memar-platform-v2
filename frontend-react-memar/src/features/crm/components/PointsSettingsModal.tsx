@@ -201,7 +201,9 @@ function Field({ label: text, children }: { label?: string; children: ReactNode 
   );
 }
 
-const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,20,40,.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '40px', zIndex: 500, overflowY: 'auto' };
+// الشريط العلوي الموروث عليه z-index: 999999 !important، فنعلو فوقه كي لا يغطّي
+// رأس النافذة (طلب أيمن 2026-08-23). طبقات النظام: نوافذ < احتفال < إشعارات عائمة.
+const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,20,40,.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '40px', zIndex: 1000000, overflowY: 'auto' };
 const modal: CSSProperties = { background: '#fff', borderRadius: '16px', boxShadow: '0 24px 60px rgba(10,20,40,.3)', width: '620px', maxWidth: '95vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', marginBottom: '40px' };
 const modalHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #EEF2F7', background: 'linear-gradient(135deg,#fff 0%,#EBF5FF 100%)', borderRadius: '16px 16px 0 0', flexShrink: 0 };
 const modalTitle: CSSProperties = { fontSize: '16px', fontWeight: 800, color: '#1E293B' };

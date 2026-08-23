@@ -51,9 +51,11 @@ export function Sidebar({ open, onNavigate }: Props) {
   // تفضيلات القائمة تُحفظ في قاعدة البيانات لكل مستخدم فتبقى ثابتة عبر الأجهزة
   // وتحديثات السيرفر؛ والتخزين المحلي يُستخدم كذاكرة سريعة للعرض الفوري (DASH-3).
   const serverPrefs = useAuthStore((s) => s.user?.ui_prefs);
-  // المحلي أولًا إن سبق التخصيص على هذا الجهاز؛ وإلا نبدأ من تفضيلات الخادم (تهيئة جهاز جديد).
+  // الطيّ: المحلي أولًا إن سبق التخصيص على هذا الجهاز؛ وإلا من تفضيلات الخادم (تهيئة جهاز جديد).
+  // الإخفاء: لا يُورَّث من الخادم إطلاقًا — يبدأ فارغًا (كل الروابط فعّالة) ما لم يُخصَّص على هذا الجهاز،
+  // حتى لا يعود إخفاءٌ قديم فيُظهر روابط باهتة معطّلة (طلب أيمن 2026-08-23).
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => (hasLocal(COLLAPSE_KEY) ? loadMap(COLLAPSE_KEY) : serverPrefs?.nav_collapsed ?? {}));
-  const [hidden, setHidden] = useState<Record<string, boolean>>(() => (hasLocal(HIDDEN_KEY) ? loadMap(HIDDEN_KEY) : serverPrefs?.nav_hidden ?? {}));
+  const [hidden, setHidden] = useState<Record<string, boolean>>(() => (hasLocal(HIDDEN_KEY) ? loadMap(HIDDEN_KEY) : {}));
   const [editing, setEditing] = useState(false);
   const [hideOptional, setHideOptional] = useState<boolean>(() => {
     try { return localStorage.getItem(HIDE_OPTIONAL_KEY) === '1'; } catch { return false; }
@@ -72,7 +74,6 @@ export function Sidebar({ open, onNavigate }: Props) {
   useEffect(() => {
     if (!serverPrefs) return;
     if (serverPrefs.nav_collapsed && !hasLocal(COLLAPSE_KEY)) { setCollapsed(serverPrefs.nav_collapsed); persist(COLLAPSE_KEY, serverPrefs.nav_collapsed); }
-    if (serverPrefs.nav_hidden && !hasLocal(HIDDEN_KEY)) { setHidden(serverPrefs.nav_hidden); persist(HIDDEN_KEY, serverPrefs.nav_hidden); }
   }, [serverPrefs]);
 
   // حفظ مؤجَّل في قاعدة البيانات (يتجنّب الإرسال عند كل نقرة سريعة).

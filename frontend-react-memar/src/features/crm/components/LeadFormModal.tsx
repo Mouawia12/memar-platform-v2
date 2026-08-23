@@ -139,7 +139,14 @@ export function LeadFormModal({ lead, onClose }: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    save.mutate({ id: lead?.id, data: form }, {
+    // «قيمة الصفقة» لم تعد حقلًا يُملأ يدويًا (طلب أيمن 2026-08-23): تُشتقّ من
+    // السعر المؤشَّر «الأنسب»، وإلا من السعر الأول — فتبقى إجماليات الأعمدة
+    // ومؤشّرات اللوحة والتصدير صحيحة بلا إدخال مكرّر.
+    const payload: LeadFormData = {
+      ...form,
+      deal_value_kwd: form.expected_price_kwd || form.price_1_kwd || '',
+    };
+    save.mutate({ id: lead?.id, data: payload }, {
       onSuccess: (saved) => {
         if (remindDate) {
           addReminder.mutate(
@@ -307,17 +314,11 @@ export function LeadFormModal({ lead, onClose }: Props) {
                     placeholder={['18000', '24000', '32000'][i]} required={i === 0} />
                   {/* تأشير «الأنسب» — واحد فقط من الثلاثة. */}
                   <label style={{ ...bestRow, ...(bestKey === k ? bestRowOn : null), opacity: form[k] ? 1 : 0.45 }}>
-                    <input type="checkbox" checked={bestKey === k} disabled={!form[k]} onChange={() => markBest(k)} />
-                    الأنسب
+                    <input type="checkbox" style={bestBox} checked={bestKey === k} disabled={!form[k]} onChange={() => markBest(k)} />
+                    {bestKey === k ? '✓ الأنسب' : 'الأنسب'}
                   </label>
                 </Field>
               ))}
-            </div>
-            <div style={grid2}>
-              <Field label="قيمة الصفقة (د.ك)">
-                <input className="input" style={input} type="number" step="0.001" min="0" value={form.deal_value_kwd}
-                  onChange={(e) => set('deal_value_kwd', e.target.value)} placeholder="القيمة المعتمدة للصفقة" />
-              </Field>
             </div>
             <div style={noteBox}>أدخل الأسعار وأشّر «الأنسب» على أحدها — تُحتسب منه النقاط المتوقّعة، والنقاط يحددها المدير لاحقاً.</div>
             <div style={sectionNote}>
@@ -533,6 +534,8 @@ const input: CSSProperties = { width: '100%', marginTop: '4px' };
 const dupWarn: CSSProperties = { background: '#FFFBEB', border: '1px solid #F59E0B', color: '#8A5A08', borderRadius: '8px', padding: '8px 11px', fontSize: '11.5px', lineHeight: 1.7, marginTop: '6px', fontWeight: 700 };
 const bestRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '5px', fontSize: '10.5px', fontWeight: 800, color: '#64748B', cursor: 'pointer', border: '1.5px solid #E2E8F0', borderRadius: '999px', padding: '2px 9px', background: '#fff' };
 const bestRowOn: CSSProperties = { color: '#2D9B6F', borderColor: '#2D9B6F', background: '#F0FBF5' };
+// علامة الصح خضراء عند التأشير (طلب أيمن 2026-08-23).
+const bestBox: CSSProperties = { accentColor: '#2D9B6F', width: '13px', height: '13px', cursor: 'pointer', margin: 0 };
 const noteBox: CSSProperties = { fontSize: '10.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '7px 10px', marginTop: '8px', lineHeight: 1.55 };
 const sectionNote: CSSProperties = { fontSize: '10.5px', color: '#5A6478', marginTop: '7px', lineHeight: 1.65 };
 const footer: CSSProperties = { display: 'flex', gap: '8px', padding: '11px 18px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px', flexShrink: 0 };

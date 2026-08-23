@@ -87,6 +87,31 @@ export function LeadFormModal({ lead, onClose }: Props) {
 
   const set = <K extends keyof LeadFormData>(key: K, value: LeadFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 
+  /**
+   * «الأنسب» صار تأشيرًا على أحد الأسعار الثلاثة بدل حقل مستقلّ (طلب أيمن
+   * 2026-08-23): التأشير يملأ expected_price_kwd بقيمة السعر المؤشَّر، وتعديل
+   * سعرٍ مؤشَّر يحدّث القيمة معه، وإفراغه يلغي التأشير.
+   */
+  const PRICE_KEYS = ['price_1_kwd', 'price_2_kwd', 'price_3_kwd'] as const;
+  const bestKey = PRICE_KEYS.find(
+    (k) => form.expected_price_kwd !== '' && form[k] !== '' && Number(form[k]) === Number(form.expected_price_kwd),
+  );
+
+  const setPrice = (key: (typeof PRICE_KEYS)[number], value: string) => {
+    setForm((f) => ({
+      ...f,
+      [key]: value,
+      // السعر المؤشَّر «الأنسب» يتبع قيمته الجديدة، ويسقط التأشير إن أُفرغ.
+      ...(key === bestKey ? { expected_price_kwd: value } : null),
+    }));
+  };
+
+  const markBest = (key: (typeof PRICE_KEYS)[number]) => {
+    const v = form[key];
+    if (!v || Number(v) <= 0) return;
+    set('expected_price_kwd', bestKey === key ? '' : v);
+  };
+
   /** اختيار مدة المتابعة يملأ تاريخ التذكير تلقائيًا (ويبقى قابلًا للتعديل يدويًا). */
   const pickFollowup = (key: string) => {
     setFollowup(key);
@@ -275,30 +300,26 @@ export function LeadFormModal({ lead, onClose }: Props) {
           {/* ── ③ رينج السعر ── */}
           <Section n="③" title="رينج السعر — 3 أسعار في صف واحد (الأول إجباري)">
             <div style={grid3}>
-              <Field label="السعر 1" required>
-                <input className="input" style={input} type="number" step="0.001" min="0" value={form.price_1_kwd}
-                  onChange={(e) => set('price_1_kwd', e.target.value)} placeholder="18000" required />
-              </Field>
-              <Field label="السعر 2">
-                <input className="input" style={input} type="number" step="0.001" min="0" value={form.price_2_kwd}
-                  onChange={(e) => set('price_2_kwd', e.target.value)} placeholder="24000" />
-              </Field>
-              <Field label="السعر 3">
-                <input className="input" style={input} type="number" step="0.001" min="0" value={form.price_3_kwd}
-                  onChange={(e) => set('price_3_kwd', e.target.value)} placeholder="32000" />
-              </Field>
+              {PRICE_KEYS.map((k, i) => (
+                <Field key={k} label={`السعر ${i + 1}`} required={i === 0}>
+                  <input className="input" style={input} type="number" step="0.001" min="0" value={form[k]}
+                    onChange={(e) => setPrice(k, e.target.value)}
+                    placeholder={['18000', '24000', '32000'][i]} required={i === 0} />
+                  {/* تأشير «الأنسب» — واحد فقط من الثلاثة. */}
+                  <label style={{ ...bestRow, ...(bestKey === k ? bestRowOn : null), opacity: form[k] ? 1 : 0.45 }}>
+                    <input type="checkbox" checked={bestKey === k} disabled={!form[k]} onChange={() => markBest(k)} />
+                    الأنسب
+                  </label>
+                </Field>
+              ))}
             </div>
             <div style={grid2}>
-              <Field label="السعر المتوقّع / الأنسب">
-                <input className="input" style={input} type="number" step="0.001" min="0" value={form.expected_price_kwd}
-                  onChange={(e) => set('expected_price_kwd', e.target.value)} placeholder="تُحتسب منه النقاط المتوقّعة" />
-              </Field>
               <Field label="قيمة الصفقة (د.ك)">
                 <input className="input" style={input} type="number" step="0.001" min="0" value={form.deal_value_kwd}
                   onChange={(e) => set('deal_value_kwd', e.target.value)} placeholder="القيمة المعتمدة للصفقة" />
               </Field>
             </div>
-            <div style={noteBox}>أدخل الأسعار — النقاط تُحدد من المدير لاحقاً.</div>
+            <div style={noteBox}>أدخل الأسعار وأشّر «الأنسب» على أحدها — تُحتسب منه النقاط المتوقّعة، والنقاط يحددها المدير لاحقاً.</div>
             <div style={sectionNote}>
               النقاط تحت كل سعر <b>يحددها المدير</b> بعد الحفظ من نافذة تفاصيل الفرصة (100 نقطة = 10 د.ك)،
               وتُمنح للموظف الذي ينقل الفرصة إلى عمود «تم الفوز».
@@ -510,6 +531,8 @@ const grid3: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(aut
 const label: CSSProperties = { display: 'block', marginTop: '3px', fontSize: '11.5px', fontWeight: 700, color: '#334155' };
 const input: CSSProperties = { width: '100%', marginTop: '4px' };
 const dupWarn: CSSProperties = { background: '#FFFBEB', border: '1px solid #F59E0B', color: '#8A5A08', borderRadius: '8px', padding: '8px 11px', fontSize: '11.5px', lineHeight: 1.7, marginTop: '6px', fontWeight: 700 };
+const bestRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '5px', fontSize: '10.5px', fontWeight: 800, color: '#64748B', cursor: 'pointer', border: '1.5px solid #E2E8F0', borderRadius: '999px', padding: '2px 9px', background: '#fff' };
+const bestRowOn: CSSProperties = { color: '#2D9B6F', borderColor: '#2D9B6F', background: '#F0FBF5' };
 const noteBox: CSSProperties = { fontSize: '10.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '7px 10px', marginTop: '8px', lineHeight: 1.55 };
 const sectionNote: CSSProperties = { fontSize: '10.5px', color: '#5A6478', marginTop: '7px', lineHeight: 1.65 };
 const footer: CSSProperties = { display: 'flex', gap: '8px', padding: '11px 18px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px', flexShrink: 0 };

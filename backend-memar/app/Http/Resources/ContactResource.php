@@ -98,6 +98,12 @@ class ContactResource extends JsonResource
                     'due' => $next->remind_at !== null && $next->remind_at->isPast(),
                 ] : null;
             }),
+            // مَن نقل الفرصة إلى مرحلتها الحالية (يظهر على الكرت بجانب المكلّف)
+            'mover' => $this->whenLoaded('movedBy', fn () => $this->movedBy ? [
+                'id' => $this->movedBy->id,
+                'name' => $this->movedBy->name,
+                'at' => $this->moved_at?->toDateString(),
+            ] : null),
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? [
                 'id' => $this->owner->id,
                 'name' => $this->owner->name,

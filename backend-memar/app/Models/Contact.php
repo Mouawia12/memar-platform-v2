@@ -96,6 +96,7 @@ class Contact extends Model
     {
         return [
             'deal_value_kwd' => 'decimal:3',
+            'moved_at' => 'datetime',
             'notification_prefs' => 'array',
             'tags' => 'array',
             'loyalty_points' => 'integer',
@@ -166,6 +167,17 @@ class Contact extends Model
     public function referredByContact(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'referred_by_contact_id');
+    }
+
+    /**
+     * مَن نقل الفرصة إلى مرحلتها الحالية — يضبطه الخادم عند تغيّر المرحلة،
+     * وليس ضمن $fillable كي لا يُنتحل من العميل (طلب أيمن 2026-08-23).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function movedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'moved_by');
     }
 
     /** تذكيرات المتابعة على الفرصة/العميل. @return HasMany<LeadReminder, $this> */

@@ -146,11 +146,20 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         <div style={cardSide}>
           <span style={{ ...chip, background: `${imp.color}1a`, color: imp.color }}>{imp.label}</span>
           {lead.owner && (
-            <span style={ownerRow} title={`صاحب الفرصة: ${lead.owner.name}`}>
+            <span style={ownerRow} title={`المهندس المكلّف: ${lead.owner.name}`}>
               {avatarUrl
                 ? <img src={avatarUrl} alt={lead.owner.name} style={{ ...ownerAvatar, objectFit: 'cover', border: `1.5px solid ${ownerColor}` }} />
                 : <span style={{ ...ownerAvatar, background: ownerColor }}>{personInitials(lead.owner.name)}</span>}
               <span style={owner}>{lead.owner.name}</span>
+            </span>
+          )}
+          {/* مَن نقل الفرصة إلى مرحلتها الحالية — بجانب المكلّف (طلب أيمن 2026-08-23). */}
+          {lead.mover && (
+            <span style={ownerRow} title={`نقلها إلى المرحلة الحالية: ${lead.mover.name}${lead.mover.at ? ` — ${lead.mover.at}` : ''}`}>
+              <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), fontSize: '7.5px' }}>
+                {personInitials(lead.mover.name)}
+              </span>
+              <span style={{ ...owner, fontWeight: 700, color: '#64748B' }}>↗ {lead.mover.name}</span>
             </span>
           )}
           {reorderable && (

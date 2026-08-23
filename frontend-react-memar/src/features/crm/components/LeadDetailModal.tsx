@@ -209,6 +209,12 @@ export function LeadDetailModal({ lead, ownerAvatarUrl, stages, onClose, onEdit,
                 {lead.owner.name}
               </span>
             ) : ''} />
+            <DRow label="نقلها إلى هذه المرحلة" value={lead.mover ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: personColor(lead.mover.id), color: '#fff', fontSize: '8.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.mover.name)}</span>
+                {lead.mover.name}{lead.mover.at ? ` — ${lead.mover.at}` : ''}
+              </span>
+            ) : ''} />
             <DRow label="تاريخ الفرصة" value={lead.created_at ? lead.created_at.slice(0, 10) : ''} />
             <DRow label="المرحلة الحالية" value={<span style={{ color: colorOf(lead.stage), fontWeight: 800 }}>{labelOf(lead.stage)}</span>} />
             <DRow label="مستوى الأهمية" value={<span style={{ color: imp.color, fontWeight: 800 }}>{imp.label}</span>} />

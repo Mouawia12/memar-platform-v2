@@ -33,7 +33,7 @@ class ContactService
                 });
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
-            ->with(['owner', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
+            ->with(['owner', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
             // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).
             ->orderBy('board_position')
             ->latest()
@@ -58,10 +58,22 @@ class ContactService
     public function update(Contact $contact, array $data): Contact
     {
         $data = $this->withExpectedPoints($data, $contact);
+
+        // مَن نقل الفرصة لمرحلة أخرى ومتى — من جلسة المستخدم لا من الطلب.
+        $movedStage = array_key_exists('stage', $data) && $data['stage'] !== $contact->stage;
+
         $contact->update($data);
+
+        if ($movedStage) {
+            $contact->forceFill([
+                'moved_by' => auth()->id(),
+                'moved_at' => now(),
+            ])->save();
+        }
+
         $this->maybeConvertToProject($contact);
 
-        return $contact->load('owner', 'convertedProject');
+        return $contact->load('owner', 'movedBy', 'convertedProject');
     }
 
     /**

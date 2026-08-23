@@ -42,7 +42,7 @@ export interface Lead {
   project: { id: number; code: string; name: string; status: string } | null;
   owner: { id: number; name: string } | null;
   /** مَن نقل الفرصة إلى مرحلتها الحالية ومتى — يسجّله الخادم عند كل نقل. */
-  mover: { id: number; name: string; at: string | null } | null;
+  mover: { id: number; name: string; at: string | null; from: string | null } | null;
   // أقرب تذكير معلّق + هل حان وقته (لتنبيه الكرت) — اجتماع 2026-08-05
   reminder: { id: number; remind_at: string | null; note: string | null; due: boolean } | null;
   /** آخر تحديث سجّله الموظف على الفرصة — يظهر أسفل الكرت. */

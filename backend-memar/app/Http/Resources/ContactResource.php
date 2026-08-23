@@ -103,6 +103,7 @@ class ContactResource extends JsonResource
                 'id' => $this->movedBy->id,
                 'name' => $this->movedBy->name,
                 'at' => $this->moved_at?->toDateString(),
+                'from' => $this->moved_from,
             ] : null),
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? [
                 'id' => $this->owner->id,

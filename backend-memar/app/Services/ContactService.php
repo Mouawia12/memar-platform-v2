@@ -59,8 +59,9 @@ class ContactService
     {
         $data = $this->withExpectedPoints($data, $contact);
 
-        // مَن نقل الفرصة لمرحلة أخرى ومتى — من جلسة المستخدم لا من الطلب.
+        // مَن نقل الفرصة لمرحلة أخرى ومتى ومن أين — من جلسة المستخدم لا من الطلب.
         $movedStage = array_key_exists('stage', $data) && $data['stage'] !== $contact->stage;
+        $previousStage = $contact->stage;
 
         $contact->update($data);
 
@@ -68,6 +69,7 @@ class ContactService
             $contact->forceFill([
                 'moved_by' => auth()->id(),
                 'moved_at' => now(),
+                'moved_from' => $previousStage,
             ])->save();
         }
 

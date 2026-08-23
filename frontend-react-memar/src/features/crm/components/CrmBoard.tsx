@@ -395,6 +395,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
             stageColor={stage.color}
             avatarUrl={lead.owner ? avatars?.[String(lead.owner.id)] ?? null : null}
             justSeen={justSeenId === lead.id}
+            moverFromLabel={lead.mover?.from ? stages.find((s) => s.key === lead.mover!.from)?.label ?? lead.mover.from : null}
             onMoveUp={() => moveInColumn(colLeads, i, -1)}
             onMoveDown={() => moveInColumn(colLeads, i, 1)}
             canMoveUp={i > 0}

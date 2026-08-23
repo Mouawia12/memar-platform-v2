@@ -17,6 +17,8 @@ interface Props {
   avatarUrl?: string | null;
   /** الكرت الذي أُغلقت نافذته للتوّ — يُبرَز لحظات ليعرف المستخدم أين كان. */
   justSeen?: boolean;
+  /** اسم المرحلة التي نُقلت منها الفرصة (يُترجَم من مفتاحها في اللوحة). */
+  moverFromLabel?: string | null;
 }
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
@@ -65,7 +67,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
-export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen }: Props) {
+export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen, moverFromLabel }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
@@ -153,15 +155,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
               <span style={owner}>{lead.owner.name}</span>
             </span>
           )}
-          {/* مَن نقل الفرصة إلى مرحلتها الحالية — بجانب المكلّف (طلب أيمن 2026-08-23). */}
-          {lead.mover && (
-            <span style={ownerRow} title={`نقلها إلى المرحلة الحالية: ${lead.mover.name}${lead.mover.at ? ` — ${lead.mover.at}` : ''}`}>
-              <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), fontSize: '7.5px' }}>
-                {personInitials(lead.mover.name)}
-              </span>
-              <span style={{ ...owner, fontWeight: 700, color: '#64748B' }}>↗ {lead.mover.name}</span>
-            </span>
-          )}
+
           {reorderable && (
             <span style={reorderGroup} onClick={stop} onPointerDown={stop}>
               <button type="button" title="تحريك لأعلى" aria-label="تحريك لأعلى" disabled={!canMoveUp} style={{ ...reorderBtn, ...(canMoveUp ? null : reorderBtnOff) }} onClick={(e) => { stop(e); onMoveUp?.(); }} onPointerDown={stop}>▲</button>
@@ -229,6 +223,19 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       {tagMsg && <div style={tagMsgStyle}>{tagMsg}</div>}
 
       {/* آخر تحديث سجّله الموظف على الفرصة (لا الملاحظات) — طبق التصميم. */}
+      {/* مَن نقل الفرصة ومن أي مرحلة — أسفل الكرت في الفراغ (طلب أيمن 2026-08-23). */}
+      {lead.mover && (
+        <div style={moveLine} title={lead.mover.at ? `تاريخ النقل: ${lead.mover.at}` : undefined}>
+          <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), width: '16px', height: '16px', fontSize: '7px' }}>
+            {personInitials(lead.mover.name)}
+          </span>
+          <span>
+            ↗ نقلها {moverFromLabel ? <>من <b style={{ color: '#475569' }}>«{moverFromLabel}»</b> </> : null}
+            <b style={{ color: personColor(lead.mover.id) }}>{lead.mover.name}</b>
+          </span>
+        </div>
+      )}
+
       {/* آخر تحديث سجّله الموظف، ويظهر اسمه معه بوضوح (طلب أيمن 2026-08-22). */}
       <div style={last}>
         📝{' '}
@@ -282,6 +289,7 @@ const tagRow: CSSProperties = { display: 'flex', gap: '5px', marginTop: '7px', c
 const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', padding: '5px 8px', border: '1.5px solid #CBD5E1', borderRadius: '7px', fontFamily: 'inherit', outline: 'none' };
 const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
 const tagMsgStyle: CSSProperties = { marginTop: '6px', fontSize: '10.5px', fontWeight: 700, color: '#0F766E' };
+const moveLine: CSSProperties = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9.5px', color: '#64748B', fontWeight: 700, marginTop: '6px', paddingTop: '5px', borderTop: '1px dashed #EEF2F7' };
 const last: CSSProperties = { fontSize: '10px', color: '#64748B', borderTop: '1px dashed #E2E8F0', marginTop: '6px', paddingTop: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };
 const reorderBtn: CSSProperties = { width: '18px', height: '13px', display: 'grid', placeItems: 'center', border: '1px solid #E4E8EF', background: '#F7F9FC', color: '#5A6478', borderRadius: '4px', cursor: 'pointer', fontSize: '7px', lineHeight: 1, padding: 0 };

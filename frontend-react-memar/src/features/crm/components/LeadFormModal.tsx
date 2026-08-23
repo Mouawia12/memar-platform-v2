@@ -82,6 +82,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
   // الفرصة عبر endpoint التذكيرات.
   const [remindDate, setRemindDate] = useState('');
   const [remindTime, setRemindTime] = useState('10:00');
+  const [remindNote, setRemindNote] = useState('');
 
   const set = <K extends keyof LeadFormData>(key: K, value: LeadFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -139,7 +140,11 @@ export function LeadFormModal({ lead, onClose }: Props) {
       onSuccess: (saved) => {
         if (remindDate) {
           addReminder.mutate(
-            { id: saved.id, remind_at: `${remindDate} ${remindTime || '10:00'}:00`, note: `متابعة الفرصة: ${form.full_name}` },
+            {
+              id: saved.id,
+              remind_at: `${remindDate} ${remindTime || '10:00'}:00`,
+              note: remindNote.trim() || `متابعة الفرصة: ${form.full_name}`,
+            },
             { onSettled: onClose },
           );
           return;
@@ -354,6 +359,12 @@ export function LeadFormModal({ lead, onClose }: Props) {
                 <input className="input" style={input} type="time" value={remindTime} onChange={(e) => setRemindTime(e.target.value)} />
               </Field>
             </div>
+            {/* ملاحظة خاصة بالتواصل تُحفظ مع التذكير نفسه (طلب أيمن 2026-08-23). */}
+            <Field label="ملاحظات التواصل">
+              <textarea className="input" style={{ ...input, minHeight: '54px' }} value={remindNote}
+                onChange={(e) => setRemindNote(e.target.value)} maxLength={255}
+                placeholder="مثال: يُفضّل الاتصال صباحًا — ينتظر عرض السعر" />
+            </Field>
             <div style={sectionNote}>يُضبط التذكير بعد حفظ الفرصة، ويظهر في تنبيه «فرص تحتاج تواصل» أعلى لوحة CRM.</div>
           </Section>
 

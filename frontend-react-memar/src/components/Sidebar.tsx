@@ -55,7 +55,9 @@ export function Sidebar({ open, onNavigate }: Props) {
   const serverPrefs = useAuthStore((s) => s.user?.ui_prefs);
   // المحلي أولًا إن سبق التخصيص على هذا الجهاز؛ وإلا نبدأ من تفضيلات الخادم (تهيئة جهاز جديد).
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => (hasLocal(COLLAPSE_KEY) ? loadMap(COLLAPSE_KEY) : serverPrefs?.nav_collapsed ?? {}));
-  const [hidden, setHidden] = useState<Record<string, boolean>>(() => (hasLocal(HIDDEN_KEY) ? loadMap(HIDDEN_KEY) : serverPrefs?.nav_hidden ?? {}));
+  // نبدأ دائمًا بلا إخفاء (كل الروابط ناصعة) ما لم يخصّص المستخدم على هذا الجهاز صراحةً.
+  // لا نرث حالة الإخفاء القديمة من الخادم حتى لا تظهر روابط باهتة لم يقصدها المستخدم. (طلب أيمن)
+  const [hidden, setHidden] = useState<Record<string, boolean>>(() => (hasLocal(HIDDEN_KEY) ? loadMap(HIDDEN_KEY) : {}));
   const [editing, setEditing] = useState(false);
   const [hideOptional, setHideOptional] = useState<boolean>(() => {
     try { return localStorage.getItem(HIDE_OPTIONAL_KEY) === '1'; } catch { return false; }
@@ -74,7 +76,7 @@ export function Sidebar({ open, onNavigate }: Props) {
   useEffect(() => {
     if (!serverPrefs) return;
     if (serverPrefs.nav_collapsed && !hasLocal(COLLAPSE_KEY)) { setCollapsed(serverPrefs.nav_collapsed); persist(COLLAPSE_KEY, serverPrefs.nav_collapsed); }
-    if (serverPrefs.nav_hidden && !hasLocal(HIDDEN_KEY)) { setHidden(serverPrefs.nav_hidden); persist(HIDDEN_KEY, serverPrefs.nav_hidden); }
+    // لا نرث nav_hidden من الخادم (يبقى البدء «ناصعًا»)؛ الإخفاء الشخصي يُدار محليًّا عبر ⚙️ فقط.
   }, [serverPrefs]);
 
   // حفظ مؤجَّل في قاعدة البيانات (يتجنّب الإرسال عند كل نقرة سريعة).

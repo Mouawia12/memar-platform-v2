@@ -7,7 +7,7 @@ import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useAddLeadReminder, useApproveCrmTag, useCreateCrmTag, useCrmTags, useLeads, useRejectCrmTag, useSaveLead, useSimilarContacts } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import {
-  FOLLOWUP_PRESETS, LEAD_SOURCE_META, LEAD_SOURCE_ORDER, PRIORITY_META, PRIORITY_ORDER, PROJECT_TYPES,
+  LEAD_SOURCE_META, LEAD_SOURCE_ORDER, PRIORITY_META, PRIORITY_ORDER, PROJECT_TYPES,
   TEMPERATURE_ORDER, TEMPERATURE_META,
   tagColor,
   type ContactType, type Lead, type LeadFormData, type LeadSource, type Priority, type Stage, type Temperature,
@@ -30,8 +30,6 @@ const empty: LeadFormData = {
 };
 
 const num = (v: string | null) => (Number(v) ? String(v) : '');
-/** التاريخ بصيغة input[type=date] (YYYY-MM-DD) بالتوقيت المحلي لا UTC. */
-const toDateInput = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /**
  * نموذج «إضافة فرصة / عميل محتمل جديد» — خمسة أقسام مرقّمة بنفس لغة نافذة التفاصيل
@@ -80,8 +78,8 @@ export function LeadFormModal({ lead, onClose }: Props) {
   const [form, setForm] = useState<LeadFormData>(initialForm);
   useEffect(() => setForm(initialForm), [initialForm]);
 
-  // ④ تذكير التواصل — يُنشأ بعد حفظ الفرصة عبر endpoint التذكيرات.
-  const [followup, setFollowup] = useState('');
+  // ④ تذكير التواصل — تاريخ ووقت فقط (طلب أيمن 2026-08-23)؛ يُنشأ بعد حفظ
+  // الفرصة عبر endpoint التذكيرات.
   const [remindDate, setRemindDate] = useState('');
   const [remindTime, setRemindTime] = useState('10:00');
 
@@ -112,15 +110,6 @@ export function LeadFormModal({ lead, onClose }: Props) {
     set('expected_price_kwd', bestKey === key ? '' : v);
   };
 
-  /** اختيار مدة المتابعة يملأ تاريخ التذكير تلقائيًا (ويبقى قابلًا للتعديل يدويًا). */
-  const pickFollowup = (key: string) => {
-    setFollowup(key);
-    const days = FOLLOWUP_PRESETS.find((p) => p.key === key)?.days ?? null;
-    if (days === null) { setRemindDate(''); return; }
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    setRemindDate(toDateInput(d));
-  };
 
   // «نوع المشروع» قائمة جاهزة + «أخرى…» لإدخال حر (لا نفقد القيم القديمة خارج القائمة).
   // تنبيه التكرار: بحث مؤجَّل عن أسماء مشابهة كي لا تُسجَّل الفرصة مرّتين
@@ -349,11 +338,6 @@ export function LeadFormModal({ lead, onClose }: Props) {
           {/* ── ④ تذكير التواصل ── */}
           <Section n="④" title="تذكير التواصل">
             <div style={grid2}>
-              <Field label="يحتاج تواصل">
-                <select className="input" style={input} value={followup} onChange={(e) => pickFollowup(e.target.value)}>
-                  {FOLLOWUP_PRESETS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
-                </select>
-              </Field>
               <Field label="تاريخ التذكير">
                 <input className="input" style={input} type="date" value={remindDate} onChange={(e) => setRemindDate(e.target.value)} />
               </Field>

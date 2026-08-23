@@ -176,16 +176,6 @@ export const PROJECT_TYPES: string[] = [
   'مبنى إداري', 'مجمع تجاري', 'مسجد', 'مخزن / مستودع', 'تصميم داخلي', 'ترميم / إضافة',
 ];
 
-/** خيارات «يحتاج تواصل» — كل خيار يضبط تاريخ التذكير تلقائيًا بعدد أيامه. */
-export const FOLLOWUP_PRESETS: { key: string; label: string; days: number | null }[] = [
-  { key: '', label: 'بلا تذكير', days: null },
-  { key: 'today', label: 'اليوم', days: 0 },
-  { key: 'tomorrow', label: 'غدًا', days: 1 },
-  { key: '3d', label: 'بعد 3 أيام', days: 3 },
-  { key: '7d', label: 'بعد أسبوع (7 أيام)', days: 7 },
-  { key: '14d', label: 'بعد أسبوعين', days: 14 },
-  { key: '30d', label: 'بعد شهر', days: 30 },
-];
 
 // ── ألوان الاختصارات (الوسوم) ──
 // الخمسة المعتمدة لها ألوان ثابتة من لوحة معمار؛ وأي اختصار تضيفه الإدارة لاحقًا

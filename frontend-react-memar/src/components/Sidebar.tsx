@@ -55,9 +55,10 @@ export function Sidebar({ open, onNavigate }: Props) {
   const serverPrefs = useAuthStore((s) => s.user?.ui_prefs);
   // المحلي أولًا إن سبق التخصيص على هذا الجهاز؛ وإلا نبدأ من تفضيلات الخادم (تهيئة جهاز جديد).
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => (hasLocal(COLLAPSE_KEY) ? loadMap(COLLAPSE_KEY) : serverPrefs?.nav_collapsed ?? {}));
-  // نبدأ دائمًا بلا إخفاء (كل الروابط ناصعة) ما لم يخصّص المستخدم على هذا الجهاز صراحةً.
-  // لا نرث حالة الإخفاء القديمة من الخادم حتى لا تظهر روابط باهتة لم يقصدها المستخدم. (طلب أيمن)
-  const [hidden, setHidden] = useState<Record<string, boolean>>(() => (hasLocal(HIDDEN_KEY) ? loadMap(HIDDEN_KEY) : {}));
+  // لا إخفاء شخصي إطلاقًا: نتجاهل كل التخزين المحلي والخادم فتظهر كل الروابط ناصعة دائمًا
+  // لأي مستخدم مهما كان محفوظًا في متصفّحه. الإخفاء الحقيقي يكون على مستوى الدور فقط
+  // (role_nav_hidden) وهو يحذف لا يُبهت. (طلب أيمن 2026-08-23 — إنهاء الروابط الباهتة نهائيًّا)
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState(false);
   const [hideOptional, setHideOptional] = useState<boolean>(() => {
     try { return localStorage.getItem(HIDE_OPTIONAL_KEY) === '1'; } catch { return false; }

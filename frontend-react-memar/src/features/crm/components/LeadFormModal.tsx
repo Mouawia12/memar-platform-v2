@@ -309,14 +309,17 @@ export function LeadFormModal({ lead, onClose }: Props) {
             <div style={grid3}>
               {PRICE_KEYS.map((k, i) => (
                 <Field key={k} label={`السعر ${i + 1}`} required={i === 0}>
-                  <input className="input" style={input} type="number" step="0.001" min="0" value={form[k]}
-                    onChange={(e) => setPrice(k, e.target.value)}
-                    placeholder={['18000', '24000', '32000'][i]} required={i === 0} />
-                  {/* تأشير «الأنسب» — واحد فقط من الثلاثة. */}
-                  <label style={{ ...bestRow, ...(bestKey === k ? bestRowOn : null), opacity: form[k] ? 1 : 0.45 }}>
-                    <input type="checkbox" style={bestBox} checked={bestKey === k} disabled={!form[k]} onChange={() => markBest(k)} />
-                    {bestKey === k ? '✓ الأنسب' : 'الأنسب'}
-                  </label>
+                  {/* مربّع التأشير داخل حقل السعر نفسه — واحد فقط من الثلاثة هو «الأنسب». */}
+                  <span style={priceWrap}>
+                    <input className="input" style={{ ...input, marginTop: 0, paddingInlineEnd: '32px' }}
+                      type="number" step="0.001" min="0" value={form[k]}
+                      onChange={(e) => setPrice(k, e.target.value)}
+                      placeholder={['18000', '24000', '32000'][i]} required={i === 0} />
+                    <input type="checkbox" style={bestBox} checked={bestKey === k} disabled={!form[k]}
+                      onChange={() => markBest(k)}
+                      title={bestKey === k ? 'هذا هو السعر الأنسب' : 'تأشير هذا السعر كالأنسب'}
+                      aria-label={`تأشير السعر ${i + 1} كالأنسب`} />
+                  </span>
                 </Field>
               ))}
             </div>
@@ -532,10 +535,10 @@ const grid3: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(aut
 const label: CSSProperties = { display: 'block', marginTop: '3px', fontSize: '11.5px', fontWeight: 700, color: '#334155' };
 const input: CSSProperties = { width: '100%', marginTop: '4px' };
 const dupWarn: CSSProperties = { background: '#FFFBEB', border: '1px solid #F59E0B', color: '#8A5A08', borderRadius: '8px', padding: '8px 11px', fontSize: '11.5px', lineHeight: 1.7, marginTop: '6px', fontWeight: 700 };
-const bestRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '5px', fontSize: '10.5px', fontWeight: 800, color: '#64748B', cursor: 'pointer', border: '1.5px solid #E2E8F0', borderRadius: '999px', padding: '2px 9px', background: '#fff' };
-const bestRowOn: CSSProperties = { color: '#2D9B6F', borderColor: '#2D9B6F', background: '#F0FBF5' };
-// علامة الصح خضراء عند التأشير (طلب أيمن 2026-08-23).
-const bestBox: CSSProperties = { accentColor: '#2D9B6F', width: '13px', height: '13px', cursor: 'pointer', margin: 0 };
+// مربّع «الأنسب» داخل حقل السعر (طلب أيمن 2026-08-23): مربّع فقط بلا كلمة،
+// وعلامة صحّه خضراء. الحقل يحجز فراغًا في طرفه كي لا يركب الرقمَ المكتوب.
+const priceWrap: CSSProperties = { position: 'relative', display: 'block', marginTop: '4px' };
+const bestBox: CSSProperties = { position: 'absolute', insetInlineEnd: '10px', top: '50%', transform: 'translateY(-50%)', accentColor: '#2D9B6F', width: '15px', height: '15px', cursor: 'pointer', margin: 0 };
 const noteBox: CSSProperties = { fontSize: '10.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '7px 10px', marginTop: '8px', lineHeight: 1.55 };
 const sectionNote: CSSProperties = { fontSize: '10.5px', color: '#5A6478', marginTop: '7px', lineHeight: 1.65 };
 const footer: CSSProperties = { display: 'flex', gap: '8px', padding: '11px 18px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px', flexShrink: 0 };

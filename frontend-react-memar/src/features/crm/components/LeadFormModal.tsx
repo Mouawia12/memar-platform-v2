@@ -141,7 +141,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
 
   return (
     <div className="crm-scope" style={overlay} onClick={handleBackdrop}>
-      <form className="crm-modal-in" style={modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+      <form className="crm-modal-in crm-form-compact" style={modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <div style={modalHeader}>
           <span style={modalTitle}>🎯 {lead ? 'تعديل الفرصة' : 'إضافة فرصة / عميل محتمل جديد'}</span>
           <button type="button" onClick={handleBackdrop} aria-label="إغلاق" style={closeBtn}>×</button>
@@ -495,20 +495,20 @@ const miniBtn: CSSProperties = { border: 'none', borderRadius: '8px', padding: '
 
 const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,20,40,.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '40px', zIndex: 500, overflowY: 'auto' };
 const modal: CSSProperties = { background: '#fff', borderRadius: '16px', boxShadow: '0 24px 60px rgba(10,20,40,.3)', width: '640px', maxWidth: '95vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', marginBottom: '40px' };
-const modalHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #EEF2F7', background: 'linear-gradient(135deg,#fff 0%,#EBF5FF 100%)', borderRadius: '16px 16px 0 0', flexShrink: 0 };
-const modalTitle: CSSProperties = { fontSize: '16px', fontWeight: 800, color: '#1E293B' };
+const modalHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid #EEF2F7', background: 'linear-gradient(135deg,#fff 0%,#EBF5FF 100%)', borderRadius: '16px 16px 0 0', flexShrink: 0 };
+const modalTitle: CSSProperties = { fontSize: '14.5px', fontWeight: 800, color: '#1E293B' };
 const closeBtn: CSSProperties = { background: 'none', border: 'none', fontSize: '26px', lineHeight: 1, cursor: 'pointer', color: '#94A3B8', padding: 0 };
-const modalBody: CSSProperties = { padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto' };
+const modalBody: CSSProperties = { padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '11px', overflowY: 'auto' };
 // شريط الإرشاد أعلى النموذج (يشرح ترقيم الأقسام ومعنى النجمة).
-const formHint: CSSProperties = { background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B23B30', borderRadius: '10px', padding: '10px 13px', fontSize: '12.5px', fontWeight: 700 };
-const sectionCard: CSSProperties = { border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px 16px', background: '#FCFDFE' };
-const secTitle: CSSProperties = { fontSize: '12.5px', fontWeight: 800, color: '#1B6CA8', borderBottom: '1px dashed #E2E8F0', paddingBottom: '6px', marginBottom: '10px' };
-const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px 14px' };
-const grid3: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px 14px' };
-const label: CSSProperties = { display: 'block', marginTop: '4px', fontSize: '12.5px', fontWeight: 700, color: '#334155' };
-const input: CSSProperties = { width: '100%', marginTop: '5px' };
+const formHint: CSSProperties = { background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B23B30', borderRadius: '9px', padding: '8px 11px', fontSize: '11.5px', fontWeight: 700 };
+const sectionCard: CSSProperties = { border: '1px solid #E2E8F0', borderRadius: '11px', padding: '11px 13px', background: '#FCFDFE' };
+const secTitle: CSSProperties = { fontSize: '11.5px', fontWeight: 800, color: '#1B6CA8', borderBottom: '1px dashed #E2E8F0', paddingBottom: '5px', marginBottom: '8px' };
+const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))', gap: '8px 12px' };
+const grid3: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px 12px' };
+const label: CSSProperties = { display: 'block', marginTop: '3px', fontSize: '11.5px', fontWeight: 700, color: '#334155' };
+const input: CSSProperties = { width: '100%', marginTop: '4px' };
 const dupWarn: CSSProperties = { background: '#FFFBEB', border: '1px solid #F59E0B', color: '#8A5A08', borderRadius: '8px', padding: '8px 11px', fontSize: '11.5px', lineHeight: 1.7, marginTop: '6px', fontWeight: 700 };
-const noteBox: CSSProperties = { fontSize: '11.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '8px 11px', marginTop: '10px', lineHeight: 1.6 };
-const sectionNote: CSSProperties = { fontSize: '11.5px', color: '#5A6478', marginTop: '8px', lineHeight: 1.7 };
-const footer: CSSProperties = { display: 'flex', gap: '8px', padding: '14px 22px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px', flexShrink: 0 };
+const noteBox: CSSProperties = { fontSize: '10.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '7px 10px', marginTop: '8px', lineHeight: 1.55 };
+const sectionNote: CSSProperties = { fontSize: '10.5px', color: '#5A6478', marginTop: '7px', lineHeight: 1.65 };
+const footer: CSSProperties = { display: 'flex', gap: '8px', padding: '11px 18px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px', flexShrink: 0 };
 const checkRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: 700, color: '#334155', cursor: 'pointer' };

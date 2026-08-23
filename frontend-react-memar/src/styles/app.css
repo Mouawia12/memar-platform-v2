@@ -319,7 +319,7 @@ table {
   transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
 .input::placeholder { color: #94A3B8; }
-.input:hover:not(:disabled) { border-color: #CBD5E1; }
+.input:hover:not(:disabled) { border-color: #93C5FD; background: #F5FAFF; }
 .input:focus,
 .input:focus-visible {
   border-color: #1B6CA8;
@@ -342,3 +342,9 @@ textarea.input { resize: vertical; line-height: 1.7; }
 @keyframes crmToastIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
 .crm-toast-in { animation: crmToastIn .28s cubic-bezier(.2,1.2,.4,1) both; }
 @media (prefers-reduced-motion: reduce) { .crm-toast-in { animation: none; } }
+
+/* ── نموذج الفرصة: محتوى أصغر قليلًا (طلب أيمن 2026-08-23) ──
+   مقصور على هذا النموذج بمحدّد خاص، فلا يتغيّر حجم بقيّة نماذج النظام. */
+.crm-form-compact .input { font-size: 12px; padding: 7px 10px; }
+.crm-form-compact select.input { padding-inline-end: 27px; background-position: left 9px center; }
+.crm-form-compact textarea.input { line-height: 1.6; }

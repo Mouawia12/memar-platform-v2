@@ -4,7 +4,7 @@ import { apiErrorMessage } from '../../../lib/api';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 import { useAssignableUsers } from '../../users/hooks/useUsers';
-import { useAddLeadReminder, useApproveCrmTag, useCreateCrmTag, useCrmTags, useLeads, useRejectCrmTag, useSaveLead } from '../hooks/useCrm';
+import { useAddLeadReminder, useApproveCrmTag, useCreateCrmTag, useCrmTags, useLeads, useRejectCrmTag, useSaveLead, useSimilarContacts } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import {
   FOLLOWUP_PRESETS, LEAD_SOURCE_META, LEAD_SOURCE_ORDER, PRIORITY_META, PRIORITY_ORDER, PROJECT_TYPES,
@@ -98,6 +98,15 @@ export function LeadFormModal({ lead, onClose }: Props) {
   };
 
   // «نوع المشروع» قائمة جاهزة + «أخرى…» لإدخال حر (لا نفقد القيم القديمة خارج القائمة).
+  // تنبيه التكرار: بحث مؤجَّل عن أسماء مشابهة كي لا تُسجَّل الفرصة مرّتين
+  // (طلب أيمن 2026-08-22). تنبيه فقط — لا يمنع الحفظ.
+  const [nameProbe, setNameProbe] = useState('');
+  useEffect(() => {
+    const t = window.setTimeout(() => setNameProbe(form.full_name.trim()), 500);
+    return () => window.clearTimeout(t);
+  }, [form.full_name]);
+  const { data: similar } = useSimilarContacts(nameProbe, lead?.id ?? null);
+
   const [otherType, setOtherType] = useState(false);
   useEffect(() => {
     setOtherType(!!initialForm.project_type && !PROJECT_TYPES.includes(initialForm.project_type));
@@ -160,6 +169,19 @@ export function LeadFormModal({ lead, onClose }: Props) {
               </Field>
               <Field label="اسم العميل" required>
                 <input className="input" style={input} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} placeholder="أحمد السالم" required />
+                {(similar?.length ?? 0) > 0 && (
+                  <div style={dupWarn}>
+                    ⚠️ يوجد {similar!.length === 1 ? 'اسم مشابه مسجّل' : `${similar!.length} أسماء مشابهة مسجّلة`}:
+                    <ul style={{ margin: '5px 0 0', paddingInlineStart: '18px' }}>
+                      {similar!.slice(0, 3).map((c) => (
+                        <li key={c.id} style={{ fontWeight: 700 }}>
+                          {c.full_name}{c.phone ? ` — ${c.phone}` : ''}{c.project_name ? ` · ${c.project_name}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                    <div style={{ marginTop: '4px', fontWeight: 600 }}>تأكّد أنك لا تكرّر تسجيل الفرصة نفسها.</div>
+                  </div>
+                )}
               </Field>
               <Field label="رقم الهاتف" required>
                 <input className="input" style={input} value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+965 9912 3456" dir="ltr" required />
@@ -485,6 +507,7 @@ const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(aut
 const grid3: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px 14px' };
 const label: CSSProperties = { display: 'block', marginTop: '4px', fontSize: '12.5px', fontWeight: 700, color: '#334155' };
 const input: CSSProperties = { width: '100%', marginTop: '5px' };
+const dupWarn: CSSProperties = { background: '#FFFBEB', border: '1px solid #F59E0B', color: '#8A5A08', borderRadius: '8px', padding: '8px 11px', fontSize: '11.5px', lineHeight: 1.7, marginTop: '6px', fontWeight: 700 };
 const noteBox: CSSProperties = { fontSize: '11.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '8px 11px', marginTop: '10px', lineHeight: 1.6 };
 const sectionNote: CSSProperties = { fontSize: '11.5px', color: '#5A6478', marginTop: '8px', lineHeight: 1.7 };
 const footer: CSSProperties = { display: 'flex', gap: '8px', padding: '14px 22px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px', flexShrink: 0 };

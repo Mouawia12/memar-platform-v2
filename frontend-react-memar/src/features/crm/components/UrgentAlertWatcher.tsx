@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
+import { useToastStore } from '../../../store/toasts';
 import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { crmApi } from '../api/crmApi';
 import { playSound } from '../opsNotify';
@@ -18,6 +19,7 @@ import { playSound } from '../opsNotify';
 export function UrgentAlertWatcher() {
   const token = useAuthStore((s) => s.token);
   const canSeeCrm = usePermission('crm.view');
+  const pushToast = useToastStore((s) => s.push);
   const enabled = !!token && canSeeCrm;
 
   const { settings } = useCrmSettings();
@@ -39,14 +41,27 @@ export function UrgentAlertWatcher() {
   useEffect(() => {
     if (!enabled || (urgent === 0 && due === 0)) return;
 
-    // رنّة فورية عند ظهور فرصة عاجلة/مستحقّة (throttle دقيقة يمنع التكرار
-    // عند تنقّل المستخدم بين الصفحات).
-    playSound(urgent > 0 ? 'urgentBell' : 'reminder', { throttleMs: 60_000 });
+    // إشعار عائم + رنّة، في أي صفحة كان المستخدم (طلب أيمن 2026-08-22).
+    const alert = () => {
+      playSound(urgent > 0 ? 'urgentBell' : 'reminder', { throttleMs: 60_000 });
+      pushToast({
+        id: urgent > 0 ? `crm-urgent|${urgent}|${Math.floor(Date.now() / 60_000)}` : `crm-due|${due}`,
+        icon: urgent > 0 ? '🔔' : '⏰',
+        title: urgent > 0 ? 'فرص عاجلة بانتظارك' : 'فرص تحتاج تواصل',
+        body: urgent > 0
+          ? `${urgent} فرصة عاجلة بانتظار تحديث الموظف`
+          : `${due} فرصة حان موعد التواصل معها`,
+        link: '/crm',
+        tone: urgent > 0 ? 'danger' : 'warning',
+      });
+    };
+
+    alert();
 
     if (urgent === 0 || repeatMinutes <= 0) return;
-    const id = window.setInterval(() => playSound('urgentBell'), repeatMinutes * 60_000);
+    const id = window.setInterval(alert, repeatMinutes * 60_000);
     return () => window.clearInterval(id);
-  }, [enabled, urgent, due, repeatMinutes]);
+  }, [enabled, urgent, due, repeatMinutes, pushToast]);
 
   return null;
 }

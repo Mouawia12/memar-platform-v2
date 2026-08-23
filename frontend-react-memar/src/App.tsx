@@ -17,6 +17,8 @@ import { CareersPage } from './features/careers/pages/CareersPage';
 import { PublicCareersPage } from './features/careers/pages/PublicCareersPage';
 import { CommunicationsPage } from './features/communications/pages/CommunicationsPage';
 import { UrgentAlertWatcher } from './features/crm/components/UrgentAlertWatcher';
+import { NotificationsWatcher } from './features/workspace/components/NotificationsWatcher';
+import { FloatingToasts } from './components/FloatingToasts';
 import { CrmPage } from './features/crm/pages/CrmPage';
 import { LoyaltyDashboardPage } from './features/loyalty/pages/LoyaltyDashboardPage';
 import { ClientPortalV2Page } from './features/clientPortal/pages/ClientPortalV2Page';
@@ -59,8 +61,10 @@ const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DON
 export default function App() {
   return (
     <ImpersonationShell>
-    {/* تنبيه جرس الفرص العاجلة — يعمل في كل صفحات النظام لا لوحة CRM وحدها. */}
+    {/* تنبيهات عائمة في كل صفحات النظام: الفرص العاجلة + بقيّة إشعارات المنصة. */}
     <UrgentAlertWatcher />
+    <NotificationsWatcher />
+    <FloatingToasts />
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/jobs" element={<PublicCareersPage />} />

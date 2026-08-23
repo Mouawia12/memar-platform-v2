@@ -301,3 +301,44 @@ table {
 .crm-hscroll::-webkit-scrollbar-track { background: #E4EAF1; border-radius: 999px; }
 .crm-hscroll::-webkit-scrollbar-thumb { background: #274A78; border-radius: 999px; border: 3px solid #E4EAF1; }
 .crm-hscroll::-webkit-scrollbar-thumb:hover { background: #1B3B66; }
+
+/* ── حقول الإدخال الموحّدة (.input) ──
+   كانت بلا أي تنسيق فتظهر بشكل المتصفح الافتراضي الرمادي. صارت بحدّ وحواف
+   موحّدة، و«تتلوّن بالأزرق عند الضغط عليها» (طلب أيمن 2026-08-23) بنفس لون
+   تركيز فلاتر CRM فيتّسق النظام كلّه. */
+.input {
+  width: 100%;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1E293B;
+  background: #fff;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.input::placeholder { color: #94A3B8; }
+.input:hover:not(:disabled) { border-color: #CBD5E1; }
+.input:focus,
+.input:focus-visible {
+  border-color: #1B6CA8;
+  box-shadow: 0 0 0 3px rgba(27, 108, 168, .16);
+  background: #FCFDFF;
+}
+.input:disabled { background: #F1F5F9; color: #64748B; cursor: not-allowed; }
+/* القوائم المنسدلة بنفس الشكل مع سهم واضح في الجهة المناسبة للاتجاه. */
+select.input {
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  padding-inline-end: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 11px center;
+}
+textarea.input { resize: vertical; line-height: 1.7; }
+
+/* ── الإشعارات العائمة (تظهر في كل صفحات النظام) ── */
+@keyframes crmToastIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+.crm-toast-in { animation: crmToastIn .28s cubic-bezier(.2,1.2,.4,1) both; }
+@media (prefers-reduced-motion: reduce) { .crm-toast-in { animation: none; } }

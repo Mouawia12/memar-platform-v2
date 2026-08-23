@@ -94,6 +94,8 @@ function DragCard({ lead, children }: { lead: Lead; children: ReactNode }) {
 interface ColumnProps {
   stage: PipelineStage;
   count: number;
+  /** إجمالي فرص المرحلة قبل فلترة الفترة — لإظهار «عرض N من M» عند التكبير. */
+  totalCount: number;
   total: number;
   colLeads: Lead[];
   isMax: boolean;
@@ -110,7 +112,7 @@ interface ColumnProps {
 }
 
 /** عمود اللوحة (ثابت الهوية) — رأس + جسم قابل للإفلات وللتمرير الداخلي + زر تكبير ⛶ وطيّ. */
-function BoardColumn({ stage, count, total, colLeads, isMax, hot, range, onRange, onZoom, onCollapse, onEnter, onLeave, registerBody, onScroll, renderCards }: ColumnProps) {
+function BoardColumn({ stage, count, totalCount, total, colLeads, isMax, hot, range, onRange, onZoom, onCollapse, onEnter, onLeave, registerBody, onScroll, renderCards }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   const setBody = (el: HTMLDivElement | null) => { setNodeRef(el); registerBody(stage.key, el); };
   return (
@@ -138,6 +140,10 @@ function BoardColumn({ stage, count, total, colLeads, isMax, hot, range, onRange
             <select className="crm-range-select" value={range} onChange={(e) => onRange(e.target.value)}>
               {RANGES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
             </select>
+            <span style={{ fontSize: '11.5px', fontWeight: 800, color: count < totalCount ? '#B45309' : '#5A6478' }}>
+              عرض {count} من {totalCount}{count < totalCount ? ` — أُخفي ${totalCount - count}` : ''}
+            </span>
+            <span style={{ flex: 1 }} />
             <button type="button" className="crm-btn crm-btn-outline crm-btn-sm" onClick={onZoom}>↩ تصغير</button>
           </div>
         )}
@@ -376,7 +382,11 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
   /** بطاقات العمود (تُستخدم في الوضع العادي والمكبّر). */
   const renderCards = (stage: PipelineStage, colLeads: Lead[]) => (
     <>
-      {colLeads.length === 0 && <p style={{ opacity: 0.4, fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>أفلت هنا</p>}
+      {colLeads.length === 0 && (
+        <p style={{ gridColumn: '1 / -1', opacity: 0.45, fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>
+          {maxStage === stage.key && leads.some((l) => l.stage === stage.key) ? 'لا فرص ضمن الفترة المختارة' : 'أفلت هنا'}
+        </p>
+      )}
       {colLeads.map((lead, i) => (
         <DragCard key={lead.id} lead={lead}>
           <LeadCard
@@ -413,7 +423,8 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
               <BoardColumn
                 key={stage.key}
                 stage={stage}
-                count={all.length}
+                count={colLeads.length}
+                totalCount={all.length}
                 total={total}
                 colLeads={colLeads}
                 isMax={isMax}

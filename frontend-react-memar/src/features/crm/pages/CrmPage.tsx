@@ -16,7 +16,7 @@ import { LeadFormModal } from '../components/LeadFormModal';
 import { PointsSettingsModal } from '../components/PointsSettingsModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
 import { celebrate, playSound } from '../opsNotify';
-import { useCrmTags, useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
+import { useCrmTags, useDeleteLead, useLeads, useLogLeadUpdate, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
 import '../crm.css';
@@ -67,6 +67,8 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const move = useMoveLead();
   const reorder = useReorderLeads();
   const del = useDeleteLead();
+  const logMove = useLogLeadUpdate();
+  const meName = useAuthStore((s) => s.user?.name);
   // إنشاء/تعديل/نقل الفرص متاح للموظف (crm.view)؛ وتخصيص المراحل/اعتماد الاختصارات للمدير (crm.delete) — طلب العميل.
   const canCreate = usePermission('crm.view');
   const canDelete = usePermission('crm.delete');
@@ -100,7 +102,14 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
       // صوت عند نقل الفرصة لعمود آخر: احتفال ببالونات للرابحة، نغمة خسارة للمغلقة،
       // ونغمة «move» الخاصة بالنقل لبقية الأعمدة — الصوت مفعّل دائمًا بلا مفتاح إيقاف.
-      if (wonKeys.has(stage)) celebrate('مبروك الصفقة! 🎉', `تم الفوز بالفرصة — ${l.full_name}`);
+      if (wonKeys.has(stage)) {
+        // مَن يملك الفرصة ومَن نقلها للفوز — يظهران في الاحتفال، ويُوثَّق الناقل
+        // في تايملاين الفرصة فيبقى ظاهرًا على الكرت وفي سجلّها (طلب أيمن 2026-08-22).
+        const ownerName = l.owner?.name ?? 'غير مُسنَدة';
+        const moverName = meName ?? 'مستخدم';
+        celebrate('مبروك الصفقة! 🎉', `${l.full_name} — المكلّف: ${ownerName} · نقلها: ${moverName}`);
+        logMove.mutate({ id: l.id, note: `🏆 نقل الفرصة إلى «${stageName}» — المكلّف: ${ownerName}` });
+      }
       else if (terminalKeys.has(stage)) playSound('late');
       else playSound('move');
     } });

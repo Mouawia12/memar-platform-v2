@@ -17,6 +17,21 @@ function toPayload(data: LeadFormData): Record<string, unknown> {
   return { ...data, deal_value_kwd: data.deal_value_kwd === '' ? 0 : data.deal_value_kwd };
 }
 
+/**
+ * أسماء مشابهة لاسم يُكتب الآن — لتنبيه المستخدم قبل تسجيل فرصة مكرّرة.
+ * يستثني الفرصة الجارية عند التعديل، ولا يبحث قبل ثلاثة أحرف.
+ */
+export function useSimilarContacts(name: string, excludeId: number | null) {
+  const q = name.trim();
+  return useQuery({
+    queryKey: ['similar-contacts', q],
+    queryFn: () => crmApi.list({ search: q, per_page: 5 }),
+    enabled: q.length >= 3,
+    staleTime: 60_000,
+    select: (res) => res.data.filter((c) => c.id !== excludeId),
+  });
+}
+
 export function useSaveLead() {
   const qc = useQueryClient();
   return useMutation({
@@ -124,6 +139,21 @@ export function useLogUpdate(id: number) {
     mutationFn: (payload: { action_key?: string; note?: string; next_followup_at?: string }) => crmApi.logUpdate(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['opportunity-updates', id] });
+      invalidateCrm(qc);
+    },
+  });
+}
+
+/**
+ * تسجيل تحديث على فرصة بمعرّفها وقت الاستدعاء — يُستعمل لتوثيق «مَن نقل الفرصة»
+ * إلى «تم الفوز» في تايملاين الفرصة (طلب أيمن 2026-08-22).
+ */
+export function useLogLeadUpdate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: number; note: string }) => crmApi.logUpdate(id, { note }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['opportunity-updates', v.id] });
       invalidateCrm(qc);
     },
   });

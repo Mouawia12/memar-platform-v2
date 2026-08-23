@@ -17,7 +17,7 @@ interface Props {
  * الدرج على الموبايل عبر صنف `.sidebar.open` (آلية التصميم الأصلي).
  */
 const COLLAPSE_KEY = 'memar_nav_collapsed';
-const HIDDEN_KEY = 'memar_nav_hidden';
+const HIDDEN_KEY = 'memar_nav_hidden_v2';
 // «وضع المدير» (طلب أيمن 2026-08-05): تبديل يُخفي الروابط الاختيارية (الباهتة) تمامًا
 // من السايدبار لعرض نظيف مركّز، أو يُظهرها. حالة عرض محلية لكل جهاز.
 const HIDE_OPTIONAL_KEY = 'memar_nav_hide_optional';

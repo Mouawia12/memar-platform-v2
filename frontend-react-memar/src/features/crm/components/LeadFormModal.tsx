@@ -275,18 +275,27 @@ export function LeadFormModal({ lead, onClose }: Props) {
                   <input className="input" style={input} value={form.project_type} onChange={(e) => set('project_type', e.target.value)} placeholder="اكتب نوع المشروع" required />
                 </Field>
               )}
-              <Field label="العنوان أو الموقع">
-                <input className="input" style={input} value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="الفنطاس — شارع 12" />
-              </Field>
-              <Field label="المنطقة">
-                <input className="input" style={input} value={form.region} onChange={(e) => set('region', e.target.value)} placeholder="الفنطاس" />
-              </Field>
+            </div>
+
+            {/* العنوان يأخذ سطرًا كاملًا لأنه أطول الحقول (طلب أيمن 2026-08-23). */}
+            <Field label="العنوان أو الموقع">
+              <input className="input" style={input} value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="الفنطاس — شارع 12" />
+            </Field>
+
+            {/* قطعة · قسيمة · المنطقة في سطر واحد — بيانات موقع قصيرة متجاورة. */}
+            <div style={grid3}>
               <Field label="قطعة">
                 <input className="input" style={input} value={form.block_no} onChange={(e) => set('block_no', e.target.value)} placeholder="4" />
               </Field>
               <Field label="قسيمة">
                 <input className="input" style={input} value={form.plot_no} onChange={(e) => set('plot_no', e.target.value)} placeholder="118" />
               </Field>
+              <Field label="المنطقة">
+                <input className="input" style={input} value={form.region} onChange={(e) => set('region', e.target.value)} placeholder="الفنطاس" />
+              </Field>
+            </div>
+
+            <div style={grid2}>
               <Field label="المساحة (م²)">
                 <input className="input" style={input} type="number" step="0.01" min="0" value={form.area_sqm} onChange={(e) => set('area_sqm', e.target.value)} placeholder="600" />
               </Field>

@@ -51,6 +51,14 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
+  // الكرت الذي أُغلقت نافذته للتوّ — يُبرَز ~3 ثوانٍ ليعرف المستخدم أين كان
+  // في العمود (طلب أيمن 2026-08-22).
+  const [justSeenId, setJustSeenId] = useState<number | null>(null);
+  const closeDetail = () => {
+    setJustSeenId(detailId);
+    setDetailId(null);
+    window.setTimeout(() => setJustSeenId((v) => (v === detailId ? null : v)), 3000);
+  };
   const [stagesOpen, setStagesOpen] = useState(false);
   const [pointsSettingsOpen, setPointsSettingsOpen] = useState(false);
 
@@ -287,14 +295,14 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} />}
 
       {detailLead && (
         <LeadDetailModal
           lead={detailLead}
           ownerAvatarUrl={detailLead.owner ? staffAvatars?.[String(detailLead.owner.id)] ?? null : null}
           stages={stageList}
-          onClose={() => setDetailId(null)}
+          onClose={closeDetail}
           onEdit={openEdit}
           onDelete={handleDelete}
           onMove={handleMove}

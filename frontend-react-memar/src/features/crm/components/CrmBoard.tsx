@@ -26,6 +26,8 @@ interface Props {
   onReorder: (orderedIds: number[]) => void;
   /** زر «+ إضافة فرصة» أسفل كل عمود — يظهر لمن يملك crm.manage (طبق أصل المرجع). */
   onAdd?: () => void;
+  /** الفرصة التي أُغلقت نافذتها للتوّ — يُبرَز كرتها لحظات. */
+  justSeenId?: number | null;
 }
 
 const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
@@ -145,7 +147,7 @@ function BoardColumn({ stage, count, total, colLeads, isMax, hot, range, onRange
   );
 }
 
-export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Props) {
+export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, justSeenId }: Props) {
   const [active, setActive] = useState<Lead | null>(null);
   /** العمود المكبّر بكامل العرض (⛶) — طبق أصل ops-col-full. */
   const [maxStage, setMaxStage] = useState<string | null>(null);
@@ -382,6 +384,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd }: Pr
             onOpen={onOpen}
             stageColor={stage.color}
             avatarUrl={lead.owner ? avatars?.[String(lead.owner.id)] ?? null : null}
+            justSeen={justSeenId === lead.id}
             onMoveUp={() => moveInColumn(colLeads, i, -1)}
             onMoveDown={() => moveInColumn(colLeads, i, 1)}
             canMoveUp={i > 0}

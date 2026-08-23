@@ -15,6 +15,8 @@ interface Props {
   canMoveDown?: boolean;
   /** صورة صاحب الفرصة (data URI) — إن غابت تُعرض أحرف اسمه بلونه. */
   avatarUrl?: string | null;
+  /** الكرت الذي أُغلقت نافذته للتوّ — يُبرَز لحظات ليعرف المستخدم أين كان. */
+  justSeen?: boolean;
 }
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
@@ -41,12 +43,29 @@ function reminderState(iso: string | null, due: boolean): { label: string; style
   return { label: `⏰ تواصل بعد ${diff} يوم (${date})`, style: diff <= 3 ? remSoon : remOk };
 }
 
+/**
+ * التايمر الرأسي: ما تبقّى حتى موعد التذكير (طلب أيمن 2026-08-22).
+ * نافذة أسبوع كمرجع لامتلاء الشريط، ولونه يتدرّج أخضر ← كهرماني ← برتقالي،
+ * وعند انقضاء الموعد يصير أحمر ويومض الكرت كلّه.
+ */
+const TIMER_WINDOW_DAYS = 7;
+
+function reminderTimer(iso: string | null): { pct: number; color: string; label: string; expired: boolean } | null {
+  if (!iso) return null;
+  const daysLeft = (new Date(iso).getTime() - Date.now()) / 86_400_000;
+  if (daysLeft < 0) return { pct: 100, color: '#DC4A3D', label: 'انتهى وقت التواصل', expired: true };
+  const pct = Math.max(6, Math.min(100, (daysLeft / TIMER_WINDOW_DAYS) * 100));
+  const color = daysLeft < 1 ? '#EA580C' : daysLeft <= 3 ? '#E8A838' : '#2D9B6F';
+  const label = daysLeft < 1 ? 'موعد التواصل اليوم' : `متبقٍّ ${Math.ceil(daysLeft)} يوم للتواصل`;
+  return { pct, color, label, expired: false };
+}
+
 function Stars({ rating }: { rating: number }) {
   return <span style={stars}>{'★'.repeat(rating)}<span style={{ opacity: 0.28 }}>{'★'.repeat(5 - rating)}</span></span>;
 }
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
-export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl }: Props) {
+export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
@@ -71,6 +90,10 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
   const rating = lead.parent?.internal_rating ?? lead.internal_rating ?? 0;
   const urgent = lead.is_urgent;
   const rem = reminderState(lead.reminder?.remind_at ?? null, !!lead.reminder?.due);
+  const timer = reminderTimer(lead.reminder?.remind_at ?? null);
+  // الوميض: للفرصة العاجلة، ولمن انقضى موعد تواصله (طلب أيمن 2026-08-22).
+  const blink = urgent || !!timer?.expired;
+  const ownerColor = lead.owner ? personColor(lead.owner.id) : '#94A3B8';
 
   // شريط الأسعار: كل سعر ونقاطه الخاصّة تحته (points_1/2/3) — والموظف يرى العدد
   // كالإدارة، فالمحجوب عنه قيمته بالدينار لا عدده (خصوصية الأرقام المالية).
@@ -84,55 +107,52 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
     : (lead.expected_price_kwd && Number(lead.expected_price_kwd) > 0
       ? [{ price: lead.expected_price_kwd, points: lead.expected_points ?? 0 }]
       : []);
+  const accepted = lead.expected_price_kwd;
+  const anyPoints = priceList.some((t) => t.points > 0);
   // «VIP» قد يكون اختصارًا مُسندًا وقد يكون علَم is_vip — نعرضه مرّة واحدة بلون الاختصار.
   const vipChip = lead.is_vip && !(lead.tags ?? []).includes('VIP');
   const vipColor = tagCatalog?.find((x) => x.name === 'VIP')?.color ?? tagColor('VIP');
 
-  // الكرت يعرض الأساسي فقط (طلب أيمن 2026-08-22): اسم المشروع والمنطقة.
-  // القطعة والقسيمة والمساحة وبقيّة التفاصيل تظهر عند فتح الفرصة.
+  // سطر المشروع طبق التصميم: الاسم — المنطقة · قطعة · قسيمة · المساحة
   const service = [
     lead.effective_project_name ?? lead.project_name ?? lead.project_type ?? 'فرصة',
     lead.region ? `— ${lead.region}` : '',
+    lead.block_no ? `· قطعة ${lead.block_no}` : '',
+    lead.plot_no ? `· قسيمة ${lead.plot_no}` : '',
+    lead.area_sqm && Number(lead.area_sqm) > 0 ? `· ${Number(lead.area_sqm).toLocaleString('ar')} م²` : '',
   ].filter(Boolean).join(' ');
-
-  // مدى السعر في سطر واحد بدل شبكة الأسعار الثلاثة ونقاطها (تفاصيلها في النافذة).
-  const priceValues = priceList.map((t) => Number(t.price)).filter((n) => n > 0);
-  const priceRange = priceValues.length === 0
-    ? ''
-    : priceValues.length === 1
-      ? money(priceValues[0])
-      : `${money(Math.min(...priceValues))} — ${money(Math.max(...priceValues))}`;
-
-  // هوية صاحب الفرصة: دائرة بلونه الثابت وأحرف اسمه — تُعرَف الفرصة بلمحة.
-  const ownerColor = lead.owner ? personColor(lead.owner.id) : '#94A3B8';
 
   return (
     <div
-      className="crm-lead-card"
+      className={`crm-lead-card${blink ? ' crm-card-blink' : ''}${justSeen ? ' crm-card-seen' : ''}`}
       onClick={() => onOpen(lead)}
-      // الشريط الجانبي = لون أهمية الفرصة (والأحمر للعاجلة) — لا لون الموظف.
-      // هويّة الموظف تظهر في دائرة أحرفه وحدها. borderRight صراحةً كي يبقى على
-      // اليمين ولا ينقلب مع اتجاه الحاوية (طلب أيمن 2026-08-22).
       style={{ ...card, borderRight: `5px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
     >
+      {/* تايمر رأسي على حافّة الكرت: طوله = ما تبقّى حتى موعد التواصل، ولونه حسب القرب. */}
+      {timer && (
+        <span style={timerTrack} title={timer.label} aria-label={timer.label}>
+          <span style={{ ...timerFill, height: `${timer.pct}%`, background: timer.color }} />
+        </span>
+      )}
+
       {urgent && <div style={urgentFlag}><span className="crm-bell">🔔</span> فرصة عاجلة — بانتظار تحديث الموظف</div>}
 
       <div style={cardTop}>
-        {/* دائرة صاحب الفرصة: لون ثابت لكل موظف + أحرف اسمه، والاسم كاملًا في التلميح. */}
-        {lead.owner && (
-          avatarUrl
-            ? <img src={avatarUrl} alt={lead.owner.name} title={`صاحب الفرصة: ${lead.owner.name}`}
-                style={{ ...ownerAvatar, objectFit: 'cover', border: `2px solid ${ownerColor}` }} />
-            : <span title={`صاحب الفرصة: ${lead.owner.name}`} style={{ ...ownerAvatar, background: ownerColor }}>
-                {personInitials(lead.owner.name)}
-              </span>
-        )}
         <div style={cardMain}>
           <div style={leadNm}>{lead.full_name} {rating > 0 && <Stars rating={Math.min(5, rating)} />}</div>
+          {lead.company && <div style={sub}>{lead.position || 'جهة اتصال'} — {lead.company}</div>}
           <div style={leadSvc} title={service}>{service}</div>
         </div>
         <div style={cardSide}>
           <span style={{ ...chip, background: `${imp.color}1a`, color: imp.color }}>{imp.label}</span>
+          {lead.owner && (
+            <span style={ownerRow} title={`صاحب الفرصة: ${lead.owner.name}`}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt={lead.owner.name} style={{ ...ownerAvatar, objectFit: 'cover', border: `1.5px solid ${ownerColor}` }} />
+                : <span style={{ ...ownerAvatar, background: ownerColor }}>{personInitials(lead.owner.name)}</span>}
+              <span style={owner}>{lead.owner.name}</span>
+            </span>
+          )}
           {reorderable && (
             <span style={reorderGroup} onClick={stop} onPointerDown={stop}>
               <button type="button" title="تحريك لأعلى" aria-label="تحريك لأعلى" disabled={!canMoveUp} style={{ ...reorderBtn, ...(canMoveUp ? null : reorderBtnOff) }} onClick={(e) => { stop(e); onMoveUp?.(); }} onPointerDown={stop}>▲</button>
@@ -142,10 +162,32 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         </div>
       </div>
 
-      {priceRange && <div style={priceLine}>{priceRange}</div>}
+      {priceList.length > 0 && (
+        <div style={priceStrip}>
+          <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
+            {priceList.map((t, i) => (
+              <span key={i} style={{ ...psPrice, ...(accepted && t.price === accepted ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(t.price!)}</span>
+            ))}
+          </div>
+          <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
+            {priceList.map((t, i) => (
+              <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(t.points > 0 ? null : psWait) }}>
+                {t.points > 0 ? `${t.points} نقطة` : 'بانتظار النقاط'}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={foot}>
         {rem && <span style={{ ...remBase, ...rem.style }}>{rem.label}</span>}
+        {/* حالة النقاط: عددها عند تحديدها، وإلا «بانتظار تحديد المدير» كما في التصميم. */}
+        {priceList.length > 0 && (anyPoints
+          ? <span style={{ ...chip, ...chipPoints }}>🎯 حتى {Math.max(...priceList.map((t) => t.points))} نقطة عند الفوز</span>
+          : <span style={{ ...chip, ...chipWait }}>⏳ نقاط بانتظار تحديد المدير</span>)}
+      </div>
+
+      <div style={foot}>
         {/* الاختصارات بشكل مفرّغ بلونها — نفس شرائح نموذج الفرصة. */}
         {vipChip && <span style={{ ...tag, ...tagOutline, borderColor: vipColor, color: vipColor }}>VIP</span>}
         {(lead.tags ?? []).map((t) => {
@@ -177,27 +219,48 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       )}
       {tagMsg && <div style={tagMsgStyle}>{tagMsg}</div>}
 
+      {/* آخر تحديث سجّله الموظف على الفرصة (لا الملاحظات) — طبق التصميم. */}
+      {/* آخر تحديث سجّله الموظف، ويظهر اسمه معه بوضوح (طلب أيمن 2026-08-22). */}
+      <div style={last}>
+        📝{' '}
+        {lead.last_update?.note?.trim()
+          ? <><b style={{ color: ownerColor }}>{lead.last_update.user ?? 'موظف'}:</b> {lead.last_update.note}</>
+          : 'لا يوجد تحديث من الموظف بعد'}
+      </div>
     </div>
   );
 }
 
 // ── أنماط طبق أصل CSS المرجع (erp-crm-ops.js / style.css) ──
-const card: CSSProperties = { background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '10px 12px', marginBottom: '9px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all .2s ease' };
+// حشو وهوامش مضغوطة مع إبقاء كل التفاصيل (طلب أيمن: نفس التفاصيل بارتفاع أقل).
+const card: CSSProperties = { position: 'relative', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '8px 12px 8px 10px', marginBottom: '7px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all .2s ease' };
+// التايمر الرأسي على حافّة الكرت (داخل الحشو، لا يزيد الارتفاع).
+const timerTrack: CSSProperties = { position: 'absolute', insetInlineEnd: '2px', top: '8px', bottom: '8px', width: '4px', borderRadius: '3px', background: '#EEF2F7', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' };
+const timerFill: CSSProperties = { width: '100%', borderRadius: '3px', transition: 'height .3s ease, background .3s ease' };
+const ownerRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', maxWidth: '100%' };
+const ownerAvatar: CSSProperties = { width: '18px', height: '18px', borderRadius: '50%', color: '#fff', fontSize: '8px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
 const cardUrgent: CSSProperties = { boxShadow: '0 0 0 2px #DC4A3D, 0 8px 20px rgba(220,74,61,.18)', background: 'linear-gradient(180deg,rgba(220,74,61,.06),#fff)' };
-const urgentFlag: CSSProperties = { background: '#DC4A3D', color: '#fff', fontSize: '10px', fontWeight: 800, padding: '4px 8px', borderRadius: '6px', marginBottom: '8px', textAlign: 'center' };
+const urgentFlag: CSSProperties = { background: '#DC4A3D', color: '#fff', fontSize: '9.5px', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', marginBottom: '6px', textAlign: 'center' };
 const cardTop: CSSProperties = { display: 'flex', gap: '8px', alignItems: 'flex-start', justifyContent: 'space-between' };
 const cardMain: CSSProperties = { minWidth: 0, flex: 1 };
 const cardSide: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', flexShrink: 0 };
 const leadNm: CSSProperties = { fontSize: '12px', fontWeight: 800, color: '#1A1F2E', marginBottom: '2px' };
 const stars: CSSProperties = { color: '#E8A838', fontSize: '11px', letterSpacing: '1px', whiteSpace: 'nowrap' };
+const sub: CSSProperties = { fontSize: '10.5px', color: '#64748B', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const leadSvc: CSSProperties = { fontSize: '10.5px', color: '#64748B', lineHeight: 1.4, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
-// دائرة صاحب الفرصة (أحرف اسمه بلونه الثابت) — التعرّف عليها بلمحة.
-const ownerAvatar: CSSProperties = { width: '28px', height: '28px', borderRadius: '50%', color: '#fff', fontSize: '10.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, letterSpacing: '.5px', boxShadow: '0 1px 3px rgba(15,23,42,.22)' };
-// مدى السعر في سطر واحد بدل شبكة الأسعار.
-const priceLine: CSSProperties = { fontSize: '11.5px', fontWeight: 800, color: '#2D9B6F', margin: '7px 0 2px' };
 const chip: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', background: 'rgba(27,108,168,.1)', color: '#1B6CA8', whiteSpace: 'nowrap' };
-const foot: CSSProperties = { display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' };
-const remBase: CSSProperties = { fontSize: '10.5px', fontWeight: 700, padding: '5px 8px', borderRadius: '6px' };
+const chipPoints: CSSProperties = { background: 'rgba(45,155,111,.12)', color: '#2D9B6F' };
+const chipWait: CSSProperties = { background: 'rgba(45,155,111,.10)', color: '#2D9B6F' };
+const owner: CSSProperties = { fontSize: '9.5px', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+const priceStrip: CSSProperties = { margin: '6px 0 3px', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC' };
+const psRow: CSSProperties = { display: 'grid' };
+const psPrice: CSSProperties = { textAlign: 'center', padding: '3px 3px', fontSize: '10px', fontWeight: 800, borderInlineStart: '1px solid #E2E8F0', color: '#2D9B6F', background: '#fff' };
+const psPt: CSSProperties = { textAlign: 'center', padding: '3px 3px', fontSize: '9.5px', fontWeight: 700, borderInlineStart: '1px solid #E2E8F0', borderTop: '1px solid #E2E8F0', color: '#7C3AED' };
+const psFirst: CSSProperties = { borderInlineStart: 'none' };
+const psOn: CSSProperties = { background: 'rgba(45,155,111,.14)' };
+const psWait: CSSProperties = { color: '#B47612' };
+const foot: CSSProperties = { display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', marginTop: '3px' };
+const remBase: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '4px 8px', borderRadius: '6px' };
 const remOk: CSSProperties = { background: 'rgba(45,155,111,.1)', color: '#2D9B6F' };
 const remSoon: CSSProperties = { background: 'rgba(27,108,168,.1)', color: '#1B6CA8' };
 const remToday: CSSProperties = { background: 'rgba(232,168,56,.16)', color: '#B47612' };
@@ -210,6 +273,7 @@ const tagRow: CSSProperties = { display: 'flex', gap: '5px', marginTop: '7px', c
 const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', padding: '5px 8px', border: '1.5px solid #CBD5E1', borderRadius: '7px', fontFamily: 'inherit', outline: 'none' };
 const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
 const tagMsgStyle: CSSProperties = { marginTop: '6px', fontSize: '10.5px', fontWeight: 700, color: '#0F766E' };
+const last: CSSProperties = { fontSize: '10px', color: '#64748B', borderTop: '1px dashed #E2E8F0', marginTop: '6px', paddingTop: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };
 const reorderBtn: CSSProperties = { width: '18px', height: '13px', display: 'grid', placeItems: 'center', border: '1px solid #E4E8EF', background: '#F7F9FC', color: '#5A6478', borderRadius: '4px', cursor: 'pointer', fontSize: '7px', lineHeight: 1, padding: 0 };
 const reorderBtnOff: CSSProperties = { opacity: 0.3, cursor: 'default' };

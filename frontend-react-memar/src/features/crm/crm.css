@@ -126,3 +126,25 @@
 .crm-toast.danger { border-inline-start: 4px solid #DC4A3D; }
 .crm-toast.info { border-inline-start: 4px solid #1B6CA8; }
 .crm-toast.leaving { opacity: 0; transform: translateY(8px); transition: all .3s ease; }
+
+/* ── وميض الفرصة العاجلة / المتأخّرة (طلب أيمن 2026-08-22) ──
+   نبضة هادئة على إطار الكرت وظلّه، تتوقّف احترامًا لتفضيل تقليل الحركة. */
+@keyframes crmCardPulse {
+  0%, 100% { box-shadow: 0 0 0 2px #DC4A3D, 0 6px 16px rgba(220,74,61,.16); }
+  50%      { box-shadow: 0 0 0 4px #DC4A3D, 0 10px 26px rgba(220,74,61,.40); }
+}
+.crm-scope .crm-card-blink { animation: crmCardPulse 1.25s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .crm-scope .crm-card-blink { animation: none; } }
+
+/* ── هاي لايت الكرت الذي فُتح للتوّ بعد إغلاق نافذته ── */
+@keyframes crmCardSeen {
+  0%   { box-shadow: 0 0 0 3px rgba(27,108,168,.55), 0 8px 22px rgba(27,108,168,.30); }
+  100% { box-shadow: 0 0 0 3px rgba(27,108,168,0), 0 1px 2px rgba(0,0,0,.05); }
+}
+.crm-scope .crm-card-seen { animation: crmCardSeen 2.6s ease-out 1; border-color: #93C5FD !important; }
+
+/* ── العمود المكبَّر: شبكة منتظمة بلا تداخل ──
+   الكروت متساوية الارتفاع ومصطفّة من الأعلى، وهامشها السفلي يُلغى لأن
+   فجوة الشبكة تتكفّل بالتباعد (كان يتراكم فيبدو التداخل). */
+.crm-scope .crm-col-full .crm-col-body > * { align-self: start; min-width: 0; }
+.crm-scope .crm-col-full .crm-col-body .crm-lead-card { margin-bottom: 0 !important; height: 100%; }

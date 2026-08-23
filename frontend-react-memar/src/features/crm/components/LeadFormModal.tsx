@@ -8,9 +8,8 @@ import { useAddLeadReminder, useApproveCrmTag, useCreateCrmTag, useCrmTags, useL
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import {
   LEAD_SOURCE_META, LEAD_SOURCE_ORDER, PRIORITY_META, PRIORITY_ORDER, PROJECT_TYPES,
-  TEMPERATURE_ORDER, TEMPERATURE_META,
   tagColor,
-  type ContactType, type Lead, type LeadFormData, type LeadSource, type Priority, type Stage, type Temperature,
+  type ContactType, type Lead, type LeadFormData, type LeadSource, type Priority, type Stage,
 } from '../types';
 
 interface Props {
@@ -30,6 +29,17 @@ const empty: LeadFormData = {
 };
 
 const num = (v: string | null) => (Number(v) ? String(v) : '');
+
+/**
+ * أيقونات مستوى الأهمية — أيقونات الحرارة بدل الدوائر الملوّنة (طلب أيمن
+ * 2026-08-23) بعد حذف حقل الحرارة من النموذج: 🔥 حرجة · 🌤 عالية · ❄️ متوسطة · ⚪ منخفضة.
+ */
+const PRIORITY_ICON: Record<Priority, string> = {
+  urgent: '\u{1F525}',
+  high: '\u{1F324}\u{FE0F}',
+  medium: '\u{2744}\u{FE0F}',
+  low: '\u{26AA}',
+};
 
 /**
  * نموذج «إضافة فرصة / عميل محتمل جديد» — خمسة أقسام مرقّمة بنفس لغة نافذة التفاصيل
@@ -388,12 +398,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
               </Field>
               <Field label="مستوى أهمية الفرصة">
                 <select className="input" style={input} value={form.priority} onChange={(e) => set('priority', e.target.value as Priority)}>
-                  {PRIORITY_ORDER.map((p) => <option key={p} value={p}>{PRIORITY_META[p].icon} أهمية {PRIORITY_META[p].label}</option>)}
-                </select>
-              </Field>
-              <Field label="حرارة الفرصة">
-                <select className="input" style={input} value={form.temperature} onChange={(e) => set('temperature', e.target.value as Temperature)}>
-                  {TEMPERATURE_ORDER.map((t) => <option key={t} value={t}>{TEMPERATURE_META[t].icon} {TEMPERATURE_META[t].label}</option>)}
+                  {PRIORITY_ORDER.map((p) => <option key={p} value={p}>{PRIORITY_ICON[p]} أهمية {PRIORITY_META[p].label}</option>)}
                 </select>
               </Field>
               <Field label="التصنيف">

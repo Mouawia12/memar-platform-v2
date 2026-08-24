@@ -88,17 +88,10 @@ function Countdown({ iso }: { iso: string }) {
 
   const hoursLeft = left / 3_600_000;
   const color = expired ? '#DC4A3D' : hoursLeft < 24 ? '#EA580C' : hoursLeft < 72 ? '#E8A838' : '#2D9B6F';
-  const pct = expired ? 100 : Math.max(3, Math.min(100, (left / (TIMER_WINDOW_DAYS * 86_400_000)) * 100));
-
   const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
     <div style={cdBlock} title={expired ? 'انقضى موعد التواصل' : 'الوقت المتبقّي حتى موعد التواصل'}>
-      {/* شريط بعرض الكرت فوق العدّاد */}
-      <span style={cdBar}>
-        <span style={{ ...cdBarFill, width: `${pct}%`, background: color }} />
-      </span>
-
       <span style={cdClock}>
         <span style={{ ...cdIcon, color }}>{expired ? '⏰' : '⏳'}</span>
         <Seg value={pad(days)} label="يوم" color={color} />
@@ -203,6 +196,14 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       onClick={() => onOpen(lead)}
       style={{ ...card, borderRight: `5px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
     >
+      {/* شريط رأسي على حافّة الكرت اليسرى كالبطارية: يفرغ من أعلى كلما اقترب
+          موعد التواصل (طلب أيمن 2026-08-24). */}
+      {timer && (
+        <span style={timerTrack} title={timer.label} aria-label={timer.label}>
+          <span style={{ ...timerFill, height: `${timer.pct}%`, background: timer.color }} />
+        </span>
+      )}
+
       {urgent && <div style={urgentFlag}><span className="crm-bell">🔔</span> فرصة عاجلة — بانتظار تحديث الموظف</div>}
 
       <div style={cardTop}>
@@ -359,7 +360,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
 
 // ── أنماط طبق أصل CSS المرجع (erp-crm-ops.js / style.css) ──
 // حشو وهوامش مضغوطة مع إبقاء كل التفاصيل (طلب أيمن: نفس التفاصيل بارتفاع أقل).
-const card: CSSProperties = { position: 'relative', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '8px 12px 8px 10px', marginBottom: '7px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all .2s ease' };
+const card: CSSProperties = { position: 'relative', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '8px 12px 8px 15px', marginBottom: '7px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all .2s ease' };
 const ownerRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', maxWidth: '100%' };
 // دائرة صاحب الفرصة أكبر قليلًا لتظهر صورته بوضوح (طلب أيمن 2026-08-24).
 const ownerAvatar: CSSProperties = { width: '26px', height: '26px', borderRadius: '50%', color: '#fff', fontSize: '9.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
@@ -402,9 +403,11 @@ const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', paddin
 const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
 const tagMsgStyle: CSSProperties = { marginTop: '6px', fontSize: '10.5px', fontWeight: 700, color: '#0F766E' };
 // صفّ العدّاد: يُدفع لأقصى يسار الكرت (flex-end في اتجاه RTL = اليسار).
+// شريط التايمر الرأسي على الحافّة اليسرى (insetInlineEnd = اليسار في الواجهة
+// العربية)، داخل حشو الكرت فلا يزيد ارتفاعه.
+const timerTrack: CSSProperties = { position: 'absolute', insetInlineEnd: '3px', top: '9px', bottom: '9px', width: '5px', borderRadius: '4px', background: '#EEF2F7', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' };
+const timerFill: CSSProperties = { width: '100%', borderRadius: '4px', transition: 'height .4s ease, background .4s ease' };
 const cdBlock: CSSProperties = { width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' };
-const cdBar: CSSProperties = { display: 'block', width: '100%', height: '5px', background: '#EEF2F7', borderRadius: '4px', overflow: 'hidden' };
-const cdBarFill: CSSProperties = { display: 'block', height: '100%', borderRadius: '4px', transition: 'width .4s ease, background .4s ease' };
 const cdClock: CSSProperties = { display: 'flex', alignItems: 'flex-end', gap: '3px', direction: 'ltr', justifyContent: 'flex-start' };
 const cdIcon: CSSProperties = { fontSize: '11px', lineHeight: '20px', marginInlineEnd: '2px' };
 const cdSeg: CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid', borderRadius: '5px', padding: '1px 5px', background: '#fff', minWidth: '26px' };

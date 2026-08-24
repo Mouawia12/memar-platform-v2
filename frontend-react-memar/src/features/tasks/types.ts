@@ -14,6 +14,8 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  /** نسبة الإنجاز 0–100 — تظهر كشريط تقدّم على البطاقة. */
+  progress: number;
   due_date: string | null;
   project: TaskRef | null;
   assignee: TaskRef | null;
@@ -68,6 +70,7 @@ export interface TaskFormData {
   assignee_id: number | '';
   status: TaskStatus;
   priority: TaskPriority;
+  progress: number;
   due_date: string;
 }
 

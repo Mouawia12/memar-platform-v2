@@ -24,6 +24,8 @@ class TaskResource extends JsonResource
             'description' => $this->description,
             'status' => $this->status,
             'priority' => $this->priority,
+            // نسبة إنجاز المهمة — تظهر كشريط تقدّم على البطاقة
+            'progress' => (int) $this->progress,
             'due_date' => $this->due_date?->toDateString(),
             // بيانات المشروع الموحّدة — الاسم والرقم مصدرهما سجل المشاريع (مصدر الحقيقة)
             'project' => $this->whenLoaded('project', fn () => $this->project ? [

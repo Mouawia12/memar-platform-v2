@@ -20,6 +20,8 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl }: Props) {
   const done = isDone(task);
   const diff = dueDiffDays(task.due_date);
   const assigneeColor = task.assignee ? personColor(task.assignee.id) : '#94A3B8';
+  // المهمة المكتملة تُعرض 100% مهما كانت النسبة المسجّلة.
+  const pct = done ? 100 : Math.max(0, Math.min(100, task.progress ?? 0));
 
   const due = task.due_date
     ? {
@@ -56,6 +58,14 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl }: Props) {
 
       {task.project && <div style={projectLine} title={task.project.name}>🏗️ {task.project.name}</div>}
 
+      {/* شريط نسبة الإنجاز (طلب أيمن 2026-08-24) — النسبة على يمينه. */}
+      <div style={progressRow}>
+        <span style={progressPct}>{pct}%</span>
+        <span style={progressTrack}>
+          <span style={{ ...progressFill, width: `${pct}%`, background: done ? '#2D9B6F' : '#1B6CA8' }} />
+        </span>
+      </div>
+
       <div style={foot}>
         <span style={{ ...chip, background: `${color}1a`, color }}>{PRIORITY_LABELS[task.priority]}</span>
         {(task.comments_count ?? 0) > 0 && <span style={{ ...chip, background: '#F1F5F9', color: '#5A6478' }}>💬 {task.comments_count}</span>}
@@ -77,5 +87,9 @@ const title: CSSProperties = { fontSize: '12px', fontWeight: 800, color: '#1A1F2
 const metaRow: CSSProperties = { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '5px' };
 const meta: CSSProperties = { fontSize: '9.5px', whiteSpace: 'nowrap' };
 const projectLine: CSSProperties = { fontSize: '9.5px', color: '#64748B', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const progressRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '7px', marginTop: '7px' };
+const progressPct: CSSProperties = { fontSize: '10px', fontWeight: 900, color: '#475569', minWidth: '28px' };
+const progressTrack: CSSProperties = { flex: 1, height: '7px', background: '#EEF2F7', borderRadius: '5px', overflow: 'hidden' };
+const progressFill: CSSProperties = { display: 'block', height: '100%', borderRadius: '5px', transition: 'width .3s ease' };
 const foot: CSSProperties = { display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', marginTop: '6px' };
 const chip: CSSProperties = { fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '20px', whiteSpace: 'nowrap' };

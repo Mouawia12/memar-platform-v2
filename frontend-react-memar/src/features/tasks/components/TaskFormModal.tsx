@@ -15,7 +15,7 @@ interface Props {
 
 const empty: TaskFormData = {
   title: '', description: '', project_id: '', assignee_id: '',
-  status: 'todo', priority: 'medium', due_date: '',
+  status: 'todo', priority: 'medium', progress: 0, due_date: '',
 };
 
 type FieldErrors = Partial<Record<'title' | 'assignee_id' | 'due_date', string>>;
@@ -42,6 +42,7 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
         assignee_id: task.assignee?.id ?? '',
         status: task.status,
         priority: task.priority,
+        progress: task.progress ?? 0,
         due_date: task.due_date ?? '',
       });
     } else {
@@ -115,6 +116,11 @@ export function TaskFormModal({ task, initial, onClose }: Props) {
             <select className="input" style={input} value={form.priority} onChange={(e) => set('priority', e.target.value as TaskPriority)}>
               {(Object.keys(PRIORITY_LABELS) as TaskPriority[]).map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
             </select>
+          </label>
+          <label style={label}>نسبة الإنجاز ({form.progress}%)
+            <input type="range" min={0} max={100} step={5} value={form.progress}
+              onChange={(e) => set('progress', Number(e.target.value))}
+              style={{ width: '100%', marginTop: '8px', accentColor: '#1B6CA8' }} />
           </label>
         </div>
 

@@ -74,7 +74,7 @@ export function TaskStatusBoard({ tasks, onOpen, onMove }: Props) {
       onDragStart={(e: DragStartEvent) => setActive(tasks.find((t) => t.id === e.active.id) ?? null)}
       onDragEnd={handleEnd}
     >
-      <div ref={boardRef} style={board}>
+      <div ref={boardRef} className="crm-hscroll" style={board}>
         {COLUMNS.map((col) => (
           <Column key={col.key} col={col} tasks={tasks.filter((t) => t.status === col.key)} onOpen={onOpen} avatars={avatars} />
         ))}
@@ -87,7 +87,7 @@ export function TaskStatusBoard({ tasks, onOpen, onMove }: Props) {
 }
 
 // الأعمدة في صفّ أفقي واحد لا تلتفّ، والتمرير جانبي (طلب أيمن 2026-08-24).
-const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'thin', scrollbarColor: '#274A78 #E4EAF1' };
+const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' };
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', border: '1px solid transparent', minHeight: '140px', flex: '0 0 300px', width: '300px', minWidth: '300px' };
 const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78' };
 const header: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };

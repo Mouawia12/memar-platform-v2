@@ -348,3 +348,14 @@ textarea.input { resize: vertical; line-height: 1.7; }
 .crm-form-compact .input { font-size: 12px; padding: 7px 10px; }
 .crm-form-compact select.input { padding-inline-end: 27px; background-position: left 9px center; }
 .crm-form-compact textarea.input { line-height: 1.6; }
+
+/* ── أشرطة تمرير لوحات الكانبان: رمادي خفيف بدل الأزرق الداكن ──
+   (طلب أيمن 2026-08-24). scrollbar-color يغطّي فايرفوكس، وهذه لWebKit. */
+.crm-hscroll::-webkit-scrollbar,
+.crm-scope .crm-col-body::-webkit-scrollbar { width: 8px; height: 8px; }
+.crm-hscroll::-webkit-scrollbar-track,
+.crm-scope .crm-col-body::-webkit-scrollbar-track { background: transparent; }
+.crm-hscroll::-webkit-scrollbar-thumb,
+.crm-scope .crm-col-body::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 6px; }
+.crm-hscroll::-webkit-scrollbar-thumb:hover,
+.crm-scope .crm-col-body::-webkit-scrollbar-thumb:hover { background: #94A3B8; }

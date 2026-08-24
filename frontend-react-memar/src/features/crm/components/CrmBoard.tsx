@@ -475,7 +475,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
 // زر «+ إضافة فرصة» أسفل العمود — طبق أصل .pipe-add-btn في المرجع.
 const addBtn: CSSProperties = { width: '100%', padding: '9px 12px', background: 'transparent', border: '1.5px dashed #CBD5E1', borderRadius: '8px', color: '#94A3B8', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', marginTop: '2px' };
 // اللوحة: صفّ أعمدة بتمرير أفقي، ارتفاع ثابت وكل عمود يمرّر داخليًا (طبق أصل .crm-pipeline).
-const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '14px', scrollbarWidth: 'thin', scrollbarColor: '#274A78 #E4EAF1' };
+const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '14px', scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' };
 // عمود بارتفاع ثابت (يمرّر داخليًا) — طبق أصل .pipe-col (max-height calc(100vh - 320px)).
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', maxHeight: 'calc(100vh - 300px)', flex: '0 0 340px', width: '340px', minWidth: '340px', border: '1px solid transparent' };
 const colFull: CSSProperties = { flex: '1 1 100%', width: '100%', minWidth: '100%', maxHeight: 'calc(100vh - 300px)' };

@@ -1,6 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
-import { type CSSProperties, type ReactNode, useState } from 'react';
+import { type CSSProperties, type ReactNode, useRef, useState } from 'react';
 
+import { useEdgeAutoScroll } from '../../../hooks/useEdgeAutoScroll';
 import { useStaffAvatars } from '../../users/hooks/useUsers';
 import { TaskKanbanCard } from './TaskKanbanCard';
 import type { Task, TaskStatus } from '../types';
@@ -53,6 +54,8 @@ function Column({ col, tasks, onOpen, avatars }: { col: typeof COLUMNS[number]; 
 export function TaskStatusBoard({ tasks, onOpen, onMove }: Props) {
   const [active, setActive] = useState<Task | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
+  const boardRef = useRef<HTMLDivElement>(null);
+  useEdgeAutoScroll(boardRef);
   const ownerIds = [...new Set(tasks.map((t) => t.assignee?.id).filter((v): v is number => !!v))];
   const { data: avatars } = useStaffAvatars(ownerIds);
 
@@ -71,7 +74,7 @@ export function TaskStatusBoard({ tasks, onOpen, onMove }: Props) {
       onDragStart={(e: DragStartEvent) => setActive(tasks.find((t) => t.id === e.active.id) ?? null)}
       onDragEnd={handleEnd}
     >
-      <div style={board}>
+      <div ref={boardRef} style={board}>
         {COLUMNS.map((col) => (
           <Column key={col.key} col={col} tasks={tasks.filter((t) => t.status === col.key)} onOpen={onOpen} avatars={avatars} />
         ))}
@@ -83,8 +86,9 @@ export function TaskStatusBoard({ tasks, onOpen, onMove }: Props) {
   );
 }
 
-const board: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '12px', alignItems: 'start' };
-const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', border: '1px solid transparent', minHeight: '140px' };
+// الأعمدة في صفّ أفقي واحد لا تلتفّ، والتمرير جانبي (طلب أيمن 2026-08-24).
+const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'thin', scrollbarColor: '#274A78 #E4EAF1' };
+const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', border: '1px solid transparent', minHeight: '140px', flex: '0 0 300px', width: '300px', minWidth: '300px' };
 const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78' };
 const header: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };
 const count: CSSProperties = { fontSize: '11px', fontWeight: 900, borderRadius: '999px', padding: '1px 9px' };

@@ -230,15 +230,28 @@ const TITLE_SHORT: Record<string, string> = {
   'المهندس': 'م.', 'مهندس': 'م.', 'المهندسة': 'م.', 'مهندسة': 'م.', 'م': 'م.', 'م.': 'م.',
   'الأستاذ': 'أ.', 'أستاذ': 'أ.', 'الاستاذ': 'أ.', 'أ': 'أ.', 'أ.': 'أ.',
   'الدكتور': 'د.', 'دكتور': 'د.', 'الدكتورة': 'د.', 'د': 'د.', 'د.': 'د.',
+  'سكرتير': 'م.', 'السكرتير': 'م.', 'سكرتيرة': 'م.', 'السكرتيرة': 'م.',
+};
+
+// ألقاب وظيفية يليها اسم مُعرَّف بـ«ال» (مدير النظام ← م. نظام) — تُجرَّد أداة
+// التعريف فيها وحدها، لا في أسماء الأشخاص كي لا يُشوَّه اسم مثل «الجوهرة».
+const ROLE_TITLES: Record<string, string> = {
+  'مدير': 'م.', 'المدير': 'م.', 'مديرة': 'م.', 'المديرة': 'م.',
 };
 
 export function shortName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length <= 1) return name.trim();
 
-  const head = parts[0];
+  // «سكرتير/ محمود» تُكتب أحيانًا بشرطة مائلة — نجرّدها قبل مطابقة اللقب.
+  const head = parts[0].replace(/\/$/, '');
+
+  // لقب وظيفي: نجرّد «ال» من الكلمة التالية (مدير النظام ← م. نظام).
+  const roleTitle = ROLE_TITLES[head];
+  if (roleTitle) return `${roleTitle} ${parts[1].replace(/^ال/, '')}`;
+
   const title = TITLE_SHORT[head] ?? (head.endsWith('/') ? head : null);
-  // بلقب: «اللقب + الاسم الأول»؛ وبلا لقب: أول كلمتين كما هما.
+  // بلقب شخصي: «اللقب + الاسم الأول»؛ وبلا لقب: أول كلمتين كما هما.
   if (title) return parts.length >= 2 ? `${title} ${parts[1]}` : title;
 
   return parts.slice(0, 2).join(' ');

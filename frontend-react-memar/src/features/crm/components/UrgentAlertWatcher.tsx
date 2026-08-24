@@ -37,6 +37,7 @@ export function UrgentAlertWatcher() {
 
   const urgent = data?.urgent ?? 0;
   const due = data?.due ?? 0;
+  const firstUrgentId = data?.first_urgent_id ?? null;
 
   useEffect(() => {
     if (!enabled || (urgent === 0 && due === 0)) return;
@@ -51,7 +52,8 @@ export function UrgentAlertWatcher() {
         body: urgent > 0
           ? `${urgent} فرصة عاجلة بانتظار تحديث الموظف`
           : `${due} فرصة حان موعد التواصل معها`,
-        link: '/crm',
+        // الضغط يفتح الفرصة العاجلة نفسها لا اللوحة فقط (طلب أيمن 2026-08-24).
+        link: urgent > 0 && firstUrgentId ? `/crm?lead=${firstUrgentId}` : '/crm',
         tone: urgent > 0 ? 'danger' : 'warning',
       });
     };
@@ -61,7 +63,7 @@ export function UrgentAlertWatcher() {
     if (urgent === 0 || repeatMinutes <= 0) return;
     const id = window.setInterval(alert, repeatMinutes * 60_000);
     return () => window.clearInterval(id);
-  }, [enabled, urgent, due, repeatMinutes, pushToast]);
+  }, [enabled, urgent, due, firstUrgentId, repeatMinutes, pushToast]);
 
   return null;
 }

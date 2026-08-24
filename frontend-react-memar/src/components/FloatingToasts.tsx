@@ -54,7 +54,9 @@ export function FloatingToasts() {
   );
 }
 
-const wrap: CSSProperties = { position: 'fixed', insetInlineStart: '18px', bottom: '18px', zIndex: 1000002, display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '360px' };
+// يسار الشاشة فوق زرّ «مساعد معمار الذكي» (قطره 56px عند bottom:24px)
+// — طلب أيمن 2026-08-24. left صراحةً لا insetInlineStart كي لا ينقلب في RTL.
+const wrap: CSSProperties = { position: 'fixed', left: '24px', bottom: '92px', zIndex: 1000002, display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '340px' };
 const card: CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: '10px', background: '#fff', borderRadius: '12px', padding: '12px 14px', boxShadow: '0 14px 38px rgba(15,23,42,.22)', fontFamily: 'inherit' };
 const icon: CSSProperties = { fontSize: '19px', lineHeight: 1.2, flexShrink: 0 };
 const title: CSSProperties = { fontSize: '13px', fontWeight: 900, marginBottom: '2px' };

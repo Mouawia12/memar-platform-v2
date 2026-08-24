@@ -81,7 +81,7 @@ export const crmApi = {
 
   // تذكيرات المتابعة (اجتماع 2026-08-05)
   /** عدّاد الفرص العاجلة/المستحقّة — لتنبيه الجرس العام. */
-  urgentCount: () => apiGet<{ urgent: number; due: number }>('/crm/urgent-count'),
+  urgentCount: () => apiGet<{ urgent: number; due: number; first_urgent_id: number | null }>('/crm/urgent-count'),
   reminders: (id: number) => apiGet<LeadReminder[]>(`/contacts/${id}/reminders`),
   addReminder: (id: number, payload: { remind_at: string; note?: string }) => apiPost<LeadReminder>(`/contacts/${id}/reminders`, payload),
   toggleReminder: (reminderId: number) => apiPatch<LeadReminder>(`/reminders/${reminderId}`, {}),

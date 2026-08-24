@@ -1,5 +1,5 @@
-import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCrmSettings } from '../../settings/hooks/useSettings';
@@ -29,6 +29,7 @@ import '../crm.css';
  */
 export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
   // فلاتر طبق الأصل: نوع العميل + المصدر + المسؤول. المصدر صار حقلًا حقيقيًا
@@ -174,6 +175,18 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   };
   const hiddenByPeriod = leads.length - visibleLeads.length;
   const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
+
+  // الإشعار العائم يفتح الفرصة العاجلة مباشرة عبر /crm?lead=<id> — نفتح نافذتها
+  // بمجرد وصول بياناتها ثم ننظّف الرابط (طلب أيمن 2026-08-24).
+  const leadParam = searchParams.get('lead');
+  useEffect(() => {
+    if (!leadParam) return;
+    const id = Number(leadParam);
+    if (!Number.isFinite(id) || leads.length === 0) return;
+    if (leads.some((l) => l.id === id)) setDetailId(id);
+    searchParams.delete('lead');
+    setSearchParams(searchParams, { replace: true });
+  }, [leadParam, leads, searchParams, setSearchParams]);
 
   // ── المؤشّرات الستة (محسوبة من الفرص الحيّة) ──
   const kpi = useMemo(() => {

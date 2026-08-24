@@ -81,7 +81,10 @@ class ContactController extends ApiController
      */
     public function urgentCount(): JsonResponse
     {
-        $urgent = Contact::query()->where('type', 'lead')->where('is_urgent', true)->count();
+        $urgentLeads = Contact::query()->where('type', 'lead')->where('is_urgent', true)
+            ->orderByDesc('updated_at')
+            ->pluck('id');
+        $urgent = $urgentLeads->count();
 
         $due = LeadReminder::query()
             ->where('done', false)
@@ -89,7 +92,12 @@ class ContactController extends ApiController
             ->whereHas('contact', fn ($q) => $q->where('type', 'lead'))
             ->count();
 
-        return $this->ok(['urgent' => $urgent, 'due' => $due]);
+        // معرّف أحدث فرصة عاجلة — ليفتحها الإشعار العائم مباشرة بدل فتح اللوحة كلّها.
+        return $this->ok([
+            'urgent' => $urgent,
+            'due' => $due,
+            'first_urgent_id' => $urgentLeads->first(),
+        ]);
     }
 
     /**

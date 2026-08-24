@@ -317,7 +317,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} />}
 
       {detailLead && (
         <LeadDetailModal

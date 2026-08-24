@@ -28,6 +28,8 @@ interface Props {
   onAdd?: () => void;
   /** الفرصة التي أُغلقت نافذتها للتوّ — يُبرَز كرتها لحظات. */
   justSeenId?: number | null;
+  /** إظهار إجمالي قيمة العمود — يُخفى عن الموظفين حسب «خصوصية الأرقام المالية». */
+  showTotals?: boolean;
 }
 
 const money = (v: number) => `${v.toLocaleString('ar', { minimumFractionDigits: 0 })} د.ك`;
@@ -56,13 +58,13 @@ const inRange = (dateStr: string | null, range: string) => {
 };
 
 /** عمود مرحلة مطويّ إلى شريط رفيع — يبقى هدفًا صالحًا للإفلات (مثل بيتريكس). */
-function CollapsedColumn({ stage, count, total }: { stage: PipelineStage; count: number; total: number }) {
+function CollapsedColumn({ stage, count, total, showTotals }: { stage: PipelineStage; count: number; total: number; showTotals: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   return (
     <div
       ref={setNodeRef}
       onClick={() => setStageCollapsed(stage.key, false)}
-      title={`توسيع «${stage.label}» — ${count} فرصة${total > 0 ? ` · ${money(total)}` : ''}`}
+      title={`توسيع «${stage.label}» — ${count} فرصة${showTotals && total > 0 ? ` · ${money(total)}` : ''}`}
       style={{ ...collapsedCol, ...(isOver ? columnOver : null) }}
     >
       {/* رأس مطابق لرأس العمود المفتوح (بطاقة بيضاء بخطّ ملوّن) كي يبدأ الخطّ
@@ -100,6 +102,8 @@ interface ColumnProps {
   count: number;
   /** إجمالي فرص المرحلة قبل فلترة الفترة — لإظهار «عرض N من M» عند التكبير. */
   totalCount: number;
+  /** إظهار القيمة المالية للعمود. */
+  showTotals: boolean;
   total: number;
   colLeads: Lead[];
   isMax: boolean;
@@ -116,7 +120,7 @@ interface ColumnProps {
 }
 
 /** عمود اللوحة (ثابت الهوية) — رأس + جسم قابل للإفلات وللتمرير الداخلي + زر تكبير ⛶ وطيّ. */
-function BoardColumn({ stage, count, totalCount, total, colLeads, isMax, hot, range, onRange, onZoom, onCollapse, onEnter, onLeave, registerBody, onScroll, renderCards }: ColumnProps) {
+function BoardColumn({ stage, count, totalCount, total, showTotals, colLeads, isMax, hot, range, onRange, onZoom, onCollapse, onEnter, onLeave, registerBody, onScroll, renderCards }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   const setBody = (el: HTMLDivElement | null) => { setNodeRef(el); registerBody(stage.key, el); };
   return (
@@ -132,7 +136,7 @@ function BoardColumn({ stage, count, totalCount, total, colLeads, isMax, hot, ra
           <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#1A1F2E' }}>
             {stage.label} <span style={{ color: stage.color, fontWeight: 700 }}>({count})</span>
           </div>
-          {total > 0 && <div style={{ fontSize: '11px', fontWeight: 600, color: '#8A93A3', marginTop: '1px' }}>{money(total)}</div>}
+          {showTotals && total > 0 && <div style={{ fontSize: '11px', fontWeight: 600, color: '#8A93A3', marginTop: '1px' }}>{money(total)}</div>}
         </div>
         <button type="button" className="crm-col-zoom" title="تكبير العمود بكامل الصفحة" onClick={onZoom}>{isMax ? '⤡' : '⛶'}</button>
         {!isMax && <button type="button" onClick={onCollapse} title="طيّ العمود" style={collapseBtn}>⟩</button>}
@@ -157,7 +161,7 @@ function BoardColumn({ stage, count, totalCount, total, colLeads, isMax, hot, ra
   );
 }
 
-export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, justSeenId }: Props) {
+export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, justSeenId, showTotals = true }: Props) {
   const [active, setActive] = useState<Lead | null>(null);
   /** العمود المكبّر بكامل العرض (⛶) — طبق أصل ops-col-full. */
   const [maxStage, setMaxStage] = useState<string | null>(null);
@@ -424,7 +428,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
             const total = all.reduce((sum, l) => sum + Number(l.deal_value_kwd), 0);
 
             if (!isMax && isStageCollapsed(collapsedMap, stage.key, stage.is_lost)) {
-              return <CollapsedColumn key={stage.key} stage={stage} count={all.length} total={total} />;
+              return <CollapsedColumn key={stage.key} stage={stage} count={all.length} total={total} showTotals={showTotals} />;
             }
             return (
               <BoardColumn
@@ -433,6 +437,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
                 count={colLeads.length}
                 totalCount={all.length}
                 total={total}
+                showTotals={showTotals}
                 colLeads={colLeads}
                 isMax={isMax}
                 hot={!maxStage && !active && hotStage === stage.key}

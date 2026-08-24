@@ -151,8 +151,6 @@ function BoardColumn({ stage, count, totalCount, total, showTotals, colLeads, is
             <span style={{ fontSize: '11.5px', fontWeight: 800, color: count < totalCount ? '#B45309' : '#5A6478' }}>
               عرض {count} من {totalCount}{count < totalCount ? ` — أُخفي ${totalCount - count}` : ''}
             </span>
-            <span style={{ flex: 1 }} />
-            <button type="button" className="crm-btn crm-btn-outline crm-btn-sm" onClick={onZoom}>↩ تصغير</button>
           </div>
         )}
         {renderCards(stage, colLeads)}

@@ -296,11 +296,17 @@ table {
   .task-bell-ring { animation: taskBellGlow 2.6s ease-in-out infinite; }
 }
 
-/* ═══ شريط تمرير أفقي ظاهر للوحة CRM (طلب أيمن 2026-08-07 — مهم للتابلت) ═══ */
-.crm-hscroll::-webkit-scrollbar { height: 12px; }
-.crm-hscroll::-webkit-scrollbar-track { background: #E4EAF1; border-radius: 999px; }
-.crm-hscroll::-webkit-scrollbar-thumb { background: #274A78; border-radius: 999px; border: 3px solid #E4EAF1; }
-.crm-hscroll::-webkit-scrollbar-thumb:hover { background: #1B3B66; }
+/* ═══ أشرطة تمرير اللوحات (أفقيًا للوحة ورأسيًا داخل الأعمدة) ═══
+   كانت 12px بأزرق داكن فتسرق الانتباه من البطاقات؛ صارت رفيعة برمادي
+   خفيف على مسار شفّاف، وتغمق قليلًا عند المرور (طلب أيمن 2026-08-24). */
+.crm-hscroll::-webkit-scrollbar,
+.crm-scope .crm-col-body::-webkit-scrollbar { width: 5px; height: 5px; }
+.crm-hscroll::-webkit-scrollbar-track,
+.crm-scope .crm-col-body::-webkit-scrollbar-track { background: transparent; }
+.crm-hscroll::-webkit-scrollbar-thumb,
+.crm-scope .crm-col-body::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+.crm-hscroll::-webkit-scrollbar-thumb:hover,
+.crm-scope .crm-col-body::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 /* ── حقول الإدخال الموحّدة (.input) ──
    كانت بلا أي تنسيق فتظهر بشكل المتصفح الافتراضي الرمادي. صارت بحدّ وحواف
@@ -348,14 +354,3 @@ textarea.input { resize: vertical; line-height: 1.7; }
 .crm-form-compact .input { font-size: 12px; padding: 7px 10px; }
 .crm-form-compact select.input { padding-inline-end: 27px; background-position: left 9px center; }
 .crm-form-compact textarea.input { line-height: 1.6; }
-
-/* ── أشرطة تمرير لوحات الكانبان: رمادي خفيف بدل الأزرق الداكن ──
-   (طلب أيمن 2026-08-24). scrollbar-color يغطّي فايرفوكس، وهذه لWebKit. */
-.crm-hscroll::-webkit-scrollbar,
-.crm-scope .crm-col-body::-webkit-scrollbar { width: 8px; height: 8px; }
-.crm-hscroll::-webkit-scrollbar-track,
-.crm-scope .crm-col-body::-webkit-scrollbar-track { background: transparent; }
-.crm-hscroll::-webkit-scrollbar-thumb,
-.crm-scope .crm-col-body::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 6px; }
-.crm-hscroll::-webkit-scrollbar-thumb:hover,
-.crm-scope .crm-col-body::-webkit-scrollbar-thumb:hover { background: #94A3B8; }

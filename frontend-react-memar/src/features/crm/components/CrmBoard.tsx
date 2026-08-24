@@ -168,8 +168,9 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
   const [arrowOff, setArrowOff] = useState({ prev: true, next: true, up: true, down: true });
 
   // صور أصحاب الفرص: طلب واحد لكل اللوحة (لا صورة داخل كل فرصة).
+  // المكلّفون والناقلون معًا — طلب واحد يغطّي كل الصور المعروضة على اللوحة.
   const ownerIds = useMemo(
-    () => [...new Set(leads.map((l) => l.owner?.id).filter((v): v is number => !!v))],
+    () => [...new Set(leads.flatMap((l) => [l.owner?.id, l.mover?.id]).filter((v): v is number => !!v))],
     [leads],
   );
   const { data: avatars } = useStaffAvatars(ownerIds);
@@ -400,6 +401,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
             avatarUrl={lead.owner ? avatars?.[String(lead.owner.id)] ?? null : null}
             justSeen={justSeenId === lead.id}
             moverFromLabel={lead.mover?.from ? stages.find((s) => s.key === lead.mover!.from)?.label ?? lead.mover.from : null}
+            moverAvatarUrl={lead.mover ? avatars?.[String(lead.mover.id)] ?? null : null}
             onMoveUp={() => moveInColumn(colLeads, i, -1)}
             onMoveDown={() => moveInColumn(colLeads, i, 1)}
             canMoveUp={i > 0}

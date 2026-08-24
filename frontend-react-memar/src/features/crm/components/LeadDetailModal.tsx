@@ -16,6 +16,8 @@ interface Props {
   lead: Lead;
   /** صورة صاحب الفرصة (data URI) — إن غابت تُعرض أحرف اسمه. */
   ownerAvatarUrl?: string | null;
+  /** صورة مَن نقل الفرصة إلى مرحلتها الحالية. */
+  moverAvatarUrl?: string | null;
   stages: PipelineStage[];
   onClose: () => void;
   onEdit: (l: Lead) => void;
@@ -46,7 +48,7 @@ const PRICE_KEYS = [
 ] as const;
 
 /** تفاصيل الفرصة — طبق أصل نافذة «🎯 تفاصيل الفرصة» من معمار customer portal (أقسام مرقّمة). */
-export function LeadDetailModal({ lead, ownerAvatarUrl, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
+export function LeadDetailModal({ lead, ownerAvatarUrl, moverAvatarUrl, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
   // النقاط تُخفى عن غير مدير الولاء (طبق أصل V42) — المهندس يرى «رينج السعر» فقط.
   const showPoints = usePermission('loyalty.manage');
@@ -211,7 +213,9 @@ export function LeadDetailModal({ lead, ownerAvatarUrl, stages, onClose, onEdit,
             ) : ''} />
             <DRow label="نقلها إلى هذه المرحلة" value={lead.mover ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
-                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: personColor(lead.mover.id), color: '#fff', fontSize: '8.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.mover.name)}</span>
+                {moverAvatarUrl
+                  ? <img src={moverAvatarUrl} alt={lead.mover.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${personColor(lead.mover.id)}` }} />
+                  : <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: personColor(lead.mover.id), color: '#fff', fontSize: '8.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.mover.name)}</span>}
                 {lead.mover.name}
                 {lead.mover.from ? ` — من «${labelOf(lead.mover.from)}»` : ''}
                 {lead.mover.at ? ` · ${lead.mover.at}` : ''}

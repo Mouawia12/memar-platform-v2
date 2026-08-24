@@ -152,7 +152,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
   // نفس مجموعة المعرّفات التي تطلبها اللوحة → نفس مفتاح الاستعلام → بلا طلب إضافي.
   const ownerIds = useMemo(
-    () => [...new Set(visibleLeads.map((l) => l.owner?.id).filter((v): v is number => !!v))],
+    () => [...new Set(visibleLeads.flatMap((l) => [l.owner?.id, l.mover?.id]).filter((v): v is number => !!v))],
     [visibleLeads],
   );
   const { data: staffAvatars } = useStaffAvatars(ownerIds);
@@ -323,6 +323,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
         <LeadDetailModal
           lead={detailLead}
           ownerAvatarUrl={detailLead.owner ? staffAvatars?.[String(detailLead.owner.id)] ?? null : null}
+          moverAvatarUrl={detailLead.mover ? staffAvatars?.[String(detailLead.mover.id)] ?? null : null}
           stages={stageList}
           onClose={closeDetail}
           onEdit={openEdit}

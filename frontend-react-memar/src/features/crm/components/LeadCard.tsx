@@ -19,6 +19,8 @@ interface Props {
   justSeen?: boolean;
   /** اسم المرحلة التي نُقلت منها الفرصة (يُترجَم من مفتاحها في اللوحة). */
   moverFromLabel?: string | null;
+  /** صورة مَن نقل الفرصة — إن غابت تُعرض أحرف اسمه بلونه. */
+  moverAvatarUrl?: string | null;
 }
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
@@ -67,7 +69,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
-export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen, moverFromLabel }: Props) {
+export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen, moverFromLabel, moverAvatarUrl }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
@@ -226,9 +228,12 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       {/* مَن نقل الفرصة ومن أي مرحلة — أسفل الكرت في الفراغ (طلب أيمن 2026-08-23). */}
       {lead.mover && (
         <div style={moveLine} title={lead.mover.at ? `تاريخ النقل: ${lead.mover.at}` : undefined}>
-          <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), width: '18px', height: '18px', fontSize: '7.5px' }}>
-            {personInitials(lead.mover.name)}
-          </span>
+          {moverAvatarUrl
+            ? <img src={moverAvatarUrl} alt={lead.mover.name}
+                style={{ ...ownerAvatar, width: '18px', height: '18px', objectFit: 'cover', border: `1.5px solid ${personColor(lead.mover.id)}` }} />
+            : <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), width: '18px', height: '18px', fontSize: '7.5px' }}>
+                {personInitials(lead.mover.name)}
+              </span>}
           <span>
             ↗ نقلها {moverFromLabel ? <>من <b style={{ color: '#475569' }}>«{moverFromLabel}»</b> </> : null}
             <b style={{ color: personColor(lead.mover.id) }}>{shortName(lead.mover.name)}</b>

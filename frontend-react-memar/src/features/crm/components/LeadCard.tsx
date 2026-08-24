@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
-import { useCreateCrmTag, useCrmTags } from '../hooks/useCrm';
+import { useCreateCrmTag, useCrmTags, useLogLeadUpdate } from '../hooks/useCrm';
 import { personColor, personInitials, shortName, STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
 
 interface Props {
@@ -120,6 +120,17 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
   const createTag = useCreateCrmTag();
   // كتالوج الاختصارات لقراءة ألوانها كما ضبطتها الإدارة (كاش مشترك، بلا طلب لكل كرت).
   const { data: tagCatalog } = useCrmTags();
+  // تسجيل تحديث من الكرت مباشرة بالنقر على سطر آخر تحديث (طلب أيمن 2026-08-24)
+  // — بلا فتح نافذة الفرصة والبحث عن حقل التعليق.
+  const logUpdate = useLogLeadUpdate();
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteVal, setNoteVal] = useState('');
+  const submitNote = () => {
+    const note = noteVal.trim();
+    if (!note) return;
+    logUpdate.mutate({ id: lead.id, note }, { onSuccess: () => { setNoteVal(''); setNoteOpen(false); } });
+  };
+
   const [tagOpen, setTagOpen] = useState(false);
   const [tagVal, setTagVal] = useState('');
   const [tagMsg, setTagMsg] = useState('');
@@ -292,13 +303,42 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         </div>
       )}
 
-      {/* آخر تحديث سجّله الموظف، ويظهر اسمه معه بوضوح (طلب أيمن 2026-08-22). */}
-      <div style={last}>
+      {/* آخر تحديث سجّله الموظف — والنقر عليه يفتح حقل كتابة تحديث هنا مباشرة. */}
+      <div
+        style={{ ...last, cursor: 'text' }}
+        title="اضغط لتسجيل تحديث على الفرصة"
+        onClick={(e) => { stop(e); setNoteOpen((v) => !v); }}
+        onPointerDown={stop}
+      >
         📝{' '}
         {lead.last_update?.note?.trim()
           ? <><b style={{ color: ownerColor }}>{shortName(lead.last_update.user ?? 'موظف')}:</b> {lead.last_update.note}</>
           : 'لا يوجد تحديث من الموظف بعد'}
       </div>
+
+      {noteOpen && (
+        <div style={noteBox} onClick={stop} onPointerDown={stop}>
+          <textarea
+            autoFocus
+            value={noteVal}
+            onChange={(e) => setNoteVal(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setNoteOpen(false); return; }
+              // Enter يُرسل، وShift+Enter سطر جديد.
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitNote(); }
+            }}
+            placeholder="اكتب تحديثًا على الفرصة… (يُنشر باسمك)"
+            style={noteInput}
+          />
+          <div style={{ display: 'flex', gap: '6px', marginTop: '5px' }}>
+            <button type="button" onClick={submitNote} disabled={logUpdate.isPending || !noteVal.trim()} style={noteSend}>
+              {logUpdate.isPending ? 'جارٍ…' : 'تسجيل التحديث'}
+            </button>
+            <button type="button" onClick={() => setNoteOpen(false)} style={noteCancel}>إلغاء</button>
+          </div>
+          {logUpdate.isError && <div style={{ fontSize: '10px', color: '#DC4A3D', marginTop: '4px' }}>تعذّر تسجيل التحديث.</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -338,6 +378,11 @@ const tag: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8p
 const tagOutline: CSSProperties = { border: '1.5px solid', background: '#fff', padding: '3px 11px', fontWeight: 800 };
 // طلب اختصار من داخل الكرت
 const tagAddBtn: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '20px', border: '1px dashed #93C5FD', background: '#F0F7FF', color: '#0369A1', cursor: 'pointer', fontFamily: 'inherit', lineHeight: 1.4 };
+// صندوق كتابة التحديث من على الكرت مباشرة.
+const noteBox: CSSProperties = { marginTop: '6px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '9px', padding: '7px 8px', cursor: 'default' };
+const noteInput: CSSProperties = { width: '100%', minHeight: '48px', fontSize: '11px', padding: '6px 8px', border: '1.5px solid #CBD5E1', borderRadius: '7px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', lineHeight: 1.6 };
+const noteSend: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 11px', borderRadius: '7px', border: 'none', background: '#1B6CA8', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' };
+const noteCancel: CSSProperties = { fontSize: '10.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '7px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit' };
 const tagRow: CSSProperties = { display: 'flex', gap: '5px', marginTop: '7px', cursor: 'default' };
 const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', padding: '5px 8px', border: '1.5px solid #CBD5E1', borderRadius: '7px', fontFamily: 'inherit', outline: 'none' };
 const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };

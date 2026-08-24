@@ -99,7 +99,7 @@
 .crm-scope .crm-col-full { width: 100% !important; min-width: 100% !important; flex: 1 1 100% !important; max-height: none !important; }
 /* العمود المكبَّر: فجوة أوسع بين البطاقات كي لا تبدو ملتصقة، خصوصًا مع
    الشريط الجانبي الملوّن وهالة الكرت العاجل (طلب أيمن 2026-08-24). */
-.crm-scope .crm-col-full .crm-col-body { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px 20px; align-content: start; padding: 2px; }
+.crm-scope .crm-col-full .crm-col-body { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px 30px; align-content: start; padding: 4px 2px; }
 .crm-scope .crm-col-full .crm-range-bar { grid-column: 1 / -1; }
 .crm-scope .crm-col-off { display: none !important; }
 /* زر التكبير ⛶ في رأس العمود */

@@ -358,9 +358,21 @@ textarea.input { resize: vertical; line-height: 1.7; }
 /* ── وميض بطاقة المهمة المتأخّرة (طلب أيمن 2026-08-24) ──
    اسم حركة مستقلّ عن وميض كروت الفرص كي لا يتعارض تعريفهما، والأنماط هنا
    لأن صفحة المهام لا تحمّل crm.css. */
+/* وميض ظاهر: الكرت «ينطفئ ويشتعل» — تبدّل حادّ بين حالتين لا تدرّج خافت،
+   كي يلفت نظر مَن يعمل على البرنامج (طلب أيمن 2026-08-24).
+   حركات CSS تعلو على الأنماط السطرية، فتتبدّل الخلفية والحدّ رغم تعريفهما
+   سطريًّا على البطاقة. */
 @keyframes taskCardLate {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(220,74,61,.85), 0 6px 16px rgba(220,74,61,.16); }
-  50%      { box-shadow: 0 0 0 4px rgba(220,74,61,1), 0 10px 26px rgba(220,74,61,.38); }
+  0%, 45% {
+    background: #fff;
+    border-color: #E2E8F0;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
+  55%, 100% {
+    background: #FEE9E7;
+    border-color: #DC4A3D;
+    box-shadow: 0 0 0 3px rgba(220,74,61,.55), 0 10px 24px rgba(220,74,61,.34);
+  }
 }
-.task-card-late { animation: taskCardLate 1.3s ease-in-out infinite; }
+.task-card-late { animation: taskCardLate 1.1s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .task-card-late { animation: none; } }

@@ -95,8 +95,10 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
   const urgent = lead.is_urgent;
   const rem = reminderState(lead.reminder?.remind_at ?? null, !!lead.reminder?.due);
   const timer = reminderTimer(lead.reminder?.remind_at ?? null);
-  // الوميض: للفرصة العاجلة، ولمن انقضى موعد تواصله (طلب أيمن 2026-08-22).
-  const blink = urgent || !!timer?.expired;
+  // وميضان بلونين مختلفين: الأحمر للعاجلة، والكهرماني لتأخّر موعد التواصل
+  // — فلا يظهر ظلّ أحمر حول كرت أهميته زرقاء بلا سبب ظاهر.
+  const blinkUrgent = urgent;
+  const blinkLate = !urgent && !!timer?.expired;
   const ownerColor = lead.owner ? personColor(lead.owner.id) : '#94A3B8';
 
   // شريط الأسعار: كل سعر ونقاطه الخاصّة تحته (points_1/2/3) — والموظف يرى العدد
@@ -128,7 +130,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
 
   return (
     <div
-      className={`crm-lead-card${blink ? ' crm-card-blink' : ''}${justSeen ? ' crm-card-seen' : ''}`}
+      className={`crm-lead-card${blinkUrgent ? ' crm-card-blink' : ''}${blinkLate ? ' crm-card-blink-late' : ''}${justSeen ? ' crm-card-seen' : ''}`}
       onClick={() => onOpen(lead)}
       style={{ ...card, borderRight: `5px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
     >

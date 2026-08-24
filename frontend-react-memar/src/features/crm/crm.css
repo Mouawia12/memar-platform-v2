@@ -129,12 +129,23 @@
 
 /* ── وميض الفرصة العاجلة / المتأخّرة (طلب أيمن 2026-08-22) ──
    نبضة هادئة على إطار الكرت وظلّه، تتوقّف احترامًا لتفضيل تقليل الحركة. */
+/* الأحمر للفرصة العاجلة وحدها. */
 @keyframes crmCardPulse {
   0%, 100% { box-shadow: 0 0 0 2px #DC4A3D, 0 6px 16px rgba(220,74,61,.16); }
   50%      { box-shadow: 0 0 0 4px #DC4A3D, 0 10px 26px rgba(220,74,61,.40); }
 }
+/* الكهرماني لتأخّر موعد التواصل — كي لا يختلط بالعاجلة (طلب أيمن 2026-08-24):
+   كان الاثنان يومضان أحمر فيبدو الكرت الأزرق وكأن خلفه ظلًّا أحمر بلا سبب. */
+@keyframes crmCardPulseLate {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(232,168,56,.75), 0 6px 14px rgba(232,168,56,.14); }
+  50%      { box-shadow: 0 0 0 3px rgba(232,168,56,.95), 0 9px 22px rgba(232,168,56,.30); }
+}
 .crm-scope .crm-card-blink { animation: crmCardPulse 1.25s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .crm-scope .crm-card-blink { animation: none; } }
+.crm-scope .crm-card-blink-late { animation: crmCardPulseLate 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .crm-scope .crm-card-blink,
+  .crm-scope .crm-card-blink-late { animation: none; }
+}
 
 /* ── هاي لايت الكرت الذي فُتح للتوّ بعد إغلاق نافذته ── */
 @keyframes crmCardSeen {

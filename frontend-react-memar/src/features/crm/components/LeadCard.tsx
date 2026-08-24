@@ -226,7 +226,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       {/* مَن نقل الفرصة ومن أي مرحلة — أسفل الكرت في الفراغ (طلب أيمن 2026-08-23). */}
       {lead.mover && (
         <div style={moveLine} title={lead.mover.at ? `تاريخ النقل: ${lead.mover.at}` : undefined}>
-          <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), width: '16px', height: '16px', fontSize: '7px' }}>
+          <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), width: '18px', height: '18px', fontSize: '7.5px' }}>
             {personInitials(lead.mover.name)}
           </span>
           <span>
@@ -254,7 +254,8 @@ const card: CSSProperties = { position: 'relative', background: '#fff', border: 
 const timerTrack: CSSProperties = { position: 'absolute', insetInlineEnd: '2px', top: '8px', bottom: '8px', width: '4px', borderRadius: '3px', background: '#EEF2F7', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' };
 const timerFill: CSSProperties = { width: '100%', borderRadius: '3px', transition: 'height .3s ease, background .3s ease' };
 const ownerRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', maxWidth: '100%' };
-const ownerAvatar: CSSProperties = { width: '18px', height: '18px', borderRadius: '50%', color: '#fff', fontSize: '8px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+// دائرة صاحب الفرصة أكبر قليلًا لتظهر صورته بوضوح (طلب أيمن 2026-08-24).
+const ownerAvatar: CSSProperties = { width: '26px', height: '26px', borderRadius: '50%', color: '#fff', fontSize: '9.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
 const cardUrgent: CSSProperties = { boxShadow: '0 0 0 2px #DC4A3D, 0 8px 20px rgba(220,74,61,.18)', background: 'linear-gradient(180deg,rgba(220,74,61,.06),#fff)' };
 const urgentFlag: CSSProperties = { background: '#DC4A3D', color: '#fff', fontSize: '9.5px', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', marginBottom: '6px', textAlign: 'center' };
 const cardTop: CSSProperties = { display: 'flex', gap: '8px', alignItems: 'flex-start', justifyContent: 'space-between' };

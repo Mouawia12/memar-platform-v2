@@ -63,11 +63,15 @@ function CollapsedColumn({ stage, count, total }: { stage: PipelineStage; count:
       ref={setNodeRef}
       onClick={() => setStageCollapsed(stage.key, false)}
       title={`توسيع «${stage.label}» — ${count} فرصة${total > 0 ? ` · ${money(total)}` : ''}`}
-      style={{ ...collapsedCol, borderTop: `3px solid ${stage.color}`, ...(isOver ? columnOver : null) }}
+      style={{ ...collapsedCol, ...(isOver ? columnOver : null) }}
     >
-      <span style={{ ...collapsedCount, color: stage.color }}>{count}</span>
+      {/* رأس مطابق لرأس العمود المفتوح (بطاقة بيضاء بخطّ ملوّن) كي يبدأ الخطّ
+          الملوّن عند المستوى نفسه في الحالتين (طلب أيمن 2026-08-24). */}
+      <div style={{ ...collapsedHead, borderTop: `3px solid ${stage.color}` }}>
+        <span style={{ ...collapsedCount, color: stage.color }}>{count}</span>
+      </div>
       <span style={{ ...collapsedLabel, color: stage.color }}>{stage.label}</span>
-      <span style={{ fontSize: '13px', color: stage.color }}>⟨</span>
+      <span style={{ fontSize: '13px', color: stage.color, paddingBottom: '4px' }}>⟨</span>
     </div>
   );
 }
@@ -478,6 +482,8 @@ const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed 
 const colHeader: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0 };
 const colDot: CSSProperties = { width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0 };
 const collapseBtn: CSSProperties = { background: '#F2F5F9', border: '1px solid #E4E8EF', borderRadius: '6px', width: '24px', height: '24px', cursor: 'pointer', color: '#5A6478', fontSize: '12px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 };
-const collapsedCol: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '10px 6px', minHeight: '140px', width: '46px', flex: '0 0 46px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'background 0.15s ease, outline 0.15s ease' };
+// الحشو 9px كالعمود المفتوح تمامًا، فيتطابق مستوى الرأس في الحالتين.
+const collapsedCol: CSSProperties = { background: '#F0F4F8', borderRadius: '10px', padding: '9px 6px', minHeight: '140px', width: '46px', flex: '0 0 46px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', border: '1px solid transparent', transition: 'background 0.15s ease, outline 0.15s ease' };
+const collapsedHead: CSSProperties = { background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '6px 2px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0 };
 const collapsedCount: CSSProperties = { fontSize: '13px', fontWeight: 800, minWidth: '20px', textAlign: 'center' };
 const collapsedLabel: CSSProperties = { writingMode: 'vertical-rl', fontWeight: 700, fontSize: '12.5px', whiteSpace: 'nowrap', flex: 1 };

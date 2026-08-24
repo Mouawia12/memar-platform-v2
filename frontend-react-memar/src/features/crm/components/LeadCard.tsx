@@ -230,8 +230,8 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         <div style={moveLine} title={lead.mover.at ? `تاريخ النقل: ${lead.mover.at}` : undefined}>
           {moverAvatarUrl
             ? <img src={moverAvatarUrl} alt={lead.mover.name}
-                style={{ ...ownerAvatar, width: '18px', height: '18px', objectFit: 'cover', border: `1.5px solid ${personColor(lead.mover.id)}` }} />
-            : <span style={{ ...ownerAvatar, background: personColor(lead.mover.id), width: '18px', height: '18px', fontSize: '7.5px' }}>
+                style={{ ...ownerAvatar, objectFit: 'cover', border: `1.5px solid ${personColor(lead.mover.id)}` }} />
+            : <span style={{ ...ownerAvatar, background: personColor(lead.mover.id) }}>
                 {personInitials(lead.mover.name)}
               </span>}
           <span>

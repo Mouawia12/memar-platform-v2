@@ -97,7 +97,7 @@
 .crm-scope .crm-pipe-col.crm-col-hot:not(.crm-col-full) { border-color: #0F766E; box-shadow: 0 10px 26px rgba(15,118,110,.12); }
 /* تكبير العمود بكامل الصفحة (ops-col-full) — شبكة كروت */
 .crm-scope .crm-col-full { width: 100% !important; min-width: 100% !important; flex: 1 1 100% !important; max-height: none !important; }
-.crm-scope .crm-col-full .crm-col-body { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; align-content: start; }
+.crm-scope .crm-col-full .crm-col-body { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; align-content: start; }
 .crm-scope .crm-col-full .crm-range-bar { grid-column: 1 / -1; }
 .crm-scope .crm-col-off { display: none !important; }
 /* زر التكبير ⛶ في رأس العمود */

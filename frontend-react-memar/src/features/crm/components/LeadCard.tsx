@@ -65,45 +65,59 @@ function reminderTimer(iso: string | null): { pct: number; color: string; label:
 }
 
 /**
- * عدّاد تنازلي لموعد التواصل (طلب أيمن 2026-08-24): ساعة تعدّ عكسيًّا مع
- * مؤشّر شبيه ببطارية الشاحن يفرغ كلما اقترب الموعد. يُحدَّث كل ثانية في
- * الساعات الأخيرة وكل دقيقة قبلها، فلا يُثقل لوحةً فيها عشرات البطاقات.
+ * عدّاد تنازلي لموعد التواصل (طلب أيمن 2026-08-24):
+ *  • شريط أفقي بعرض الكرت فوق العدّاد — يفرغ كلما اقترب الموعد.
+ *  • ساعة رقمية بثلاث خانات: يوم · ساعة · دقيقة.
+ * يُحدَّث كل دقيقة (الخانة الأصغر دقيقة) فلا يُثقل لوحةً فيها عشرات البطاقات.
  */
 function Countdown({ iso }: { iso: string }) {
   const target = new Date(iso).getTime();
   const [now, setNow] = useState(() => Date.now());
 
-  const left = target - now;
-  const fast = left > 0 && left < 86_400_000; // أقلّ من يوم → عدّ بالثواني
-
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), fast ? 1000 : 60_000);
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(id);
-  }, [fast]);
+  }, []);
 
+  const left = target - now;
   const expired = left <= 0;
   const abs = Math.abs(left);
   const days = Math.floor(abs / 86_400_000);
-  const hh = String(Math.floor((abs % 86_400_000) / 3_600_000)).padStart(2, '0');
-  const mm = String(Math.floor((abs % 3_600_000) / 60_000)).padStart(2, '0');
-  const ss = String(Math.floor((abs % 60_000) / 1000)).padStart(2, '0');
+  const hours = Math.floor((abs % 86_400_000) / 3_600_000);
+  const mins = Math.floor((abs % 3_600_000) / 60_000);
 
-  const text = expired
-    ? (days > 0 ? `تأخّر ${days} يوم` : `تأخّر ${hh}:${mm}`)
-    : days > 0 ? `${days} يوم ${hh}:${mm}` : `${hh}:${mm}:${ss}`;
+  const hoursLeft = left / 3_600_000;
+  const color = expired ? '#DC4A3D' : hoursLeft < 24 ? '#EA580C' : hoursLeft < 72 ? '#E8A838' : '#2D9B6F';
+  const pct = expired ? 100 : Math.max(3, Math.min(100, (left / (TIMER_WINDOW_DAYS * 86_400_000)) * 100));
 
-  // نسبة الامتلاء من نافذة أسبوع — كبطارية تفرغ باقتراب الموعد.
-  const pct = expired ? 0 : Math.max(4, Math.min(100, (left / (TIMER_WINDOW_DAYS * 86_400_000)) * 100));
-  const hours = left / 3_600_000;
-  const color = expired ? '#DC4A3D' : hours < 24 ? '#EA580C' : hours < 72 ? '#E8A838' : '#2D9B6F';
+  const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
-    <span style={cdWrap} title={expired ? 'انقضى موعد التواصل' : 'الوقت المتبقّي حتى موعد التواصل'}>
-      <span style={{ ...cdBattery, borderColor: color }}>
-        <span style={{ ...cdBatteryFill, width: `${pct}%`, background: color }} />
+    <div style={cdBlock} title={expired ? 'انقضى موعد التواصل' : 'الوقت المتبقّي حتى موعد التواصل'}>
+      {/* شريط بعرض الكرت فوق العدّاد */}
+      <span style={cdBar}>
+        <span style={{ ...cdBarFill, width: `${pct}%`, background: color }} />
       </span>
-      <span style={{ ...cdCap, background: color }} />
-      <span style={{ ...cdText, color }}>{expired ? '⏰' : '⏳'} {text}</span>
+
+      <span style={cdClock}>
+        <span style={{ ...cdIcon, color }}>{expired ? '⏰' : '⏳'}</span>
+        <Seg value={pad(days)} label="يوم" color={color} />
+        <span style={{ ...cdColon, color }}>:</span>
+        <Seg value={pad(hours)} label="ساعة" color={color} />
+        <span style={{ ...cdColon, color }}>:</span>
+        <Seg value={pad(mins)} label="دقيقة" color={color} />
+        {expired && <span style={{ ...cdLate, color }}>تأخّر</span>}
+      </span>
+    </div>
+  );
+}
+
+/** خانة رقمية واحدة في الساعة (الرقم فوق ووحدته تحته). */
+function Seg({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <span style={{ ...cdSeg, borderColor: `${color}55` }}>
+      <span style={{ ...cdSegNum, color }}>{value}</span>
+      <span style={cdSegLbl}>{label}</span>
     </span>
   );
 }
@@ -388,12 +402,18 @@ const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', paddin
 const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
 const tagMsgStyle: CSSProperties = { marginTop: '6px', fontSize: '10.5px', fontWeight: 700, color: '#0F766E' };
 // صفّ العدّاد: يُدفع لأقصى يسار الكرت (flex-end في اتجاه RTL = اليسار).
-const timerRow: CSSProperties = { display: 'flex', justifyContent: 'flex-end', marginTop: '6px' };
-const cdWrap: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px' };
-const cdBattery: CSSProperties = { position: 'relative', width: '26px', height: '11px', border: '1.5px solid', borderRadius: '3px', overflow: 'hidden', display: 'flex', alignItems: 'stretch', padding: '1px' };
-const cdBatteryFill: CSSProperties = { display: 'block', borderRadius: '2px', transition: 'width .4s ease, background .4s ease' };
-const cdCap: CSSProperties = { width: '2px', height: '5px', borderRadius: '0 2px 2px 0', marginInlineStart: '-4px' };
-const cdText: CSSProperties = { fontSize: '9.5px', fontWeight: 900, fontVariantNumeric: 'tabular-nums', letterSpacing: '.3px' };
+const cdBlock: CSSProperties = { width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' };
+const cdBar: CSSProperties = { display: 'block', width: '100%', height: '5px', background: '#EEF2F7', borderRadius: '4px', overflow: 'hidden' };
+const cdBarFill: CSSProperties = { display: 'block', height: '100%', borderRadius: '4px', transition: 'width .4s ease, background .4s ease' };
+const cdClock: CSSProperties = { display: 'flex', alignItems: 'flex-end', gap: '3px', direction: 'ltr', justifyContent: 'flex-start' };
+const cdIcon: CSSProperties = { fontSize: '11px', lineHeight: '20px', marginInlineEnd: '2px' };
+const cdSeg: CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid', borderRadius: '5px', padding: '1px 5px', background: '#fff', minWidth: '26px' };
+const cdSegNum: CSSProperties = { fontSize: '11.5px', fontWeight: 900, fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 };
+const cdSegLbl: CSSProperties = { fontSize: '7px', color: '#94A3B8', fontWeight: 700, lineHeight: 1.1 };
+const cdColon: CSSProperties = { fontSize: '11px', fontWeight: 900, lineHeight: '20px' };
+const cdLate: CSSProperties = { fontSize: '9.5px', fontWeight: 900, lineHeight: '20px', marginInlineStart: '3px' };
+// كتلة العدّاد بعرض الكرت كاملًا أسفله.
+const timerRow: CSSProperties = { display: 'block', marginTop: '7px' };
 const moveLine: CSSProperties = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9.5px', color: '#64748B', fontWeight: 700, marginTop: '6px', paddingTop: '5px', borderTop: '1px dashed #EEF2F7' };
 const last: CSSProperties = { fontSize: '10px', color: '#64748B', borderTop: '1px dashed #E2E8F0', marginTop: '6px', paddingTop: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };

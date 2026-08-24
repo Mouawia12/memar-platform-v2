@@ -2,7 +2,7 @@ import { type CSSProperties, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useEdgeAutoScroll } from '../../../hooks/useEdgeAutoScroll';
-import { personColor, personInitials } from '../../crm/types';
+import { personColor, personInitials, shortName } from '../../crm/types';
 import type { FollowUp } from '../api/followUpsApi';
 
 type Col = 'scheduled' | 'today' | 'overdue' | 'done';
@@ -59,7 +59,7 @@ export function ClientFollowUpsBoard({ items }: { items: FollowUp[] }) {
                       {f.owner && (
                         <span style={ownerRow} title={`المكلّف: ${f.owner.name}`}>
                           <span style={{ ...avatar, background: c }}>{personInitials(f.owner.name)}</span>
-                          <span style={{ fontSize: '9.5px', fontWeight: 800, color: c }}>{f.owner.name}</span>
+                          <span style={{ fontSize: '9.5px', fontWeight: 800, color: c }}>{shortName(f.owner.name)}</span>
                         </span>
                       )}
                       {f.remind_at && <span style={date}>📅 {f.remind_at.slice(0, 10)}</span>}

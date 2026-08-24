@@ -1,6 +1,6 @@
 import { type CSSProperties } from 'react';
 
-import { personColor, personInitials } from '../../crm/types';
+import { personColor, personInitials, shortName } from '../../crm/types';
 import { PRIORITY_COLORS, dueDiffDays, isDone, type Task } from '../types';
 
 interface Props {
@@ -52,7 +52,7 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl }: Props) {
       </div>
 
       <div style={metaRow}>
-        {task.assignee && <span style={{ ...meta, color: assigneeColor, fontWeight: 800 }}>{task.assignee.name}</span>}
+        {task.assignee && <span style={{ ...meta, color: assigneeColor, fontWeight: 800 }}>{shortName(task.assignee.name)}</span>}
         {due && <span style={{ ...meta, color: due.tone, fontWeight: 800 }}>📅 {task.due_date?.slice(0, 10)} · {due.label}</span>}
       </div>
 

@@ -221,3 +221,25 @@ export function personInitials(name: string): string {
   if (words.length === 1) return words[0].slice(0, 2);
   return `${words[0][0]}${words[1][0]}`;
 }
+
+// ── اختصار أسماء الموظفين على البطاقات ──
+// الأسماء الكاملة تزاحم الكرت («المهندس أحمد العايبي»)، فنعرض اللقب مختصرًا
+// مع الاسم الأول فقط («م. أحمد») — طلب أيمن 2026-08-24. الاسم الكامل يبقى في
+// تلميح العنصر وفي نافذة التفاصيل.
+const TITLE_SHORT: Record<string, string> = {
+  'المهندس': 'م.', 'مهندس': 'م.', 'المهندسة': 'م.', 'مهندسة': 'م.', 'م': 'م.', 'م.': 'م.',
+  'الأستاذ': 'أ.', 'أستاذ': 'أ.', 'الاستاذ': 'أ.', 'أ': 'أ.', 'أ.': 'أ.',
+  'الدكتور': 'د.', 'دكتور': 'د.', 'الدكتورة': 'د.', 'د': 'د.', 'د.': 'د.',
+};
+
+export function shortName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return name.trim();
+
+  const head = parts[0];
+  const title = TITLE_SHORT[head] ?? (head.endsWith('/') ? head : null);
+  // بلقب: «اللقب + الاسم الأول»؛ وبلا لقب: أول كلمتين كما هما.
+  if (title) return parts.length >= 2 ? `${title} ${parts[1]}` : title;
+
+  return parts.slice(0, 2).join(' ');
+}

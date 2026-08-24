@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCreateCrmTag, useCrmTags } from '../hooks/useCrm';
-import { personColor, personInitials, STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
+import { personColor, personInitials, shortName, STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
 
 interface Props {
   lead: Lead;
@@ -152,7 +152,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
               {avatarUrl
                 ? <img src={avatarUrl} alt={lead.owner.name} style={{ ...ownerAvatar, objectFit: 'cover', border: `1.5px solid ${ownerColor}` }} />
                 : <span style={{ ...ownerAvatar, background: ownerColor }}>{personInitials(lead.owner.name)}</span>}
-              <span style={owner}>{lead.owner.name}</span>
+              <span style={owner}>{shortName(lead.owner.name)}</span>
             </span>
           )}
 
@@ -231,7 +231,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
           </span>
           <span>
             ↗ نقلها {moverFromLabel ? <>من <b style={{ color: '#475569' }}>«{moverFromLabel}»</b> </> : null}
-            <b style={{ color: personColor(lead.mover.id) }}>{lead.mover.name}</b>
+            <b style={{ color: personColor(lead.mover.id) }}>{shortName(lead.mover.name)}</b>
           </span>
         </div>
       )}
@@ -240,7 +240,7 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       <div style={last}>
         📝{' '}
         {lead.last_update?.note?.trim()
-          ? <><b style={{ color: ownerColor }}>{lead.last_update.user ?? 'موظف'}:</b> {lead.last_update.note}</>
+          ? <><b style={{ color: ownerColor }}>{shortName(lead.last_update.user ?? 'موظف')}:</b> {lead.last_update.note}</>
           : 'لا يوجد تحديث من الموظف بعد'}
       </div>
     </div>

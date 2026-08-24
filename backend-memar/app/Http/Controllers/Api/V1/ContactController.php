@@ -92,6 +92,33 @@ class ContactController extends ApiController
         return $this->ok(['urgent' => $urgent, 'due' => $due]);
     }
 
+    /**
+     * كل متابعات العملاء في لوحة واحدة (طلب أيمن 2026-08-24) — تُغذّي «لوحة
+     * المتابعة (كانبان)» أسفل صفحة المهام: مجدولة · اليوم · متأخرة · منجزة.
+     */
+    public function followUps(Request $request): JsonResponse
+    {
+        $items = LeadReminder::query()
+            ->with(['contact:id,full_name,owner_id', 'contact.owner:id,name', 'creator:id,name'])
+            ->whereHas('contact')
+            ->when($request->boolean('mine'), fn ($q) => $q->where('created_by', $request->user()?->id))
+            ->orderBy('remind_at')
+            ->limit(300)
+            ->get()
+            ->map(fn (LeadReminder $r): array => [
+                'id' => $r->id,
+                'contact_id' => $r->contact_id,
+                'contact' => $r->contact?->full_name,
+                'note' => $r->note,
+                'remind_at' => $r->remind_at?->toIso8601String(),
+                'done' => (bool) $r->done,
+                'owner' => $r->contact?->owner ? ['id' => $r->contact->owner->id, 'name' => $r->contact->owner->name] : null,
+                'creator' => $r->creator?->name,
+            ]);
+
+        return $this->ok($items);
+    }
+
     // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───
 
     /** تذكيرات الفرصة (الأحدث أولًا). */

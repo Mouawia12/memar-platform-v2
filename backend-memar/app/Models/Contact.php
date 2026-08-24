@@ -33,6 +33,7 @@ class Contact extends Model
     protected $fillable = [
         'full_name', 'kunya', 'email', 'phone', 'company', 'head_office', 'company_about', 'position',
         'type', 'client_kind', 'status', 'stage', 'board_position', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
+        'created_by',
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
         'referral_code', 'referral_shares', 'account_number', 'avatar_file_id', 'referred_by_user_id',
         'referred_by_contact_id', 'loyalty_points', 'loyalty_points_lifetime',
@@ -167,6 +168,17 @@ class Contact extends Model
     public function referredByContact(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'referred_by_contact_id');
+    }
+
+    /**
+     * منشئ الفرصة — يُضبط مرّة عند الإنشاء من جلسة المستخدم، خارج $fillable
+     * فلا يُنتحل ولا يتبدّل لاحقًا (طلب أيمن 2026-08-24).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

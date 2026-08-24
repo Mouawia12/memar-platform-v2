@@ -44,7 +44,7 @@ const PRIORITY_ICON: Record<Priority, string> = {
 /**
  * نموذج «إضافة فرصة / عميل محتمل جديد» — خمسة أقسام مرقّمة بنفس لغة نافذة التفاصيل
  * (طلب أيمن 2026-08-22): ① العميل · ② المشروع · ③ رينج السعر · ④ تذكير التواصل · ⑤ الفرصة.
- * الحقول المعلّمة بـ * إجبارية: اسم العميل، الهاتف، نوع المشروع، السعر 1، منشئ الفرصة.
+ * الحقول المعلّمة بـ * إجبارية: اسم العميل، الهاتف، نوع المشروع، السعر 1، المكلّف بالفرصة.
  */
 export function LeadFormModal({ lead, onClose }: Props) {
   const save = useSaveLead();
@@ -54,6 +54,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
   // سجل العملاء لقائمة «عميل مسجّل سابقًا» — الفرصة تُربط بالعميل الأصل عبر parent_contact_id.
   const { data: clients } = useLeads({ type: 'client', per_page: 200 });
   const meId = useAuthStore((s) => s.user?.id);
+  const meName = useAuthStore((s) => s.user?.name);
 
   const initialForm = useMemo<LeadFormData>(() => (lead ? {
     full_name: lead.full_name,
@@ -381,7 +382,12 @@ export function LeadFormModal({ lead, onClose }: Props) {
           {/* ── ⑤ بيانات الفرصة ── */}
           <Section n="⑤" title="بيانات الفرصة">
             <div style={grid2}>
-              <Field label="منشئ الفرصة" required>
+              {/* المنشئ يُسجَّل تلقائيًا (المستخدم الحالي) ولا يُختار — طلب أيمن 2026-08-24. */}
+              <Field label="منشئ الفرصة (تلقائي)">
+                <input className="input" style={{ ...input, background: '#F1F5F9' }} disabled
+                  value={lead?.creator?.name ?? meName ?? '—'} />
+              </Field>
+              <Field label="المكلّف بالفرصة" required>
                 <select className="input" style={input} value={form.owner_id}
                   onChange={(e) => set('owner_id', e.target.value === '' ? '' : Number(e.target.value))} required>
                   <option value="">— اختر الموظف —</option>

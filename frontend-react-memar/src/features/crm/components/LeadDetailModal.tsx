@@ -202,7 +202,7 @@ export function LeadDetailModal({ lead, ownerAvatarUrl, moverAvatarUrl, stages, 
 
           <div style={secTitle}>⑤ بيانات الفرصة</div>
           <div style={dgrid}>
-            <DRow label="منشئ الفرصة" value={lead.owner ? (
+            <DRow label="المكلّف بالفرصة" value={lead.owner ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
                 {/* صورته الشخصية إن رفعها، وإلا أحرف اسمه بلونه الثابت — كما على الكرت. */}
                 {ownerAvatarUrl
@@ -221,6 +221,7 @@ export function LeadDetailModal({ lead, ownerAvatarUrl, moverAvatarUrl, stages, 
                 {lead.mover.at ? ` · ${lead.mover.at}` : ''}
               </span>
             ) : ''} />
+            <DRow label="منشئ الفرصة" value={lead.creator?.name ?? ''} />
             <DRow label="تاريخ الفرصة" value={lead.created_at ? lead.created_at.slice(0, 10) : ''} />
             <DRow label="المرحلة الحالية" value={<span style={{ color: colorOf(lead.stage), fontWeight: 800 }}>{labelOf(lead.stage)}</span>} />
             <DRow label="مستوى الأهمية" value={<span style={{ color: imp.color, fontWeight: 800 }}>{imp.label}</span>} />

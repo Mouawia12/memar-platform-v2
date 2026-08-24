@@ -33,7 +33,7 @@ class ContactService
                 });
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
-            ->with(['owner', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
+            ->with(['owner', 'createdBy:id,name', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
             // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).
             ->orderBy('board_position')
             ->latest()
@@ -49,7 +49,7 @@ class ContactService
         $contact = Contact::create($data);
         $this->maybeConvertToProject($contact);
 
-        return $contact->load('owner', 'convertedProject');
+        return $contact->load('owner', 'createdBy', 'convertedProject');
     }
 
     /**
@@ -75,7 +75,7 @@ class ContactService
 
         $this->maybeConvertToProject($contact);
 
-        return $contact->load('owner', 'movedBy', 'convertedProject');
+        return $contact->load('owner', 'createdBy', 'movedBy', 'convertedProject');
     }
 
     /**

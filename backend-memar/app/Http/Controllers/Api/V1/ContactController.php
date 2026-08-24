@@ -32,8 +32,10 @@ class ContactController extends ApiController
     public function store(StoreContactRequest $request): JsonResponse
     {
         $data = $request->validated();
-        // منشئ الفرصة يختاره المستخدم في النموذج؛ وإن لم يُرسل فهو المستخدم الحالي.
+        // المكلّف بالفرصة يختاره المستخدم؛ وإن لم يُرسل فهو المستخدم الحالي.
         $data['owner_id'] ??= $request->user()?->id;
+        // المنشئ يُسجَّل تلقائيًا ولا يُقبل من الطلب.
+        $data['created_by'] = $request->user()?->id;
 
         $contact = $this->contacts->create($data);
 
@@ -42,7 +44,7 @@ class ContactController extends ApiController
 
     public function show(Contact $contact): JsonResponse
     {
-        return $this->ok(new ContactResource($contact->load('owner', 'convertedProject')));
+        return $this->ok(new ContactResource($contact->load('owner', 'createdBy', 'movedBy', 'convertedProject')));
     }
 
     public function update(UpdateContactRequest $request, Contact $contact): JsonResponse

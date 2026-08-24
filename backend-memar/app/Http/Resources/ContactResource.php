@@ -98,6 +98,11 @@ class ContactResource extends JsonResource
                     'due' => $next->remind_at !== null && $next->remind_at->isPast(),
                 ] : null;
             }),
+            // منشئ الفرصة — يُسجَّل تلقائيًا عند الإنشاء (منفصل عن المكلّف)
+            'creator' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
+                'id' => $this->createdBy->id,
+                'name' => $this->createdBy->name,
+            ] : null),
             // مَن نقل الفرصة إلى مرحلتها الحالية (يظهر على الكرت بجانب المكلّف)
             'mover' => $this->whenLoaded('movedBy', fn () => $this->movedBy ? [
                 'id' => $this->movedBy->id,

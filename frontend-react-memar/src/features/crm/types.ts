@@ -41,6 +41,8 @@ export interface Lead {
   // المشروع المرتبط بعد التحويل (حيّ من سجل المشاريع)
   project: { id: number; code: string; name: string; status: string } | null;
   owner: { id: number; name: string } | null;
+  /** منشئ الفرصة — يُسجَّل تلقائيًا عند الإنشاء ولا يُختار. */
+  creator: { id: number; name: string } | null;
   /** مَن نقل الفرصة إلى مرحلتها الحالية ومتى — يسجّله الخادم عند كل نقل. */
   mover: { id: number; name: string; at: string | null; from: string | null } | null;
   // أقرب تذكير معلّق + هل حان وقته (لتنبيه الكرت) — اجتماع 2026-08-05

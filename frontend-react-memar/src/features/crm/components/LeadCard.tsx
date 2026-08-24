@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCreateCrmTag, useCrmTags } from '../hooks/useCrm';
@@ -62,6 +62,50 @@ function reminderTimer(iso: string | null): { pct: number; color: string; label:
   const color = daysLeft < 1 ? '#EA580C' : daysLeft <= 3 ? '#E8A838' : '#2D9B6F';
   const label = daysLeft < 1 ? 'موعد التواصل اليوم' : `متبقٍّ ${Math.ceil(daysLeft)} يوم للتواصل`;
   return { pct, color, label, expired: false };
+}
+
+/**
+ * عدّاد تنازلي لموعد التواصل (طلب أيمن 2026-08-24): ساعة تعدّ عكسيًّا مع
+ * مؤشّر شبيه ببطارية الشاحن يفرغ كلما اقترب الموعد. يُحدَّث كل ثانية في
+ * الساعات الأخيرة وكل دقيقة قبلها، فلا يُثقل لوحةً فيها عشرات البطاقات.
+ */
+function Countdown({ iso }: { iso: string }) {
+  const target = new Date(iso).getTime();
+  const [now, setNow] = useState(() => Date.now());
+
+  const left = target - now;
+  const fast = left > 0 && left < 86_400_000; // أقلّ من يوم → عدّ بالثواني
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), fast ? 1000 : 60_000);
+    return () => window.clearInterval(id);
+  }, [fast]);
+
+  const expired = left <= 0;
+  const abs = Math.abs(left);
+  const days = Math.floor(abs / 86_400_000);
+  const hh = String(Math.floor((abs % 86_400_000) / 3_600_000)).padStart(2, '0');
+  const mm = String(Math.floor((abs % 3_600_000) / 60_000)).padStart(2, '0');
+  const ss = String(Math.floor((abs % 60_000) / 1000)).padStart(2, '0');
+
+  const text = expired
+    ? (days > 0 ? `تأخّر ${days} يوم` : `تأخّر ${hh}:${mm}`)
+    : days > 0 ? `${days} يوم ${hh}:${mm}` : `${hh}:${mm}:${ss}`;
+
+  // نسبة الامتلاء من نافذة أسبوع — كبطارية تفرغ باقتراب الموعد.
+  const pct = expired ? 0 : Math.max(4, Math.min(100, (left / (TIMER_WINDOW_DAYS * 86_400_000)) * 100));
+  const hours = left / 3_600_000;
+  const color = expired ? '#DC4A3D' : hours < 24 ? '#EA580C' : hours < 72 ? '#E8A838' : '#2D9B6F';
+
+  return (
+    <span style={cdWrap} title={expired ? 'انقضى موعد التواصل' : 'الوقت المتبقّي حتى موعد التواصل'}>
+      <span style={{ ...cdBattery, borderColor: color }}>
+        <span style={{ ...cdBatteryFill, width: `${pct}%`, background: color }} />
+      </span>
+      <span style={{ ...cdCap, background: color }} />
+      <span style={{ ...cdText, color }}>{expired ? '⏰' : '⏳'} {text}</span>
+    </span>
+  );
 }
 
 function Stars({ rating }: { rating: number }) {
@@ -134,13 +178,6 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
       onClick={() => onOpen(lead)}
       style={{ ...card, borderRight: `5px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
     >
-      {/* تايمر رأسي على حافّة الكرت: طوله = ما تبقّى حتى موعد التواصل، ولونه حسب القرب. */}
-      {timer && (
-        <span style={timerTrack} title={timer.label} aria-label={timer.label}>
-          <span style={{ ...timerFill, height: `${timer.pct}%`, background: timer.color }} />
-        </span>
-      )}
-
       {urgent && <div style={urgentFlag}><span className="crm-bell">🔔</span> فرصة عاجلة — بانتظار تحديث الموظف</div>}
 
       <div style={cardTop}>
@@ -176,22 +213,26 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
               <span key={i} style={{ ...psPrice, ...(accepted && t.price === accepted ? psOn : null), ...(i === 0 ? psFirst : null) }}>{money(t.price!)}</span>
             ))}
           </div>
-          <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
-            {priceList.map((t, i) => (
-              <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(t.points > 0 ? null : psWait) }}>
-                {t.points > 0 ? `${t.points} نقطة` : 'بانتظار النقاط'}
-              </span>
-            ))}
-          </div>
+          {/* صفّ النقاط يظهر فقط بعد أن يحدّدها المدير — قبلها لا تُذكر النقاط
+              على الكرت إطلاقًا (طلب أيمن 2026-08-24). */}
+          {anyPoints && (
+            <div style={{ ...psRow, gridTemplateColumns: `repeat(${priceList.length}, minmax(0,1fr))` }}>
+              {priceList.map((t, i) => (
+                <span key={i} style={{ ...psPt, ...(i === 0 ? psFirst : null), ...(t.points > 0 ? null : psWait) }}>
+                  {t.points > 0 ? `${t.points} نقطة` : '—'}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       <div style={foot}>
         {rem && <span style={{ ...remBase, ...rem.style }}>{rem.label}</span>}
-        {/* حالة النقاط: عددها عند تحديدها، وإلا «بانتظار تحديد المدير» كما في التصميم. */}
-        {priceList.length > 0 && (anyPoints
-          ? <span style={{ ...chip, ...chipPoints }}>🎯 حتى {Math.max(...priceList.map((t) => t.points))} نقطة عند الفوز</span>
-          : <span style={{ ...chip, ...chipWait }}>⏳ نقاط بانتظار تحديد المدير</span>)}
+        {/* النقاط لا تُذكر على الكرت قبل أن يعتمدها المدير. */}
+        {anyPoints && (
+          <span style={{ ...chip, ...chipPoints }}>🎯 حتى {Math.max(...priceList.map((t) => t.points))} نقطة عند الفوز</span>
+        )}
       </div>
 
       <div style={foot}>
@@ -243,6 +284,14 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         </div>
       )}
 
+      {/* عدّاد تنازلي لموعد التواصل + مؤشّر شبيه بالبطارية يفرغ باقتراب الموعد
+          (طلب أيمن 2026-08-24) — أسفل يسار الكرت. */}
+      {lead.reminder?.remind_at && (
+        <div style={timerRow}>
+          <Countdown iso={lead.reminder.remind_at} />
+        </div>
+      )}
+
       {/* آخر تحديث سجّله الموظف، ويظهر اسمه معه بوضوح (طلب أيمن 2026-08-22). */}
       <div style={last}>
         📝{' '}
@@ -257,9 +306,6 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
 // ── أنماط طبق أصل CSS المرجع (erp-crm-ops.js / style.css) ──
 // حشو وهوامش مضغوطة مع إبقاء كل التفاصيل (طلب أيمن: نفس التفاصيل بارتفاع أقل).
 const card: CSSProperties = { position: 'relative', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '8px 12px 8px 10px', marginBottom: '7px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all .2s ease' };
-// التايمر الرأسي على حافّة الكرت (داخل الحشو، لا يزيد الارتفاع).
-const timerTrack: CSSProperties = { position: 'absolute', insetInlineEnd: '2px', top: '8px', bottom: '8px', width: '4px', borderRadius: '3px', background: '#EEF2F7', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' };
-const timerFill: CSSProperties = { width: '100%', borderRadius: '3px', transition: 'height .3s ease, background .3s ease' };
 const ownerRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', maxWidth: '100%' };
 // دائرة صاحب الفرصة أكبر قليلًا لتظهر صورته بوضوح (طلب أيمن 2026-08-24).
 const ownerAvatar: CSSProperties = { width: '26px', height: '26px', borderRadius: '50%', color: '#fff', fontSize: '9.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
@@ -274,7 +320,6 @@ const sub: CSSProperties = { fontSize: '10.5px', color: '#64748B', marginTop: '2
 const leadSvc: CSSProperties = { fontSize: '10.5px', color: '#64748B', lineHeight: 1.4, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const chip: CSSProperties = { fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', background: 'rgba(27,108,168,.1)', color: '#1B6CA8', whiteSpace: 'nowrap' };
 const chipPoints: CSSProperties = { background: 'rgba(45,155,111,.12)', color: '#2D9B6F' };
-const chipWait: CSSProperties = { background: 'rgba(45,155,111,.10)', color: '#2D9B6F' };
 const owner: CSSProperties = { fontSize: '9.5px', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 const priceStrip: CSSProperties = { margin: '6px 0 3px', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC' };
 const psRow: CSSProperties = { display: 'grid' };
@@ -297,6 +342,13 @@ const tagRow: CSSProperties = { display: 'flex', gap: '5px', marginTop: '7px', c
 const tagInput: CSSProperties = { flex: 1, minWidth: 0, fontSize: '11px', padding: '5px 8px', border: '1.5px solid #CBD5E1', borderRadius: '7px', fontFamily: 'inherit', outline: 'none' };
 const tagSendBtn: CSSProperties = { fontSize: '10.5px', fontWeight: 800, padding: '5px 10px', borderRadius: '7px', border: 'none', background: '#0369A1', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
 const tagMsgStyle: CSSProperties = { marginTop: '6px', fontSize: '10.5px', fontWeight: 700, color: '#0F766E' };
+// صفّ العدّاد: يُدفع لأقصى يسار الكرت (flex-end في اتجاه RTL = اليسار).
+const timerRow: CSSProperties = { display: 'flex', justifyContent: 'flex-end', marginTop: '6px' };
+const cdWrap: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px' };
+const cdBattery: CSSProperties = { position: 'relative', width: '26px', height: '11px', border: '1.5px solid', borderRadius: '3px', overflow: 'hidden', display: 'flex', alignItems: 'stretch', padding: '1px' };
+const cdBatteryFill: CSSProperties = { display: 'block', borderRadius: '2px', transition: 'width .4s ease, background .4s ease' };
+const cdCap: CSSProperties = { width: '2px', height: '5px', borderRadius: '0 2px 2px 0', marginInlineStart: '-4px' };
+const cdText: CSSProperties = { fontSize: '9.5px', fontWeight: 900, fontVariantNumeric: 'tabular-nums', letterSpacing: '.3px' };
 const moveLine: CSSProperties = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9.5px', color: '#64748B', fontWeight: 700, marginTop: '6px', paddingTop: '5px', borderTop: '1px dashed #EEF2F7' };
 const last: CSSProperties = { fontSize: '10px', color: '#64748B', borderTop: '1px dashed #E2E8F0', marginTop: '6px', paddingTop: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };

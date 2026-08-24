@@ -354,3 +354,13 @@ textarea.input { resize: vertical; line-height: 1.7; }
 .crm-form-compact .input { font-size: 12px; padding: 7px 10px; }
 .crm-form-compact select.input { padding-inline-end: 27px; background-position: left 9px center; }
 .crm-form-compact textarea.input { line-height: 1.6; }
+
+/* ── وميض بطاقة المهمة المتأخّرة (طلب أيمن 2026-08-24) ──
+   اسم حركة مستقلّ عن وميض كروت الفرص كي لا يتعارض تعريفهما، والأنماط هنا
+   لأن صفحة المهام لا تحمّل crm.css. */
+@keyframes taskCardLate {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(220,74,61,.85), 0 6px 16px rgba(220,74,61,.16); }
+  50%      { box-shadow: 0 0 0 4px rgba(220,74,61,1), 0 10px 26px rgba(220,74,61,.38); }
+}
+.task-card-late { animation: taskCardLate 1.3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .task-card-late { animation: none; } }

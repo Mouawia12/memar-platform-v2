@@ -20,6 +20,8 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl }: Props) {
   const done = isDone(task);
   const diff = dueDiffDays(task.due_date);
   const assigneeColor = task.assignee ? personColor(task.assignee.id) : '#94A3B8';
+  // المهمة المتأخّرة تومض كتنبيه حتى تُعالَج (طلب أيمن 2026-08-24).
+  const overdue = !done && diff !== null && diff < 0;
   // المهمة المكتملة تُعرض 100% مهما كانت النسبة المسجّلة.
   const pct = done ? 100 : Math.max(0, Math.min(100, task.progress ?? 0));
 
@@ -32,7 +34,7 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl }: Props) {
 
   return (
     <div
-      className="crm-lead-card"
+      className={`crm-lead-card${overdue ? ' task-card-late' : ''}`}
       onClick={() => onOpen(task)}
       style={{ ...card, borderRight: `5px solid ${done ? '#2D9B6F' : color}` }}
     >

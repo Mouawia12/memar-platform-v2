@@ -171,6 +171,16 @@ class Contact extends Model
     }
 
     /**
+     * بطاقة الشركة في سجلّ الشركات — تُنشأ تلقائيًا حين يكون العميل شركة.
+     *
+     * @return BelongsTo<Company, $this>
+     */
+    public function companyRecord(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    /**
      * منشئ الفرصة — يُضبط مرّة عند الإنشاء من جلسة المستخدم، خارج $fillable
      * فلا يُنتحل ولا يتبدّل لاحقًا (طلب أيمن 2026-08-24).
      *

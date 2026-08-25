@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Company;
 use App\Models\Contact;
 use App\Models\LoyaltyTransaction;
 use App\Models\PipelineStage;
@@ -47,6 +48,7 @@ class ContactService
     {
         $data = $this->withExpectedPoints($data);
         $contact = Contact::create($data);
+        $this->syncCompanyRecord($contact);
         $this->maybeConvertToProject($contact);
 
         return $contact->load('owner', 'createdBy', 'convertedProject');
@@ -73,6 +75,7 @@ class ContactService
             ])->save();
         }
 
+        $this->syncCompanyRecord($contact);
         $this->maybeConvertToProject($contact);
 
         return $contact->load('owner', 'createdBy', 'movedBy', 'convertedProject');
@@ -85,6 +88,39 @@ class ContactService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    /**
+     * مزامنة بطاقة الشركة (طلب أيمن 2026-08-25): كل جهة اتصال نوعها «شركة»
+     * ولها اسم شركة تُنشأ لها — أو تُربط بـ — بطاقة في سجلّ الشركات، فتُحفظ
+     * بيانات الشركة هناك وبيانات الشخص في سجلّ العملاء.
+     *
+     * البحث بالاسم يمنع تكرار الشركة حين يُسجَّل لها أكثر من جهة اتصال،
+     * والحقول الفارغة في بطاقة الشركة تُملأ من جهة الاتصال دون أن تطمس
+     * ما أدخلته الإدارة يدويًا.
+     */
+    private function syncCompanyRecord(Contact $contact): void
+    {
+        $name = trim((string) $contact->company);
+        if ($contact->client_kind !== 'company' || $name === '') {
+            return;
+        }
+
+        $company = Company::firstOrCreate(
+            ['name' => $name],
+            ['type' => 'client'],
+        );
+
+        $company->fill(array_filter([
+            'phone' => $company->phone ?: $contact->phone,
+            'email' => $company->email ?: $contact->email,
+            'address' => $company->address ?: $contact->address,
+            'notes' => $company->notes ?: $contact->company_about,
+        ], fn ($v): bool => $v !== null && $v !== ''))->save();
+
+        if ($contact->company_id !== $company->id) {
+            $contact->forceFill(['company_id' => $company->id])->save();
+        }
+    }
+
     private function withExpectedPoints(array $data, ?Contact $existing = null): array
     {
         $touchesPricing = array_key_exists('expected_price_kwd', $data) || array_key_exists('project_type', $data);

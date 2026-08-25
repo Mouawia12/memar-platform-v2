@@ -94,6 +94,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
   const [remindDate, setRemindDate] = useState('');
   const [remindTime, setRemindTime] = useState('10:00');
   const [remindNote, setRemindNote] = useState('');
+  const [remindRepeat, setRemindRepeat] = useState('');
 
   const set = <K extends keyof LeadFormData>(key: K, value: LeadFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -155,6 +156,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
               id: saved.id,
               remind_at: `${remindDate} ${remindTime || '10:00'}:00`,
               note: remindNote.trim() || `متابعة الفرصة: ${form.full_name}`,
+              repeat_every: remindRepeat || undefined,
             },
             { onSettled: onClose },
           );
@@ -368,6 +370,14 @@ export function LeadFormModal({ lead, onClose }: Props) {
               </Field>
               <Field label="وقت التذكير">
                 <input className="input" style={input} type="time" value={remindTime} onChange={(e) => setRemindTime(e.target.value)} />
+              </Field>
+              <Field label="تكرار المتابعة">
+                <select className="input" style={input} value={remindRepeat} onChange={(e) => setRemindRepeat(e.target.value)}>
+                  <option value="">بلا تكرار</option>
+                  <option value="3d">كل 3 أيام</option>
+                  <option value="week">أسبوعيًا</option>
+                  <option value="month">شهريًا</option>
+                </select>
               </Field>
             </div>
             {/* ملاحظة خاصة بالتواصل تُحفظ مع التذكير نفسه (طلب أيمن 2026-08-23). */}

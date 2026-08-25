@@ -22,6 +22,14 @@ function currentStage(f: FollowUp): string {
   return 'مجدولة';
 }
 
+/** دوريّات المتابعة — المتابعات غالبًا دورية لا مرّة واحدة. */
+const REPEATS: { key: string; label: string }[] = [
+  { key: '', label: 'بلا تكرار' },
+  { key: '3d', label: 'كل 3 أيام' },
+  { key: 'week', label: 'أسبوعيًا' },
+  { key: 'month', label: 'شهريًا' },
+];
+
 /** خيارات النقل — الأعمدة مشتقّة من الموعد والحالة، فالنقل يضبطهما. */
 const MOVES: { key: string; label: string }[] = [
   { key: 'today', label: 'اليوم' },
@@ -75,8 +83,28 @@ export function FollowUpDetailModal({ item, onClose }: Props) {
                 {shortName(item.owner.name)}
               </span>
             ) : '—'} />
-            <Row label="المرحلة الحالية" value={currentStage(item)} />
+            <Row label="المرحلة الحالية" value={
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                {currentStage(item)}
+                {item.late_cycles > 0 && <span style={lateBadge} title={`فاتت ${item.late_cycles} متابعة`}>↩ {item.late_cycles}</span>}
+              </span>
+            } />
             {item.creator && <Row label="سجّلها" value={shortName(item.creator)} />}
+          </div>
+
+          <div style={{ marginTop: '10px' }}>
+            <div style={moveLabel}>تكرار المتابعة</div>
+            <select
+              className="input"
+              value={item.repeat_every ?? ''}
+              onChange={(e) => update.mutate({ id: item.id, repeat_every: e.target.value || null })}
+              disabled={update.isPending}
+            >
+              {REPEATS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+            </select>
+            <div style={hint}>
+              عند إنجاز متابعة متكرّرة يُجدول موعدها التالي تلقائيًا، فتبقى المتابعة مستمرّة.
+            </div>
           </div>
 
           <Row label="ملاحظات" value={item.note?.trim() || 'لا ملاحظات'} wide />
@@ -120,5 +148,7 @@ const cell: CSSProperties = { background: '#F8FAFC', borderRadius: '10px', paddi
 const cellLabel: CSSProperties = { fontSize: '10.5px', color: '#94A3B8', marginBottom: '4px' };
 const cellValue: CSSProperties = { fontSize: '13px', fontWeight: 800, color: '#1E293B', lineHeight: 1.6 };
 const avatar: CSSProperties = { width: '22px', height: '22px', borderRadius: '50%', color: '#fff', fontSize: '8.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const hint: CSSProperties = { fontSize: '10.5px', color: '#5A6478', background: '#F1F5F9', borderRadius: '8px', padding: '7px 10px', marginTop: '6px', lineHeight: 1.6 };
+const lateBadge: CSSProperties = { background: '#FEF2F2', color: '#DC4A3D', border: '1px solid #FCA5A5', borderRadius: '999px', padding: '1px 8px', fontSize: '10.5px', fontWeight: 900 };
 const moveLabel: CSSProperties = { fontSize: '12.5px', fontWeight: 800, color: '#334155', marginBottom: '6px' };
 const footer: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '13px 20px', borderTop: '1px solid #EEF2F7', background: '#F8FAFC', borderRadius: '0 0 16px 16px' };

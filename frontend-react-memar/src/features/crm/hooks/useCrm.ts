@@ -53,8 +53,8 @@ function invalidateCrm(qc: ReturnType<typeof useQueryClient>) {
 export function useAddLeadReminder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, remind_at, note }: { id: number; remind_at: string; note?: string }) =>
-      crmApi.addReminder(id, { remind_at, note }),
+    mutationFn: ({ id, remind_at, note, repeat_every }: { id: number; remind_at: string; note?: string; repeat_every?: string }) =>
+      crmApi.addReminder(id, { remind_at, note, repeat_every }),
     onSuccess: () => invalidateCrm(qc),
   });
 }

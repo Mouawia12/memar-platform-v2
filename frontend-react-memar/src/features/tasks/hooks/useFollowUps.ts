@@ -15,7 +15,7 @@ export function useFollowUps(mine: boolean) {
 export function useUpdateFollowUp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...payload }: { id: number; done?: boolean; remind_at?: string }) => followUpsApi.update(id, payload),
+    mutationFn: ({ id, ...payload }: { id: number; done?: boolean; remind_at?: string; repeat_every?: string | null }) => followUpsApi.update(id, payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['crm-follow-ups'] }); qc.invalidateQueries({ queryKey: ['crm-leads'] }); },
   });
 }

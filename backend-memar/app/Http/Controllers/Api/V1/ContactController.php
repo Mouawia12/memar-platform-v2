@@ -13,6 +13,7 @@ use App\Models\LeadReminder;
 use App\Services\ContactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ContactController extends ApiController
 {
@@ -132,6 +133,8 @@ class ContactController extends ApiController
                 'contact' => $r->contact?->full_name,
                 'note' => $r->note,
                 'remind_at' => $r->remind_at?->toIso8601String(),
+                'repeat_every' => $r->repeat_every,
+                'late_cycles' => $this->lateCycles($r),
                 'done' => (bool) $r->done,
                 'owner' => $r->contact?->owner ? ['id' => $r->contact->owner->id, 'name' => $r->contact->owner->name] : null,
                 'creator' => $r->creator?->name,
@@ -154,11 +157,13 @@ class ContactController extends ApiController
         $data = $request->validate([
             'remind_at' => ['required', 'date'],
             'note' => ['nullable', 'string', 'max:255'],
+            'repeat_every' => ['nullable', Rule::in(array_keys(LeadReminder::REPEATS))],
         ]);
 
         $reminder = $contact->reminders()->create([
             'remind_at' => $data['remind_at'],
             'note' => $data['note'] ?? null,
+            'repeat_every' => $data['repeat_every'] ?? null,
             'created_by' => $request->user()?->id,
         ]);
 
@@ -176,12 +181,33 @@ class ContactController extends ApiController
             'done' => ['sometimes', 'boolean'],
             'remind_at' => ['sometimes', 'date'],
             'note' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'repeat_every' => ['sometimes', 'nullable', Rule::in(array_keys(LeadReminder::REPEATS))],
         ]);
 
         // بلا حمولة = تبديل الحالة (السلوك القديم الذي تعتمده قائمة التذكيرات).
         $reminder->update($data === [] ? ['done' => ! $reminder->done] : $data);
+        $reminder->refresh();
 
-        return $this->ok($this->presentReminder($reminder->refresh()), 'تم تحديث المتابعة');
+        // متابعة دوريّة أُنجزت → تُجدول تلقائيًا لدورتها التالية بدل أن تُغلق،
+        // فتبقى المتابعة مستمرّة كما هي طبيعتها (طلب أيمن 2026-08-25).
+        $rescheduled = false;
+        if ($reminder->done && $reminder->repeat_every !== null) {
+            $days = LeadReminder::REPEATS[$reminder->repeat_every] ?? null;
+            if ($days !== null) {
+                $reminder->update([
+                    'done' => false,
+                    // من اليوم لا من الموعد الفائت، كي لا تُولد متأخّرة.
+                    'remind_at' => now()->addDays($days)->setTime(10, 0),
+                ]);
+                $reminder->refresh();
+                $rescheduled = true;
+            }
+        }
+
+        return $this->ok(
+            $this->presentReminder($reminder),
+            $rescheduled ? 'أُنجزت وجُدولت المتابعة التالية' : 'تم تحديث المتابعة',
+        );
     }
 
     public function deleteReminder(LeadReminder $reminder): JsonResponse
@@ -192,6 +218,25 @@ class ContactController extends ApiController
     }
 
     /** @return array<string, mixed> */
+    /**
+     * عدد دورات المتابعة الفائتة (طلب أيمن 2026-08-25): متابعة متأخّرة مكرّرة
+     * كل أسبوع مضى على موعدها 15 يومًا = دورتان فائتتان، فيظهر «2» على البطاقة.
+     * وبلا تكرار: مرّة واحدة ما دامت متأخّرة.
+     */
+    private function lateCycles(LeadReminder $r): int
+    {
+        if ($r->done || $r->remind_at === null || ! $r->remind_at->isPast()) {
+            return 0;
+        }
+
+        $days = LeadReminder::REPEATS[$r->repeat_every] ?? null;
+        if ($days === null) {
+            return 1;
+        }
+
+        return (int) floor($r->remind_at->diffInDays(now()) / $days) + 1;
+    }
+
     private function presentReminder(LeadReminder $r): array
     {
         return [
@@ -200,6 +245,8 @@ class ContactController extends ApiController
             'note' => $r->note,
             'done' => $r->done,
             'due' => ! $r->done && $r->remind_at !== null && $r->remind_at->isPast(),
+            'repeat_every' => $r->repeat_every,
+            'late_cycles' => $this->lateCycles($r),
             'creator' => $r->creator?->name,
         ];
     }

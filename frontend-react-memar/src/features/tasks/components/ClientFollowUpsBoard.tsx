@@ -14,6 +14,8 @@ const COLUMNS: { key: Col; label: string; icon: string; color: string }[] = [
   { key: 'done', label: 'منجزة', icon: '✅', color: '#2D9B6F' },
 ];
 
+const REPEAT_LABELS: Record<string, string> = { '3d': 'كل 3 أيام', week: 'أسبوعيًا', month: 'شهريًا' };
+
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 /** عمود المتابعة حسب موعدها وحالتها. */
@@ -54,7 +56,16 @@ export function ClientFollowUpsBoard({ items }: { items: FollowUp[] }) {
                 return (
                   <div key={f.id} className="crm-lead-card" style={{ ...card, borderRight: `5px solid ${col.color}` }}
                     onClick={() => setDetail(f)} title="فتح تفاصيل المتابعة">
-                    <div style={code}>#FUP-{String(f.id).padStart(3, '0')}</div>
+                    <div style={topLine}>
+                      <span style={code}>#FUP-{String(f.id).padStart(3, '0')}</span>
+                      {/* عدد المتابعات الفائتة مع سهم تأخّر (طلب أيمن 2026-08-25). */}
+                      {f.late_cycles > 0 && (
+                        <span style={lateBadge} title={`فاتت ${f.late_cycles} متابعة`}>↩ {f.late_cycles}</span>
+                      )}
+                      {f.repeat_every && (
+                        <span style={repeatBadge} title="متابعة دورية">🔁 {REPEAT_LABELS[f.repeat_every] ?? f.repeat_every}</span>
+                      )}
+                    </div>
                     <div style={title}>{f.contact ?? 'عميل'}</div>
                     <div style={metaRow}>
                       {f.owner && (
@@ -85,6 +96,9 @@ const header: CSSProperties = { display: 'flex', alignItems: 'center', justifyCo
 const count: CSSProperties = { fontSize: '11px', fontWeight: 900, borderRadius: '999px', padding: '1px 9px' };
 const body: CSSProperties = { display: 'flex', flexDirection: 'column', maxHeight: '420px', overflowY: 'auto' };
 const card: CSSProperties = { position: 'relative', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '8px 12px 8px 10px', marginBottom: '7px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };
+const topLine: CSSProperties = { display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' };
+const lateBadge: CSSProperties = { background: '#FEF2F2', color: '#DC4A3D', border: '1px solid #FCA5A5', borderRadius: '999px', padding: '0 7px', fontSize: '9.5px', fontWeight: 900 };
+const repeatBadge: CSSProperties = { background: '#F1F5F9', color: '#5A6478', borderRadius: '999px', padding: '0 7px', fontSize: '9px', fontWeight: 800 };
 const code: CSSProperties = { fontSize: '9px', color: '#94A3B8', fontWeight: 700, letterSpacing: '.4px' };
 const title: CSSProperties = { fontSize: '12px', fontWeight: 800, color: '#1A1F2E', marginTop: '1px' };
 const metaRow: CSSProperties = { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '5px' };

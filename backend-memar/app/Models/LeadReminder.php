@@ -12,7 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class LeadReminder extends Model
 {
-    protected $fillable = ['contact_id', 'remind_at', 'note', 'done', 'created_by'];
+    protected $fillable = ['contact_id', 'remind_at', 'repeat_every', 'note', 'done', 'created_by'];
+
+    /** دوريات التكرار المسموحة ومقدار كل واحدة بالأيام. */
+    public const REPEATS = ['3d' => 3, 'week' => 7, 'month' => 30];
 
     protected function casts(): array
     {

@@ -6,6 +6,7 @@ import { useProjects } from '../../projects/hooks/useProjects';
 import { ClientFollowUpsBoard } from '../components/ClientFollowUpsBoard';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
 import { useFollowUps } from '../hooks/useFollowUps';
+import { useTaskAlertAcks } from '../taskAlerts';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { useDeleteTask, useMoveTask, useTasks, useToggleTask, useWorkload } from '../hooks/useTasks';
@@ -30,6 +31,9 @@ export function TasksPage() {
   const [fupScope, setFupScope] = useState<'all' | 'mine'>('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const meId = useAuthStore((st) => st.user?.id);
+  // فتح المهمة المتأخّرة يُطفئ وميضها — «رأيتَها فتوقّف».
+  const { isAcked, ack } = useTaskAlertAcks();
+  const openTask = (t: Task) => { ack(t); setDetail(t); };
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
@@ -113,7 +117,7 @@ export function TasksPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
-      {tasks && <TaskStatusBoard tasks={boardTasks} onOpen={setDetail} onMove={(t, status) => handleMove(t, { status })} />}
+      {tasks && <TaskStatusBoard tasks={boardTasks} onOpen={openTask} isAcked={isAcked} onMove={(t, status) => handleMove(t, { status })} />}
 
       {/* ══ القسم الأسفل: المتابعة ══ */}
       <div style={sectionDivider} />

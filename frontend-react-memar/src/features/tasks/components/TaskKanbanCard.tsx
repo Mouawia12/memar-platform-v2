@@ -8,6 +8,8 @@ interface Props {
   onOpen: (t: Task) => void;
   /** صورة المكلّف (data URI) — إن غابت تُعرض أحرف اسمه بلونه. */
   avatarUrl?: string | null;
+  /** اطُّلع على تأخّرها فتوقّف وميضها. */
+  acked?: boolean;
 }
 
 /**
@@ -15,13 +17,13 @@ interface Props {
  * حسب الأولوية، صورة المكلّف أو أحرفه بلونه الثابت، وسطر موعد بلون قربه،
  * وشريط تقدّم. المحتوى محتوى المهمة — الشكل فقط هو المشترك.
  */
-export function TaskKanbanCard({ task, onOpen, avatarUrl }: Props) {
+export function TaskKanbanCard({ task, onOpen, avatarUrl, acked }: Props) {
   const color = PRIORITY_COLORS[task.priority] ?? '#1B6CA8';
   const done = isDone(task);
   const diff = dueDiffDays(task.due_date);
   const assigneeColor = task.assignee ? personColor(task.assignee.id) : '#94A3B8';
   // المهمة المتأخّرة تومض كتنبيه حتى تُعالَج (طلب أيمن 2026-08-24).
-  const overdue = !done && diff !== null && diff < 0;
+  const overdue = !done && diff !== null && diff < 0 && !acked;
   // المهمة المكتملة تُعرض 100% مهما كانت النسبة المسجّلة.
   const pct = done ? 100 : Math.max(0, Math.min(100, task.progress ?? 0));
 

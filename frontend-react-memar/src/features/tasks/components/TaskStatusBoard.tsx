@@ -10,6 +10,8 @@ interface Props {
   tasks: Task[];
   onOpen: (t: Task) => void;
   onMove: (t: Task, status: TaskStatus) => void;
+  /** هل اطُّلع على تأخّر هذه المهمة؟ (يُطفئ وميضها) */
+  isAcked?: (t: Task) => boolean;
 }
 
 /** أعمدة لوحة المهام حسب مرحلة العمل (طلب أيمن 2026-08-24). */
@@ -30,7 +32,7 @@ function DragCard({ id, children }: { id: number; children: ReactNode }) {
   );
 }
 
-function Column({ col, tasks, onOpen, avatars }: { col: typeof COLUMNS[number]; tasks: Task[]; onOpen: (t: Task) => void; avatars?: Record<string, string> }) {
+function Column({ col, tasks, onOpen, avatars, isAcked }: { col: typeof COLUMNS[number]; tasks: Task[]; onOpen: (t: Task) => void; avatars?: Record<string, string>; isAcked?: (t: Task) => boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   return (
     <div style={{ ...column, ...(isOver ? columnOver : null) }}>
@@ -42,7 +44,7 @@ function Column({ col, tasks, onOpen, avatars }: { col: typeof COLUMNS[number]; 
         {tasks.length === 0 && <p style={{ opacity: 0.4, fontSize: '12.5px', textAlign: 'center', padding: '18px 0' }}>أفلت هنا</p>}
         {tasks.map((t) => (
           <DragCard key={t.id} id={t.id}>
-            <TaskKanbanCard task={t} onOpen={onOpen} avatarUrl={t.assignee ? avatars?.[String(t.assignee.id)] ?? null : null} />
+            <TaskKanbanCard task={t} onOpen={onOpen} acked={isAcked?.(t)} avatarUrl={t.assignee ? avatars?.[String(t.assignee.id)] ?? null : null} />
           </DragCard>
         ))}
       </div>
@@ -51,7 +53,7 @@ function Column({ col, tasks, onOpen, avatars }: { col: typeof COLUMNS[number]; 
 }
 
 /** لوحة المهام (كانبان) حسب مرحلة العمل — السحب بين الأعمدة يغيّر حالة المهمة. */
-export function TaskStatusBoard({ tasks, onOpen, onMove }: Props) {
+export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked }: Props) {
   const [active, setActive] = useState<Task | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
   const boardRef = useRef<HTMLDivElement>(null);
@@ -76,7 +78,7 @@ export function TaskStatusBoard({ tasks, onOpen, onMove }: Props) {
     >
       <div ref={boardRef} className="crm-hscroll" style={board}>
         {COLUMNS.map((col) => (
-          <Column key={col.key} col={col} tasks={tasks.filter((t) => t.status === col.key)} onOpen={onOpen} avatars={avatars} />
+          <Column key={col.key} col={col} tasks={tasks.filter((t) => t.status === col.key)} onOpen={onOpen} avatars={avatars} isAcked={isAcked} />
         ))}
       </div>
       <DragOverlay>

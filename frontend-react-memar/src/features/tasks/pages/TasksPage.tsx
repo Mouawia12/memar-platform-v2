@@ -188,6 +188,7 @@ export function TasksPage() {
           onToggle={handleToggle}
           onDelete={handleDelete}
           onSetNotExecuted={(t) => { move.mutate({ id: t.id, payload: { status: 'cancelled' } }); setDetail(null); }}
+          onMove={(t, status) => handleMove(t, { status })}
         />
       )}
 

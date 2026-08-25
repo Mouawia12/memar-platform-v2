@@ -1,4 +1,4 @@
-import { apiGet } from '../../../lib/api';
+import { apiDelete, apiGet, apiPatch } from '../../../lib/api';
 
 /** متابعة عميل واحدة في لوحة المتابعة (مصدرها تذكيرات الفرص). */
 export interface FollowUp {
@@ -14,4 +14,8 @@ export interface FollowUp {
 
 export const followUpsApi = {
   list: (mine: boolean) => apiGet<FollowUp[]>('/crm/follow-ups', { params: mine ? { mine: 1 } : undefined }),
+  /** نقل المتابعة بين أعمدة اللوحة (إنجاز أو تغيير موعد). */
+  update: (id: number, payload: { done?: boolean; remind_at?: string }) =>
+    apiPatch<unknown>(`/reminders/${id}`, payload),
+  remove: (id: number) => apiDelete<null>(`/reminders/${id}`),
 };

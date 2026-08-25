@@ -166,11 +166,22 @@ class ContactController extends ApiController
     }
 
     /** إنجاز/إلغاء إنجاز التذكير (يخفي التنبيه من الكرت). */
-    public function toggleReminder(LeadReminder $reminder): JsonResponse
+    /**
+     * تحديث تذكير: تبديل حالته (بلا حمولة) أو ضبط موعده/ملاحظته صراحةً —
+     * تستعمله نافذة تفاصيل المتابعة لنقلها بين أعمدة اللوحة (طلب أيمن 2026-08-25).
+     */
+    public function toggleReminder(Request $request, LeadReminder $reminder): JsonResponse
     {
-        $reminder->update(['done' => ! $reminder->done]);
+        $data = $request->validate([
+            'done' => ['sometimes', 'boolean'],
+            'remind_at' => ['sometimes', 'date'],
+            'note' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
 
-        return $this->ok($this->presentReminder($reminder), $reminder->done ? 'تم الإنجاز' : 'أُعيد فتح التذكير');
+        // بلا حمولة = تبديل الحالة (السلوك القديم الذي تعتمده قائمة التذكيرات).
+        $reminder->update($data === [] ? ['done' => ! $reminder->done] : $data);
+
+        return $this->ok($this->presentReminder($reminder->refresh()), 'تم تحديث المتابعة');
     }
 
     public function deleteReminder(LeadReminder $reminder): JsonResponse

@@ -1,9 +1,9 @@
-import { type CSSProperties, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { type CSSProperties, useRef, useState } from 'react';
 
 import { useEdgeAutoScroll } from '../../../hooks/useEdgeAutoScroll';
 import { personColor, personInitials, shortName } from '../../crm/types';
 import type { FollowUp } from '../api/followUpsApi';
+import { FollowUpDetailModal } from './FollowUpDetailModal';
 
 type Col = 'scheduled' | 'today' | 'overdue' | 'done';
 
@@ -32,9 +32,10 @@ function columnOf(f: FollowUp): Col {
  * (طلب أيمن 2026-08-24). مصدرها تذكيرات الفرص، والضغط على بطاقة يفتح فرصتها.
  */
 export function ClientFollowUpsBoard({ items }: { items: FollowUp[] }) {
-  const navigate = useNavigate();
   const boardRef = useRef<HTMLDivElement>(null);
   useEdgeAutoScroll(boardRef);
+  // النقر على بطاقة المتابعة يفتح تفاصيلها (طلب أيمن 2026-08-25).
+  const [detail, setDetail] = useState<FollowUp | null>(null);
 
   return (
     <div ref={boardRef} className="crm-hscroll" style={board}>
@@ -52,7 +53,7 @@ export function ClientFollowUpsBoard({ items }: { items: FollowUp[] }) {
                 const c = f.owner ? personColor(f.owner.id) : '#94A3B8';
                 return (
                   <div key={f.id} className="crm-lead-card" style={{ ...card, borderRight: `5px solid ${col.color}` }}
-                    onClick={() => navigate('/crm')} title="فتح لوحة الفرص">
+                    onClick={() => setDetail(f)} title="فتح تفاصيل المتابعة">
                     <div style={code}>#FUP-{String(f.id).padStart(3, '0')}</div>
                     <div style={title}>{f.contact ?? 'عميل'}</div>
                     <div style={metaRow}>
@@ -72,6 +73,7 @@ export function ClientFollowUpsBoard({ items }: { items: FollowUp[] }) {
           </div>
         );
       })}
+      {detail && <FollowUpDetailModal item={detail} onClose={() => setDetail(null)} />}
     </div>
   );
 }

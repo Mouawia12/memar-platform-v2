@@ -7,7 +7,7 @@ import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
 import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { tasksApi } from '../api/tasksApi';
 import { useAddComment, useRateTask, useSyncParticipants, useTaskDetail, useUploadTaskFile } from '../hooks/useTasks';
-import { PRIORITY_COLORS, PRIORITY_LABELS, dueLabel, isDone, type Task } from '../types';
+import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_LABELS, dueLabel, isDone, type Task, type TaskStatus } from '../types';
 
 interface Props {
   task: Task; // البطاقة المختصرة — نجلب التفاصيل الكاملة بالـid
@@ -18,13 +18,15 @@ interface Props {
   onToggle: (t: Task) => void;
   onDelete: (t: Task) => void;
   onSetNotExecuted: (t: Task) => void;
+  /** نقل المهمة بين مراحل اللوحة من داخل النافذة. */
+  onMove?: (t: Task, status: TaskStatus) => void;
 }
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const kb = (n: number) => (n < 1024 ? `${n}B` : n < 1_048_576 ? `${Math.round(n / 1024)}KB` : `${(n / 1_048_576).toFixed(1)}MB`);
 
 /** صفحة تفاصيل المهمة (TASK-4): محادثة، مشاركون، ملفات، مكالمة فيديو، حجز موعد، تقييم. */
-export function TaskDetailModal({ task, canManage, canDelete, onClose, onEdit, onToggle, onDelete, onSetNotExecuted }: Props) {
+export function TaskDetailModal({ task, canManage, canDelete, onClose, onEdit, onToggle, onDelete, onSetNotExecuted, onMove }: Props) {
   const userName = useAuthStore((s) => s.user?.name);
   const { data: detail, isLoading } = useTaskDetail(task.id);
   const { data: users } = useAssignableUsers();
@@ -64,7 +66,7 @@ export function TaskDetailModal({ task, canManage, canDelete, onClose, onEdit, o
         {/* رأس */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '14px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px' }}>{task.title}</h2>
+            <h2 style={{ margin: 0, fontSize: '16px' }}>📋 تفاصيل المهمة — #TSK-{String(task.id).padStart(3, '0')}</h2>
             <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '3px' }}>
               {detail?.creator && <>أنشأها {detail.creator.name} · </>}
               {detail?.project && (
@@ -77,11 +79,26 @@ export function TaskDetailModal({ task, canManage, canDelete, onClose, onEdit, o
 
         {/* الحقول الأساسية */}
         <div style={fieldGrid}>
-          <Field label="📅 الموعد"><b>{task.due_date?.slice(0, 10) ?? '—'}</b> <span style={{ fontSize: '12px', color: '#8A93A3' }}>({dueLabel(task)})</span></Field>
+          <Field label="العنوان"><b>{task.title}</b></Field>
+          <Field label="📅 تاريخ التسليم"><b>{task.due_date?.slice(0, 10) ?? '—'}</b> <span style={{ fontSize: '12px', color: '#8A93A3' }}>({dueLabel(task)})</span></Field>
           <Field label="⚡ الأولوية"><span style={{ ...tag, background: `${pr}1a`, color: pr }}>{PRIORITY_LABELS[task.priority]}</span></Field>
           <Field label="📝 المسؤول"><b>{task.assignee?.name ?? 'غير مُسند'}</b></Field>
-          <Field label="✅ الحالة"><span style={{ ...tag, background: done ? '#05966915' : '#D9770615', color: done ? '#059669' : '#D97706' }}>{done ? 'مكتملة ✓' : 'قيد التنفيذ'}</span></Field>
+          <Field label="✅ المرحلة الحالية"><span style={{ ...tag, background: done ? '#05966915' : '#D9770615', color: done ? '#059669' : '#D97706' }}>{STATUS_LABELS[task.status] ?? (done ? 'مكتملة' : 'قيد التنفيذ')}</span></Field>
+          <Field label="📊 نسبة الإنجاز"><b>{done ? 100 : (task.progress ?? 0)}%</b></Field>
+          {detail?.project && <Field label="🏗️ المشروع"><b>{detail.project.name}</b></Field>}
         </div>
+
+        {/* نقل المهمة بين مراحل اللوحة من داخل النافذة (طلب أيمن 2026-08-25). */}
+        {canManage && onMove && (
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>نقل إلى مرحلة أخرى</div>
+            <select className="input" value={task.status} onChange={(e) => onMove(task, e.target.value as TaskStatus)}>
+              {(['todo', 'in_progress', 'review', 'done'] as TaskStatus[]).map((st) => (
+                <option key={st} value={st}>{STATUS_LABELS[st]}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {task.description && <p style={{ fontSize: '13.5px', color: '#5A6478', marginTop: '10px' }}>{task.description}</p>}
 
         {/* أزرار سريعة */}

@@ -78,6 +78,17 @@ class ContactController extends ApiController
     }
 
     /**
+     * إزالة الفرصة من لوحة CRM مع بقاء صاحبها في سجلّ العملاء وشركتِه في
+     * سجلّ الشركات (طلب أيمن 2026-08-25).
+     */
+    public function removeFromCrm(Contact $contact): JsonResponse
+    {
+        $this->contacts->removeFromPipeline($contact);
+
+        return $this->ok(null, 'أُزيلت الفرصة من اللوحة — وبياناتها محفوظة في السجلات');
+    }
+
+    /**
      * عدّاد خفيف للفرص العاجلة/المستحقّة — يستدعيه تنبيه الجرس في كل صفحات النظام
      * (طلب أيمن 2026-08-22) بدل جلب قائمة الفرص كاملة لمجرّد معرفة العدد.
      */

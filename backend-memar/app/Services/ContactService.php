@@ -97,6 +97,22 @@ class ContactService
      * والحقول الفارغة في بطاقة الشركة تُملأ من جهة الاتصال دون أن تطمس
      * ما أدخلته الإدارة يدويًا.
      */
+    /**
+     * إخراج الفرصة من لوحة CRM دون حذف صاحبها من السجلات (طلب أيمن 2026-08-25).
+     * السجل واحد: الفرصة وجهة الاتصال صفٌّ واحد في contacts، فحذفها من اللوحة
+     * كان يمحوها من سجلّ العملاء أيضًا. صار يُغيَّر تصنيفها فقط: مَن فاز
+     * بمشروعه يصير «عميلًا»، وغيره «جهة اتصال». بطاقة الشركة لا تُمسّ.
+     * الحذف النهائي يبقى من سجلّ العملاء أو سجلّ الشركات وحدهما.
+     */
+    public function removeFromPipeline(Contact $contact): Contact
+    {
+        $contact->forceFill([
+            'type' => $contact->converted_project_id ? 'client' : 'contact',
+        ])->save();
+
+        return $contact->refresh();
+    }
+
     private function syncCompanyRecord(Contact $contact): void
     {
         $name = trim((string) $contact->company);

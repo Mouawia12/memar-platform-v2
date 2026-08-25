@@ -159,10 +159,15 @@ export function useLogLeadUpdate() {
   });
 }
 
+/** إزالة الفرصة من اللوحة — يبقى صاحبها في السجلات، فنُحدّثها أيضًا. */
 export function useDeleteLead() {
   return useMutation({
     mutationFn: (id: number) => crmApi.remove(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KEY });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
   });
 }
 

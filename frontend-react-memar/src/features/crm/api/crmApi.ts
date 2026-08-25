@@ -61,7 +61,11 @@ export const crmApi = {
   setTemperature: (id: number, temperature: Temperature) => apiPatch<Lead>(`/contacts/${id}`, { temperature }),
   /** إعادة ترتيب الفرص داخل عمود (قائمة المعرّفات بالترتيب الجديد) — متاح لكل الأدوار. */
   reorder: (ids: number[]) => apiPost<null>('/contacts/reorder', { ids }),
-  remove: (id: number) => apiDelete<null>(`/contacts/${id}`),
+  /**
+   * إزالة الفرصة من اللوحة فقط — يبقى صاحبها في سجلّ العملاء وشركتُه في سجلّ
+   * الشركات. الحذف النهائي من السجلات وحدها (طلب أيمن 2026-08-25).
+   */
+  remove: (id: number) => apiDelete<null>(`/crm/opportunities/${id}`),
   /** سجل تعديلات الصفقة (AUDIT-1). */
   history: (id: number) => apiGetPaginated<LeadActivity>('/activity-log', { params: { subject_type: 'Contact', subject_id: id, per_page: 40 } }),
 

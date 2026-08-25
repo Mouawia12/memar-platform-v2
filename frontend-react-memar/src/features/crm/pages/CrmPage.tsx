@@ -91,7 +91,12 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (l: Lead) => { setDetailId(null); setEditing(l); setModalOpen(true); };
-  const handleDelete = (l: Lead) => { if (confirm(`حذف "${l.full_name}"؟`)) del.mutate(l.id); };
+  const handleDelete = (l: Lead) => {
+    // الإزالة من اللوحة لا تحذف العميل من السجلات — نوضّح ذلك في التأكيد.
+    const msg = `إزالة فرصة «${l.full_name}» من اللوحة؟\n\nتبقى بياناته في سجلّ العملاء`
+      + `${l.company ? ' وبيانات شركته في سجلّ الشركات' : ''}، ويُحذف نهائيًا من هناك فقط.`;
+    if (confirm(msg)) del.mutate(l.id, { onSuccess: () => showToast('🗂️ أُزيلت الفرصة — بياناتها محفوظة في السجلات', 'info') });
+  };
 
   const handleMove = (l: Lead, stage: Stage) => {
     if (wonKeys.has(stage) && !l.converted_project_id) {

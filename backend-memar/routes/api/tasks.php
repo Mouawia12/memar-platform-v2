@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/tasks', [TaskController::class, 'index'])->middleware('permission:tasks.view');
-    Route::get('/tasks/workload', [TaskController::class, 'workload'])->middleware('permission:tasks.view');
+    // توزيع المهام على الفريق — بيانات إدارية (حمل كل مهندس)، للإدارة وحدها
+    // (طلب أيمن 2026-08-25). الموظف يملك tasks.view لكن لا يملك tasks.delete.
+    Route::get('/tasks/workload', [TaskController::class, 'workload'])->middleware('permission:tasks.delete');
     Route::post('/tasks', [TaskController::class, 'store'])->middleware('permission:tasks.manage');
     Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('permission:tasks.view');
     Route::match(['put', 'patch'], '/tasks/{task}', [TaskController::class, 'update'])->middleware('permission:tasks.manage');

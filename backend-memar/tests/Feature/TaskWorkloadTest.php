@@ -26,7 +26,7 @@ class TaskWorkloadTest extends TestCase
 
     public function test_workload_aggregates_tasks_per_employee(): void
     {
-        $this->actingAsUserWith(['tasks.view']);
+        $this->actingAsUserWith(['tasks.view', 'tasks.delete']);
         $busy = User::factory()->create(['name' => 'موظف مشغول']);
         $light = User::factory()->create(['name' => 'موظف خفيف']);
 
@@ -61,7 +61,7 @@ class TaskWorkloadTest extends TestCase
 
     public function test_done_task_is_never_overdue(): void
     {
-        $this->actingAsUserWith(['tasks.view']);
+        $this->actingAsUserWith(['tasks.view', 'tasks.delete']);
         $u = User::factory()->create();
         $this->task($u->id, 'done', '2019-05-05'); // ماضٍ لكن منجز
 
@@ -69,9 +69,16 @@ class TaskWorkloadTest extends TestCase
         $this->assertSame(0, $data[0]['overdue']);
     }
 
-    public function test_workload_requires_tasks_view_permission(): void
+    public function test_workload_requires_management_permission(): void
     {
         $this->actingAsUserWith([]);
+        $this->getJson('/api/v1/tasks/workload')->assertForbidden();
+    }
+
+    /** الموظف يرى المهام لكن لا يرى تقرير حمل الفريق (طلب أيمن 2026-08-25). */
+    public function test_staff_with_view_only_cannot_see_workload(): void
+    {
+        $this->actingAsUserWith(['tasks.view', 'tasks.manage']);
         $this->getJson('/api/v1/tasks/workload')->assertForbidden();
     }
 }

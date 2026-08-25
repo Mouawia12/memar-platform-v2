@@ -15,9 +15,11 @@ export function useTasks(params: TasksQuery, enabled = true) {
 }
 
 /** حِمل العمل لكل موظف (DASH-1). */
-export function useWorkload() {
-  return useQuery({ queryKey: [...KEY, 'workload'], queryFn: () => tasksApi.workload() });
+/** توزيع المهام على الفريق — استعلام إداري، لا يُطلق لغير المخوّل. */
+export function useWorkload(enabled = true) {
+  return useQuery({ queryKey: [...KEY, 'workload'], queryFn: () => tasksApi.workload(), enabled });
 }
+
 
 function toPayload(data: TaskFormData): Record<string, unknown> {
   return {

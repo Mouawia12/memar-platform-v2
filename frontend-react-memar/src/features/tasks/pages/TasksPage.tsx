@@ -39,7 +39,8 @@ export function TasksPage() {
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
   const { data: followUps } = useFollowUps(fupScope === 'mine');
-  const { data: workload } = useWorkload();
+  // «توزيع المهام على الفريق» بيانات إدارية — للإدارة وحدها (طلب أيمن 2026-08-25).
+  const { data: workload } = useWorkload(canDelete);
   const move = useMoveTask();
   const toggle = useToggleTask();
   const del = useDeleteTask();
@@ -138,7 +139,7 @@ export function TasksPage() {
       <ClientFollowUpsBoard items={followUps ?? []} />
 
       {/* ══ توزيع المهام على الفريق ══ */}
-      {(workload?.length ?? 0) > 0 && (
+      {canDelete && (workload?.length ?? 0) > 0 && (
         <div style={workCard}>
           <h3 style={{ margin: 0, fontSize: '15px' }}>📊 توزيع المهام على الفريق</h3>
           <div style={{ fontSize: '12px', color: '#8A93A3', margin: '3px 0 12px' }}>حمل العمل الحالي لكل مهندس</div>

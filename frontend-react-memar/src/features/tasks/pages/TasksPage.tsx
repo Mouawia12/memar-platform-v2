@@ -31,9 +31,9 @@ export function TasksPage() {
   const [fupScope, setFupScope] = useState<'all' | 'mine'>('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const meId = useAuthStore((st) => st.user?.id);
-  // فتح المهمة المتأخّرة يُطفئ وميضها — «رأيتَها فتوقّف».
+  // إطفاء وميض التأخّر بزرّ مستقلّ على البطاقة — لا بفتح المهمة، كي لا
+  // يُطفأ التنبيه بالخطأ عند مجرّد الاطّلاع (طلب أيمن 2026-08-25).
   const { isAcked, ack } = useTaskAlertAcks();
-  const openTask = (t: Task) => { ack(t); setDetail(t); };
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
@@ -117,7 +117,7 @@ export function TasksPage() {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
-      {tasks && <TaskStatusBoard tasks={boardTasks} onOpen={openTask} isAcked={isAcked} onMove={(t, status) => handleMove(t, { status })} />}
+      {tasks && <TaskStatusBoard tasks={boardTasks} onOpen={setDetail} isAcked={isAcked} onAck={ack} onMove={(t, status) => handleMove(t, { status })} />}
 
       {/* ══ القسم الأسفل: المتابعة ══ */}
       <div style={sectionDivider} />

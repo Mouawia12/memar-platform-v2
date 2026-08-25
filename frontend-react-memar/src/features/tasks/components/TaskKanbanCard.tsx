@@ -8,8 +8,10 @@ interface Props {
   onOpen: (t: Task) => void;
   /** صورة المكلّف (data URI) — إن غابت تُعرض أحرف اسمه بلونه. */
   avatarUrl?: string | null;
-  /** اطُّلع على تأخّرها فتوقّف وميضها. */
+  /** أُطفئ تنبيه تأخّرها فتوقّف وميضها. */
   acked?: boolean;
+  /** إطفاء تنبيه التأخّر (زرّ الجرس على البطاقة). */
+  onAck?: (t: Task) => void;
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props {
  * حسب الأولوية، صورة المكلّف أو أحرفه بلونه الثابت، وسطر موعد بلون قربه،
  * وشريط تقدّم. المحتوى محتوى المهمة — الشكل فقط هو المشترك.
  */
-export function TaskKanbanCard({ task, onOpen, avatarUrl, acked }: Props) {
+export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck }: Props) {
   const color = PRIORITY_COLORS[task.priority] ?? '#1B6CA8';
   const done = isDone(task);
   const diff = dueDiffDays(task.due_date);
@@ -71,6 +73,17 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked }: Props) {
       </div>
 
       <div style={foot}>
+        {/* إطفاء وميض التأخّر بزرّ مستقلّ — لا بفتح المهمة (طلب أيمن 2026-08-25). */}
+        {overdue && onAck && (
+          <button
+            type="button"
+            title="إخفاء تنبيه التأخّر — تبقى المهمة متأخّرة"
+            aria-label="إخفاء تنبيه التأخّر"
+            onClick={(e) => { e.stopPropagation(); onAck(task); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={ackBtn}
+          >🔕</button>
+        )}
         <span style={{ ...chip, background: `${color}1a`, color }}>{PRIORITY_LABELS[task.priority]}</span>
         {(task.comments_count ?? 0) > 0 && <span style={{ ...chip, background: '#F1F5F9', color: '#5A6478' }}>💬 {task.comments_count}</span>}
         {task.has_unread && <span style={{ ...chip, background: '#FEF2F2', color: '#DC4A3D' }}>● جديد</span>}
@@ -96,4 +109,5 @@ const progressPct: CSSProperties = { fontSize: '10px', fontWeight: 900, color: '
 const progressTrack: CSSProperties = { flex: 1, height: '7px', background: '#EEF2F7', borderRadius: '5px', overflow: 'hidden' };
 const progressFill: CSSProperties = { display: 'block', height: '100%', borderRadius: '5px', transition: 'width .3s ease' };
 const foot: CSSProperties = { display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', marginTop: '6px' };
+const ackBtn: CSSProperties = { fontSize: '11px', lineHeight: 1, padding: '3px 7px', borderRadius: '20px', border: '1px solid #FCA5A5', background: '#FEF2F2', cursor: 'pointer', fontFamily: 'inherit' };
 const chip: CSSProperties = { fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '20px', whiteSpace: 'nowrap' };

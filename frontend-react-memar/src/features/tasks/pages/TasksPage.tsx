@@ -4,6 +4,7 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { ClientFollowUpsBoard } from '../components/ClientFollowUpsBoard';
+import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from '../components/DateRangeFilter';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
 import { useFollowUps } from '../hooks/useFollowUps';
 import { useTaskAlertAcks } from '../taskAlerts';
@@ -29,6 +30,9 @@ export function TasksPage() {
   // نطاق كل لوحة على حدة: الكل أو ما يخصّني (طلب أيمن 2026-08-24).
   const [taskScope, setTaskScope] = useState<'all' | 'mine'>('all');
   const [fupScope, setFupScope] = useState<'all' | 'mine'>('all');
+  // فلتر التاريخ لكل لوحة على حدة (طلب أيمن 2026-08-26): المهام بتاريخ الاستحقاق، المتابعات بموعد التذكير.
+  const [taskRange, setTaskRange] = useState<DateRange>(EMPTY_RANGE);
+  const [fupRange, setFupRange] = useState<DateRange>(EMPTY_RANGE);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const meId = useAuthStore((st) => st.user?.id);
   // إطفاء وميض التأخّر بطريقتين (طلب أيمن 2026-08-25): زرّ 🔕 على البطاقة،
@@ -60,10 +64,14 @@ export function TasksPage() {
   }, [tasks]);
 
   // اللوحة العليا تعرض المهام حسب النطاق المختار.
-  const boardTasks = useMemo(
+  const scopedTasks = useMemo(
     () => (taskScope === 'mine' ? (tasks ?? []).filter((t) => t.assignee?.id === meId) : (tasks ?? [])),
     [tasks, taskScope, meId],
   );
+  const boardTasks = useMemo(() => scopedTasks.filter((t) => inRange(t.due_date, taskRange)), [scopedTasks, taskRange]);
+
+  const scopedFollowUps = followUps ?? [];
+  const boardFollowUps = useMemo(() => scopedFollowUps.filter((f) => inRange(f.remind_at, fupRange)), [scopedFollowUps, fupRange]);
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const handleDelete = (t: Task) => { if (confirm(`حذف مهمة "${t.title}"؟`)) del.mutate(t.id); };
@@ -117,6 +125,8 @@ export function TasksPage() {
         <button type="button" onClick={() => setTaskScope('mine')} style={{ ...scopeBtn, ...(taskScope === 'mine' ? scopeOn : null) }}>مهامي فقط</button>
       </div>
 
+      <DateRangeFilter value={taskRange} onChange={setTaskRange} shown={boardTasks.length} total={scopedTasks.length} />
+
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
       {tasks && <TaskStatusBoard tasks={boardTasks} onOpen={openTask} isAcked={isAcked} onAck={ack} onMove={(t, status) => handleMove(t, { status })} />}
@@ -136,7 +146,9 @@ export function TasksPage() {
         <button type="button" onClick={() => setFupScope('mine')} style={{ ...scopeBtn, ...(fupScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
       </div>
 
-      <ClientFollowUpsBoard items={followUps ?? []} />
+      <DateRangeFilter value={fupRange} onChange={setFupRange} shown={boardFollowUps.length} total={scopedFollowUps.length} />
+
+      <ClientFollowUpsBoard items={boardFollowUps} />
 
       {/* ══ توزيع المهام على الفريق ══ */}
       {canDelete && (workload?.length ?? 0) > 0 && (

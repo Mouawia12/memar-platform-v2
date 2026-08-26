@@ -35,7 +35,7 @@ export function CompaniesPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>الشركات (B2B)</h1>
+        <h1 style={{ margin: 0 }}>سجل الشركات</h1>
         {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ شركة جديدة</button>}
       </div>
 

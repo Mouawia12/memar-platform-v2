@@ -52,7 +52,7 @@ export const GROUPS: { id: string; icon: string; title: string; links: SbLink[] 
     links: [
       { id: 'ep-rec-projects', icon: '📚', text: navLabel('projects', 'المشاريع'), perm: 'projects.view' },
       { id: 'ep-rec-clients', icon: '👥', text: navLabel('clients', 'سجل العملاء'), perm: 'crm.view' },
-      { id: 'ep-rec-companies', icon: '🏢', text: navLabel('companies', 'الشركات (B2B)'), perm: 'crm.view' },
+      { id: 'ep-rec-companies', icon: '🏢', text: navLabel('companies', 'سجل الشركات'), perm: 'crm.view' },
     ],
   },
   {

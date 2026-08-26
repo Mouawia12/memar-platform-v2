@@ -111,7 +111,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { key: 'crm', label: 'CRM', icon: '🎯', path: '/crm', perm: 'crm.view' },
       { key: 'loyalty', label: 'الولاء والفرص', icon: '🏆', path: '/loyalty', perm: 'loyalty.view' },
-      { key: 'companies', label: 'الشركات (B2B)', icon: '🏢', path: '/companies', perm: 'crm.view' },
+      { key: 'companies', label: 'سجل الشركات', icon: '🏢', path: '/companies', perm: 'crm.view' },
       { key: 'clients', label: 'سجل العملاء', icon: '📖', path: '/clients', perm: 'crm.view' },
       { key: 'projects', label: 'المشاريع', icon: '🏗️', path: '/projects', perm: 'projects.view' },
       { key: 'team_projects', label: 'مشاريع الفريق', icon: '👥', path: '/team-projects', perm: 'projects.manage' },

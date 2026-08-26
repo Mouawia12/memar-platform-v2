@@ -828,3 +828,39 @@
 .ep-root .ep-notif-dot { border-color: #14548C !important; }
 /* الأڤاتار متدرّج أزرق/بنفسجي، فيحتاج حلقةً بيضاء كي لا يذوب في الأزرق. */
 .ep-root .ep-topbar-avatar { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   السايدبار بلون الهيدر (طلب أيمن 2026-08-26) — يعكس كتلة «سايدبار أبيض»
+   أعلاه (2026-08-09): صار الهيدر أزرق فوُحِّدت القائمة معه، بنفس محطّتَي
+   تدرّج التوب‑بار باتجاه عموديّ. مطابق لسايدبار لوحة الإدارة تمامًا.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ep-root .ep-sidebar {
+  background: linear-gradient(180deg, #0D4A7A 0%, #1B6CA8 100%) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: -2px 0 12px rgba(13, 74, 122, 0.18) !important;
+}
+.ep-root .ep-sb-header { border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important; }
+.ep-root .ep-sb-header::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent) !important; }
+.ep-root .ep-sb-logo-icon {
+  background: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35) !important;
+  color: #fff !important;
+}
+.ep-root .ep-sb-logo-title { color: #fff !important; }
+.ep-root .ep-sb-logo-sub { color: rgba(255, 255, 255, 0.62) !important; }
+.ep-root .ep-sb-section-label { color: rgba(255, 255, 255, 0.55) !important; }
+
+.ep-root .ep-sb-link { color: rgba(255, 255, 255, 0.80) !important; }
+.ep-root .ep-sb-link:hover { background: rgba(255, 255, 255, 0.10) !important; color: #fff !important; }
+.ep-root .ep-sb-link.ep-active {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+  border-right: 3px solid #E8A838 !important;
+}
+.ep-root .ep-sb-group-header { color: rgba(255, 255, 255, 0.80) !important; }
+.ep-root .ep-sb-group-header:hover { background: rgba(255, 255, 255, 0.10) !important; color: #fff !important; }
+.ep-root .ep-sb-group-arrow { color: rgba(255, 255, 255, 0.6) !important; opacity: 1 !important; }
+
+.ep-root .ep-sb-footer { border-top: 1px solid rgba(255, 255, 255, 0.12) !important; }
+.ep-root .ep-sb-user-name { color: #fff !important; }
+.ep-root .ep-sb-user-role { color: rgba(255, 255, 255, 0.6) !important; }

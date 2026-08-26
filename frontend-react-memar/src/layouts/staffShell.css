@@ -90,12 +90,19 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 .app .sidebar {
   background: linear-gradient(180deg, #0D4A7A 0%, #1B6CA8 100%) !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
-  box-shadow: -2px 0 12px rgba(13, 74, 122, 0.18) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: -2px 0 14px rgba(8, 45, 78, 0.25) !important;
 }
 
-/* ── الشعار ── */
-.app .sidebar .sb-logo { border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important; }
+/* ── الشعار ──
+   premium.css يفرض `.sb-logo { background:#F8FAFC !important }` — شريطٌ فاتح أعلى
+   السايدبار. بعد تلوين النصّ أبيض صار «معمار ERP» أبيضَ على أبيضَ فاختفى، وبقيت
+   كتلة فاتحة ملتصقة بالتوب‑بار الأزرق تقطع اتّصاله بالقائمة. تصفيرها يُظهر
+   تدرّج السايدبار تحتها فيتّصل اللون من أعلى الشاشة إلى أسفلها. */
+.app .sidebar .sb-logo {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
 .app .sidebar .sb-logo::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent) !important; }
 /* أيقونة الشعار كانت تدرّجًا أزرق على أبيض؛ على الأزرق تذوب — فتصير زجاجية بحلقة بيضاء. */
 .app .sidebar .sb-logo-icon {

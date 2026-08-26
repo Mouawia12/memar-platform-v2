@@ -807,3 +807,24 @@
   .ep-root .ep-dtabs { flex-direction: column !important; }
   .ep-root .ep-dtask-meta { flex-direction: column !important; gap: 4px !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   الشريط العلوي = طبق أصل هيدر لوحة الإدارة (.app .topbar في staffShell.css):
+   تدرّج أزرق بدل الأبيض ونصوصٌ بيضاء فوقه (طلب أيمن 2026-08-26). كانت البوابة
+   معكوسةً عن الإدارة — هيدر أبيض وسايدبار أزرق — فوُحِّدت: هيدر أزرق وسايدبار أبيض.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ep-root .ep-topbar {
+  background: linear-gradient(135deg, #0D4A7A 0%, #1B6CA8 100%) !important;
+  border-bottom: none !important;
+  box-shadow: 0 2px 16px rgba(13, 74, 122, 0.15) !important;
+}
+.ep-root .ep-greeting-text { color: #fff !important; }
+.ep-root .ep-greeting-date { color: rgba(255, 255, 255, 0.72) !important; }
+.ep-root .ep-menu-toggle { color: #fff !important; }
+/* أزرار الشريط: زجاجية شفّافة لتُقرأ فوق الأزرق بدل الرمادي الفاتح على الأبيض. */
+.ep-root .ep-topbar-btn { background: rgba(255, 255, 255, 0.15) !important; color: #fff !important; }
+.ep-root .ep-topbar-btn:hover { background: rgba(255, 255, 255, 0.28) !important; }
+/* نقطة الإشعار كانت محاطة بأبيض ليفصلها عن خلفية بيضاء — تصبح الحلقة بلون الهيدر. */
+.ep-root .ep-notif-dot { border-color: #14548C !important; }
+/* الأڤاتار متدرّج أزرق/بنفسجي، فيحتاج حلقةً بيضاء كي لا يذوب في الأزرق. */
+.ep-root .ep-topbar-avatar { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) !important; }

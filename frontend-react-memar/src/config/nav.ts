@@ -72,6 +72,14 @@ export function visibleNavSections(
     .filter((s) => s.items.length > 0);
 }
 
+/**
+ * تسمية عنصر تنقّل بمفتاحه — مصدر واحد للأسماء كي لا تتفرّق بين لوحة الإدارة
+ * وبوابة الموظف (طلب أيمن 2026-08-26: «CRM تبقى CRM حتى في صفحة الموظف»).
+ */
+export function navLabel(key: string, fallback: string): string {
+  return NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.key === key)?.label ?? fallback;
+}
+
 /** عنوان الصفحة الحالي من المسار (للشريط العلوي). */
 export function getPageTitle(pathname: string): string {
   const items = NAV_SECTIONS.flatMap((s) => s.items);

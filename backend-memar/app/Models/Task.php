@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCardActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -14,6 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Task extends Model
 {
+    use HasCardActivity; // توجيهات + تعليقات + قراءات (مشتركة مع المتابعات)
     use LogsActivity;
     use SoftDeletes;
 
@@ -53,22 +55,16 @@ class Task extends Model
         return $this->belongsToMany(User::class, 'task_user')->withTimestamps();
     }
 
-    /** محادثة/تايم‌لاين المهمة. */
-    public function comments(): HasMany
-    {
-        return $this->hasMany(TaskComment::class)->oldest();
-    }
-
     /** الملفات المرفقة بالمهمة. */
     public function files(): HasMany
     {
         return $this->hasMany(StoredFile::class, 'task_id')->latest();
     }
 
-    /** حالات قراءة الإشعار (سجل لكل مستخدم علّم نشاط المهمة كمقروء). */
-    public function reads(): HasMany
+    /** المكلَّف بالمهمة هو صاحب بطاقتها (يُنتظر ردّه، وتُميَّز له بـ«لي»). */
+    public function activityOwnerId(): ?int
     {
-        return $this->hasMany(TaskRead::class);
+        return $this->assignee_id;
     }
 
     public function getActivitylogOptions(): LogOptions

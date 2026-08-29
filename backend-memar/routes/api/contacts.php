@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\ClientPortalController;
 use App\Http\Controllers\Api\V1\ContactController;
+use App\Http\Controllers\Api\V1\FollowUpActivityController;
 use App\Http\Controllers\Api\V1\OpportunityUpdateController;
 use App\Http\Controllers\Api\V1\PipelineStageController;
 use App\Http\Controllers\Api\V1\QuickActionController;
@@ -45,6 +46,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/contacts/{contact}/reminders', [ContactController::class, 'reminders'])->middleware('permission:crm.view');
     Route::post('/contacts/{contact}/reminders', [ContactController::class, 'addReminder'])->middleware('permission:crm.manage');
     Route::patch('/reminders/{reminder}', [ContactController::class, 'toggleReminder'])->middleware('permission:crm.manage');
+
+    /*
+     * نشاط بطاقة المتابعة (طلب أيمن 2026-08-29) — طبق بطاقة المهمة:
+     * الإرسال للإدارة (crm.delete)، والردّ والتعليق لمن يعمل على المتابعة.
+     */
+    Route::get('/follow-ups/{reminder}/directives', [FollowUpActivityController::class, 'directives'])->middleware('permission:crm.view');
+    Route::post('/follow-ups/{reminder}/directives', [FollowUpActivityController::class, 'sendDirective'])->middleware('permission:crm.delete');
+    Route::post('/follow-ups/{reminder}/directives/{directive}/reply', [FollowUpActivityController::class, 'replyDirective'])->middleware('permission:crm.view');
+    Route::get('/follow-ups/{reminder}/comments', [FollowUpActivityController::class, 'comments'])->middleware('permission:crm.view');
+    Route::post('/follow-ups/{reminder}/comments', [FollowUpActivityController::class, 'addComment'])->middleware('permission:crm.manage');
     Route::delete('/reminders/{reminder}', [ContactController::class, 'deleteReminder'])->middleware('permission:crm.manage');
 
     // ─── تايملاين تحديثات الفرصة (المرحلة 4) ───

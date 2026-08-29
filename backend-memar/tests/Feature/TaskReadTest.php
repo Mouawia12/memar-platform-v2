@@ -37,7 +37,7 @@ class TaskReadTest extends TestCase
 
         // بعد التعليم كمقروء → يختفي
         $this->getJson('/api/v1/tasks')->assertOk()->assertJsonPath('data.0.has_unread', false);
-        $this->assertDatabaseHas('task_reads', ['task_id' => $task->id]);
+        $this->assertDatabaseHas('activity_reads', ['subject_type' => Task::class, 'subject_id' => $task->id]);
     }
 
     public function test_read_state_is_per_user(): void

@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Models\StoredFile;
 use App\Models\Task;
-use App\Models\TaskComment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -16,7 +15,10 @@ use Illuminate\Support\Str;
  */
 class TaskService
 {
-    public function __construct(private readonly FileStorageService $files) {}
+    public function __construct(
+        private readonly FileStorageService $files,
+        private readonly CardActivityService $activity,
+    ) {}
 
     /**
      * قائمة المهام (للوحة Kanban — بدون تصفّح، مجمّعة على الواجهة).
@@ -27,14 +29,15 @@ class TaskService
     {
         $userId = auth()->id();
 
-        return Task::query()
-            ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
-            ->when($projectId, fn ($q, int $id) => $q->where('project_id', $id))
-            ->when($assigneeId, fn ($q, int $id) => $q->where('assignee_id', $id))
-            ->with(['project', 'assignee'])
-            // قراءة المستخدم الحالي فقط لهذه المهمة — لحساب جرس «غير مقروء» لكل مستخدم على حدة
-            ->with(['reads' => fn ($q) => $q->where('user_id', $userId)])
-            ->withCount('comments')
+        return $this->activity->withCardActivity(
+            Task::query()
+                ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
+                ->when($projectId, fn ($q, int $id) => $q->where('project_id', $id))
+                ->when($assigneeId, fn ($q, int $id) => $q->where('assignee_id', $id))
+                ->with(['project', 'assignee']),
+            $userId,
+            Task::class,
+        )
             ->orderBy('position')
             ->latest()
             ->get();
@@ -43,10 +46,7 @@ class TaskService
     /** يعلّم نشاط المهمة كمقروء للمستخدم (يُخفي الجرس عنده وحده). */
     public function markRead(Task $task, int $userId): void
     {
-        $task->reads()->updateOrCreate(
-            ['user_id' => $userId],
-            ['read_at' => now()],
-        );
+        $this->activity->markRead($task, $userId);
     }
 
     /**
@@ -114,12 +114,6 @@ class TaskService
         }
 
         return $task->load(['project', 'assignee']);
-    }
-
-    /** إضافة رسالة لمحادثة المهمة. */
-    public function addComment(Task $task, string $body, ?int $userId): TaskComment
-    {
-        return $task->comments()->create(['user_id' => $userId, 'body' => $body])->load('user:id,name');
     }
 
     /**

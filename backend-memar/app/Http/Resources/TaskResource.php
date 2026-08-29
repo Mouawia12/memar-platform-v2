@@ -43,7 +43,44 @@ class TaskResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             // جرس «نشاط جديد» لكل مستخدم على حدة: نشاط خلال آخر 24 ساعة لم يعلّمه المستخدم كمقروء
             'has_unread' => $this->hasUnreadActivity(),
+            // تعليقات جديدة لم يقرأها المستخدم الحالي → تنبيه على أيقونة 💬
+            'unread_comments' => (int) ($this->unread_comments_count ?? 0),
+            // آخر تعليق في محادثة المهمة — نصّه وصاحبه وتاريخه على البطاقة
+            'last_comment' => $this->whenLoaded('latestComment', fn () => $this->latestComment ? [
+                'id' => $this->latestComment->id,
+                'body' => $this->latestComment->body,
+                'user' => $this->latestComment->user
+                    ? ['id' => $this->latestComment->user->id, 'name' => $this->latestComment->user->name]
+                    : null,
+                'created_at' => $this->latestComment->created_at?->toIso8601String(),
+            ] : null),
+            // آخر توجيه إداري — البطاقة تعرض حالته: «بانتظار الرد» أو «تم الرد»
+            'directive' => $this->whenLoaded(
+                'latestDirective',
+                fn () => $this->latestDirective ? new DirectiveResource($this->latestDirective) : null,
+            ),
+            // عدد رسائل التوجيه على البطاقة (الرقم في الشارة)
+            'directives_count' => (int) ($this->directives_count ?? 0),
+            // ردود لم يطّلع عليها مُرسِلها بعد → شارة «تم الرد» على بطاقته وحده
+            'directives_replied_unseen' => (int) ($this->replied_unseen_count ?? 0),
+            // آخر توجيه ينتظر ردّي أنا (المكلَّف) → شارة «بانتظار ردّك»
+            'directive_awaits_me' => $this->directiveAwaitsMe($request),
+            // توجيه وصلني ولم أفتحه بعد → وميض «توجيه جديد» على بطاقتي
+            'directive_is_new' => $this->directiveAwaitsMe($request)
+                && $this->latestDirective?->seen_at === null,
         ];
+    }
+
+    /** هل آخر توجيه بلا ردّ وأنا المكلَّف بالمهمة؟ (الشارة الحمراء على بطاقتي) */
+    private function directiveAwaitsMe(Request $request): bool
+    {
+        if (! $this->relationLoaded('latestDirective') || $this->latestDirective === null) {
+            return false;
+        }
+
+        return $this->latestDirective->replied_at === null
+            && $this->assignee_id !== null
+            && $this->assignee_id === $request->user()?->id;
     }
 
     /** هل للمهمة نشاط حديث (≤ 24 ساعة) لم يعلّمه المستخدم الحالي كمقروء؟ */

@@ -6,14 +6,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * حالة قراءة إشعار المهمة لمستخدم واحد — read_at = آخر لحظة عَلَّم فيها المستخدم
- * نشاط المهمة كمقروء. الجرس يظهر إن كان updated_at أحدث من read_at.
+ * اطّلاع مستخدم على نشاط بطاقة — يُخفي جرس «جديد» عنده وحده
+ * (كان task_reads قبل تعميمه على المتابعات).
  */
-class TaskRead extends Model
+class ActivityRead extends Model
 {
-    protected $fillable = ['task_id', 'user_id', 'read_at'];
+    protected $fillable = ['subject_type', 'subject_id', 'user_id', 'read_at'];
 
     /**
      * @return array<string, string>
@@ -23,9 +24,9 @@ class TaskRead extends Model
         return ['read_at' => 'datetime'];
     }
 
-    public function task(): BelongsTo
+    public function subject(): MorphTo
     {
-        return $this->belongsTo(Task::class);
+        return $this->morphTo();
     }
 
     public function user(): BelongsTo

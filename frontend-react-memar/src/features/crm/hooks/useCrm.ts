@@ -45,6 +45,8 @@ export function useSaveLead() {
 function invalidateCrm(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: KEY });
   qc.invalidateQueries({ queryKey: ['lead-history'] });
+  // لوحة المتابعة في صفحة المهام تقرأ التذكيرات نفسها — تُنعَش معها
+  qc.invalidateQueries({ queryKey: ['crm-follow-ups'] });
 }
 
 /**

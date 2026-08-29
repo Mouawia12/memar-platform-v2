@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCardActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class LeadReminder extends Model
 {
+    use HasCardActivity; // نفس نشاط بطاقة المهمة: توجيهات وتعليقات وقراءات
+
     protected $fillable = ['contact_id', 'remind_at', 'repeat_every', 'note', 'done', 'created_by'];
 
     /** دوريات التكرار المسموحة ومقدار كل واحدة بالأيام. */
@@ -29,6 +32,15 @@ class LeadReminder extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * صاحب بطاقة المتابعة هو مَن أنشأها — وهو نفسه معيار «متابعاتي فقط» في
+     * اللوحة، فلا يختلف معنى «لي» بين الفلتر والتمييز.
+     */
+    public function activityOwnerId(): ?int
+    {
+        return $this->created_by;
     }
 
     /** @return BelongsTo<User, $this> */

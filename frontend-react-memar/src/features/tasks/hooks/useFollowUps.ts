@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { crmApi } from '../../crm/api/crmApi';
 import { followUpsApi } from '../api/followUpsApi';
 
 /** متابعات العملاء للوحة المتابعة أسفل صفحة المهام. */
@@ -8,6 +9,20 @@ export function useFollowUps(mine: boolean) {
     queryKey: ['crm-follow-ups', mine],
     queryFn: () => followUpsApi.list(mine),
     staleTime: 60_000,
+  });
+}
+
+/**
+ * متابعة جديدة من لوحة المتابعة — هي تذكير على عميل، فتُنشأ بنفس مسار تذكيرات
+ * الفرص. نُبطل اللوحة والفرص معًا كي يظهر التذكير في الاثنتين فورًا.
+ */
+export function useCreateFollowUp() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ contactId, ...payload }: { contactId: number; remind_at: string; note?: string; repeat_every?: string }) =>
+      crmApi.addReminder(contactId, payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['crm-follow-ups'] }); qc.invalidateQueries({ queryKey: ['crm-leads'] }); },
   });
 }
 

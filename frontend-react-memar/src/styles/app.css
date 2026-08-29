@@ -394,3 +394,27 @@ textarea.input { resize: vertical; line-height: 1.7; }
 @media (prefers-reduced-motion: reduce) {
   .task-card-muted { transition: none; }
 }
+
+/* تنبيه «توجيه جديد» على بطاقة الموظف (طلب أيمن 2026-08-29): نبضة كهرمانية
+   هادئة — أخفّ من وميض التأخّر الأحمر كي لا يتساوى تنبيهان مختلفان في الإلحاح.
+   تهدأ بمجرّد فتح خيط التوجيهات (اطّلاع)، لا بالردّ. */
+@keyframes taskCardDirective {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(232,168,56,.55), 0 4px 14px rgba(232,168,56,.22); }
+  50%      { box-shadow: 0 0 0 5px rgba(232,168,56,.22), 0 6px 18px rgba(232,168,56,.30); }
+}
+.task-card-directive {
+  border-color: #E8A838 !important;
+  background: #FFFCF3 !important;
+  animation: taskCardDirective 1.6s ease-in-out infinite;
+}
+/* الشارة نفسها تنبض دائمًا — حتى على بطاقة متأخّرة يغلب وميضُها الأحمرُ الكرتَ. */
+@keyframes directiveBadgeNew {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .45; }
+}
+.directive-badge-new { animation: directiveBadgeNew 1.2s ease-in-out infinite; }
+/* تعليق جديد لم يُقرأ: الأيقونة تنبض حتى تُفتح نافذة التعليقات (طلب أيمن 2026-08-29). */
+.comment-badge-new { animation: directiveBadgeNew 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .task-card-directive, .directive-badge-new, .comment-badge-new { animation: none; }
+}

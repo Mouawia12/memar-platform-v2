@@ -89,7 +89,7 @@ export function FollowUpDetailModal({ item, onClose }: Props) {
                 {item.late_cycles > 0 && <span style={lateBadge} title={`فاتت ${item.late_cycles} متابعة`}>↩ {item.late_cycles}</span>}
               </span>
             } />
-            {item.creator && <Row label="سجّلها" value={shortName(item.creator)} />}
+            {item.creator && <Row label="سجّلها" value={shortName(item.creator.name)} />}
           </div>
 
           <div style={{ marginTop: '10px' }}>

@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch } from '../../../lib/api';
+import type { TaskDirective, TaskRef } from '../types';
 
 /** متابعة عميل واحدة في لوحة المتابعة (مصدرها تذكيرات الفرص). */
 export interface FollowUp {
@@ -12,8 +13,20 @@ export interface FollowUp {
   /** عدد دورات المتابعة الفائتة — يظهر كشارة تأخّر على البطاقة. */
   late_cycles: number;
   done: boolean;
+  /** مسؤول العميل — صورته على البطاقة. */
   owner: { id: number; name: string } | null;
-  creator: string | null;
+  /** منشئ المتابعة — هو صاحب البطاقة («متابعاتي» ومَن يُنتظر ردّه). */
+  creator: TaskRef | null;
+
+  // ── نشاط البطاقة (طبق بطاقة المهمة — طلب أيمن 2026-08-29) ──
+  comments_count?: number;
+  unread_comments?: number;
+  last_comment?: { id: number; body: string; user: TaskRef | null; created_at: string | null } | null;
+  directive?: TaskDirective | null;
+  directives_count?: number;
+  directives_replied_unseen?: number;
+  directive_awaits_me?: boolean;
+  directive_is_new?: boolean;
 }
 
 export const followUpsApi = {

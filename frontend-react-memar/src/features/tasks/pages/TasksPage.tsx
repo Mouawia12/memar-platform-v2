@@ -5,10 +5,15 @@ import { useAuthStore } from '../../../store/auth';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { ClientFollowUpsBoard } from '../components/ClientFollowUpsBoard';
 import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from '../components/DateRangeFilter';
+import { FollowUpFormModal } from '../components/FollowUpFormModal';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
 import { useFollowUps } from '../hooks/useFollowUps';
 import { useTaskAlertAcks } from '../taskAlerts';
+import { CommentsModal } from '../components/CommentsModal';
 import { TaskDetailModal } from '../components/TaskDetailModal';
+import type { CardRef } from '../hooks/useCardActivity';
+import type { FollowUp } from '../api/followUpsApi';
+import { DirectiveModal } from '../components/DirectiveModal';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { useDeleteTask, useMoveTask, useTasks, useToggleTask, useWorkload } from '../hooks/useTasks';
 import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
@@ -20,6 +25,10 @@ import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
 export function TasksPage() {
   const canManage = usePermission('tasks.manage'); // إضافة/تعديل المهام (بوّابة الصلاحيات — طلب أيمن 2026-08-12)
   const canDelete = usePermission('tasks.delete'); // الحذف للإدارة فقط (طلب العميل — اجتماع 3)
+  // المتابعة تذكيرٌ على عميل، فإضافتها تتبع صلاحية CRM لا صلاحية المهام.
+  const canAddFollowUp = usePermission('crm.manage');
+  // إرسال توجيه على متابعة للإدارة وحدها — نظير tasks.delete في المهام.
+  const canSendFupDirective = usePermission('crm.delete');
 
   const [search, setSearch] = useState('');
   const [projectId, setProjectId] = useState<number | ''>('');
@@ -27,6 +36,11 @@ export function TasksPage() {
   const [editing, setEditing] = useState<Task | null>(null);
   const [detail, setDetail] = useState<Task | null>(null);
   const [confirming, setConfirming] = useState<Task | null>(null); // تأكيد الإكمال قبل النقل لـ«مكتملة»
+  const [directiveOf, setDirectiveOf] = useState<Task | null>(null); // نافذة توجيهات الإدارة (طلب أيمن 2026-08-29)
+  const [commentsOf, setCommentsOf] = useState<Task | null>(null); // نافذة تعليقات المهمة
+  const [fupFormOpen, setFupFormOpen] = useState(false); // نافذة «متابعة جديدة» (طلب أيمن 2026-08-29)
+  const [fupDirectiveOf, setFupDirectiveOf] = useState<FollowUp | null>(null); // توجيهات متابعة
+  const [fupCommentsOf, setFupCommentsOf] = useState<FollowUp | null>(null); // تعليقات متابعة
   // نطاق كل لوحة على حدة: الكل أو ما يخصّني (طلب أيمن 2026-08-24).
   // null = لم يختر المستخدم بعد، فيسري افتراض دوره أدناه. حفظُه كـ null لا كقيمة
   // محسوبة عند أول رسم يجعله يصحّ حتى لو وصلت الصلاحيات بعد الرسم الأول.
@@ -47,6 +61,8 @@ export function TasksPage() {
   // أو فتح المهمة نفسها — فكلاهما يعني أن الموظف اطّلع على تأخّرها.
   const { isAcked, ack } = useTaskAlertAcks();
   const openTask = (t: Task) => { ack(t); setDetail(t); };
+  // أيقونة 💬 تفتح نافذة التعليقات وحدها — لا تفاصيل المهمة (طلب أيمن 2026-08-29).
+  const openComments = (t: Task) => { ack(t); setCommentsOf(t); };
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
@@ -81,7 +97,20 @@ export function TasksPage() {
   const scopedFollowUps = followUps ?? [];
   const boardFollowUps = useMemo(() => scopedFollowUps.filter((f) => inRange(f.remind_at, fupRange)), [scopedFollowUps, fupRange]);
 
+  // إشارة البطاقة التي تفتحها النوافذ المشتركة (مهمة أو متابعة).
+  const taskCard = (t: Task): CardRef => ({
+    kind: 'task', id: t.id, code: `#TSK-${String(t.id).padStart(3, '0')}`, title: t.title,
+    owner: t.assignee?.name ?? null, ownerLabel: 'المكلَّف',
+  });
+  const fupCard = (f: FollowUp): CardRef => ({
+    kind: 'follow-up', id: f.id, code: `#FUP-${String(f.id).padStart(3, '0')}`, title: f.contact ?? 'عميل',
+    owner: f.creator?.name ?? null, ownerLabel: 'صاحب المتابعة',
+  });
+
   const openCreate = () => { setEditing(null); setFormOpen(true); };
+  // نغلق التفاصيل قبل فتح التعديل: نافذة التفاصيل أعلى منه طبقةً، فكانت تحجبه
+  // ولا يظهر إلا بإغلاقها يدويًّا (طلب أيمن 2026-08-29).
+  const openEdit = (t: Task) => { setDetail(null); setEditing(t); setFormOpen(true); };
   const handleDelete = (t: Task) => { if (confirm(`حذف مهمة "${t.title}"؟`)) del.mutate(t.id); };
   const handleMove = (t: Task, payload: { due_date?: string; status?: TaskStatus }) => move.mutate({ id: t.id, payload });
   // إكمال المهمة يتطلّب تأكيدًا (طلب العميل) — لا يُنقل مباشرة لـ«مكتملة». إعادة الفتح فورية.
@@ -147,6 +176,9 @@ export function TasksPage() {
           onMove={(t, status) => handleMove(t, { status })}
           meId={meId}
           highlightMine={effTaskScope === 'all'}
+          onDirective={setDirectiveOf}
+          canSendDirective={canDelete}
+          onComments={openComments}
         />
       )}
 
@@ -156,8 +188,11 @@ export function TasksPage() {
       <div style={pageHeader}>
         <div>
           <h2 style={{ margin: 0, fontSize: '16px' }}>🔄 لوحة المتابعة (كانبان)</h2>
-          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '3px' }}>متابعات العملاء — تُضبط من نافذة الفرصة وتظهر هنا حسب موعدها</div>
+          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '3px' }}>متابعات العملاء — تُضاف من هنا أو من نافذة الفرصة، وتظهر حسب موعدها</div>
         </div>
+        {canAddFollowUp && (
+          <button className="btn btn-primary" type="button" onClick={() => setFupFormOpen(true)}>+ متابعة جديدة</button>
+        )}
       </div>
 
       <div style={scopeRow}>
@@ -167,7 +202,14 @@ export function TasksPage() {
 
       <DateRangeFilter value={fupRange} onChange={setFupRange} shown={boardFollowUps.length} total={scopedFollowUps.length} />
 
-      <ClientFollowUpsBoard items={boardFollowUps} />
+      <ClientFollowUpsBoard
+        items={boardFollowUps}
+        meId={meId}
+        highlightMine={effFupScope === 'all'}
+        onDirective={setFupDirectiveOf}
+        canSendDirective={canSendFupDirective}
+        onComments={setFupCommentsOf}
+      />
 
       {/* ══ توزيع المهام على الفريق ══ */}
       {canDelete && (workload?.length ?? 0) > 0 && (
@@ -209,17 +251,44 @@ export function TasksPage() {
       )}
 
       {formOpen && <TaskFormModal task={editing} onClose={() => setFormOpen(false)} />}
+      {fupFormOpen && <FollowUpFormModal onClose={() => setFupFormOpen(false)} />}
       {detail && (
         <TaskDetailModal
           task={detail}
           canManage={canManage}
           canDelete={canDelete}
           onClose={() => setDetail(null)}
-          onEdit={(t) => { setEditing(t); setFormOpen(true); }}
+          onEdit={openEdit}
           onToggle={handleToggle}
           onDelete={handleDelete}
           onSetNotExecuted={(t) => { move.mutate({ id: t.id, payload: { status: 'cancelled' } }); setDetail(null); }}
           onMove={(t, status) => handleMove(t, { status })}
+        />
+      )}
+
+      {/* تعليقات المهمة — نافذة مستقلّة تُفتح من أيقونة 💬 على البطاقة */}
+      {commentsOf && (
+        <CommentsModal card={taskCard(commentsOf)} canComment={canManage} onClose={() => setCommentsOf(null)} />
+      )}
+      {fupCommentsOf && (
+        <CommentsModal card={fupCard(fupCommentsOf)} canComment={canAddFollowUp} onClose={() => setFupCommentsOf(null)} />
+      )}
+      {fupDirectiveOf && (
+        <DirectiveModal
+          card={fupCard(fupDirectiveOf)}
+          canSend={canSendFupDirective}
+          canReply={fupDirectiveOf.creator?.id === meId}
+          onClose={() => setFupDirectiveOf(null)}
+        />
+      )}
+
+      {/* توجيهات الإدارة على المهمة: الإدارة تُرسل، والمكلَّف يردّ (طلب أيمن 2026-08-29) */}
+      {directiveOf && (
+        <DirectiveModal
+          card={taskCard(directiveOf)}
+          canSend={canDelete}
+          canReply={directiveOf.assignee?.id === meId}
+          onClose={() => setDirectiveOf(null)}
         />
       )}
 

@@ -8,6 +8,19 @@ export interface TaskRef {
   code?: string | null;
 }
 
+/** توجيه إداري على المهمة + ردّ الموظف عليه (طلب أيمن 2026-08-29). */
+export interface TaskDirective {
+  id: number;
+  body: string;
+  sender: TaskRef | null;
+  created_at: string | null;
+  reply_body: string | null;
+  replier: TaskRef | null;
+  replied_at: string | null;
+  /** هل ردّ الموظف؟ يحسبها الخادم فلا تُشتقّ من التواريخ هنا. */
+  replied: boolean;
+}
+
 export interface Task {
   id: number;
   title: string;
@@ -20,10 +33,24 @@ export interface Task {
   project: TaskRef | null;
   assignee: TaskRef | null;
   comments_count?: number;
+  /** تعليقات جديدة لم يقرأها المستخدم الحالي — تُنبّه أيقونة 💬 على بطاقته. */
+  unread_comments?: number;
+  /** آخر تعليق في المحادثة — يظهر بنصّه وصاحبه وتاريخه على البطاقة. */
+  last_comment?: { id: number; body: string; user: TaskRef | null; created_at: string | null } | null;
   updated_at?: string | null;
   created_at: string | null;
   /** جرس «نشاط جديد» خاص بالمستخدم الحالي — يختفي عند التعليم كمقروء. */
   has_unread?: boolean;
+  /** آخر توجيه إداري على المهمة — منه تُقرأ حالة البطاقة («بانتظار الرد»/«تم الرد»). */
+  directive?: TaskDirective | null;
+  /** عدد رسائل التوجيه على المهمة — الرقم داخل شارة البطاقة. */
+  directives_count?: number;
+  /** ردود لم يطّلع عليها مُرسِلها بعد — تظهر «✅ تم الرد» على بطاقته وحده. */
+  directives_replied_unseen?: number;
+  /** آخر توجيه ينتظر ردّي أنا (المكلَّف بالمهمة). */
+  directive_awaits_me?: boolean;
+  /** توجيه وصلني ولم أفتحه بعد — تُنبّه البطاقة حتى أطّلع عليه. */
+  directive_is_new?: boolean;
 }
 
 /** حركة في سجل تعديلات المهمة (اجتماع 2026-08-05). */

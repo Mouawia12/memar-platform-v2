@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Contacts\StoreContactRequest;
 use App\Http\Requests\Contacts\UpdateContactRequest;
 use App\Http\Resources\ContactResource;
+use App\Http\Resources\FollowUpResource;
 use App\Models\Contact;
 use App\Models\LeadReminder;
+use App\Services\CardActivityService;
 use App\Services\ContactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +19,10 @@ use Illuminate\Validation\Rule;
 
 class ContactController extends ApiController
 {
-    public function __construct(private readonly ContactService $contacts) {}
+    public function __construct(
+        private readonly ContactService $contacts,
+        private readonly CardActivityService $activity,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -120,27 +125,27 @@ class ContactController extends ApiController
      */
     public function followUps(Request $request): JsonResponse
     {
-        $items = LeadReminder::query()
-            ->with(['contact:id,full_name,owner_id', 'contact.owner:id,name', 'creator:id,name'])
+        $me = $request->user()?->id;
+
+        $items = $this->activity->withCardActivity(
+            LeadReminder::query()->with(['contact:id,full_name,owner_id', 'contact.owner:id,name', 'creator:id,name']),
+            $me,
+            LeadReminder::class,
+        )
             ->whereHas('contact')
-            ->when($request->boolean('mine'), fn ($q) => $q->where('created_by', $request->user()?->id))
+            // «متابعاتي» = ما أنشأتُه — وهو نفسه صاحب البطاقة في شارات التوجيه
+            ->when($request->boolean('mine'), fn ($q) => $q->where('created_by', $me))
             ->orderBy('remind_at')
             ->limit(300)
             ->get()
-            ->map(fn (LeadReminder $r): array => [
-                'id' => $r->id,
-                'contact_id' => $r->contact_id,
-                'contact' => $r->contact?->full_name,
-                'note' => $r->note,
-                'remind_at' => $r->remind_at?->toIso8601String(),
-                'repeat_every' => $r->repeat_every,
-                'late_cycles' => $this->lateCycles($r),
-                'done' => (bool) $r->done,
-                'owner' => $r->contact?->owner ? ['id' => $r->contact->owner->id, 'name' => $r->contact->owner->name] : null,
-                'creator' => $r->creator?->name,
-            ]);
+            ->map(function (LeadReminder $r) {
+                $res = new FollowUpResource($r);
+                $res->lateCycles = $this->lateCycles($r);
 
-        return $this->ok($items);
+                return $res;
+            });
+
+        return $this->ok(FollowUpResource::collection($items));
     }
 
     // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───

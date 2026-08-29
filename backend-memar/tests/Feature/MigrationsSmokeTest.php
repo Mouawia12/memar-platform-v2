@@ -15,7 +15,7 @@ class MigrationsSmokeTest extends TestCase
     public function test_all_migrations_run_on_sqlite(): void
     {
         $this->assertTrue(Schema::hasTable('projects'));
-        $this->assertTrue(Schema::hasTable('task_comments'));
+        $this->assertTrue(Schema::hasTable('comments'));
         $this->assertTrue(Schema::hasColumn('contacts', 'temperature'));
     }
 }

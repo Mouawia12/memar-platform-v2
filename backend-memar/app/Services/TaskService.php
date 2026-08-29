@@ -39,7 +39,13 @@ class TaskService
             Task::class,
         )
             ->orderBy('position')
-            ->latest()
+            /*
+             * الأحدث فوق والأقدم تحت في كل عمود (طلب أيمن 2026-08-29).
+             * latest() وحدها لا تكفي: created_at بدقّة الثانية، ومهام أُنشئت في
+             * الثانية نفسها كان ترتيبها متروكًا لقاعدة البيانات — فنفصل بالمعرّف.
+             */
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
     }
 

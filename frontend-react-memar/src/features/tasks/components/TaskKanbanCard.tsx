@@ -12,6 +12,10 @@ interface Props {
   acked?: boolean;
   /** إطفاء تنبيه التأخّر (زرّ الجرس على البطاقة). */
   onAck?: (t: Task) => void;
+  /** مهمّة المستخدم الحالي — تُبرَز وسط مهام الفريق. */
+  mine?: boolean;
+  /** مهمّة غيري وأنا أعرض «جميع المهام» — تُخفَّف لتبرز مهامي فوقها. */
+  muted?: boolean;
 }
 
 /**
@@ -19,7 +23,7 @@ interface Props {
  * حسب الأولوية، صورة المكلّف أو أحرفه بلونه الثابت، وسطر موعد بلون قربه،
  * وشريط تقدّم. المحتوى محتوى المهمة — الشكل فقط هو المشترك.
  */
-export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck }: Props) {
+export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, muted }: Props) {
   const color = PRIORITY_COLORS[task.priority] ?? '#1B6CA8';
   const done = isDone(task);
   const diff = dueDiffDays(task.due_date);
@@ -38,9 +42,14 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck }: Props)
 
   return (
     <div
-      className={`crm-lead-card${overdue ? ' task-card-late' : ''}`}
+      className={`crm-lead-card${overdue ? ' task-card-late' : ''}${muted ? ' task-card-muted' : ''}`}
       onClick={() => onOpen(task)}
-      style={{ ...card, borderRight: `5px solid ${done ? '#2D9B6F' : color}` }}
+      style={{
+        ...card,
+        borderRight: `5px solid ${done ? '#2D9B6F' : color}`,
+        // الظلّ inline يغلب أي قاعدة CSS، فحلقة الإبراز تُضبط هنا لا في ملف الأنماط.
+        ...(mine ? mineRing : null),
+      }}
     >
       <div style={topRow}>
         {task.assignee && (
@@ -52,7 +61,10 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck }: Props)
               </span>
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={code}>#TSK-{String(task.id).padStart(3, '0')}</div>
+          <div style={codeRow}>
+            <span style={code}>#TSK-{String(task.id).padStart(3, '0')}</span>
+            {mine && <span style={mineTag}>مهمتي</span>}
+          </div>
           <div style={{ ...title, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.62 : 1 }}>{task.title}</div>
         </div>
       </div>
@@ -99,6 +111,10 @@ const PRIORITY_LABELS: Record<Task['priority'], string> = {
 const card: CSSProperties = { position: 'relative', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '8px 12px 8px 10px', marginBottom: '7px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all .2s ease' };
 const topRow: CSSProperties = { display: 'flex', gap: '8px', alignItems: 'flex-start' };
 const avatar: CSSProperties = { width: '26px', height: '26px', borderRadius: '50%', color: '#fff', fontSize: '9.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+// حلقة زرقاء + خلفية مائلة للأزرق: تُميّز مهامي بلا تغيير شريط الأولوية الجانبي.
+const mineRing: CSSProperties = { background: '#F7FBFF', borderColor: '#9DC4E4', boxShadow: '0 0 0 2px rgba(27,108,168,.30), 0 4px 12px rgba(27,108,168,.16)' };
+const codeRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px' };
+const mineTag: CSSProperties = { fontSize: '8.5px', fontWeight: 900, color: '#1B6CA8', background: '#E4F0FA', border: '1px solid #BFDBF0', borderRadius: '20px', padding: '1px 6px', letterSpacing: 0, whiteSpace: 'nowrap' };
 const code: CSSProperties = { fontSize: '9px', color: '#94A3B8', fontWeight: 700, letterSpacing: '.4px' };
 const title: CSSProperties = { fontSize: '12px', fontWeight: 800, color: '#1A1F2E', lineHeight: 1.5, marginTop: '1px' };
 const metaRow: CSSProperties = { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '5px' };

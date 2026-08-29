@@ -14,6 +14,10 @@ interface Props {
   isAcked?: (t: Task) => boolean;
   /** إطفاء تنبيه التأخّر لهذه المهمة. */
   onAck?: (t: Task) => void;
+  /** معرّف المستخدم الحالي — لإبراز مهامه وسط مهام الفريق. */
+  meId?: number | null;
+  /** تمييز مهامي عن غيرها (عند عرض «جميع المهام») — طلب أيمن 2026-08-29. */
+  highlightMine?: boolean;
 }
 
 /** أعمدة لوحة المهام حسب مرحلة العمل (طلب أيمن 2026-08-24). */
@@ -34,19 +38,32 @@ function DragCard({ id, children }: { id: number; children: ReactNode }) {
   );
 }
 
-function Column({ col, tasks, onOpen, avatars, isAcked, onAck }: { col: typeof COLUMNS[number]; tasks: Task[]; onOpen: (t: Task) => void; avatars?: Record<string, string>; isAcked?: (t: Task) => boolean; onAck?: (t: Task) => void }) {
+function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlightMine }: { col: typeof COLUMNS[number]; tasks: Task[]; onOpen: (t: Task) => void; avatars?: Record<string, string>; isAcked?: (t: Task) => boolean; onAck?: (t: Task) => void; isMine: (t: Task) => boolean; highlightMine: boolean }) {
+  const mineCount = highlightMine ? tasks.filter(isMine).length : 0;
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   return (
     <div style={{ ...column, ...(isOver ? columnOver : null) }}>
       <div style={{ ...header, borderTop: `3px solid ${col.color}` }}>
         <span style={{ fontWeight: 800, fontSize: '13px', color: '#1A1F2E' }}>{col.icon} {col.label}</span>
-        <span style={{ ...count, color: col.color, background: `${col.color}1a` }}>{tasks.length}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          {/* «منها لي» يقول للموظف كم يخصّه في العمود دون أن يعدّ البطاقات بنفسه. */}
+          {mineCount > 0 && <span style={mineChip} title="مهامي في هذا العمود">{mineCount} لي</span>}
+          <span style={{ ...count, color: col.color, background: `${col.color}1a` }}>{tasks.length}</span>
+        </span>
       </div>
       <div ref={setNodeRef} style={body}>
         {tasks.length === 0 && <p style={{ opacity: 0.4, fontSize: '12.5px', textAlign: 'center', padding: '18px 0' }}>أفلت هنا</p>}
         {tasks.map((t) => (
           <DragCard key={t.id} id={t.id}>
-            <TaskKanbanCard task={t} onOpen={onOpen} acked={isAcked?.(t)} onAck={onAck} avatarUrl={t.assignee ? avatars?.[String(t.assignee.id)] ?? null : null} />
+            <TaskKanbanCard
+              task={t}
+              onOpen={onOpen}
+              acked={isAcked?.(t)}
+              onAck={onAck}
+              avatarUrl={t.assignee ? avatars?.[String(t.assignee.id)] ?? null : null}
+              mine={highlightMine && isMine(t)}
+              muted={highlightMine && !isMine(t)}
+            />
           </DragCard>
         ))}
       </div>
@@ -55,11 +72,14 @@ function Column({ col, tasks, onOpen, avatars, isAcked, onAck }: { col: typeof C
 }
 
 /** لوحة المهام (كانبان) حسب مرحلة العمل — السحب بين الأعمدة يغيّر حالة المهمة. */
-export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck }: Props) {
+export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck, meId, highlightMine }: Props) {
   const [active, setActive] = useState<Task | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
   const boardRef = useRef<HTMLDivElement>(null);
   useEdgeAutoScroll(boardRef);
+  const isMine = (t: Task) => !!meId && t.assignee?.id === meId;
+  // لا نميّز إن كان المعروض مهامي وحدها — كلّها لي فلا شيء يُقارَن به.
+  const markMine = !!highlightMine && !!meId;
   const ownerIds = [...new Set(tasks.map((t) => t.assignee?.id).filter((v): v is number => !!v))];
   const { data: avatars } = useStaffAvatars(ownerIds);
 
@@ -80,7 +100,17 @@ export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck }: Props
     >
       <div ref={boardRef} className="crm-hscroll" style={board}>
         {COLUMNS.map((col) => (
-          <Column key={col.key} col={col} tasks={tasks.filter((t) => t.status === col.key)} onOpen={onOpen} avatars={avatars} isAcked={isAcked} onAck={onAck} />
+          <Column
+            key={col.key}
+            col={col}
+            tasks={tasks.filter((t) => t.status === col.key)}
+            onOpen={onOpen}
+            avatars={avatars}
+            isAcked={isAcked}
+            onAck={onAck}
+            isMine={isMine}
+            highlightMine={markMine}
+          />
         ))}
       </div>
       <DragOverlay>
@@ -95,5 +125,6 @@ const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-s
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', border: '1px solid transparent', minHeight: '140px', flex: '0 0 300px', width: '300px', minWidth: '300px' };
 const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78' };
 const header: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };
+const mineChip: CSSProperties = { fontSize: '9.5px', fontWeight: 900, color: '#1B6CA8', background: '#E4F0FA', border: '1px solid #BFDBF0', borderRadius: '999px', padding: '1px 7px', whiteSpace: 'nowrap' };
 const count: CSSProperties = { fontSize: '11px', fontWeight: 900, borderRadius: '999px', padding: '1px 9px' };
 const body: CSSProperties = { display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 420px)', overflowY: 'auto', minHeight: '60px' };

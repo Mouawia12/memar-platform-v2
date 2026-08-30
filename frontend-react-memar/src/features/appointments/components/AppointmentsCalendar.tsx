@@ -105,30 +105,27 @@ function weekStart(d: Date): Date {
 }
 
 /**
- * الاجتماع المنتهي يُشطب نصّه في التقويم — خطٌّ وسط الكتابة يقول إنه انتهى
- * فلا يُنتظر (طلب أيمن 2026-08-30). منتهٍ يعني أحد ثلاثة:
- *  · علّمه أحدٌ «تمّ» أو «أُلغي» صراحةً،
- *  · أو مضى وقته — فالاجتماع الذي فات موعده لم يعد قائمًا سواء عُلّم أم لا،
- *    وبغير ذلك يبقى كل اجتماع قديم بلا شطب لأن أحدًا لا يعود ليعلّمه يدويًّا.
- * ونهايته إن سُجّلت هي المعيار، وإلّا فبدايته.
+ * الاجتماع الذي تمّ يُشطب نصّه في التقويم — خطٌّ وسط الكتابة يقول إنه أُنجز
+ * (طلب أيمن 2026-08-30). والملغى معه، فكلاهما لم يعد قائمًا.
+ *
+ * مضيُّ الوقت وحده لا يشطب (طلب أيمن 2026-08-30): اجتماعٌ فات موعده قد يكون
+ * لم يُعقد أصلًا، والشطب يقول «تمّ» لا «مضى». والنظام لا يعرف أن اجتماعًا
+ * انعقد إلّا أن يُخبَره أحد، فالحالة هي المصدر.
  */
 function isClosed(a: Appointment): boolean {
-  if (a.status === 'done' || a.status === 'cancelled') return true;
-  const ends = a.end_at ?? a.start_at;
-
-  return !!ends && new Date(ends).getTime() < Date.now();
+  return a.status === 'done' || a.status === 'cancelled';
 }
 
 function closedStyle(a: Appointment): CSSProperties {
   return isClosed(a) ? { textDecoration: 'line-through', textDecorationThickness: '1.5px', opacity: 0.7 } : {};
 }
 
-/** تلميح يفرّق سبب الشطب — «تمّ» عن «أُلغي» عن «مضى موعده». */
+/** تلميح يفرّق سبب الشطب — «تمّ» عن «أُلغي». */
 function closedHint(a: Appointment): string {
   if (a.status === 'done') return `${a.title} — تمّ`;
   if (a.status === 'cancelled') return `${a.title} — أُلغي`;
 
-  return isClosed(a) ? `${a.title} — مضى موعده` : a.title;
+  return a.title;
 }
 
 // ── شهر ──

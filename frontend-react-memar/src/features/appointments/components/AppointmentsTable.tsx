@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { useCloseAppointment } from '../hooks/useAppointments';
 import { LOCATION_KIND_LABELS, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, type Appointment } from '../types';
 
 interface Props {
@@ -13,8 +14,17 @@ interface Props {
 const fmt = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
+/** اجتماع مضى موعده ولم يُعلَّم «تمّ» ولا «أُلغي» — يُعرض له زرّ الإنهاء. */
+function needsClosing(a: Appointment): boolean {
+  if (a.status === 'done' || a.status === 'cancelled') return false;
+  const ends = a.end_at ?? a.start_at;
+
+  return !!ends && new Date(ends).getTime() < Date.now();
+}
+
 export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = true, canDelete = true }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
+  const close = useCloseAppointment();
   if (appointments.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد مواعيد.</p>;
   }
@@ -63,6 +73,21 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
               </td>
               {showActions && (
                 <td style={td}>
+                  {/* اجتماع فات موعده ولم يُعلَّم بعد: زرّ واحد يعلّمه «تمّ» فيُشطب
+                      في التقويم. النظام لا يعرف أنه انعقد فعلًا (طلب أيمن
+                      2026-08-30: مضيُّ الوقت لا يكفي)، فيسأل ويُجيب المستخدم بضغطة. */}
+                  {canManage && needsClosing(a) && (
+                    <>
+                      <button
+                        className="btn btn-sm"
+                        type="button"
+                        title="تعليم الاجتماع كمنتهٍ — يُشطب في التقويم"
+                        onClick={() => close.mutate(a.id)}
+                        disabled={close.isPending}
+                        style={{ background: '#059669', color: '#fff' }}
+                      >✓ تمّ</button>{' '}
+                    </>
+                  )}
                   {canManage && <button className="btn btn-sm" onClick={() => onEdit(a)} type="button">تعديل</button>}{' '}
                   {canDelete && <button className="btn btn-sm" onClick={() => onDelete(a)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
                 </td>

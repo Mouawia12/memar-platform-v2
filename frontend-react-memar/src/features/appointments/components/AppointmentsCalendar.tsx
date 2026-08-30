@@ -116,12 +116,20 @@ function MonthView({ cursor, byDay, todayStr, onDayClick, onEventClick }: { curs
     const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const evts = byDay.get(ds) ?? [];
     const isTd = ds === todayStr;
+    // يوم مضى: يبهت ليتراجع بصريًّا، فتبرز الأيام الباقية من الشهر
+    // (طلب أيمن 2026-08-30). المقارنة نصّية بصيغة YYYY-MM-DD فتصحّ لفظيًّا.
+    const isPast = ds < todayStr;
     cells.push(
-      <div key={ds} onClick={() => onDayClick(ds)} title="إضافة موعد" style={{ ...cell, cursor: 'pointer', background: isTd ? '#EFF6FF' : '#fff' }}>
-        <div style={{ fontSize: '12px', fontWeight: isTd ? 800 : 600, color: isTd ? '#1D4ED8' : '#334155', textAlign: 'center' }}>{day}</div>
+      <div
+        key={ds}
+        onClick={() => onDayClick(ds)}
+        title={isPast ? 'يوم مضى — إضافة موعد' : 'إضافة موعد'}
+        style={{ ...cell, cursor: 'pointer', background: isTd ? '#EFF6FF' : isPast ? '#FAFBFC' : '#fff' }}
+      >
+        <div style={{ fontSize: '12px', fontWeight: isTd ? 800 : isPast ? 500 : 700, color: isTd ? '#1D4ED8' : isPast ? '#B6BEC9' : '#1E293B', textAlign: 'center' }}>{day}</div>
         {evts.slice(0, 2).map((e, i) => (
           <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onEventClick(e); }}
-            style={{ ...chip, background: `${CHIP[i % CHIP.length]}18`, color: CHIP[i % CHIP.length] }}>
+            style={{ ...chip, background: `${CHIP[i % CHIP.length]}18`, color: CHIP[i % CHIP.length], opacity: isPast ? 0.55 : 1 }}>
             {fmtTime(e.start_at)} {e.title}
           </div>
         ))}

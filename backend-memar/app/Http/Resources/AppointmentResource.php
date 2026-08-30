@@ -25,6 +25,7 @@ class AppointmentResource extends JsonResource
             'start_at' => $this->start_at?->toIso8601String(),
             'end_at' => $this->end_at?->toIso8601String(),
             'location' => $this->location,
+            'location_kind' => $this->location_kind,
             'is_video' => $this->is_video,
             'video_room' => $this->video_room,
             'video_url' => $this->is_video && $this->video_room ? "https://meet.jit.si/{$this->video_room}" : null,

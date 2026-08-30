@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Appointments;
 
+use App\Models\Appointment;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +27,7 @@ class UpdateAppointmentRequest extends FormRequest
             'start_at' => ['sometimes', 'required', 'date'],
             'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
             'location' => ['nullable', 'string', 'max:255'],
+            'location_kind' => ['nullable', Rule::in(Appointment::LOCATION_KINDS)],
             'is_video' => ['boolean'],
             'status' => ['nullable', Rule::in(['pending', 'scheduled', 'done', 'cancelled'])],
             'notes' => ['nullable', 'string'],

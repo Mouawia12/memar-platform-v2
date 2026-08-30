@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import { STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, type Appointment } from '../types';
+import { LOCATION_KIND_LABELS, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, type Appointment } from '../types';
 
 interface Props {
   appointments: Appointment[];
@@ -42,7 +42,15 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
               </td>
               <td style={td}>{TYPE_LABELS[a.type]}</td>
               <td style={td}>{fmt(a.start_at)}</td>
-              <td style={td}>{a.location ?? '—'}</td>
+              <td style={td}>
+                {/* نوع المكان أوّلًا ثم تفصيله — الجدول كان يعرض النصّ الحرّ وحده. */}
+                {a.location_kind ? (
+                  <span title={a.location ?? undefined}>
+                    {LOCATION_KIND_LABELS[a.location_kind]}
+                    {a.location ? <span style={{ color: '#94A3B8' }}> · {a.location}</span> : null}
+                  </span>
+                ) : (a.location ?? '—')}
+              </td>
               <td style={td}>
                 {a.video_url
                   ? <a className="btn btn-sm" href={a.video_url} target="_blank" rel="noreferrer" style={{ background: '#059669', color: '#fff' }}>📹 دخول</a>

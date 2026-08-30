@@ -15,9 +15,15 @@ class Appointment extends Model
     use LogsActivity;
     use SoftDeletes;
 
+    /**
+     * أنواع مكان الاجتماع (طلب أيمن 2026-08-30) — و`location` يبقى تفصيلَه:
+     * القاعة في المكتب، عنوان الموقع، أو رقم الاتصال.
+     */
+    public const LOCATION_KINDS = ['office', 'site', 'online', 'call'];
+
     protected $fillable = [
         'title', 'type', 'project_id', 'start_at', 'end_at',
-        'location', 'is_video', 'video_room', 'status', 'notes', 'created_by',
+        'location', 'location_kind', 'is_video', 'video_room', 'status', 'notes', 'created_by',
     ];
 
     /**

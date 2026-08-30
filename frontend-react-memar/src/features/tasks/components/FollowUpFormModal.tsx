@@ -125,7 +125,9 @@ export function FollowUpFormModal({ onClose }: Props) {
 
         {/* صفّ «العميل ⟷ التكرار» — خاصّ بالمتابعة، بنفس شكل الصفّ أعلاه. */}
         <div style={grid}>
-          <label style={label}>العميل *
+          {/* بلا نجمة (طلب أيمن 2026-08-30) — والمتابعة تبقى معلَّقة على عميل
+              فيمنع الحفظُ بلا اختياره، لكن دون تمييز الحقل بالنجمة. */}
+          <label style={label}>العميل
             <select
               className="input"
               style={{ ...input, ...(errors.contact ? inputErr : null) }}

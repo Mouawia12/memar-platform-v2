@@ -104,6 +104,16 @@ function weekStart(d: Date): Date {
   return x;
 }
 
+/**
+ * الاجتماع الذي تمّ (أو أُلغي) يُشطب نصّه في التقويم — خطٌّ وسط الكتابة يقول
+ * إنه انتهى فلا يُنتظر (طلب أيمن 2026-08-30). الحالة تُضبط من نافذة الموعد.
+ */
+function closedStyle(a: Appointment): CSSProperties {
+  if (a.status !== 'done' && a.status !== 'cancelled') return {};
+
+  return { textDecoration: 'line-through', textDecorationThickness: '1.5px', opacity: 0.7 };
+}
+
 // ── شهر ──
 function MonthView({ cursor, byDay, todayStr, onDayClick, onEventClick }: { cursor: Date; byDay: Map<string, Appointment[]>; todayStr: string; onDayClick: (d: string) => void; onEventClick: (a: Appointment) => void }) {
   const y = cursor.getFullYear(); const m = cursor.getMonth();
@@ -129,7 +139,8 @@ function MonthView({ cursor, byDay, todayStr, onDayClick, onEventClick }: { curs
         <div style={{ fontSize: '12px', fontWeight: isTd ? 800 : isPast ? 500 : 700, color: isTd ? '#1D4ED8' : isPast ? '#B6BEC9' : '#1E293B', textAlign: 'center' }}>{day}</div>
         {evts.slice(0, 2).map((e, i) => (
           <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onEventClick(e); }}
-            style={{ ...chip, background: `${CHIP[i % CHIP.length]}18`, color: CHIP[i % CHIP.length], opacity: isPast ? 0.55 : 1 }}>
+            style={{ ...chip, background: `${CHIP[i % CHIP.length]}18`, color: CHIP[i % CHIP.length], opacity: isPast ? 0.55 : 1, ...closedStyle(e) }}
+            title={e.status === 'done' ? `${e.title} — تمّ` : e.status === 'cancelled' ? `${e.title} — أُلغي` : e.title}>
             {fmtTime(e.start_at)} {e.title}
           </div>
         ))}
@@ -170,7 +181,7 @@ function WeekView({ cursor, byDay, todayStr, onEventClick }: { cursor: Date; byD
                 return (
                   <div key={iso(d) + h} style={{ borderInlineStart: '1px solid #EEF2F7', padding: '2px', minHeight: '34px' }}>
                     {evts.map((e) => (
-                      <div key={e.id} onClick={() => onEventClick(e)} style={{ ...weekEvt, background: `${CHIP[e.id % CHIP.length]}18`, color: CHIP[e.id % CHIP.length] }}>{e.title}</div>
+                      <div key={e.id} onClick={() => onEventClick(e)} style={{ ...weekEvt, background: `${CHIP[e.id % CHIP.length]}18`, color: CHIP[e.id % CHIP.length], ...closedStyle(e) }}>{e.title}</div>
                     ))}
                   </div>
                 );
@@ -198,7 +209,7 @@ function DayView({ cursor, byDay, onEventClick }: { cursor: Date; byDay: Map<str
             <div style={{ padding: '4px 8px' }}>
               {hEvts.map((e) => (
                 <div key={e.id} onClick={() => onEventClick(e)} style={dayEvt}>
-                  <div style={{ fontSize: '12.5px', fontWeight: 700 }}>{e.title}</div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, ...closedStyle(e) }}>{e.title}</div>
                   <div style={{ fontSize: '11px', color: '#8A93A3' }}>{e.project?.name ? `🏗️ ${e.project.name} · ` : ''}{fmtTime(e.start_at)}</div>
                 </div>
               ))}

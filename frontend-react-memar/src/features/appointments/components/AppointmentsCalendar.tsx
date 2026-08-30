@@ -105,13 +105,30 @@ function weekStart(d: Date): Date {
 }
 
 /**
- * الاجتماع الذي تمّ (أو أُلغي) يُشطب نصّه في التقويم — خطٌّ وسط الكتابة يقول
- * إنه انتهى فلا يُنتظر (طلب أيمن 2026-08-30). الحالة تُضبط من نافذة الموعد.
+ * الاجتماع المنتهي يُشطب نصّه في التقويم — خطٌّ وسط الكتابة يقول إنه انتهى
+ * فلا يُنتظر (طلب أيمن 2026-08-30). منتهٍ يعني أحد ثلاثة:
+ *  · علّمه أحدٌ «تمّ» أو «أُلغي» صراحةً،
+ *  · أو مضى وقته — فالاجتماع الذي فات موعده لم يعد قائمًا سواء عُلّم أم لا،
+ *    وبغير ذلك يبقى كل اجتماع قديم بلا شطب لأن أحدًا لا يعود ليعلّمه يدويًّا.
+ * ونهايته إن سُجّلت هي المعيار، وإلّا فبدايته.
  */
-function closedStyle(a: Appointment): CSSProperties {
-  if (a.status !== 'done' && a.status !== 'cancelled') return {};
+function isClosed(a: Appointment): boolean {
+  if (a.status === 'done' || a.status === 'cancelled') return true;
+  const ends = a.end_at ?? a.start_at;
 
-  return { textDecoration: 'line-through', textDecorationThickness: '1.5px', opacity: 0.7 };
+  return !!ends && new Date(ends).getTime() < Date.now();
+}
+
+function closedStyle(a: Appointment): CSSProperties {
+  return isClosed(a) ? { textDecoration: 'line-through', textDecorationThickness: '1.5px', opacity: 0.7 } : {};
+}
+
+/** تلميح يفرّق سبب الشطب — «تمّ» عن «أُلغي» عن «مضى موعده». */
+function closedHint(a: Appointment): string {
+  if (a.status === 'done') return `${a.title} — تمّ`;
+  if (a.status === 'cancelled') return `${a.title} — أُلغي`;
+
+  return isClosed(a) ? `${a.title} — مضى موعده` : a.title;
 }
 
 // ── شهر ──
@@ -140,7 +157,7 @@ function MonthView({ cursor, byDay, todayStr, onDayClick, onEventClick }: { curs
         {evts.slice(0, 2).map((e, i) => (
           <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onEventClick(e); }}
             style={{ ...chip, background: `${CHIP[i % CHIP.length]}18`, color: CHIP[i % CHIP.length], opacity: isPast ? 0.55 : 1, ...closedStyle(e) }}
-            title={e.status === 'done' ? `${e.title} — تمّ` : e.status === 'cancelled' ? `${e.title} — أُلغي` : e.title}>
+            title={closedHint(e)}>
             {fmtTime(e.start_at)} {e.title}
           </div>
         ))}
@@ -181,7 +198,7 @@ function WeekView({ cursor, byDay, todayStr, onEventClick }: { cursor: Date; byD
                 return (
                   <div key={iso(d) + h} style={{ borderInlineStart: '1px solid #EEF2F7', padding: '2px', minHeight: '34px' }}>
                     {evts.map((e) => (
-                      <div key={e.id} onClick={() => onEventClick(e)} style={{ ...weekEvt, background: `${CHIP[e.id % CHIP.length]}18`, color: CHIP[e.id % CHIP.length], ...closedStyle(e) }}>{e.title}</div>
+                      <div key={e.id} onClick={() => onEventClick(e)} title={closedHint(e)} style={{ ...weekEvt, background: `${CHIP[e.id % CHIP.length]}18`, color: CHIP[e.id % CHIP.length], ...closedStyle(e) }}>{e.title}</div>
                     ))}
                   </div>
                 );
@@ -208,7 +225,7 @@ function DayView({ cursor, byDay, onEventClick }: { cursor: Date; byDay: Map<str
             <div style={hourLabel}>{h % 12 || 12}:00 {h >= 12 ? 'م' : 'ص'}</div>
             <div style={{ padding: '4px 8px' }}>
               {hEvts.map((e) => (
-                <div key={e.id} onClick={() => onEventClick(e)} style={dayEvt}>
+                <div key={e.id} onClick={() => onEventClick(e)} title={closedHint(e)} style={dayEvt}>
                   <div style={{ fontSize: '12.5px', fontWeight: 700, ...closedStyle(e) }}>{e.title}</div>
                   <div style={{ fontSize: '11px', color: '#8A93A3' }}>{e.project?.name ? `🏗️ ${e.project.name} · ` : ''}{fmtTime(e.start_at)}</div>
                 </div>

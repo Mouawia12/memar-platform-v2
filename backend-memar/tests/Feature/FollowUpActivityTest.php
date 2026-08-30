@@ -52,37 +52,38 @@ class FollowUpActivityTest extends TestCase
         $this->getJson('/api/v1/crm/follow-ups')
             ->assertJsonPath('data.0.directive.body', 'تابع العميل اليوم')
             ->assertJsonPath('data.0.directive.replied', false)
-            ->assertJsonPath('data.0.directives_count', 1);
+            ->assertJsonPath('data.0.directive_messages_count', 1);
 
         // بطاقة صاحب المتابعة: توجيه جديد ينتظر ردّه
         $this->actingAs($employee);
         $this->getJson('/api/v1/crm/follow-ups')
             ->assertJsonPath('data.0.directive_awaits_me', true)
-            ->assertJsonPath('data.0.directive_is_new', true);
+            ->assertJsonPath('data.0.directive_unread', 1);
 
         // فتح الخيط اطّلاع (يهدأ التنبيه) والردّ يختم الدورة
         $this->getJson("/api/v1/follow-ups/{$fup->id}/directives")->assertOk();
-        $this->getJson('/api/v1/crm/follow-ups')->assertJsonPath('data.0.directive_is_new', false);
+        $this->getJson('/api/v1/crm/follow-ups')->assertJsonPath('data.0.directive_unread', 0);
 
-        $this->postJson("/api/v1/follow-ups/{$fup->id}/directives/{$id}/reply", ['body' => 'تواصلت معه'])
-            ->assertOk()->assertJsonPath('data.replied', true);
+        $this->postJson("/api/v1/follow-ups/{$fup->id}/directives/{$id}/messages", ['body' => 'تواصلت معه'])
+            ->assertCreated();
+        $this->getJson('/api/v1/crm/follow-ups')->assertJsonPath('data.0.directive.replied', true);
 
-        // المُرسِل يرى «تم الرد» حتى يفتح الخيط
+        // المُرسِل يرى ردًّا جديدًا حتى يفتح الخيط
         $this->actingAs($admin);
-        $this->getJson('/api/v1/crm/follow-ups')->assertJsonPath('data.0.directives_replied_unseen', 1);
+        $this->getJson('/api/v1/crm/follow-ups')->assertJsonPath('data.0.directive_unread', 1);
         $this->getJson("/api/v1/follow-ups/{$fup->id}/directives")->assertOk();
-        $this->getJson('/api/v1/crm/follow-ups')->assertJsonPath('data.0.directives_replied_unseen', 0);
+        $this->getJson('/api/v1/crm/follow-ups')->assertJsonPath('data.0.directive_unread', 0);
     }
 
-    public function test_only_the_follow_up_owner_may_reply(): void
+    public function test_outsider_cannot_write_in_the_follow_up_thread(): void
     {
         $this->actingAsUserWith(['crm.view', 'crm.delete']);
         $employee = User::factory()->create();
         $fup = $this->makeFollowUp($employee->id);
         $id = $this->postJson("/api/v1/follow-ups/{$fup->id}/directives", ['body' => 'تابع'])->json('data.id');
 
-        $this->actingAsUserWith(['crm.view']); // ليس صاحب المتابعة
-        $this->postJson("/api/v1/follow-ups/{$fup->id}/directives/{$id}/reply", ['body' => 'ردّ منتحل'])
+        $this->actingAsUserWith(['crm.view']); // ليس صاحب المتابعة ولا المُرسِل
+        $this->postJson("/api/v1/follow-ups/{$fup->id}/directives/{$id}/messages", ['body' => 'ردّ منتحل'])
             ->assertForbidden();
     }
 

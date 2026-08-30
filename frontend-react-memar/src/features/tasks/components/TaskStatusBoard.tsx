@@ -19,12 +19,12 @@ interface Props {
   meId?: number | null;
   /** تمييز مهامي عن غيرها (عند عرض «جميع المهام») — طلب أيمن 2026-08-29. */
   highlightMine?: boolean;
+  /** حفظ نسبة الإنجاز المعدَّلة من شريط البطاقة (طلب أيمن 2026-08-29). */
+  onProgress?: (t: Task, pct: number) => void;
   /** فتح نافذة التوجيهات لمهمة — إن غابت لا يظهر زرّ التوجيه على البطاقات. */
   onDirective?: (t: Task) => void;
   /** يملك إرسال التوجيهات (الإدارة) — يرى الزرّ على كل البطاقات لا على مهامه فقط. */
   canSendDirective?: boolean;
-  /** فتح محادثة المهمة من أيقونة التعليقات على البطاقة. */
-  onComments?: (t: Task) => void;
 }
 
 /** أعمدة لوحة المهام حسب مرحلة العمل (طلب أيمن 2026-08-24). */
@@ -56,10 +56,10 @@ interface ColumnProps {
   highlightMine: boolean;
   /** يُرجع مُعالج التوجيه لهذه البطاقة، أو undefined فلا يظهر الزرّ عليها. */
   directiveFor: (t: Task) => ((t: Task) => void) | undefined;
-  onComments?: (t: Task) => void;
+  onProgress?: (t: Task, pct: number) => void;
 }
 
-function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlightMine, directiveFor, onComments }: ColumnProps) {
+function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlightMine, directiveFor, onProgress }: ColumnProps) {
   const mineCount = highlightMine ? tasks.filter(isMine).length : 0;
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   return (
@@ -85,7 +85,7 @@ function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlight
               mine={highlightMine && isMine(t)}
               muted={highlightMine && !isMine(t)}
               onDirective={directiveFor(t)}
-              onComments={onComments}
+              onProgress={onProgress}
             />
           </DragCard>
         ))}
@@ -95,7 +95,7 @@ function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlight
 }
 
 /** لوحة المهام (كانبان) حسب مرحلة العمل — السحب بين الأعمدة يغيّر حالة المهمة. */
-export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck, meId, highlightMine, onDirective, canSendDirective, onComments }: Props) {
+export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck, meId, highlightMine, onDirective, canSendDirective, onProgress }: Props) {
   const [active, setActive] = useState<Task | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
   const boardRef = useRef<HTMLDivElement>(null);
@@ -141,7 +141,7 @@ export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck, meId, h
             isMine={isMine}
             highlightMine={markMine}
             directiveFor={directiveFor}
-            onComments={onComments}
+            onProgress={onProgress}
           />
         ))}
       </div>

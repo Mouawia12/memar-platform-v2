@@ -16,7 +16,6 @@ use App\Models\ServiceRequest;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
 /**
  * الإشعارات — بنود تحتاج إجراءً، محسوبة من البيانات الحيّة
@@ -63,23 +62,36 @@ class NotificationController extends ApiController
          * جدولٌ واحد، فبندٌ واحد يجمع الاثنين بدل بندين متطابقين.
          */
         if ($user) {
-            $awaiting = Directive::whereNull('replied_at')
-                ->where('sender_id', '!=', $user->id)
-                ->whereIn('id', $this->ownedSubjectDirectiveIds($user->id))
+            /*
+             * خيوط بانتظار ردّي: أنا صاحب البطاقة وآخر رسالة في الخيط ليست منّي.
+             * الخيط مفتوح فلا يكفي «بلا ردّ» — الدور ينتقل بين الطرفين.
+             */
+            $awaiting = Directive::with('messages')
+                ->where(fn ($q) => $q
+                    ->whereHasMorph('subject', [Task::class], fn ($t) => $t->where('assignee_id', $user->id))
+                    ->orWhereHasMorph('subject', [LeadReminder::class], fn ($r) => $r->where('created_by', $user->id)))
+                ->get()
+                ->filter(function (Directive $d) use ($user): bool {
+                    $last = $d->lastMessage();
+
+                    return $last !== null ? $last->user_id !== $user->id : $d->sender_id !== $user->id;
+                })
                 ->count();
             if ($awaiting > 0) {
-                $items[] = $this->item('📣', 'توجيهات بانتظار ردّك', "{$awaiting} توجيه من الإدارة على بطاقاتك", '/tasks', 'warning', $awaiting);
+                $items[] = $this->item('📣', 'توجيهات بانتظار ردّك', "{$awaiting} توجيه على بطاقاتك ينتظر ردّك", '/tasks', 'warning', $awaiting);
             }
 
-            $replied = Directive::where('sender_id', $user->id)
-                ->whereNotNull('replied_at')
-                ->whereNull('reply_seen_at')
-                ->count();
-            if ($replied > 0) {
-                $items[] = $this->item('✅', 'ردود على توجيهاتك', "{$replied} ردّ جديد لم تطّلع عليه", '/tasks', 'info', $replied);
+            // ردود لم أطّلع عليها في خيوط أنا طرفٌ فيها (مُرسِلها أو مشارك)
+            $replies = Directive::with(['messages', 'reads' => fn ($q) => $q->where('user_id', $user->id)])
+                ->where('sender_id', $user->id)
+                ->get()
+                ->sum(fn (Directive $d): int => $d->unseenCountFor($user->id));
+            if ($replies > 0) {
+                $items[] = $this->item('✅', 'ردود على توجيهاتك', "{$replies} ردّ جديد لم تطّلع عليه", '/tasks', 'info', $replies);
             }
 
             $comments = Comment::where('user_id', '!=', $user->id)
+                ->where('subject_type', '!=', Directive::class) // رسائل الخيوط لها بندها
                 ->whereRaw(
                     'comments.created_at > coalesce((select read_at from activity_reads'
                     .' where activity_reads.subject_type = comments.subject_type'
@@ -143,20 +155,6 @@ class NotificationController extends ApiController
     /**
      * @return array<string, mixed>
      */
-    /**
-     * توجيهاتٌ صاحبُ بطاقتها هو هذا المستخدم — مهمّة مسندة إليه أو متابعة أنشأها.
-     *
-     * @return Collection<int, int>
-     */
-    private function ownedSubjectDirectiveIds(int $userId): Collection
-    {
-        return Directive::query()
-            ->where(fn ($q) => $q
-                ->whereHasMorph('subject', [Task::class], fn ($t) => $t->where('assignee_id', $userId))
-                ->orWhereHasMorph('subject', [LeadReminder::class], fn ($r) => $r->where('created_by', $userId)))
-            ->pluck('id');
-    }
-
     private function item(string $icon, string $title, string $subtitle, string $path, string $tone, int $count): array
     {
         return compact('icon', 'title', 'subtitle', 'path', 'tone', 'count');

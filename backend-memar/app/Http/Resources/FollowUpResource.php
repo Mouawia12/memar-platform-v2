@@ -31,14 +31,23 @@ class FollowUpResource extends JsonResource
             'contact_id' => $this->contact_id,
             'contact' => $this->contact?->full_name,
             'note' => $this->note,
+            'description' => $this->description,
             'remind_at' => $this->remind_at?->toIso8601String(),
             'repeat_every' => $this->repeat_every,
             'late_cycles' => $this->lateCycles,
             'done' => (bool) $this->done,
-            // مسؤول العميل — تُعرض صورته على البطاقة
-            'owner' => $this->contact?->owner
-                ? ['id' => $this->contact->owner->id, 'name' => $this->contact->owner->name]
+            // المشروع المرتبط بالمتابعة (اختياري)
+            'project' => $this->project
+                ? ['id' => $this->project->id, 'code' => $this->project->code, 'name' => $this->project->name]
                 : null,
+            // المكلَّف بالمتابعة، وإن لم يُحدَّد فمسؤول العميل — تُعرض صورته على
+            // البطاقة وهو معيار «متابعاتي فقط».
+            'assignee' => $this->assignee ? ['id' => $this->assignee->id, 'name' => $this->assignee->name] : null,
+            'owner' => $this->assignee
+                ? ['id' => $this->assignee->id, 'name' => $this->assignee->name]
+                : ($this->contact?->owner
+                    ? ['id' => $this->contact->owner->id, 'name' => $this->contact->owner->name]
+                    : null),
             // منشئ المتابعة هو صاحب بطاقتها («متابعاتي» ومَن يُنتظر ردّه)
             'creator' => $this->creator ? ['id' => $this->creator->id, 'name' => $this->creator->name] : null,
 
@@ -53,26 +62,44 @@ class FollowUpResource extends JsonResource
                     : null,
                 'created_at' => $this->latestComment->created_at?->toIso8601String(),
             ] : null),
-            'directive' => $this->whenLoaded(
-                'latestDirective',
-                fn () => $this->latestDirective ? new DirectiveResource($this->latestDirective) : null,
+            // آخر خيط: رأسه وآخر رسالة فيه — هو ما تعرضه البطاقة
+            'directive' => $this->whenLoaded('directives', function () {
+                $latest = $this->directives->first();
+                if ($latest === null) {
+                    return null;
+                }
+                $res = new DirectiveResource($latest);
+                $res->ownerId = $this->activityOwnerId();
+
+                return $res->toArray(request());
+            }),
+            // مجموع رسائل الخيوط (الرؤوس + الردود) — الرقم على الشارة
+            'directive_messages_count' => $this->whenLoaded(
+                'directives',
+                fn (): int => $this->directives->count() + $this->directives->sum(fn ($d): int => $d->messages->count()),
             ),
-            'directives_count' => (int) ($this->directives_count ?? 0),
-            'directives_replied_unseen' => (int) ($this->replied_unseen_count ?? 0),
-            'directive_awaits_me' => $this->awaitsMe($me),
-            'directive_is_new' => $this->awaitsMe($me) && $this->latestDirective?->seen_at === null,
+            // رسائل لم أرَها أنا — النقطة الحمراء ووميض البطاقة
+            'directive_unread' => $this->whenLoaded(
+                'directives',
+                fn (): int => (int) $this->directives->sum(fn ($d): int => $d->unseenCountFor($me)),
+            ),
+            // أنا صاحب البطاقة وآخر رسالة في الخيط ليست منّي → الدور دوري
+            'directive_awaits_me' => $this->whenLoaded('directives', fn (): bool => $this->awaitsMe($me)),
         ];
     }
 
-    /** هل آخر توجيه بلا ردّ وأنا صاحب المتابعة؟ */
+    /**
+     * هل الدور دوري في آخر خيط؟ (أنا صاحب البطاقة وآخر رسالة من غيري)
+     */
     private function awaitsMe(?int $me): bool
     {
-        if (! $this->relationLoaded('latestDirective') || $this->latestDirective === null) {
+        $latest = $this->directives->first();
+        if ($latest === null || $me === null || $this->activityOwnerId() !== $me) {
             return false;
         }
 
-        return $this->latestDirective->replied_at === null
-            && $this->created_by !== null
-            && $this->created_by === $me;
+        $last = $latest->lastMessage();
+
+        return $last !== null ? $last->user_id !== $me : $latest->sender_id !== $me;
     }
 }

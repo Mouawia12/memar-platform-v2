@@ -23,18 +23,21 @@ export const CARD_ACTIVITY_STYLES = {
   doneChip: { background: '#DCFCE7', color: '#166534' },
   directiveBtn: { fontSize: '9.5px', fontWeight: 800, lineHeight: 1, padding: '3px 8px', borderRadius: '20px', border: '1px solid #BFDBF0', background: '#EFF6FC', color: '#1B6CA8', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
 
-  // سطر آخر تعليق: ترويسة (صاحبه وتاريخه) ثم نصّه في سطرين كحدّ أقصى.
-  commentLine: { marginTop: '6px', background: '#F8FAFC', border: '1px solid #EEF2F7', borderInlineStart: '3px solid #CBD5E1', borderRadius: '8px', padding: '5px 7px', cursor: 'pointer' },
-  commentLineNew: { background: '#FFFCF3', borderColor: '#FDE9B4', borderInlineStartColor: '#E8A838' },
-  commentHead: { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9px', flexWrap: 'wrap' },
-  commentDate: { color: '#94A3B8', fontWeight: 700 },
-  commentMore: { marginInlineStart: 'auto', color: '#1B6CA8', background: '#E4F0FA', borderRadius: '999px', padding: '0 5px', fontWeight: 900 },
-  commentNewTag: { color: '#92400E', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '999px', padding: '0 5px', fontWeight: 900 },
-  commentBody: { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: '10px', color: '#475569', lineHeight: 1.6, marginTop: '2px', wordBreak: 'break-word' },
-  commentBtn: { fontSize: '9.5px', fontWeight: 800, lineHeight: 1, padding: '3px 8px', borderRadius: '20px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#94A3B8', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
-  commentBtnOn: { background: '#F1F5F9', color: '#5A6478', borderColor: '#CBD5E1' },
-  // تعليق جديد: الأيقونة كهرمانية بنقطة حمراء — بلا عبارة، والشرح في التلميح.
-  commentBtnNew: { display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#92400E', borderColor: '#FCD34D' },
+  // سطر التوجيه نفسه (رأس الخيط): كهرمانيّ كنبرة «بانتظار الرد» في النافذة —
+  // كان لا يظهر على البطاقة إطلاقًا حتى يردّ أحد، فالتوجيه الجديد يصل صامتًا
+  // (طلب أيمن 2026-08-29). يظهر الآن دائمًا ما دام على البطاقة توجيه.
+  directiveLine: { marginTop: '6px', background: '#FFFBEB', border: '1px solid #FDE9B4', borderInlineStart: '3px solid #E8A838', borderRadius: '8px', padding: '5px 7px', cursor: 'pointer' },
+
+  // سطر آخر رسالة في خيط التوجيه: صاحبها وتاريخها ثم نصّها في سطرين.
+  replyLine: { marginTop: '6px', background: '#F0FDF4', border: '1px solid #DCFCE7', borderInlineStart: '3px solid #86EFAC', borderRadius: '8px', padding: '5px 7px', cursor: 'pointer' },
+  // رسالة لم أرَها بعد: كهرمانية كي تُقرأ لا أن تُنسى.
+  replyLineNew: { background: '#FFFCF3', borderColor: '#FDE9B4', borderInlineStartColor: '#E8A838' },
+  replyHead: { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9px', flexWrap: 'wrap' },
+  replyDate: { color: '#94A3B8', fontWeight: 700 },
+  replyNewTag: { color: '#92400E', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '999px', padding: '0 5px', fontWeight: 900 },
+  replyBody: { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: '10px', color: '#475569', lineHeight: 1.6, marginTop: '2px', wordBreak: 'break-word' },
+  // علامة الردّ الصغيرة على السطر — تفتح الخيط عند حقل الكتابة.
+  replyMark: { marginInlineStart: 'auto', fontSize: '9px', fontWeight: 900, lineHeight: 1, padding: '2px 7px', borderRadius: '999px', border: '1px solid #BFDBF0', background: '#EFF6FC', color: '#1B6CA8', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
 } satisfies Record<string, CSSProperties>;
 
 /** ختم مختصر للبطاقة: «اليوم 14:20» / «أمس 14:20» / «12 أغسطس». */

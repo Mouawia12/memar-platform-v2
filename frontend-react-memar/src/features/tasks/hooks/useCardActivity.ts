@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiGet, apiPost } from '../../../lib/api';
-import type { TaskComment, TaskDirective } from '../types';
+import type { DirectiveMessage, TaskDirective } from '../types';
 
 /** نوع البطاقة — يحدّد مسار الخادم ومفاتيح الاستعلام التي تُنعَش. */
 export type CardKind = 'task' | 'follow-up';
@@ -27,14 +27,14 @@ const basePath = (card: CardRef) => (card.kind === 'task' ? `/tasks/${card.id}` 
 /** مفاتيح القوائم التي تعرض البطاقة — تُنعَش بعد كل نشاط كي تتحدّث شاراتها. */
 const listKeys = (kind: CardKind): unknown[][] => (kind === 'task' ? [['tasks']] : [['crm-follow-ups'], ['crm-leads']]);
 
-const threadKey = (card: CardRef, what: 'directives' | 'comments') => ['card-activity', card.kind, card.id, what];
+const threadKey = (card: CardRef) => ['card-activity', card.kind, card.id, 'directives'];
 
 /** يُبطل خيط البطاقة وقوائمها معًا — الشارة تُقرأ من القائمة لا من الخيط. */
 function useInvalidateCard(card: CardRef) {
   const qc = useQueryClient();
 
-  return (what: 'directives' | 'comments') => {
-    qc.invalidateQueries({ queryKey: threadKey(card, what) });
+  return () => {
+    qc.invalidateQueries({ queryKey: threadKey(card) });
     listKeys(card.kind).forEach((key) => qc.invalidateQueries({ queryKey: key }));
   };
 }
@@ -45,7 +45,7 @@ export function useDirectives(card: CardRef) {
   const qc = useQueryClient();
 
   return useQuery({
-    queryKey: threadKey(card, 'directives'),
+    queryKey: threadKey(card),
     // فتح الخيط يُعلّم الاطّلاع على الخادم، فتحتاج القوائم إعادة قراءة شاراتها.
     queryFn: async () => {
       const data = await apiGet<TaskDirective[]>(`${basePath(card)}/directives`);
@@ -61,41 +61,17 @@ export function useSendDirective(card: CardRef) {
 
   return useMutation({
     mutationFn: (body: string) => apiPost<TaskDirective>(`${basePath(card)}/directives`, { body }),
-    onSuccess: () => invalidate('directives'),
+    onSuccess: invalidate,
   });
 }
 
-export function useReplyDirective(card: CardRef) {
+/** رسالة في خيط توجيه — ردّ أو ردّ على ردّ (الخيط مفتوح). */
+export function useAddDirectiveMessage(card: CardRef) {
   const invalidate = useInvalidateCard(card);
 
   return useMutation({
     mutationFn: ({ id, body }: { id: number; body: string }) =>
-      apiPost<TaskDirective>(`${basePath(card)}/directives/${id}/reply`, { body }),
-    onSuccess: () => invalidate('directives'),
-  });
-}
-
-// ── التعليقات ──
-
-export function useCardComments(card: CardRef) {
-  const qc = useQueryClient();
-
-  return useQuery({
-    queryKey: threadKey(card, 'comments'),
-    queryFn: async () => {
-      const data = await apiGet<TaskComment[]>(`${basePath(card)}/comments`);
-      listKeys(card.kind).forEach((key) => qc.invalidateQueries({ queryKey: key }));
-
-      return data;
-    },
-  });
-}
-
-export function useAddCardComment(card: CardRef) {
-  const invalidate = useInvalidateCard(card);
-
-  return useMutation({
-    mutationFn: (body: string) => apiPost<TaskComment>(`${basePath(card)}/comments`, { body }),
-    onSuccess: () => invalidate('comments'),
+      apiPost<DirectiveMessage>(`${basePath(card)}/directives/${id}/messages`, { body }),
+    onSuccess: invalidate,
   });
 }

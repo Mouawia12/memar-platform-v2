@@ -6,27 +6,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * توجيه من الإدارة على بطاقة (مهمة أو متابعة) + ردّ صاحبها عليه
- * (طلب أيمن 2026-08-29).
+ * توجيه من الإدارة على بطاقة (مهمة أو متابعة) — ورأس خيطٍ مفتوح: الردّ عليه
+ * رسالة، والردّ على الردّ رسالة أخرى، بلا حدّ (طلب أيمن 2026-08-29).
  */
 class Directive extends Model
 {
-    protected $fillable = ['subject_type', 'subject_id', 'sender_id', 'body', 'seen_at', 'reply_body', 'replied_by', 'replied_at', 'reply_seen_at'];
+    protected $fillable = ['subject_type', 'subject_id', 'sender_id', 'body'];
 
-    // إرسال التوجيه أو الردّ عليه يُحدّث updated_at للبطاقة → يظهر جرس «نشاط جديد».
+    // أي حركة في الخيط تُحدّث updated_at للبطاقة → يظهر جرس «نشاط جديد».
     protected $touches = ['subject'];
 
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return ['seen_at' => 'datetime', 'replied_at' => 'datetime', 'reply_seen_at' => 'datetime'];
-    }
-
+    /** البطاقة التي عليها التوجيه. */
     public function subject(): MorphTo
     {
         return $this->morphTo();
@@ -37,14 +31,49 @@ class Directive extends Model
         return $this->belongsTo(User::class, 'sender_id');
     }
 
-    public function replier(): BelongsTo
+    /** ردود الخيط بترتيب المحادثة (الأقدم أولًا) — رأسُه التوجيه نفسه. */
+    public function messages(): MorphMany
     {
-        return $this->belongsTo(User::class, 'replied_by');
+        return $this->morphMany(Comment::class, 'subject')->oldest();
     }
 
-    /** هل ردّ صاحب البطاقة على هذا التوجيه؟ */
-    public function isReplied(): bool
+    /** اطّلاع كل مستخدم على هذا الخيط. */
+    public function reads(): MorphMany
     {
-        return $this->replied_at !== null;
+        return $this->morphMany(ActivityRead::class, 'subject');
+    }
+
+    /** هل ردّ صاحب البطاقة على التوجيه؟ (ختم «تم الرد») */
+    public function isRepliedBy(?int $ownerId): bool
+    {
+        return $ownerId !== null && $this->messages->contains(fn (Comment $m): bool => $m->user_id === $ownerId);
+    }
+
+    /** آخر رسالة في الخيط — تعرضها البطاقة. */
+    public function lastMessage(): ?Comment
+    {
+        return $this->messages->last();
+    }
+
+    /**
+     * رسائل هذا الخيط التي لم يرَها المستخدم: ليست منه، وبعد آخر اطّلاع له.
+     * التوجيه نفسه يُحسب رسالةً أولى.
+     */
+    public function unseenCountFor(?int $userId): int
+    {
+        if ($userId === null) {
+            return 0;
+        }
+
+        $readAt = $this->reads->firstWhere('user_id', $userId)?->read_at;
+        $isNew = fn (?int $author, $at): bool => $author !== $userId
+            && $at !== null
+            && ($readAt === null || $at->gt($readAt));
+
+        $count = $isNew($this->sender_id, $this->created_at) ? 1 : 0;
+
+        return $count + $this->messages->filter(
+            fn (Comment $m): bool => $isNew($m->user_id, $m->created_at),
+        )->count();
     }
 }

@@ -5,6 +5,7 @@ import { personColor, personInitials, shortName } from '../../crm/types';
 import { CARD_ACTIVITY_STYLES, fullStamp, shortStamp } from './cardActivityStyles';
 import type { FollowUp } from '../api/followUpsApi';
 import { FollowUpDetailModal } from './FollowUpDetailModal';
+import { repeatLabel } from './RepeatPicker';
 
 type Col = 'scheduled' | 'today' | 'overdue' | 'done';
 
@@ -15,30 +16,8 @@ const COLUMNS: { key: Col; label: string; icon: string; color: string }[] = [
   { key: 'done', label: 'منجزة', icon: '✅', color: '#2D9B6F' },
 ];
 
-const REPEAT_LABELS: Record<string, string> = { '3d': 'كل 3 أيام', week: 'أسبوعيًا', month: 'شهريًا' };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
-
-/**
- * شارة التوجيه على البطاقة — أيقونة ورقم، والشرح في التلميح (طلب أيمن
- * 2026-08-29). نفس حالات بطاقة المهمة حرفًا بحرف كي لا يختلف المعنى بينهما.
- */
-function cardBadge(f: FollowUp) {
-  if (!f.directive) return null;
-  if ((f.directives_replied_unseen ?? 0) > 0) {
-    return { icon: '✅', hint: 'تم الرد على توجيهك — اضغط لقراءة الردّ', tone: doneChip, dot: true };
-  }
-  if (f.directive_is_new) {
-    return { icon: '🔔', hint: 'رسالة جديدة من الإدارة — اضغط للقراءة والردّ', tone: awaitChip, dot: true };
-  }
-  if (f.directive_awaits_me) {
-    return { icon: '📣', hint: 'بانتظار ردّك — اضغط للردّ', tone: awaitChip, dot: true };
-  }
-
-  return f.directive.replied
-    ? { icon: '✅', hint: 'تم الرد — اضغط لعرض التوجيه وردّه', tone: doneChip, dot: false }
-    : { icon: '📤', hint: 'تم الإرسال — بانتظار ردّ صاحب المتابعة', tone: sentChip, dot: false };
-}
 
 /** عمود المتابعة حسب موعدها وحالتها. */
 function columnOf(f: FollowUp): Col {
@@ -49,6 +28,27 @@ function columnOf(f: FollowUp): Col {
   if (day === todayStr()) return 'today';
 
   return 'scheduled';
+}
+
+/**
+ * شارة التوجيه على البطاقة — أيقونة ورقم، والشرح في التلميح (طلب أيمن
+ * 2026-08-29). نفس حالات بطاقة المهمة حرفًا بحرف كي لا يختلف المعنى بينهما.
+ */
+function cardBadge(f: FollowUp) {
+  if (!f.directive) return null;
+  const unread = f.directive_unread ?? 0;
+  if (unread > 0) {
+    return f.directive_awaits_me
+      ? { icon: '🔔', hint: 'رسالة جديدة من الإدارة — اضغط للقراءة والردّ', tone: awaitChip, dot: true }
+      : { icon: '✅', hint: 'ردّ جديد في خيط التوجيه — اضغط لقراءته', tone: doneChip, dot: true };
+  }
+  if (f.directive_awaits_me) {
+    return { icon: '📣', hint: 'بانتظار ردّك — اضغط للردّ', tone: awaitChip, dot: false };
+  }
+
+  return f.directive.replied
+    ? { icon: '✅', hint: 'تم الرد — اضغط لعرض الخيط', tone: doneChip, dot: false }
+    : { icon: '📤', hint: 'تم الإرسال — بانتظار ردّ صاحب المتابعة', tone: sentChip, dot: false };
 }
 
 /**
@@ -65,16 +65,16 @@ interface BoardProps {
   onDirective?: (f: FollowUp) => void;
   /** يملك إرسال التوجيهات (الإدارة) — يرى الزرّ على كل البطاقات. */
   canSendDirective?: boolean;
-  /** فتح نافذة تعليقات المتابعة. */
-  onComments?: (f: FollowUp) => void;
 }
 
-export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, canSendDirective, onComments }: BoardProps) {
+export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, canSendDirective }: BoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   useEdgeAutoScroll(boardRef);
   // النقر على بطاقة المتابعة يفتح تفاصيلها (طلب أيمن 2026-08-25).
   const [detail, setDetail] = useState<FollowUp | null>(null);
-  const isMine = (f: FollowUp) => !!meId && f.creator?.id === meId;
+  // «متابعتي» = المكلَّف بها أنا؛ وبلا مكلَّف تبقى لمنشئها — نفس قاعدة الخادم
+  // في فلتر «متابعاتي فقط»، فلا يختلف معنى «لي» بين الفلتر والتمييز.
+  const isMine = (f: FollowUp) => !!meId && (f.assignee ? f.assignee.id === meId : f.creator?.id === meId);
   // لا نميّز إن كان المعروض متابعاتي وحدها — كلّها لي فلا شيء يُقارَن به.
   const markMine = !!highlightMine && !!meId;
   const directiveFor = (f: FollowUp) =>
@@ -102,13 +102,14 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                 const c = f.owner ? personColor(f.owner.id) : '#94A3B8';
                 const mine = markMine && isMine(f);
                 const muted = markMine && !isMine(f);
-                const newDirective = !!f.directive_is_new;
+                const unread = f.directive_unread ?? 0;
                 const badge = cardBadge(f);
-                const openComments = onComments;
+                const directive = f.directive ?? null;
+                const lastMessage = directive?.last_message ?? null;
                 return (
                   <div
                     key={f.id}
-                    className={`crm-lead-card${newDirective ? ' task-card-directive' : ''}${muted ? ' task-card-muted' : ''}`}
+                    className={`crm-lead-card${unread > 0 ? ' task-card-directive' : ''}${muted ? ' task-card-muted' : ''}`}
                     style={{ ...card, borderRight: `5px solid ${col.color}`, ...(mine ? mineRing : null) }}
                     onClick={() => setDetail(f)} title="فتح تفاصيل المتابعة">
                     <div style={topLine}>
@@ -119,7 +120,7 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                         <span style={lateBadge} title={`فاتت ${f.late_cycles} متابعة`}>↩ {f.late_cycles}</span>
                       )}
                       {f.repeat_every && (
-                        <span style={repeatBadge} title="متابعة دورية">🔁 {REPEAT_LABELS[f.repeat_every] ?? f.repeat_every}</span>
+                        <span style={repeatBadge} title="متابعة دورية">🔁 {repeatLabel(f.repeat_every)}</span>
                       )}
                     </div>
                     <div style={title}>{f.contact ?? 'عميل'}</div>
@@ -133,22 +134,40 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                       {f.remind_at && <span style={date}>📅 {f.remind_at.slice(0, 10)}</span>}
                     </div>
                     {f.note && <div style={note}>{f.note}</div>}
+                    {f.project && <div style={projectLine} title={f.project.name}>🏗️ {f.project.name}</div>}
 
-                    {/* آخر تعليق بنصّه وصاحبه وتاريخه — الضغط يفتح التعليقات. */}
-                    {f.last_comment && (
+                    {/* نصّ التوجيه ثم آخر ردّ عليه — كان الردّ يظهر وحده فيصل
+                        التوجيه الجديد بلا نصّ (طلب أيمن 2026-08-29). */}
+                    {directive && (
                       <div
-                        style={{ ...commentLine, ...((f.unread_comments ?? 0) > 0 ? commentLineNew : null) }}
-                        title={`${f.last_comment.user?.name ?? 'مستخدم'} · ${fullStamp(f.last_comment.created_at)}\n${f.last_comment.body}`}
-                        onClick={(e) => { e.stopPropagation(); openComments?.(f); }}
+                        style={directiveLine}
+                        title={`${directive.sender?.name ?? 'الإدارة'} · ${fullStamp(directive.created_at)}\n${directive.body}`}
+                        onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
                       >
-                        <span style={commentHead}>
-                          <span style={{ fontSize: '10px', lineHeight: 1 }}>💬</span>
-                          <b style={{ color: '#475569' }}>{f.last_comment.user ? shortName(f.last_comment.user.name) : 'مستخدم'}</b>
-                          <span style={commentDate}>{shortStamp(f.last_comment.created_at)}</span>
-                          {(f.unread_comments ?? 0) > 0 && <span style={commentNewTag}>جديد</span>}
-                          {(f.comments_count ?? 0) > 1 && <span style={commentMore}>+{(f.comments_count ?? 1) - 1}</span>}
+                        <span style={replyHead}>
+                          <span style={{ fontSize: '10px', lineHeight: 1 }}>📣</span>
+                          <b style={{ color: '#92400E' }}>{directive.sender ? shortName(directive.sender.name) : 'الإدارة'}</b>
+                          <span style={replyDate}>{shortStamp(directive.created_at)}</span>
+                          {!lastMessage && directiveFor(f) && <span style={replyMark} title="الردّ على هذا التوجيه">↩ ردّ</span>}
                         </span>
-                        <span style={commentBody}>{f.last_comment.body}</span>
+                        <span style={replyBody}>{directive.body}</span>
+                      </div>
+                    )}
+
+                    {lastMessage && (
+                      <div
+                        style={{ ...replyLine, ...(unread > 0 ? replyLineNew : null) }}
+                        title={`${lastMessage.user?.name ?? 'مستخدم'} · ${fullStamp(lastMessage.created_at)}\n${lastMessage.body}`}
+                        onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
+                      >
+                        <span style={replyHead}>
+                          <span style={{ fontSize: '10px', lineHeight: 1 }}>↩️</span>
+                          <b style={{ color: '#475569' }}>{lastMessage.user ? shortName(lastMessage.user.name) : 'مستخدم'}</b>
+                          <span style={replyDate}>{shortStamp(lastMessage.created_at)}</span>
+                          {unread > 0 && <span style={replyNewTag}>جديد</span>}
+                          {directiveFor(f) && <span style={replyMark} title="الردّ على هذه الرسالة">↩ ردّ</span>}
+                        </span>
+                        <span style={replyBody}>{lastMessage.body}</span>
                       </div>
                     )}
 
@@ -156,7 +175,7 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                       {badge && (
                         <button
                           type="button"
-                          className={newDirective ? 'directive-badge-new' : undefined}
+                          className={unread > 0 ? 'directive-badge-new' : undefined}
                           title={`${badge.hint}\n${f.directive?.sender?.name ?? 'الإدارة'}: ${f.directive?.body ?? ''}`}
                           aria-label={badge.hint}
                           disabled={!directiveFor(f)}
@@ -165,7 +184,7 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                         >
                           {badge.dot && <span style={dot}>●</span>}
                           {badge.icon}
-                          {(f.directives_count ?? 0) > 0 && <b>{f.directives_count}</b>}
+                          {(f.directive_messages_count ?? 0) > 0 && <b>{f.directive_messages_count}</b>}
                         </button>
                       )}
                       {directiveFor(f) && !f.directive && (
@@ -175,25 +194,6 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                           onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
                           style={directiveBtn}
                         >📣 توجيه</button>
-                      )}
-                      {openComments && (
-                        <button
-                          type="button"
-                          className={(f.unread_comments ?? 0) > 0 ? 'comment-badge-new' : undefined}
-                          title={
-                            (f.unread_comments ?? 0) > 0
-                              ? `${f.unread_comments} تعليق جديد — اضغط للقراءة · المجموع ${f.comments_count ?? 0}`
-                              : (f.comments_count ?? 0) > 0
-                                ? `${f.comments_count} تعليق — اضغط لفتح التعليقات`
-                                : 'لا تعليقات — اضغط لكتابة أول تعليق'
-                          }
-                          aria-label="تعليقات المتابعة"
-                          onClick={(e) => { e.stopPropagation(); openComments(f); }}
-                          style={{ ...commentBtn, ...((f.comments_count ?? 0) > 0 ? commentBtnOn : null), ...((f.unread_comments ?? 0) > 0 ? commentBtnNew : null) }}
-                        >
-                          {(f.unread_comments ?? 0) > 0 && <span style={dot}>●</span>}
-                          💬{(f.comments_count ?? 0) > 0 && <b style={{ marginInlineStart: '3px' }}>{f.comments_count}</b>}
-                        </button>
                       )}
                     </div>
                   </div>
@@ -224,10 +224,10 @@ const metaRow: CSSProperties = { display: 'flex', gap: '8px', flexWrap: 'wrap', 
 const ownerRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px' };
 const avatar: CSSProperties = { width: '18px', height: '18px', borderRadius: '50%', color: '#fff', fontSize: '8px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const date: CSSProperties = { fontSize: '9.5px', color: '#64748B', fontWeight: 700 };
+const projectLine: CSSProperties = { fontSize: '9.5px', color: '#64748B', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const note: CSSProperties = { fontSize: '10px', color: '#475569', background: '#F1F5F9', borderRadius: '7px', padding: '5px 9px', marginTop: '6px', lineHeight: 1.6 };
 // أنماط نشاط البطاقة مشتركة مع بطاقة المهمة — مصدر واحد كي لا يتباعد الشكلان.
 const {
   mineRing, mineTag, mineChip, chip, badgeBtn, dot, sentChip, awaitChip, doneChip,
-  directiveBtn, commentLine, commentLineNew, commentHead, commentDate, commentMore,
-  commentNewTag, commentBody, commentBtn, commentBtnOn, commentBtnNew, foot,
+  directiveBtn, directiveLine, replyLine, replyLineNew, replyHead, replyDate, replyNewTag, replyBody, replyMark, foot,
 } = CARD_ACTIVITY_STYLES;

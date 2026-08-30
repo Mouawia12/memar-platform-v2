@@ -23,10 +23,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/tasks/{task}/read', [TaskController::class, 'markRead'])->middleware('permission:tasks.view');
 
     // التوجيهات الإدارية على المهمة (طلب أيمن 2026-08-29): الإرسال للإدارة
-    // (tasks.delete كما في «توزيع المهام»)، والردّ للمكلَّف نفسه فيكفيه tasks.view.
+    // (tasks.delete كما في «توزيع المهام»)، والردّ ومتابعة الخيط لأطرافه فيكفيهم tasks.view.
     Route::get('/tasks/{task}/directives', [TaskController::class, 'directives'])->middleware('permission:tasks.view');
     Route::post('/tasks/{task}/directives', [TaskController::class, 'sendDirective'])->middleware('permission:tasks.delete');
-    Route::post('/tasks/{task}/directives/{directive}/reply', [TaskController::class, 'replyDirective'])->middleware('permission:tasks.view');
+    Route::post('/tasks/{task}/directives/{directive}/messages', [TaskController::class, 'addDirectiveMessage'])->middleware('permission:tasks.view');
 
     // صفحة التفاصيل: محادثة، مشاركون، ملفات، فيديو
     Route::get('/tasks/{task}/comments', [TaskController::class, 'comments'])->middleware('permission:tasks.view');

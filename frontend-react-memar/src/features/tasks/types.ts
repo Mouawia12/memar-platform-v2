@@ -8,16 +8,27 @@ export interface TaskRef {
   code?: string | null;
 }
 
-/** توجيه إداري على المهمة + ردّ الموظف عليه (طلب أيمن 2026-08-29). */
+/** رسالة في خيط التوجيه (ردّ، أو ردّ على ردّ). */
+export interface DirectiveMessage {
+  id: number;
+  body: string;
+  user: TaskRef | null;
+  created_at: string | null;
+}
+
+/**
+ * خيط توجيه: رأسه توجيه الإدارة، وتحته ردوده وردود ردوده
+ * (خيط مفتوح — طلب أيمن 2026-08-29).
+ */
 export interface TaskDirective {
   id: number;
   body: string;
   sender: TaskRef | null;
   created_at: string | null;
-  reply_body: string | null;
-  replier: TaskRef | null;
-  replied_at: string | null;
-  /** هل ردّ الموظف؟ يحسبها الخادم فلا تُشتقّ من التواريخ هنا. */
+  messages: DirectiveMessage[];
+  /** آخر رسالة في الخيط — هي ما تعرضه البطاقة. */
+  last_message: DirectiveMessage | null;
+  /** ردّ صاحب البطاقة مرّة واحدة على الأقل. */
   replied: boolean;
 }
 
@@ -29,28 +40,25 @@ export interface Task {
   priority: TaskPriority;
   /** نسبة الإنجاز 0–100 — تظهر كشريط تقدّم على البطاقة. */
   progress: number;
+  /** صاحب آخر تعديل لنسبة الإنجاز ووقته — يضبطهما الخادم. */
+  progress_by?: TaskRef | null;
+  progress_at?: string | null;
   due_date: string | null;
   project: TaskRef | null;
   assignee: TaskRef | null;
   comments_count?: number;
-  /** تعليقات جديدة لم يقرأها المستخدم الحالي — تُنبّه أيقونة 💬 على بطاقته. */
-  unread_comments?: number;
-  /** آخر تعليق في المحادثة — يظهر بنصّه وصاحبه وتاريخه على البطاقة. */
-  last_comment?: { id: number; body: string; user: TaskRef | null; created_at: string | null } | null;
   updated_at?: string | null;
   created_at: string | null;
   /** جرس «نشاط جديد» خاص بالمستخدم الحالي — يختفي عند التعليم كمقروء. */
   has_unread?: boolean;
-  /** آخر توجيه إداري على المهمة — منه تُقرأ حالة البطاقة («بانتظار الرد»/«تم الرد»). */
+  /** آخر خيط توجيه — منه تُقرأ شارة البطاقة وآخر رسالة عليها. */
   directive?: TaskDirective | null;
-  /** عدد رسائل التوجيه على المهمة — الرقم داخل شارة البطاقة. */
-  directives_count?: number;
-  /** ردود لم يطّلع عليها مُرسِلها بعد — تظهر «✅ تم الرد» على بطاقته وحده. */
-  directives_replied_unseen?: number;
-  /** آخر توجيه ينتظر ردّي أنا (المكلَّف بالمهمة). */
+  /** مجموع رسائل الخيوط (الرؤوس + الردود) — الرقم داخل الشارة. */
+  directive_messages_count?: number;
+  /** رسائل لم أرَها أنا — النقطة الحمراء ووميض البطاقة. */
+  directive_unread?: number;
+  /** أنا صاحب البطاقة وآخر رسالة ليست منّي → الدور دوري. */
   directive_awaits_me?: boolean;
-  /** توجيه وصلني ولم أفتحه بعد — تُنبّه البطاقة حتى أطّلع عليه. */
-  directive_is_new?: boolean;
 }
 
 /** حركة في سجل تعديلات المهمة (اجتماع 2026-08-05). */

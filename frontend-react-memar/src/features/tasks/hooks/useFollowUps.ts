@@ -20,7 +20,7 @@ export function useCreateFollowUp() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ contactId, ...payload }: { contactId: number; remind_at: string; note?: string; repeat_every?: string }) =>
+    mutationFn: ({ contactId, ...payload }: { contactId: number; remind_at: string; note?: string; description?: string; repeat_every?: string; project_id?: number; assignee_id?: number }) =>
       crmApi.addReminder(contactId, payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['crm-follow-ups'] }); qc.invalidateQueries({ queryKey: ['crm-leads'] }); },
   });
@@ -30,7 +30,7 @@ export function useCreateFollowUp() {
 export function useUpdateFollowUp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...payload }: { id: number; done?: boolean; remind_at?: string; repeat_every?: string | null }) => followUpsApi.update(id, payload),
+    mutationFn: ({ id, ...payload }: { id: number; done?: boolean; remind_at?: string; note?: string; description?: string | null; repeat_every?: string | null; project_id?: number | null; assignee_id?: number | null }) => followUpsApi.update(id, payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['crm-follow-ups'] }); qc.invalidateQueries({ queryKey: ['crm-leads'] }); },
   });
 }

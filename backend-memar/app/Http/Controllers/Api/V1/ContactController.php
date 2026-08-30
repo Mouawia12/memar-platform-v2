@@ -15,7 +15,6 @@ use App\Services\CardActivityService;
 use App\Services\ContactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class ContactController extends ApiController
 {
@@ -128,13 +127,20 @@ class ContactController extends ApiController
         $me = $request->user()?->id;
 
         $items = $this->activity->withCardActivity(
-            LeadReminder::query()->with(['contact:id,full_name,owner_id', 'contact.owner:id,name', 'creator:id,name']),
+            LeadReminder::query()->with(['contact:id,full_name,owner_id', 'contact.owner:id,name', 'creator:id,name', 'assignee:id,name', 'project:id,name,code']),
             $me,
             LeadReminder::class,
         )
             ->whereHas('contact')
-            // «متابعاتي» = ما أنشأتُه — وهو نفسه صاحب البطاقة في شارات التوجيه
-            ->when($request->boolean('mine'), fn ($q) => $q->where('created_by', $me))
+            /*
+             * «متابعاتي» = المكلَّف بها أنا؛ ومتابعة بلا مكلَّف تبقى لمنشئها
+             * (متابعات سُجّلت قبل حقل المكلَّف). وهو نفسه صاحب البطاقة في شارات
+             * التوجيه، فلا يختلف معنى «لي» بين الفلتر والتمييز.
+             */
+            ->when($request->boolean('mine'), fn ($q) => $q->where(
+                fn ($w) => $w->where('assignee_id', $me)
+                    ->orWhere(fn ($n) => $n->whereNull('assignee_id')->where('created_by', $me)),
+            ))
             ->orderBy('remind_at')
             ->limit(300)
             ->get()
@@ -162,13 +168,23 @@ class ContactController extends ApiController
         $data = $request->validate([
             'remind_at' => ['required', 'date'],
             'note' => ['nullable', 'string', 'max:255'],
-            'repeat_every' => ['nullable', Rule::in(array_keys(LeadReminder::REPEATS))],
+            'description' => ['nullable', 'string', 'max:5000'],
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'repeat_every' => ['nullable', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! LeadReminder::isValidRepeat(is_string($value) ? $value : null)) {
+                    $fail('دورية التكرار غير صالحة — اختر عددًا ووحدة (يوم/أسبوع/شهر) ضمن الحدّ المسموح.');
+                }
+            }],
         ]);
 
         $reminder = $contact->reminders()->create([
             'remind_at' => $data['remind_at'],
             'note' => $data['note'] ?? null,
+            'description' => $data['description'] ?? null,
             'repeat_every' => $data['repeat_every'] ?? null,
+            'project_id' => $data['project_id'] ?? null,
+            'assignee_id' => $data['assignee_id'] ?? null,
             'created_by' => $request->user()?->id,
         ]);
 
@@ -186,7 +202,14 @@ class ContactController extends ApiController
             'done' => ['sometimes', 'boolean'],
             'remind_at' => ['sometimes', 'date'],
             'note' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'repeat_every' => ['sometimes', 'nullable', Rule::in(array_keys(LeadReminder::REPEATS))],
+            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'project_id' => ['sometimes', 'nullable', 'integer', 'exists:projects,id'],
+            'assignee_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'repeat_every' => ['sometimes', 'nullable', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! LeadReminder::isValidRepeat(is_string($value) ? $value : null)) {
+                    $fail('دورية التكرار غير صالحة — اختر عددًا ووحدة (يوم/أسبوع/شهر) ضمن الحدّ المسموح.');
+                }
+            }],
         ]);
 
         // بلا حمولة = تبديل الحالة (السلوك القديم الذي تعتمده قائمة التذكيرات).
@@ -197,12 +220,17 @@ class ContactController extends ApiController
         // فتبقى المتابعة مستمرّة كما هي طبيعتها (طلب أيمن 2026-08-25).
         $rescheduled = false;
         if ($reminder->done && $reminder->repeat_every !== null) {
-            $days = LeadReminder::REPEATS[$reminder->repeat_every] ?? null;
-            if ($days !== null) {
+            // من اليوم لا من الموعد الفائت، كي لا تُولد متأخّرة.
+            $next = LeadReminder::nextOccurrence($reminder->repeat_every, now());
+            if ($next !== null) {
+                /*
+                 * التوقيت الذي اختاره المستخدم يُحفظ كما هو (طلب أيمن 2026-08-30):
+                 * كان الموعد التالي يُثبَّت على 10:00 فتضيع ساعة المتابعة المختارة.
+                 */
+                $at = $reminder->remind_at;
                 $reminder->update([
                     'done' => false,
-                    // من اليوم لا من الموعد الفائت، كي لا تُولد متأخّرة.
-                    'remind_at' => now()->addDays($days)->setTime(10, 0),
+                    'remind_at' => $at !== null ? $next->copy()->setTime($at->hour, $at->minute) : $next,
                 ]);
                 $reminder->refresh();
                 $rescheduled = true;
@@ -234,7 +262,7 @@ class ContactController extends ApiController
             return 0;
         }
 
-        $days = LeadReminder::REPEATS[$r->repeat_every] ?? null;
+        $days = LeadReminder::repeatDays($r->repeat_every);
         if ($days === null) {
             return 1;
         }
@@ -248,9 +276,12 @@ class ContactController extends ApiController
             'id' => $r->id,
             'remind_at' => $r->remind_at?->toIso8601String(),
             'note' => $r->note,
+            'description' => $r->description,
             'done' => $r->done,
             'due' => ! $r->done && $r->remind_at !== null && $r->remind_at->isPast(),
             'repeat_every' => $r->repeat_every,
+            'project_id' => $r->project_id,
+            'assignee_id' => $r->assignee_id,
             'late_cycles' => $this->lateCycles($r),
             'creator' => $r->creator?->name,
         ];

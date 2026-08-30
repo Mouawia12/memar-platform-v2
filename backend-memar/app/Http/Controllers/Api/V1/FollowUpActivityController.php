@@ -24,12 +24,15 @@ class FollowUpActivityController extends ApiController
     /** خيط التوجيهات — وفتحُه اطّلاعٌ لصاحب البطاقة وللمُرسِل كلٌّ بدوره. */
     public function directives(Request $request, LeadReminder $reminder): JsonResponse
     {
-        $thread = DirectiveResource::collection($this->activity->directives($reminder));
-        $userId = $request->user()?->id;
-        $this->activity->markDirectivesSeen($reminder, $userId);
-        $this->activity->markRepliesSeen($reminder, $userId);
+        $thread = $this->activity->directives($reminder)->map(function ($d) use ($reminder) {
+            $res = new DirectiveResource($d);
+            $res->ownerId = $reminder->activityOwnerId();
 
-        return $this->ok($thread);
+            return $res;
+        });
+        $this->activity->markDirectivesSeen($reminder, $request->user()?->id);
+
+        return $this->ok(DirectiveResource::collection($thread));
     }
 
     /** توجيه جديد من الإدارة على المتابعة. */
@@ -43,26 +46,26 @@ class FollowUpActivityController extends ApiController
         );
     }
 
-    /** الردّ حقّ صاحب المتابعة (منشئها) وحده، ومرّة واحدة لكل توجيه. */
-    public function replyDirective(Request $request, LeadReminder $reminder, Directive $directive): JsonResponse
+    /** رسالة في خيط التوجيه — لصاحب المتابعة، أو للمُرسِل، أو للإدارة. */
+    public function addDirectiveMessage(Request $request, LeadReminder $reminder, Directive $directive): JsonResponse
     {
         if ($directive->subject_type !== LeadReminder::class || $directive->subject_id !== $reminder->id) {
             return $this->fail('التوجيه لا يخصّ هذه المتابعة', 404);
         }
 
         $userId = (int) $request->user()?->id;
-        if ($reminder->created_by !== $userId) {
-            return $this->fail('الردّ على التوجيه لصاحب المتابعة', 403);
-        }
+        $allowed = $reminder->created_by === $userId
+            || $directive->sender_id === $userId
+            || $request->user()?->can('crm.delete');
 
-        if ($directive->isReplied()) {
-            return $this->fail('تمّ الردّ على هذا التوجيه من قبل', 422);
+        if (! $allowed) {
+            return $this->fail('المشاركة في خيط التوجيه لأطرافه', 403);
         }
 
         $data = $request->validate(['body' => ['required', 'string', 'max:1000']]);
 
-        return $this->ok(
-            new DirectiveResource($this->activity->replyDirective($directive, $data['body'], $userId)),
+        return $this->created(
+            new CommentResource($this->activity->addDirectiveMessage($directive, $data['body'], $userId)),
             'تم إرسال الردّ',
         );
     }

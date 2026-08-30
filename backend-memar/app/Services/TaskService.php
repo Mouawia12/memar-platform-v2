@@ -34,7 +34,7 @@ class TaskService
                 ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
                 ->when($projectId, fn ($q, int $id) => $q->where('project_id', $id))
                 ->when($assigneeId, fn ($q, int $id) => $q->where('assignee_id', $id))
-                ->with(['project', 'assignee']),
+                ->with(['project', 'assignee', 'progressBy']),
             $userId,
             Task::class,
         )
@@ -97,7 +97,7 @@ class TaskService
     public function detail(Task $task): Task
     {
         return $task->load([
-            'project:id,name', 'assignee:id,name', 'creator:id,name',
+            'project:id,name', 'assignee:id,name', 'creator:id,name', 'progressBy:id,name',
             'participants:id,name', 'comments.user:id,name', 'files',
             // سجل التعديلات (اجتماع 2026-08-05): آخر 20 حركة من سجل النشاط.
             'activities' => fn ($q) => $q->with('causer:id,name')->latest()->limit(20),
@@ -157,11 +157,21 @@ class TaskService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(Task $task, array $data): Task
+    public function update(Task $task, array $data, ?int $actorId = null): Task
     {
+        // تسجيل صاحب تعديل النسبة ووقته — عند تغيّرها فعلًا لا عند كل حفظ،
+        // وإلّا نُسب التعديل لمن غيّر العنوان وحده. القيمتان من الجلسة لا من
+        // الطلب، فتُكتبان بـ forceFill خارج $fillable منعًا للانتحال.
+        if (array_key_exists('progress', $data) && $actorId !== null) {
+            $next = (int) ($data['progress'] ?? 0);
+            if ($next !== (int) $task->progress) {
+                $task->forceFill(['progress_by' => $actorId, 'progress_at' => now()]);
+            }
+        }
+
         $task->update($data);
 
-        return $task->load(['project', 'assignee']);
+        return $task->load(['project', 'assignee', 'progressBy']);
     }
 
     public function delete(Task $task): void

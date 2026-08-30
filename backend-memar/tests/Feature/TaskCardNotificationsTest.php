@@ -41,7 +41,7 @@ class TaskCardNotificationsTest extends TestCase
         $this->assertSame(1, $row['count']);
 
         // بعد الردّ يختفي البند
-        $this->postJson("/api/v1/tasks/{$task->id}/directives/{$id}/reply", ['body' => 'تمّ'])->assertOk();
+        $this->postJson("/api/v1/tasks/{$task->id}/directives/{$id}/messages", ['body' => 'تمّ'])->assertCreated();
         $this->assertNotContains('توجيهات بانتظار ردّك', $this->titles());
     }
 
@@ -54,7 +54,7 @@ class TaskCardNotificationsTest extends TestCase
 
         $employee->givePermissionTo('tasks.view');
         $this->actingAs($employee);
-        $this->postJson("/api/v1/tasks/{$task->id}/directives/{$id}/reply", ['body' => 'تمّ'])->assertOk();
+        $this->postJson("/api/v1/tasks/{$task->id}/directives/{$id}/messages", ['body' => 'تمّ'])->assertCreated();
         $this->assertNotContains('ردود على توجيهاتك', $this->titles()); // الردّ ردّه هو
 
         $this->actingAs($admin);

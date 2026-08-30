@@ -92,14 +92,17 @@ class TaskController extends ApiController
      */
     public function directives(Request $request, Task $task): JsonResponse
     {
-        $thread = DirectiveResource::collection($this->activity->directives($task));
-        // فتح الخيط اطّلاعٌ — بعد قراءته كي تظهر الحالة السابقة في هذه الاستجابة:
-        // المكلَّف يُطفئ وميض «توجيه جديد»، والمُرسِل يُطفئ شارة «تم الرد».
+        $thread = $this->activity->directives($task)->map(function ($d) use ($task) {
+            $res = new DirectiveResource($d);
+            $res->ownerId = $task->activityOwnerId();
+
+            return $res;
+        });
+        // فتح الخيط اطّلاعٌ — بعد قراءته كي تظهر الحالة السابقة في هذه الاستجابة
         $userId = $request->user()?->id;
         $this->activity->markDirectivesSeen($task, $userId);
-        $this->activity->markRepliesSeen($task, $userId);
 
-        return $this->ok($thread);
+        return $this->ok(DirectiveResource::collection($thread));
     }
 
     /** توجيه جديد من الإدارة على المهمة («أنجزها بسرعة»…). */
@@ -112,10 +115,10 @@ class TaskController extends ApiController
     }
 
     /**
-     * ردّ الموظف على توجيه. الردّ حقّ المكلَّف أو أحد المشاركين وحدهم — لا يردّ
-     * أحد نيابةً عن غيره. والتوجيه المردود عليه لا يُردّ عليه ثانيةً.
+     * رسالة في خيط التوجيه: ردّ المكلَّف، أو ردّ المُرسِل على ردّه، أو تعقيب من
+     * الإدارة. الخيط مفتوح، وأطرافه: صاحب البطاقة ومشاركوها ومَن يوجّه إليها.
      */
-    public function replyDirective(Request $request, Task $task, Directive $directive): JsonResponse
+    public function addDirectiveMessage(Request $request, Task $task, Directive $directive): JsonResponse
     {
         if ($directive->subject_type !== Task::class || $directive->subject_id !== $task->id) {
             return $this->fail('التوجيه لا يخصّ هذه المهمة', 404);
@@ -123,25 +126,23 @@ class TaskController extends ApiController
 
         $userId = (int) $request->user()?->id;
         $allowed = $task->assignee_id === $userId
+            || $directive->sender_id === $userId
+            || $request->user()?->can('tasks.delete')
             || $task->participants()->where('users.id', $userId)->exists();
 
         if (! $allowed) {
-            return $this->fail('الردّ على التوجيه للمكلَّف بالمهمة أو المشاركين فيها', 403);
-        }
-
-        if ($directive->isReplied()) {
-            return $this->fail('تمّ الردّ على هذا التوجيه من قبل', 422);
+            return $this->fail('المشاركة في خيط التوجيه لأطرافه', 403);
         }
 
         $data = $request->validate(['body' => ['required', 'string', 'max:1000']]);
 
-        return $this->ok(
-            new DirectiveResource($this->activity->replyDirective($directive, $data['body'], $userId)),
+        return $this->created(
+            new CommentResource($this->activity->addDirectiveMessage($directive, $data['body'], $userId)),
             'تم إرسال الردّ',
         );
     }
 
-    /** مزامنة مشاركي المهمة (المجموعة). */
+    /** مزامنة مشاركي المهمة (المجموعة). */ /** مزامنة مشاركي المهمة (المجموعة). */
     public function syncParticipants(Request $request, Task $task): JsonResponse
     {
         $data = $request->validate([
@@ -183,7 +184,7 @@ class TaskController extends ApiController
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse
     {
-        $task = $this->tasks->update($task, $request->validated());
+        $task = $this->tasks->update($task, $request->validated(), $request->user()?->id);
 
         return $this->ok(new TaskResource($task), 'تم تحديث المهمة');
     }

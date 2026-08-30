@@ -9,13 +9,12 @@ import { FollowUpFormModal } from '../components/FollowUpFormModal';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
 import { useFollowUps } from '../hooks/useFollowUps';
 import { useTaskAlertAcks } from '../taskAlerts';
-import { CommentsModal } from '../components/CommentsModal';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 import type { CardRef } from '../hooks/useCardActivity';
 import type { FollowUp } from '../api/followUpsApi';
 import { DirectiveModal } from '../components/DirectiveModal';
 import { TaskFormModal } from '../components/TaskFormModal';
-import { useDeleteTask, useMoveTask, useTasks, useToggleTask, useWorkload } from '../hooks/useTasks';
+import { useDeleteTask, useMoveTask, useTasks, useToggleTask, useUpdateProgress, useWorkload } from '../hooks/useTasks';
 import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
 
 /**
@@ -37,10 +36,8 @@ export function TasksPage() {
   const [detail, setDetail] = useState<Task | null>(null);
   const [confirming, setConfirming] = useState<Task | null>(null); // تأكيد الإكمال قبل النقل لـ«مكتملة»
   const [directiveOf, setDirectiveOf] = useState<Task | null>(null); // نافذة توجيهات الإدارة (طلب أيمن 2026-08-29)
-  const [commentsOf, setCommentsOf] = useState<Task | null>(null); // نافذة تعليقات المهمة
   const [fupFormOpen, setFupFormOpen] = useState(false); // نافذة «متابعة جديدة» (طلب أيمن 2026-08-29)
   const [fupDirectiveOf, setFupDirectiveOf] = useState<FollowUp | null>(null); // توجيهات متابعة
-  const [fupCommentsOf, setFupCommentsOf] = useState<FollowUp | null>(null); // تعليقات متابعة
   // نطاق كل لوحة على حدة: الكل أو ما يخصّني (طلب أيمن 2026-08-24).
   // null = لم يختر المستخدم بعد، فيسري افتراض دوره أدناه. حفظُه كـ null لا كقيمة
   // محسوبة عند أول رسم يجعله يصحّ حتى لو وصلت الصلاحيات بعد الرسم الأول.
@@ -51,18 +48,17 @@ export function TasksPage() {
   const [fupRange, setFupRange] = useState<DateRange>(EMPTY_RANGE);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const meId = useAuthStore((st) => st.user?.id);
-  // الموظف يفتح الصفحة على «مهامي فقط» فيرى شغله أولًا، والإدارة على «الكل»
-  // لأن مهمّتها متابعة الفريق كلّه (طلب أيمن 2026-08-29). و«جميع المهام» يبقى
-  // خيارًا بضغطة واحدة لمن أراد.
-  const defaultScope: 'all' | 'mine' = canDelete ? 'all' : 'mine';
+  // الجميع يفتحون الصفحة على «مهامي فقط» — الإدارة كذلك (طلب أيمن 2026-08-29،
+  // يلغي التمييز حسب الدور الذي كان يفتح للإدارة على «الكل»). فمَن يفتح الصفحة
+  // يبدأ بشغله هو، و«جميع المهام» بضغطة واحدة ومهامه فيها مميّزة. وترتيب الزرّين
+  // يتبع ذلك: الافتراضي أوّلًا (يمينًا في RTL) والأشمل بعده.
+  const defaultScope: 'all' | 'mine' = 'mine';
   const effTaskScope = taskScope ?? defaultScope;
   const effFupScope = fupScope ?? defaultScope;
   // إطفاء وميض التأخّر بطريقتين (طلب أيمن 2026-08-25): زرّ 🔕 على البطاقة،
   // أو فتح المهمة نفسها — فكلاهما يعني أن الموظف اطّلع على تأخّرها.
   const { isAcked, ack } = useTaskAlertAcks();
   const openTask = (t: Task) => { ack(t); setDetail(t); };
-  // أيقونة 💬 تفتح نافذة التعليقات وحدها — لا تفاصيل المهمة (طلب أيمن 2026-08-29).
-  const openComments = (t: Task) => { ack(t); setCommentsOf(t); };
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
@@ -72,6 +68,7 @@ export function TasksPage() {
   const move = useMoveTask();
   const toggle = useToggleTask();
   const del = useDeleteTask();
+  const progress = useUpdateProgress();
 
   const kpis = useMemo(() => {
     const list = tasks ?? [];
@@ -158,8 +155,8 @@ export function TasksPage() {
       <div style={hintLine}>💡 اسحب أي بطاقة وأفلتها في عمود آخر لتغيير مرحلتها، أو اضغط عليها لعرض التفاصيل الكاملة.</div>
 
       <div style={scopeRow}>
-        <button type="button" onClick={() => setTaskScope('all')} style={{ ...scopeBtn, ...(effTaskScope === 'all' ? scopeOn : null) }}>جميع المهام</button>
         <button type="button" onClick={() => setTaskScope('mine')} style={{ ...scopeBtn, ...(effTaskScope === 'mine' ? scopeOn : null) }}>مهامي فقط</button>
+        <button type="button" onClick={() => setTaskScope('all')} style={{ ...scopeBtn, ...(effTaskScope === 'all' ? scopeOn : null) }}>جميع المهام</button>
         {effTaskScope === 'all' && meId && <span style={legend} title="بطاقاتك محاطة بإطار أزرق وعليها وسم «مهمتي»">🔷 مهامي مميّزة</span>}
       </div>
 
@@ -176,9 +173,9 @@ export function TasksPage() {
           onMove={(t, status) => handleMove(t, { status })}
           meId={meId}
           highlightMine={effTaskScope === 'all'}
+          onProgress={canManage ? (t, pct) => progress.mutate({ id: t.id, progress: pct }) : undefined}
           onDirective={setDirectiveOf}
           canSendDirective={canDelete}
-          onComments={openComments}
         />
       )}
 
@@ -196,8 +193,8 @@ export function TasksPage() {
       </div>
 
       <div style={scopeRow}>
-        <button type="button" onClick={() => setFupScope('all')} style={{ ...scopeBtn, ...(effFupScope === 'all' ? scopeOn : null) }}>جميع المتابعات</button>
         <button type="button" onClick={() => setFupScope('mine')} style={{ ...scopeBtn, ...(effFupScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
+        <button type="button" onClick={() => setFupScope('all')} style={{ ...scopeBtn, ...(effFupScope === 'all' ? scopeOn : null) }}>جميع المتابعات</button>
       </div>
 
       <DateRangeFilter value={fupRange} onChange={setFupRange} shown={boardFollowUps.length} total={scopedFollowUps.length} />
@@ -208,7 +205,6 @@ export function TasksPage() {
         highlightMine={effFupScope === 'all'}
         onDirective={setFupDirectiveOf}
         canSendDirective={canSendFupDirective}
-        onComments={setFupCommentsOf}
       />
 
       {/* ══ توزيع المهام على الفريق ══ */}
@@ -266,18 +262,11 @@ export function TasksPage() {
         />
       )}
 
-      {/* تعليقات المهمة — نافذة مستقلّة تُفتح من أيقونة 💬 على البطاقة */}
-      {commentsOf && (
-        <CommentsModal card={taskCard(commentsOf)} canComment={canManage} onClose={() => setCommentsOf(null)} />
-      )}
-      {fupCommentsOf && (
-        <CommentsModal card={fupCard(fupCommentsOf)} canComment={canAddFollowUp} onClose={() => setFupCommentsOf(null)} />
-      )}
       {fupDirectiveOf && (
         <DirectiveModal
           card={fupCard(fupDirectiveOf)}
           canSend={canSendFupDirective}
-          canReply={fupDirectiveOf.creator?.id === meId}
+          canReply={fupDirectiveOf.creator?.id === meId || fupDirectiveOf.directive?.sender?.id === meId || canSendFupDirective}
           onClose={() => setFupDirectiveOf(null)}
         />
       )}
@@ -287,7 +276,7 @@ export function TasksPage() {
         <DirectiveModal
           card={taskCard(directiveOf)}
           canSend={canDelete}
-          canReply={directiveOf.assignee?.id === meId}
+          canReply={directiveOf.assignee?.id === meId || directiveOf.directive?.sender?.id === meId || canDelete}
           onClose={() => setDirectiveOf(null)}
         />
       )}

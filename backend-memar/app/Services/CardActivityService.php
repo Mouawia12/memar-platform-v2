@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\ActivityRead;
 use App\Models\Comment;
 use App\Models\Directive;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,52 +27,40 @@ class CardActivityService
     }
 
     /**
-     * ردّ صاحب البطاقة على توجيه. الردّ يُكتب مرّة واحدة كي تبقى «تم الرد»
-     * ختمًا لا يتبدّل.
+     * رسالة في خيط التوجيه — ردّ صاحب البطاقة، أو ردّ المدير على ردّه، أو أيّ
+     * تعقيب بعده. الخيط مفتوح فلا يُغلق بعد أوّل ردّ (طلب أيمن 2026-08-29).
      */
-    public function replyDirective(Directive $directive, string $body, ?int $userId): Directive
+    public function addDirectiveMessage(Directive $directive, string $body, ?int $userId): Comment
     {
-        $directive->update(['reply_body' => $body, 'replied_by' => $userId, 'replied_at' => now()]);
+        $message = $directive->messages()->create(['user_id' => $userId, 'body' => $body]);
+        // الرسالة تُحدّث التوجيه، والتوجيه يُحدّث البطاقة → جرس النشاط يصحّ
+        $directive->touch();
 
-        return $directive->load(['sender:id,name', 'replier:id,name']);
+        return $message->load('user:id,name');
     }
 
-    /** سجلّ التوجيهات (الأحدث أولًا) — خيط التوجيه داخل النافذة. */
+    /** سجلّ التوجيهات بخيوطها (الأحدث أولًا). */
     public function directives(Model $subject): Collection
     {
-        return $subject->directives()->with(['sender:id,name', 'replier:id,name'])->get();
+        return $subject->directives()->with(['sender:id,name', 'messages.user:id,name'])->get();
     }
 
     /**
-     * يعلّم التوجيهات كمرئية لصاحب البطاقة — فتح الخيط يُطفئ وميض «توجيه جديد»
-     * عن بطاقته. لا يُعلّم أحدٌ غيره: مرور مديرٍ على الخيط ليس اطّلاعًا منه.
+     * يعلّم خيوط البطاقة كمقروءة لهذا المستخدم — فتح النافذة هو الاطّلاع نفسه،
+     * وينطفئ به عدّاد «جديد» عنده وحده مهما تعدّد أطراف الخيط.
      */
     public function markDirectivesSeen(Model $subject, ?int $userId): void
-    {
-        if ($userId === null || $subject->activityOwnerId() !== $userId) {
-            return;
-        }
-
-        $subject->directives()
-            ->where('sender_id', '!=', $userId)
-            ->whereNull('seen_at')
-            ->update(['seen_at' => now()]);
-    }
-
-    /**
-     * يعلّم ردود توجيهاتي أنا كمرئية — فتنطفئ شارة «تم الرد» عن بطاقتي وحدي.
-     */
-    public function markRepliesSeen(Model $subject, ?int $userId): void
     {
         if ($userId === null) {
             return;
         }
 
-        $subject->directives()
-            ->where('sender_id', $userId)
-            ->whereNotNull('replied_at')
-            ->whereNull('reply_seen_at')
-            ->update(['reply_seen_at' => now()]);
+        foreach ($subject->directives()->pluck('id') as $directiveId) {
+            ActivityRead::updateOrCreate(
+                ['subject_type' => Directive::class, 'subject_id' => $directiveId, 'user_id' => $userId],
+                ['read_at' => now()],
+            );
+        }
     }
 
     /** تعليقات البطاقة بترتيب المحادثة. */
@@ -101,17 +90,18 @@ class CardActivityService
     public function withCardActivity(Builder $query, ?int $userId, string $subjectType): Builder
     {
         return $query
-            ->with(['latestDirective.sender:id,name', 'latestComment.user:id,name'])
+            ->with([
+                'latestComment.user:id,name',
+                // الخيوط كاملةً + قراءتي عليها: منها تُحسب شارة البطاقة وعدّاد الجديد
+                'directives.sender:id,name',
+                'directives.messages.user:id,name',
+                'directives.reads' => fn ($q) => $q->where('user_id', $userId),
+            ])
             // قراءة المستخدم الحالي وحده — لحساب جرس «غير مقروء» لكل مستخدم على حدة
             ->with(['reads' => fn ($q) => $q->where('user_id', $userId)])
             ->withCount([
                 'comments',
                 'directives',
-                // ردود على توجيهاتي لم أطّلع عليها بعد
-                'directives as replied_unseen_count' => fn ($q) => $q
-                    ->where('sender_id', $userId)
-                    ->whereNotNull('replied_at')
-                    ->whereNull('reply_seen_at'),
                 /*
                  * تعليقات جديدة لم أقرأها: ليست من كتابتي، وتاريخها بعد آخر مرّة
                  * علّمتُ فيها البطاقة كمقروءة. بلا سطر قراءة → كلّها جديدة.

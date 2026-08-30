@@ -53,7 +53,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
      */
     Route::get('/follow-ups/{reminder}/directives', [FollowUpActivityController::class, 'directives'])->middleware('permission:crm.view');
     Route::post('/follow-ups/{reminder}/directives', [FollowUpActivityController::class, 'sendDirective'])->middleware('permission:crm.delete');
-    Route::post('/follow-ups/{reminder}/directives/{directive}/reply', [FollowUpActivityController::class, 'replyDirective'])->middleware('permission:crm.view');
+    Route::post('/follow-ups/{reminder}/directives/{directive}/messages', [FollowUpActivityController::class, 'addDirectiveMessage'])->middleware('permission:crm.view');
     Route::get('/follow-ups/{reminder}/comments', [FollowUpActivityController::class, 'comments'])->middleware('permission:crm.view');
     Route::post('/follow-ups/{reminder}/comments', [FollowUpActivityController::class, 'addComment'])->middleware('permission:crm.manage');
     Route::delete('/reminders/{reminder}', [ContactController::class, 'deleteReminder'])->middleware('permission:crm.manage');

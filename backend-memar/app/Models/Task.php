@@ -31,6 +31,7 @@ class Task extends Model
     {
         return [
             'due_date' => 'date',
+            'progress_at' => 'datetime',
         ];
     }
 
@@ -47,6 +48,12 @@ class Task extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** صاحب آخر تعديل لنسبة الإنجاز (يضبطه الخادم، ليس في $fillable). */
+    public function progressBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'progress_by');
     }
 
     /** المشاركون (مجموعة العمل على المهمة). */

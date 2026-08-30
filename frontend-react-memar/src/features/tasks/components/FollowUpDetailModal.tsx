@@ -1,5 +1,6 @@
 import { type CSSProperties, type ReactNode, useState } from 'react';
 
+import { RepeatPicker } from './RepeatPicker';
 import { personColor, personInitials, shortName } from '../../crm/types';
 import type { FollowUp } from '../api/followUpsApi';
 import { useDeleteFollowUp, useUpdateFollowUp } from '../hooks/useFollowUps';
@@ -21,14 +22,6 @@ function currentStage(f: FollowUp): string {
 
   return 'مجدولة';
 }
-
-/** دوريّات المتابعة — المتابعات غالبًا دورية لا مرّة واحدة. */
-const REPEATS: { key: string; label: string }[] = [
-  { key: '', label: 'بلا تكرار' },
-  { key: '3d', label: 'كل 3 أيام' },
-  { key: 'week', label: 'أسبوعيًا' },
-  { key: 'month', label: 'شهريًا' },
-];
 
 /** خيارات النقل — الأعمدة مشتقّة من الموعد والحالة، فالنقل يضبطهما. */
 const MOVES: { key: string; label: string }[] = [
@@ -94,20 +87,18 @@ export function FollowUpDetailModal({ item, onClose }: Props) {
 
           <div style={{ marginTop: '10px' }}>
             <div style={moveLabel}>تكرار المتابعة</div>
-            <select
-              className="input"
+            {/* دورية حرّة بعدد الأيام بدل قائمة ثابتة (طلب أيمن 2026-08-29). */}
+            <RepeatPicker
               value={item.repeat_every ?? ''}
-              onChange={(e) => update.mutate({ id: item.id, repeat_every: e.target.value || null })}
-              disabled={update.isPending}
-            >
-              {REPEATS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
-            </select>
+              onChange={(v) => update.mutate({ id: item.id, repeat_every: v || null })}
+            />
             <div style={hint}>
               عند إنجاز متابعة متكرّرة يُجدول موعدها التالي تلقائيًا، فتبقى المتابعة مستمرّة.
             </div>
           </div>
 
-          <Row label="ملاحظات" value={item.note?.trim() || 'لا ملاحظات'} wide />
+          <Row label="العنوان" value={item.note?.trim() || '—'} wide />
+          {item.description?.trim() && <Row label="الوصف" value={item.description.trim()} wide />}
 
           <div style={{ marginTop: '12px' }}>
             <div style={moveLabel}>نقل إلى مرحلة أخرى</div>

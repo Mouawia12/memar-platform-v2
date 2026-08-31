@@ -7,9 +7,10 @@ import { useLiveSync } from '../../../hooks/useLiveSync';
 import { apiPatch } from '../../../lib/api';
 import { useLogout } from '../../auth/hooks/useAuth';
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useLeads } from '../../crm/hooks/useCrm';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
 import { clientAccountCode, type StaffClientProfile } from '../api/clientPortalApi';
-import { ChatSection, CompanySection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
+import { ChatSection, CompanySection, FaqSection, ForumSection, LoyaltySection, MeetingsSection, NotificationsSection, PapersSection, RequestsSection, SettingsSection } from '../components/ClientPortalSections';
 import { NewProjectRequestSection } from '../components/NewProjectRequestSection';
 import { NewRequestSection } from '../components/NewRequestSection';
 import { ProjectDetailSection } from './ClientProjectDetailPage';
@@ -17,10 +18,11 @@ import { AccountQrModal } from '../components/AccountQrModal';
 import { useApplyLoyaltyCredit, useClientNotifications, useClientPortal, useLoyalty, useRecordReferralShare, useRedeemLoyalty, useSubmitClientRequest, useUpdateClientProfile } from '../hooks/useClientPortal';
 import '../clientPortalV2.css';
 
-type PageKey = 'dashboard' | 'requests' | 'new-request' | 'new-project-request' | 'project-detail' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'loyalty' | 'company' | 'settings';
+type PageKey = 'dashboard' | 'requests' | 'new-request' | 'new-project-request' | 'project-detail' | 'notifications' | 'meetings' | 'chat' | 'forum' | 'papers' | 'faq' | 'loyalty' | 'company' | 'settings';
 const PAGE_TITLES: Record<PageKey, string> = {
   dashboard: 'نظرة عامة', requests: 'طلباتي', 'new-request': 'طلب جديد', 'new-project-request': 'طلب مشروع جديد', 'project-detail': 'تفاصيل المشروع', notifications: 'الإشعارات', meetings: 'الاجتماعات',
-  chat: 'المحادثات', forum: 'المنتدى', loyalty: 'اقترحنا لصديق', company: 'صفحة الشركة', settings: 'الإعدادات',
+  chat: 'المحادثات', forum: 'المنتدى', papers: 'أوراقي', faq: 'الأسئلة الشائعة',
+  loyalty: 'اقترحنا لصديق', company: 'صفحة الشركة', settings: 'الإعدادات',
 };
 
 const money = (v: number | string) => `${Number(v).toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`;
@@ -48,19 +50,27 @@ const HERO_SLIDES = [
  */
 export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number } = {}) {
   useLiveSync(); // تزامن لحظي بين العميل والموظف والإدارة (اجتماع 2026-08-07)
-  const adminMode = adminContactId != null;
+  /*
+   * معاينة إدارية للبوابة (طلب أيمن 2026-08-31): حساب الإدارة غير مرتبط بسجل
+   * عميل، فكان يصطدم بشاشة «غير مرتبط» ولا يصل إلى البوابة إطلاقًا. الآن يختار
+   * عميلًا فيرى بوابته كما يراها صاحبها.
+   */
+  const canViewClients = usePermission('clients.view');
+  const [previewId, setPreviewId] = useState<number | null>(null);
+  const viewedContactId = adminContactId ?? previewId ?? undefined;
+  const adminMode = viewedContactId != null;
   const navigate = useNavigate();
   const logout = useLogout();
   const qc = useQueryClient();
   const canRate = usePermission('crm.manage');
-  const { data, isLoading, isError } = useClientPortal(adminContactId);
+  const { data, isLoading, isError } = useClientPortal(viewedContactId);
   const submitReq = useSubmitClientRequest();
   const updateProfile = useUpdateClientProfile();
 
   // حفظ التقييم الداخلي (الإضافة الوحيدة في العرض الإداري) — يُحفظ على جهة الاتصال.
   const saveRating = useMutation({
-    mutationFn: (p: { internal_rating: number; internal_notes: string }) => apiPatch(`/contacts/${adminContactId}`, p),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['staff-client-profile', adminContactId] }),
+    mutationFn: (p: { internal_rating: number; internal_notes: string }) => apiPatch(`/contacts/${viewedContactId}`, p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['staff-client-profile', viewedContactId] }),
   });
   const [editingKunya, setEditingKunya] = useState(false);
   const [kunyaDraft, setKunyaDraft] = useState('');
@@ -125,6 +135,10 @@ export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number
   const startOfToday = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
   const upcomingAppts = appts.filter((a) => a.start_at != null && new Date(a.start_at).getTime() >= startOfToday);
   const invoices = data?.invoices ?? [];
+  // العقود والمستندات كانت تصل في الحمولة ولا تُعرض في أي شاشة (طلب أيمن 2026-08-31).
+  const contracts = data?.contracts ?? [];
+  const documents = data?.documents ?? [];
+  const papersCount = contracts.length + documents.length;
   const stats = data?.stats;
   const client = data?.client;
   // التقييم الداخلي — يصل فقط في العرض الإداري (StaffClientProfile).
@@ -152,6 +166,9 @@ export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number
   if (isError || !data) return <div className="mcp-root" style={{ padding: 40, color: '#ef4444' }}>تعذّر تحميل بوابة العميل.</div>;
 
   if (!data.linked) {
+    // الإدارة لا تُربط بسجل عميل، فبدل طريق مسدود تختار عميلًا وتعاين بوابته.
+    if (canViewClients) return <ClientPreviewPicker onPick={setPreviewId} />;
+
     return (
       <div className="mcp-root">
         <div style={{ maxWidth: 620, margin: '60px auto', background: '#fff', borderRadius: 16, padding: 40, textAlign: 'center', boxShadow: 'var(--shadow-md)' }}>
@@ -336,9 +353,11 @@ export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number
             </>}
 
             <div className="nav-section-label">التواصل</div>
+            <div className={`nav-item${page === 'papers' ? ' active' : ''}`} onClick={() => go('papers')}><i className="fas fa-file-contract" /><span>أوراقي</span>{papersCount > 0 && <span className="nav-badge">{papersCount}</span>}</div>
             <div className={`nav-item${page === 'meetings' ? ' active' : ''}`} onClick={() => go('meetings')}><i className="fas fa-video" /><span>الاجتماعات</span>{upcomingAppts.length > 0 && <span className="nav-badge">{upcomingAppts.length}</span>}</div>
             {!adminMode && <div className={`nav-item${page === 'chat' ? ' active' : ''}`} onClick={() => go('chat')}><i className="fas fa-comments" /><span>المحادثات</span></div>}
             {!adminMode && <div className={`nav-item${page === 'forum' ? ' active' : ''}`} onClick={() => go('forum')}><i className="fas fa-users-rectangle" /><span>المنتدى</span></div>}
+            <div className={`nav-item${page === 'faq' ? ' active' : ''}`} onClick={() => go('faq')}><i className="fas fa-circle-question" /><span>الأسئلة الشائعة</span></div>
 
             {!adminMode && <>
               <div className="nav-section-label sb-loyalty-section-label">اقترحنا لصديق</div>
@@ -372,6 +391,13 @@ export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number
             <div className="topbar-breadcrumb">
               {(page !== 'dashboard' || history.length > 0) && <button className="back-btn visible" onClick={goBack} title="رجوع للصفحة السابقة" aria-label="رجوع"><i className="fas fa-arrow-right" /></button>}
               <span className="topbar-page-title">{PAGE_TITLES[page]}</span>
+              {/* شريط المعاينة: يذكّر الإدارة أن ما تراه بوابة عميل بعينه لا بوابتها. */}
+              {previewId != null && (
+                <span style={previewBar}>
+                  👁️ معاينة بوابة <b>{client?.name ?? 'العميل'}</b>
+                  <button type="button" style={previewSwitch} onClick={() => setPreviewId(null)}>تغيير العميل</button>
+                </span>
+              )}
             </div>
             <div className="topbar-actions">
               <span className="topbar-date">{today}</span>
@@ -411,11 +437,13 @@ export function ClientPortalV2Page({ adminContactId }: { adminContactId?: number
               {page === 'requests' && <RequestsSection onNew={() => go('new-request')} />}
               {page === 'new-request' && <NewRequestSection projects={projects.map((p) => ({ id: p.id, name: p.name }))} onBack={() => go('requests')} />}
               {page === 'new-project-request' && <NewProjectRequestSection onBack={() => go('dashboard')} />}
-              {page === 'project-detail' && selectedProjectId != null && <ProjectDetailSection projectId={selectedProjectId} asContact={adminContactId} />}
+              {page === 'project-detail' && selectedProjectId != null && <ProjectDetailSection projectId={selectedProjectId} asContact={viewedContactId} />}
               {page === 'notifications' && <NotificationsSection />}
               {page === 'meetings' && <MeetingsSection appts={appts} onRequest={() => doRequest('meeting')} onToast={showToast} />}
               {page === 'chat' && <ChatSection />}
               {page === 'forum' && <ForumSection />}
+              {page === 'papers' && <PapersSection contracts={contracts} documents={documents} />}
+              {page === 'faq' && <FaqSection onChat={() => go('chat')} />}
               {page === 'loyalty' && (loyalty
                 ? <LoyaltySection data={loyalty} busy={redeemLoyalty.isPending || applyCredit.isPending} onCopy={copyCode} onShare={shareReferral} onRedeem={doRedeem} onApplyCredit={doApplyCredit} />
                 : <div style={{ padding: 40, color: '#64748B' }}>جارٍ تحميل برنامج الولاء…</div>)}
@@ -597,3 +625,66 @@ function Kpi({ icon, cls, value, label, trend }: { icon: string; cls: string; va
     </div>
   );
 }
+
+/**
+ * منتقي العميل للمعاينة الإدارية (طلب أيمن 2026-08-31): حساب الإدارة غير مرتبط
+ * بسجل عميل، فبدل شاشة «غير مرتبط» المسدودة يختار عميلًا ويرى بوابته كما يراها.
+ */
+function ClientPreviewPicker({ onPick }: { onPick: (id: number) => void }) {
+  const [search, setSearch] = useState('');
+  const { data, isLoading } = useLeads({ type: 'client', per_page: 100 });
+  const clients = (data?.data ?? []).filter((c) => {
+    const q = search.trim().toLowerCase();
+
+    return !q || `${c.full_name} ${c.company ?? ''}`.toLowerCase().includes(q);
+  });
+
+  return (
+    <div className="mcp-root">
+      <div style={pickerWrap}>
+        <div style={{ textAlign: 'center', marginBottom: 22 }}>
+          <div style={{ fontSize: 42, marginBottom: 8 }}>👁️</div>
+          <h2 style={{ margin: 0, fontSize: 21 }}>معاينة بوابة العميل</h2>
+          <p style={{ color: '#64748B', lineHeight: 1.9, margin: '6px 0 0', fontSize: 14 }}>
+            حسابك حساب إدارة لا حساب عميل، فليست لك بوابة خاصة.
+            اختر عميلًا لترى بوابته بمشاريعه وعقوده ومستنداته كما يراها هو.
+          </p>
+        </div>
+
+        <input
+          className="input"
+          style={pickerSearch}
+          placeholder="ابحث باسم العميل أو شركته…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {isLoading && <p style={{ color: '#64748B', textAlign: 'center' }}>جارٍ التحميل…</p>}
+        {!isLoading && clients.length === 0 && (
+          <p style={{ color: '#64748B', textAlign: 'center' }}>لا عملاء مطابقون.</p>
+        )}
+
+        <div style={pickerList}>
+          {clients.map((c) => (
+            <button key={c.id} type="button" style={pickerItem} onClick={() => onPick(c.id)}>
+              <span style={pickerAvatar}>{c.full_name.trim().charAt(0)}</span>
+              <span style={{ flex: 1, minWidth: 0, textAlign: 'start' }}>
+                <b style={{ display: 'block', fontSize: 14 }}>{c.full_name}</b>
+                <span style={{ fontSize: 12, color: '#8A93A3' }}>{c.company ?? 'عميل فرد'}</span>
+              </span>
+              <i className="fas fa-arrow-left" style={{ color: '#1B6CA8' }} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const previewBar: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, marginInlineStart: 12, fontSize: 12, fontWeight: 700, color: '#92400E', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 999, padding: '3px 11px', whiteSpace: 'nowrap' };
+const previewSwitch: CSSProperties = { fontSize: 11, fontWeight: 800, color: '#1B6CA8', background: '#fff', border: '1px solid #BFDBF0', borderRadius: 999, padding: '2px 9px', cursor: 'pointer', fontFamily: 'inherit' };
+const pickerWrap: CSSProperties = { maxWidth: 620, margin: '48px auto', background: '#fff', borderRadius: 16, padding: '32px 30px', boxShadow: 'var(--shadow-md)' };
+const pickerSearch: CSSProperties = { width: '100%', marginBottom: 14 };
+const pickerList: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '46vh', overflowY: 'auto' };
+const pickerItem: CSSProperties = { display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '11px 13px', borderRadius: 11, border: '1px solid #E4E8EF', background: '#fff', cursor: 'pointer', fontFamily: 'inherit' };
+const pickerAvatar: CSSProperties = { width: 34, height: 34, borderRadius: '50%', background: '#1B6CA8', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 900, flexShrink: 0 };

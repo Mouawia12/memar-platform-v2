@@ -16,6 +16,12 @@ class ActivityRead extends Model
 {
     protected $fillable = ['subject_type', 'subject_id', 'user_id', 'read_at'];
 
+    /*
+     * ميلي‑ثانية في الطابع: «جديد» يُقارن وقت الرسالة بوقت آخر اطّلاع، ورسالةٌ
+     * تصل في ثانية الاطّلاع نفسها كانت تُعدّ مقروءة فيضيع تنبيهها (2026-08-31).
+     */
+    protected $dateFormat = 'Y-m-d H:i:s.v';
+
     /**
      * @return array<string, string>
      */

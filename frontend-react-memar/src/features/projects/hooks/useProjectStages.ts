@@ -21,11 +21,20 @@ export function useStageDetail(projectId: number, stageId: number | null) {
   });
 }
 
+/** قوالب المراحل — ثابتة في الخادم فتُخزَّن طويلًا. */
+export function useStageTemplates() {
+  return useQuery({
+    queryKey: ['stage-templates'],
+    queryFn: () => projectsApi.stageTemplates(),
+    staleTime: 10 * 60_000,
+  });
+}
+
 export function useSeedStages(projectId: number) {
   const invalidate = useInvalidateOverview(projectId);
 
   return useMutation({
-    mutationFn: () => projectsApi.seedStages(projectId),
+    mutationFn: (payload: { template?: string } = {}) => projectsApi.seedStages(projectId, payload),
     onSuccess: invalidate,
   });
 }

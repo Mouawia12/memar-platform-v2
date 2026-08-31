@@ -102,3 +102,13 @@ export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
   done: '#274A78',
   cancelled: '#DC2626',
 };
+
+/** قالب مراحل جاهز — لا كل مشروع يمرّ بالمسار نفسه (طلب أيمن 2026-08-31). */
+export interface StageTemplate {
+  key: string;
+  label: string;
+  hint: string;
+  stages_count: number;
+  total_days: number;
+  stages: string[];
+}

@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
-import type { AssessmentPayload, Project, ProjectStage, StageComment } from '../types';
+import type { AssessmentPayload, Project, ProjectStage, StageComment, StageTemplate } from '../types';
 
 export interface ProjectsQuery {
   search?: string;
@@ -30,7 +30,11 @@ export const projectsApi = {
   // مراحل المشروع (PROJ-1/PROJ-2)
   stages: (projectId: number) => apiGet<ProjectStage[]>(`/projects/${projectId}/stages`),
   stage: (projectId: number, stageId: number) => apiGet<ProjectStage>(`/projects/${projectId}/stages/${stageId}`),
-  seedStages: (projectId: number) => apiPost<ProjectStage[]>(`/projects/${projectId}/stages/seed-defaults`, {}),
+  /** قوالب المراحل المتاحة — يختار منها المستخدم قبل التوليد. */
+  stageTemplates: () => apiGet<StageTemplate[]>('/projects/stage-templates'),
+  /** يزرع قالب مراحل — إضافةً لا استبدالًا: لا يُحذف شيء من المراحل القائمة. */
+  seedStages: (projectId: number, payload: { template?: string } = {}) =>
+    apiPost<ProjectStage[]>(`/projects/${projectId}/stages/seed-defaults`, payload),
   addStage: (projectId: number, payload: { name: string; expected_days?: number | null; after_stage_id?: number | null }) =>
     apiPost<ProjectStage>(`/projects/${projectId}/stages`, payload),
   updateStage: (projectId: number, stageId: number, payload: { name?: string; expected_days?: number | null }) =>

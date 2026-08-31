@@ -13,6 +13,8 @@ use App\Models\Project;
 use App\Models\ProjectStage;
 use App\Services\ProjectStageService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * مراحل المشروع ومحادثاتها (PROJ-1/PROJ-2).
@@ -36,13 +38,32 @@ class ProjectStageController extends ApiController
     }
 
     /** توليد المراحل الافتراضية إن لم تكن للمشروع مراحل. */
-    public function seedDefaults(Project $project): JsonResponse
+    /** كتالوج قوالب المراحل — تختار منه الواجهة قبل التوليد. */
+    public function templates(): JsonResponse
     {
-        $this->stages->seedDefaults($project);
+        return $this->ok($this->stages->templates());
+    }
+
+    /**
+     * يزرع قالب مراحل في المشروع — إضافةً لا استبدالًا: ما كان من مراحل يبقى
+     * بنقاشه وتواريخه، ومراحل القالب تُلحَق بعده (طلب أيمن 2026-08-31).
+     */
+    public function seedDefaults(Request $request, Project $project): JsonResponse
+    {
+        $data = $request->validate([
+            'template' => ['nullable', 'string', Rule::in(array_keys(ProjectStageService::TEMPLATES))],
+        ]);
+
+        $had = $project->stages()->exists();
+        $added = $this->stages->seedDefaults($project, $data['template'] ?? null);
 
         return $this->ok(
             ProjectStageResource::collection($project->stages()->withCount('comments')->get()),
-            'تم إنشاء المراحل الافتراضية',
+            match (true) {
+                ! $had => 'تم إنشاء مراحل المشروع',
+                $added === 0 => 'مراحل هذا القالب موجودة كلّها — لم يُضَف شيء',
+                default => "تمت إضافة {$added} مراحل إلى مراحل المشروع",
+            },
         );
     }
 

@@ -17,40 +17,144 @@ use Illuminate\Support\Facades\DB;
 class ProjectStageService
 {
     /**
-     * التسلسل الافتراضي لمراحل مشروع هندسي — قابل للتخصيص لاحقًا لكل مشروع.
+     * قوالب المراحل — لا كل مشروع يمرّ بالمسار نفسه (طلب أيمن 2026-08-31):
+     * رخصة التعديل لا تحتاج تصميمًا داخليًّا، والإشراف وحده لا يحتاج ترخيصًا.
+     * المفتاح الأول هو الافتراضي لمن لم يختر.
      *
-     * @var array<int, array{name: string, expected_days: int}>
+     * @var array<string, array{label: string, hint: string, stages: array<int, array{name: string, expected_days: int}>}>
      */
-    private const DEFAULT_TEMPLATE = [
-        ['name' => 'دراسات أولية', 'expected_days' => 7],
-        ['name' => 'تصميم معماري', 'expected_days' => 21],
-        ['name' => 'تصميم إنشائي', 'expected_days' => 21],
-        ['name' => 'الترخيص', 'expected_days' => 30],
-        ['name' => 'تصميم داخلي', 'expected_days' => 21],
-        ['name' => 'إشراف تنفيذ', 'expected_days' => 60],
-        ['name' => 'تسليم نهائي', 'expected_days' => 7],
+    public const TEMPLATES = [
+        'full_design' => [
+            'label' => 'مشروع تصميم متكامل',
+            'hint' => 'من الدراسات حتى التسليم — المسار الكامل لفيلا أو مبنى جديد.',
+            'stages' => [
+                ['name' => 'دراسات أولية', 'expected_days' => 7],
+                ['name' => 'تصميم معماري', 'expected_days' => 21],
+                ['name' => 'تصميم إنشائي', 'expected_days' => 21],
+                ['name' => 'الترخيص', 'expected_days' => 30],
+                ['name' => 'تصميم داخلي', 'expected_days' => 21],
+                ['name' => 'إشراف تنفيذ', 'expected_days' => 60],
+                ['name' => 'تسليم نهائي', 'expected_days' => 7],
+            ],
+        ],
+        'permit_amendment' => [
+            'label' => 'رخصة تعديل',
+            'hint' => 'تعديل على مبنى قائم — بلا تصميم داخلي ولا إشراف طويل.',
+            'stages' => [
+                ['name' => 'معاينة الوضع القائم', 'expected_days' => 3],
+                ['name' => 'رفع مساحي ومخطط قائم', 'expected_days' => 7],
+                ['name' => 'مخطط التعديل المقترح', 'expected_days' => 10],
+                ['name' => 'اعتماد العميل', 'expected_days' => 5],
+                ['name' => 'تقديم الرخصة ومتابعتها', 'expected_days' => 30],
+                ['name' => 'تسليم الرخصة', 'expected_days' => 3],
+            ],
+        ],
+        'permit_only' => [
+            'label' => 'ترخيص فقط',
+            'hint' => 'المخططات جاهزة من مكتب آخر، ودورنا تجهيز الملف وإصداره.',
+            'stages' => [
+                ['name' => 'مراجعة المخططات المستلمة', 'expected_days' => 5],
+                ['name' => 'تجهيز ملف الرخصة', 'expected_days' => 7],
+                ['name' => 'التقديم ومتابعة البلدية', 'expected_days' => 30],
+                ['name' => 'تسليم الرخصة', 'expected_days' => 3],
+            ],
+        ],
+        'supervision_only' => [
+            'label' => 'إشراف تنفيذ فقط',
+            'hint' => 'العميل يملك التصميم والرخصة، ودورنا الإشراف حتى التسليم.',
+            'stages' => [
+                ['name' => 'استلام الموقع والمخططات', 'expected_days' => 5],
+                ['name' => 'أعمال الأساسات', 'expected_days' => 45],
+                ['name' => 'الهيكل الخرساني', 'expected_days' => 90],
+                ['name' => 'التشطيبات', 'expected_days' => 60],
+                ['name' => 'الاستلام النهائي', 'expected_days' => 10],
+            ],
+        ],
+        'interior' => [
+            'label' => 'تصميم داخلي',
+            'hint' => 'شقة أو مكتب أو محل — تصميم وتنفيذ داخلي بلا ترخيص.',
+            'stages' => [
+                ['name' => 'المعاينة وأخذ المقاسات', 'expected_days' => 3],
+                ['name' => 'المفهوم التصميمي (Mood Board)', 'expected_days' => 7],
+                ['name' => 'التصميم ثلاثي الأبعاد', 'expected_days' => 14],
+                ['name' => 'اعتماد العميل', 'expected_days' => 5],
+                ['name' => 'مخططات التنفيذ والكميات', 'expected_days' => 10],
+                ['name' => 'الإشراف على التنفيذ', 'expected_days' => 45],
+                ['name' => 'التسليم', 'expected_days' => 5],
+            ],
+        ],
+        'study' => [
+            'label' => 'دراسة واستشارة',
+            'hint' => 'دراسة جدوى أو رأي فنّي — بلا مخططات تنفيذية.',
+            'stages' => [
+                ['name' => 'جمع المتطلبات', 'expected_days' => 5],
+                ['name' => 'الدراسة والتحليل', 'expected_days' => 14],
+                ['name' => 'إعداد التقرير', 'expected_days' => 7],
+                ['name' => 'العرض والتسليم', 'expected_days' => 3],
+            ],
+        ],
     ];
 
-    /**
-     * يولّد المراحل الافتراضية للمشروع إن لم تكن له مراحل بعد؛
-     * أول مرحلة تصبح «جارية». يعيد مجموعة المراحل مرتّبة.
-     */
-    public function seedDefaults(Project $project): void
-    {
-        if ($project->stages()->exists()) {
-            return;
-        }
+    /** مفتاح القالب الافتراضي — أوّل القوالب. */
+    public const DEFAULT_TEMPLATE_KEY = 'full_design';
 
-        DB::transaction(function () use ($project): void {
-            foreach (self::DEFAULT_TEMPLATE as $i => $stage) {
+    /**
+     * كتالوج القوالب للواجهة: المفتاح والاسم والوصف وأسماء مراحله.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function templates(): array
+    {
+        return collect(self::TEMPLATES)->map(fn (array $t, string $key): array => [
+            'key' => $key,
+            'label' => $t['label'],
+            'hint' => $t['hint'],
+            'stages_count' => count($t['stages']),
+            'total_days' => array_sum(array_column($t['stages'], 'expected_days')),
+            'stages' => array_column($t['stages'], 'name'),
+        ])->values()->all();
+    }
+
+    /**
+     * يزرع قالب مراحل في المشروع — <b>بلا حذف ولا تكرار</b> (طلب أيمن 2026-08-31).
+     *
+     * مشروع بلا مراحل: يصير القالب مراحلَه وأولاها «جارية».
+     * مشروع له مراحل: تُلحَق مراحل القالب الجديدة بعد آخر مرحلة بحالة «منتظرة»،
+     * فتبقى المراحل القائمة ونقاشها وتواريخها كما هي — المكتب يضمّ مسارًا جديدًا
+     * (إشرافًا مثلًا) إلى مسارٍ جارٍ.
+     *
+     * ومرحلةٌ اسمها موجود لا تُزرع ثانيةً: الضغط مرّتين على القالب نفسه لا
+     * يُضاعف مراحله.
+     *
+     * @return int عدد المراحل المضافة فعلًا
+     */
+    public function seedDefaults(Project $project, ?string $template = null): int
+    {
+        $key = $template !== null && isset(self::TEMPLATES[$template]) ? $template : self::DEFAULT_TEMPLATE_KEY;
+
+        return DB::transaction(function () use ($project, $key): int {
+            $existingNames = $project->stages()->pluck('name')
+                ->map(fn (string $n): string => trim($n))->all();
+            $fresh = array_values(array_filter(
+                self::TEMPLATES[$key]['stages'],
+                fn (array $stage): bool => ! in_array(trim($stage['name']), $existingNames, true),
+            ));
+
+            $hadStages = $existingNames !== [];
+            $offset = (int) ($project->stages()->max('position') ?? -1) + 1;
+
+            foreach ($fresh as $i => $stage) {
                 $project->stages()->create([
                     'name' => $stage['name'],
                     'expected_days' => $stage['expected_days'],
-                    'position' => $i,
-                    'status' => $i === 0 ? 'active' : 'pending',
-                    'started_at' => $i === 0 ? now() : null,
+                    'position' => $offset + $i,
+                    // أول مرحلة في مشروع فارغ تبدأ جارية؛ وما يُلحَق بمسارٍ قائم ينتظر دوره.
+                    'status' => ! $hadStages && $i === 0 ? 'active' : 'pending',
+                    'started_at' => ! $hadStages && $i === 0 ? now() : null,
                 ]);
             }
+
+            return count($fresh);
         });
     }
 

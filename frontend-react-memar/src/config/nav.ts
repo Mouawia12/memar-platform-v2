@@ -74,8 +74,35 @@ export function visibleNavSections(
 
 /**
  * تسمية عنصر تنقّل بمفتاحه — مصدر واحد للأسماء كي لا تتفرّق بين لوحة الإدارة
- * وبوابة الموظف (طلب أيمن 2026-08-26: «CRM تبقى CRM حتى في صفحة الموظف»).
+ * وبوابة الموظف — والتسمية موحّدة: «عميل جديد» بدل CRM (طلب أيمن 2026-08-31).
  */
+/**
+ * تسميات بوابة الموظف التي لا مقابل لها في لوحة الإدارة (خدمة ذاتية وتواصل).
+ * مصدرها هنا لا في صفحة البوابة، كي تبقى تسمية كل قسم واحدةً في اللوحتين
+ * ويكون تغييرها في موضع واحد (طلب أيمن 2026-08-31: وحّد التسميات).
+ */
+export const PORTAL_LABELS: Record<string, string> = {
+  // أقسام السايدبار
+  'g-business': 'إدارة الأعمال',   // = قسم «إدارة الأعمال» في لوحة الإدارة
+  'g-records': 'السجلات',
+  'g-self': 'شؤوني',
+  'g-comm': 'التواصل',
+  'g-account': 'حسابي',
+  // عناصر لا مقابل لها في لوحة الإدارة
+  'ep-leaves': 'الإجازات',
+  'ep-salary': 'كشف الراتب',
+  'ep-reports': 'التقارير اليومية',
+  'ep-chat': 'المحادثات',
+  'ep-notifications': 'الإشعارات',
+  'ep-profile': 'ملفي الشخصي',
+  'ep-referral': 'كود الإحالة',
+};
+
+/** تسمية قسم/عنصر في بوابة الموظف — من المصدر الموحّد. */
+export function portalLabel(key: string, fallback: string): string {
+  return PORTAL_LABELS[key] ?? fallback;
+}
+
 export function navLabel(key: string, fallback: string): string {
   return NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.key === key)?.label ?? fallback;
 }
@@ -109,7 +136,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'business',
     title: '💼 إدارة الأعمال',
     items: [
-      { key: 'crm', label: 'CRM', icon: '🎯', path: '/crm', perm: 'crm.view' },
+      { key: 'crm', label: 'عميل جديد', icon: '🎯', path: '/crm', perm: 'crm.view' },
       { key: 'loyalty', label: 'الولاء والفرص', icon: '🏆', path: '/loyalty', perm: 'loyalty.view' },
       { key: 'companies', label: 'سجل الشركات', icon: '🏢', path: '/companies', perm: 'crm.view' },
       { key: 'clients', label: 'سجل العملاء', icon: '📖', path: '/clients', perm: 'crm.view' },
@@ -119,7 +146,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: 'documents', label: 'المستندات', icon: '📄', path: '/documents', perm: 'documents.view' },
       { key: 'file_manager', label: 'مدير الملفات', icon: '🗂️', path: '/files', perm: 'documents.view' },
       { key: 'appointments', label: 'المواعيد', icon: '📅', path: '/appointments', perm: 'appointments.view' },
-      { key: 'whatsapp', label: 'التواصل', icon: '💬', path: '/whatsapp', perm: 'crm.view' },
+      { key: 'whatsapp', label: 'واتساب', icon: '💬', path: '/whatsapp', perm: 'crm.view' },
     ],
   },
   {

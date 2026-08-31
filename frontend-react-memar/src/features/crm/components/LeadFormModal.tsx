@@ -386,7 +386,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
                 onChange={(e) => setRemindNote(e.target.value)} maxLength={255}
                 placeholder="مثال: يُفضّل الاتصال صباحًا — ينتظر عرض السعر" />
             </Field>
-            <div style={sectionNote}>يُضبط التذكير بعد حفظ الفرصة، ويظهر في تنبيه «فرص تحتاج تواصل» أعلى لوحة CRM.</div>
+            <div style={sectionNote}>يُضبط التذكير بعد حفظ الفرصة، ويظهر في تنبيه «فرص تحتاج تواصل» أعلى لوحة «عميل جديد».</div>
           </Section>
 
           {/* ── ⑤ بيانات الفرصة ── */}

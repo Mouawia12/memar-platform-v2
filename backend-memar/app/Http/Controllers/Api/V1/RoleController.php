@@ -39,7 +39,7 @@ class RoleController extends ApiController
 
     /** تسميات عربية لمجموعات الصلاحيات. */
     private const GROUP_LABELS = [
-        'crm' => 'العملاء والعلاقات',
+        'crm' => 'عميل جديد',
         'clients' => 'ملف العميل الداخلي',
         'requests' => 'الطلبات',
         'projects' => 'المشاريع',

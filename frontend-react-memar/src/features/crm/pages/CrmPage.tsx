@@ -237,7 +237,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       {/* ── رأس CRM ── */}
       <div style={headerRow}>
         <div>
-          <div style={sectionTitle}>إدارة علاقات العملاء (CRM)</div>
+          <div style={sectionTitle}>عميل جديد</div>
           <div style={sectionSubtitle}>مركز العمليات التجارية — من أول تواصل حتى إغلاق المشروع</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

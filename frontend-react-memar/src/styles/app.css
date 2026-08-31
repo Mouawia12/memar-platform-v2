@@ -377,24 +377,6 @@ textarea.input { resize: vertical; line-height: 1.7; }
 .task-card-late { animation: taskCardLate 1.1s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .task-card-late { animation: none; } }
 
-/* بطاقة مهمّة زميل عند عرض «جميع المهام» — تُخفَّف لتبرز مهامي فوقها
-   (طلب أيمن 2026-08-29). لا نضع الشفافية inline كي يعمل الرجوع عند التحويم:
-   المرور بالمؤشّر يعيدها كاملةً فتبقى مقروءةً متى احتجتها.
-   الخصائص هنا غير مضبوطة inline على البطاقة، فلا تحتاج !important. */
-.task-card-muted {
-  opacity: 0.52;
-  filter: saturate(0.55);
-  transition: opacity 0.18s ease, filter 0.18s ease;
-}
-.task-card-muted:hover {
-  opacity: 1;
-  filter: none;
-}
-/* مَن يُفضّل تقليل الحركة يرى الفرق ثابتًا بلا انتقال. */
-@media (prefers-reduced-motion: reduce) {
-  .task-card-muted { transition: none; }
-}
-
 /* رسالة جديدة في خيط التوجيه (طلب أيمن 2026-08-29): نبضة كهرمانية هادئة —
    أخفّ من وميض التأخّر الأحمر كي لا يتساوى تنبيهان مختلفان في الإلحاح.
    تهدأ بمجرّد فتح الخيط (اطّلاع)، لا بالردّ. */

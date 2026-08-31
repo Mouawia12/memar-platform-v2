@@ -19,6 +19,8 @@ interface Props {
   justSeen?: boolean;
   /** اسم المرحلة التي نُقلت منها الفرصة (يُترجَم من مفتاحها في اللوحة). */
   moverFromLabel?: string | null;
+  /** فرصتي أنا — تُبرَز وسط فرص الفريق (طلب أيمن 2026-08-31). */
+  mine?: boolean;
   /** صورة مَن نقل الفرصة — إن غابت تُعرض أحرف اسمه بلونه. */
   moverAvatarUrl?: string | null;
 }
@@ -120,7 +122,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
-export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen, moverFromLabel, moverAvatarUrl }: Props) {
+export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen, moverFromLabel, moverAvatarUrl, mine }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
@@ -194,7 +196,13 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
     <div
       className={`crm-lead-card${blinkUrgent ? ' crm-card-blink' : ''}${blinkLate ? ' crm-card-blink-late' : ''}${justSeen ? ' crm-card-seen' : ''}`}
       onClick={() => onOpen(lead)}
-      style={{ ...card, borderRight: `5px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`, ...(urgent ? cardUrgent : null) }}
+      style={{
+        ...card,
+        borderRight: `5px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`,
+        ...(urgent ? cardUrgent : null),
+        // الظلّ inline يغلب أي قاعدة CSS، فحلقة الإبراز تُضبط هنا.
+        ...(mine ? mineRing : null),
+      }}
     >
       {/* شريط رأسي على حافّة الكرت اليسرى كالبطارية: يفرغ من أعلى كلما اقترب
           موعد التواصل (طلب أيمن 2026-08-24). */}
@@ -208,7 +216,10 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
 
       <div style={cardTop}>
         <div style={cardMain}>
-          <div style={leadNm}>{lead.full_name} {rating > 0 && <Stars rating={Math.min(5, rating)} />}</div>
+          <div style={leadNm}>
+            {lead.full_name} {rating > 0 && <Stars rating={Math.min(5, rating)} />}
+            {mine && <span style={mineTag}>فرصتي</span>}
+          </div>
           {lead.company && <div style={sub}>{lead.position || 'جهة اتصال'} — {lead.company}</div>}
           <div style={leadSvc} title={service}>{service}</div>
         </div>
@@ -360,6 +371,9 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
 
 // ── أنماط طبق أصل CSS المرجع (erp-crm-ops.js / style.css) ──
 // حشو وهوامش مضغوطة مع إبقاء كل التفاصيل (طلب أيمن: نفس التفاصيل بارتفاع أقل).
+// تمييز فرصي وسط فرص الفريق — بلغة بطاقات المهام والمواعيد نفسها.
+const mineRing: CSSProperties = { background: '#F7FBFF', borderColor: '#9DC4E4', boxShadow: '0 0 0 2px rgba(27,108,168,.30), 0 4px 12px rgba(27,108,168,.16)' };
+const mineTag: CSSProperties = { fontSize: '8.5px', fontWeight: 900, color: '#1B6CA8', background: '#E4F0FA', border: '1px solid #BFDBF0', borderRadius: '20px', padding: '1px 6px', marginInlineStart: '5px', whiteSpace: 'nowrap' };
 const card: CSSProperties = { position: 'relative', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '8px 12px 8px 15px', marginBottom: '7px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all .2s ease' };
 const ownerRow: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', maxWidth: '100%' };
 // دائرة صاحب الفرصة أكبر قليلًا لتظهر صورته بوضوح (طلب أيمن 2026-08-24).

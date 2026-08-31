@@ -83,7 +83,6 @@ function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlight
               onAck={onAck}
               avatarUrl={t.assignee ? avatars?.[String(t.assignee.id)] ?? null : null}
               mine={highlightMine && isMine(t)}
-              muted={highlightMine && !isMine(t)}
               onDirective={directiveFor(t)}
               onProgress={onProgress}
             />
@@ -101,8 +100,11 @@ export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck, meId, h
   const boardRef = useRef<HTMLDivElement>(null);
   useEdgeAutoScroll(boardRef);
   const isMine = (t: Task) => !!meId && t.assignee?.id === meId;
-  // لا نميّز إن كان المعروض مهامي وحدها — كلّها لي فلا شيء يُقارَن به.
-  const markMine = !!highlightMine && !!meId;
+  /*
+   * لا نميّز إن كان المعروض مهامي وحدها (كلّها لي فلا مقارنة)، ولا إن لم تكن
+   * لي مهمة في المعروض أصلًا — وإلا بدت اللوحة كلّها باهتة بلا فائدة.
+   */
+  const markMine = !!highlightMine && !!meId && tasks.some(isMine);
   /*
    * فتح خيط التوجيه متاح للإدارة على كل بطاقة (لها أن تبدأ توجيهًا)، ولغيرها
    * على البطاقات التي عليها توجيه قائم فقط — فلا يظهر زرّ «توجيه» لمن لا يملك

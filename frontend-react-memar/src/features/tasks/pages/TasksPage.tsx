@@ -37,6 +37,12 @@ export function TasksPage() {
   const [confirming, setConfirming] = useState<Task | null>(null); // تأكيد الإكمال قبل النقل لـ«مكتملة»
   const [directiveOf, setDirectiveOf] = useState<Task | null>(null); // نافذة توجيهات الإدارة (طلب أيمن 2026-08-29)
   const [fupFormOpen, setFupFormOpen] = useState(false); // نافذة «متابعة جديدة» (طلب أيمن 2026-08-29)
+  /*
+   * ثلاثة أوضاع بثلاثة أزرار دائمة الظهور (طلب أيمن 2026-08-31): ما يخصّني
+   * وحده · الكلّ واضحًا · الكلّ مع تخفيت بطاقات غيري ليبرز ما يخصّني.
+   */
+  const [taskHighlight, setTaskHighlight] = useState(false);
+  const [fupHighlight, setFupHighlight] = useState(false);
   const [fupDirectiveOf, setFupDirectiveOf] = useState<FollowUp | null>(null); // توجيهات متابعة
   // نطاق كل لوحة على حدة: الكل أو ما يخصّني (طلب أيمن 2026-08-24).
   // null = لم يختر المستخدم بعد، فيسري افتراض دوره أدناه. حفظُه كـ null لا كقيمة
@@ -156,8 +162,13 @@ export function TasksPage() {
 
       <div style={scopeRow}>
         <button type="button" onClick={() => setTaskScope('mine')} style={{ ...scopeBtn, ...(effTaskScope === 'mine' ? scopeOn : null) }}>مهامي فقط</button>
-        <button type="button" onClick={() => setTaskScope('all')} style={{ ...scopeBtn, ...(effTaskScope === 'all' ? scopeOn : null) }}>جميع المهام</button>
-        {effTaskScope === 'all' && meId && <span style={legend} title="بطاقاتك محاطة بإطار أزرق وعليها وسم «مهمتي»">🔷 مهامي مميّزة</span>}
+        <button type="button" onClick={() => { setTaskScope('all'); setTaskHighlight(false); }} style={{ ...scopeBtn, ...(effTaskScope === 'all' && !taskHighlight ? scopeOn : null) }}>جميع المهام</button>
+        <button
+          type="button"
+          onClick={() => { setTaskScope('all'); setTaskHighlight(true); }}
+          style={{ ...scopeBtn, ...(effTaskScope === 'all' && taskHighlight ? scopeOn : null) }}
+          title="تظهر كل المهام، ومهام غيري تخفت ليبرز ما يخصّني"
+        >🔷 مهامي مميّزة</button>
       </div>
 
       <DateRangeFilter value={taskRange} onChange={setTaskRange} shown={boardTasks.length} total={scopedTasks.length} />
@@ -172,7 +183,7 @@ export function TasksPage() {
           onAck={ack}
           onMove={(t, status) => handleMove(t, { status })}
           meId={meId}
-          highlightMine={effTaskScope === 'all'}
+          highlightMine={effTaskScope === 'all' && taskHighlight}
           onProgress={canManage ? (t, pct) => progress.mutate({ id: t.id, progress: pct }) : undefined}
           onDirective={setDirectiveOf}
           canSendDirective={canDelete}
@@ -194,7 +205,13 @@ export function TasksPage() {
 
       <div style={scopeRow}>
         <button type="button" onClick={() => setFupScope('mine')} style={{ ...scopeBtn, ...(effFupScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
-        <button type="button" onClick={() => setFupScope('all')} style={{ ...scopeBtn, ...(effFupScope === 'all' ? scopeOn : null) }}>جميع المتابعات</button>
+        <button type="button" onClick={() => { setFupScope('all'); setFupHighlight(false); }} style={{ ...scopeBtn, ...(effFupScope === 'all' && !fupHighlight ? scopeOn : null) }}>جميع المتابعات</button>
+        <button
+          type="button"
+          onClick={() => { setFupScope('all'); setFupHighlight(true); }}
+          style={{ ...scopeBtn, ...(effFupScope === 'all' && fupHighlight ? scopeOn : null) }}
+          title="تظهر كل المتابعات، ومتابعات غيري تخفت ليبرز ما يخصّني"
+        >🔷 متابعاتي مميّزة</button>
       </div>
 
       <DateRangeFilter value={fupRange} onChange={setFupRange} shown={boardFollowUps.length} total={scopedFollowUps.length} />
@@ -202,7 +219,7 @@ export function TasksPage() {
       <ClientFollowUpsBoard
         items={boardFollowUps}
         meId={meId}
-        highlightMine={effFupScope === 'all'}
+        highlightMine={effFupScope === 'all' && fupHighlight}
         onDirective={setFupDirectiveOf}
         canSendDirective={canSendFupDirective}
       />
@@ -326,7 +343,6 @@ const kpiSub: CSSProperties = { fontSize: '11px', color: '#64748B', marginTop: '
 const hintLine: CSSProperties = { fontSize: '12px', color: '#5A6478', background: '#F1F5F9', borderRadius: '9px', padding: '8px 12px', marginBottom: '12px' };
 const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '14px', justifyContent: 'center', flexWrap: 'wrap' };
 const scopeBtn: CSSProperties = { padding: '8px 18px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer' };
-const legend: CSSProperties = { display: 'inline-flex', alignItems: 'center', fontSize: '11.5px', fontWeight: 700, color: '#1B6CA8', background: '#E4F0FA', border: '1px solid #BFDBF0', borderRadius: '999px', padding: '6px 12px' };
 const scopeOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };
 // فاصل بين قسم المهام وقسم المتابعة — كل قسم قائم بذاته (طلب أيمن 2026-08-24).
 const sectionDivider: CSSProperties = { height: '3px', background: '#E2E8F0', borderRadius: '3px', margin: '26px 0 20px' };

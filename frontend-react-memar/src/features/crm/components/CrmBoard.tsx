@@ -26,6 +26,10 @@ interface Props {
   onReorder: (orderedIds: number[]) => void;
   /** زر «+ إضافة فرصة» أسفل كل عمود — يظهر لمن يملك crm.manage (طبق أصل المرجع). */
   onAdd?: () => void;
+  /** معرّف المستخدم الحالي — لتمييز فرصه وسط فرص الفريق (طلب أيمن 2026-08-31). */
+  meId?: number | null;
+  /** تمييز فرصي (عند عرض «جميع الفرص») — في «فرصي فقط» كلّها لي فلا مقارنة. */
+  highlightMine?: boolean;
   /** الفرصة التي أُغلقت نافذتها للتوّ — يُبرَز كرتها لحظات. */
   justSeenId?: number | null;
   /** إظهار إجمالي قيمة العمود — يُخفى عن الموظفين حسب «خصوصية الأرقام المالية». */
@@ -159,7 +163,7 @@ function BoardColumn({ stage, count, totalCount, total, showTotals, colLeads, is
   );
 }
 
-export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, justSeenId, showTotals = true }: Props) {
+export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, justSeenId, showTotals = true, meId, highlightMine }: Props) {
   const [active, setActive] = useState<Lead | null>(null);
   /** العمود المكبّر بكامل العرض (⛶) — طبق أصل ops-col-full. */
   const [maxStage, setMaxStage] = useState<string | null>(null);
@@ -387,6 +391,12 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
   };
 
   /** بطاقات العمود (تُستخدم في الوضع العادي والمكبّر). */
+  /*
+   * لا نميّز إن كان المعروض فرصي وحدها (كلّها لي فلا مقارنة)، ولا إن لم تكن لي
+   * فرصة في المعروض أصلًا — وإلا بدت اللوحة كلّها باهتة بلا فائدة.
+   */
+  const markMine = !!highlightMine && !!meId && leads.some((l) => l.owner?.id === meId);
+
   const renderCards = (stage: PipelineStage, colLeads: Lead[]) => (
     <>
       {colLeads.length === 0 && (
@@ -400,6 +410,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
             lead={lead}
             onOpen={onOpen}
             stageColor={stage.color}
+            mine={markMine && lead.owner?.id === meId}
             avatarUrl={lead.owner ? avatars?.[String(lead.owner.id)] ?? null : null}
             justSeen={justSeenId === lead.id}
             moverFromLabel={lead.mover?.from ? stages.find((s) => s.key === lead.mover!.from)?.label ?? lead.mover.from : null}

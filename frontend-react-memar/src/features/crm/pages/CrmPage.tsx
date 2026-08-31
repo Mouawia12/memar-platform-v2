@@ -38,7 +38,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
   // مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
-  const [scope, setScope] = useState<'all' | 'mine'>('all');
+  // «فرصي فقط» هو الوضع الدائم عند فتح الصفحة، و«جميع الفرص» خيار بضغطة —
+  // كما في المهام والمواعيد والاجتماعات (طلب أيمن 2026-08-31).
+  const [scope, setScope] = useState<'all' | 'mine'>('mine');
+  // التمييز خيار لا سلوك تلقائي: «جميع الفرص» تعرضها كلّها واضحة، والزرّ يُخفت فرص غيري.
+  const [highlight, setHighlight] = useState(false);
   const userId = useAuthStore((s) => s.user?.id);
   const exportDisabled = useExportDisabled();
   // توستر يظهر عند نقل/إعادة ترتيب كرت الفرصة (طبق أصل opsToast).
@@ -316,13 +320,19 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
       {/* ── مبدّل النطاق طبق الأصل ── */}
       <div style={scopeRow}>
-        <button type="button" onClick={() => setScope('all')} style={{ ...scopeBtn, ...(scope === 'all' ? scopeOn : null) }}>جميع الفرص</button>
-        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(scope === 'mine' ? scopeOn : null) }}>الفرص المسؤول عنها</button>
+        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(scope === 'mine' ? scopeOn : null) }}>فرصي فقط</button>
+        <button type="button" onClick={() => { setScope('all'); setHighlight(false); }} style={{ ...scopeBtn, ...(scope === 'all' && !highlight ? scopeOn : null) }}>جميع الفرص</button>
+        <button
+          type="button"
+          onClick={() => { setScope('all'); setHighlight(true); }}
+          style={{ ...scopeBtn, ...(scope === 'all' && highlight ? scopeOn : null) }}
+          title="تظهر كل الفرص، وفرص غيري تخفت ليبرز ما يخصّني"
+        >🔷 فرصي مميّزة</button>
       </div>
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} meId={userId} highlightMine={scope === 'all' && highlight} />}
 
       {detailLead && (
         <LeadDetailModal

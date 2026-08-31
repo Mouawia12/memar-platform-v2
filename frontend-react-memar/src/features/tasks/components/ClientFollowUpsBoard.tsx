@@ -75,8 +75,11 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
   // «متابعتي» = المكلَّف بها أنا؛ وبلا مكلَّف تبقى لمنشئها — نفس قاعدة الخادم
   // في فلتر «متابعاتي فقط»، فلا يختلف معنى «لي» بين الفلتر والتمييز.
   const isMine = (f: FollowUp) => !!meId && (f.assignee ? f.assignee.id === meId : f.creator?.id === meId);
-  // لا نميّز إن كان المعروض متابعاتي وحدها — كلّها لي فلا شيء يُقارَن به.
-  const markMine = !!highlightMine && !!meId;
+  /*
+   * لا نميّز إن كان المعروض متابعاتي وحدها (كلّها لي فلا مقارنة)، ولا إن لم
+   * تكن لي متابعة في المعروض أصلًا — وإلا بدت اللوحة كلّها باهتة بلا فائدة.
+   */
+  const markMine = !!highlightMine && !!meId && items.some(isMine);
   const directiveFor = (f: FollowUp) =>
     onDirective && (canSendDirective || f.directive) ? onDirective : undefined;
 
@@ -101,7 +104,6 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
               {list.map((f) => {
                 const c = f.owner ? personColor(f.owner.id) : '#94A3B8';
                 const mine = markMine && isMine(f);
-                const muted = markMine && !isMine(f);
                 const unread = f.directive_unread ?? 0;
                 const badge = cardBadge(f);
                 const directive = f.directive ?? null;
@@ -109,7 +111,7 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                 return (
                   <div
                     key={f.id}
-                    className={`crm-lead-card${unread > 0 ? ' task-card-directive' : ''}${muted ? ' task-card-muted' : ''}`}
+                    className={`crm-lead-card${unread > 0 ? ' task-card-directive' : ''}`}
                     style={{ ...card, borderRight: `5px solid ${col.color}`, ...(mine ? mineRing : null) }}
                     onClick={() => setDetail(f)} title="فتح تفاصيل المتابعة">
                     <div style={topLine}>

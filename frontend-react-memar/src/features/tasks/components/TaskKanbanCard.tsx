@@ -16,8 +16,6 @@ interface Props {
   onAck?: (t: Task) => void;
   /** مهمّة المستخدم الحالي — تُبرَز وسط مهام الفريق. */
   mine?: boolean;
-  /** مهمّة غيري وأنا أعرض «جميع المهام» — تُخفَّف لتبرز مهامي فوقها. */
-  muted?: boolean;
   /** فتح نافذة التوجيهات — إن غابت لا يظهر زرّ التوجيه على البطاقة. */
   onDirective?: (t: Task) => void;
   /** حفظ نسبة الإنجاز المعدَّلة من الشريط — إن غابت كان الشريط للعرض فقط. */
@@ -29,7 +27,7 @@ interface Props {
  * حسب الأولوية، صورة المكلّف أو أحرفه بلونه الثابت، وسطر موعد بلون قربه،
  * وشريط تقدّم. المحتوى محتوى المهمة — الشكل فقط هو المشترك.
  */
-export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, muted, onDirective, onProgress }: Props) {
+export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, onDirective, onProgress }: Props) {
   const color = PRIORITY_COLORS[task.priority] ?? '#1B6CA8';
   const done = isDone(task);
   const diff = dueDiffDays(task.due_date);
@@ -70,7 +68,7 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, mu
 
   return (
     <div
-      className={`crm-lead-card${overdue ? ' task-card-late' : ''}${unread > 0 && !overdue ? ' task-card-directive' : ''}${muted ? ' task-card-muted' : ''}`}
+      className={`crm-lead-card${overdue ? ' task-card-late' : ''}${unread > 0 && !overdue ? ' task-card-directive' : ''}`}
       onClick={() => onOpen(task)}
       style={{
         ...card,

@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
+import { api, apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
 import type { AuthUser } from '../../../types/api';
 import type { Role, User } from '../types';
 
@@ -24,5 +24,17 @@ export const usersApi = {
   update: (id: number, payload: Record<string, unknown>) => apiPatch<User>(`/users/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/users/${id}`),
   roles: () => apiGet<Role[]>('/roles'),
+  /** صلاحيات الموظف: الموروثة من دوره، والاستثنائية الممنوحة له وحده. */
+  permissions: (id: number) => apiGet<UserPermissions>(`/users/${id}/permissions`),
+  syncPermissions: (id: number, permissions: string[]) =>
+    api.put(`/users/${id}/permissions`, { permissions }).then((r) => r.data.data as { direct: string[] }),
   impersonate: (id: number) => apiPost<{ token: string; user: AuthUser }>(`/users/${id}/impersonate`, {}),
 };
+
+/** صلاحيات موظف: ما ورثه من دوره وما مُنح له استثناءً. */
+export interface UserPermissions {
+  roles: string[];
+  from_roles: string[];
+  direct: string[];
+  effective: string[];
+}

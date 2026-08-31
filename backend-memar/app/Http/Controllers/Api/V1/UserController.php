@@ -96,6 +96,39 @@ class UserController extends ApiController
         return $this->ok(new UserResource($user), 'تم تحديث المستخدم');
     }
 
+    /**
+     * صلاحيات الموظف: الموروثة من أدواره، والمباشرة (الاستثناءات).
+     * شاشة الأدوار كانت تعرض عمود «استثناء» ولا يوجد في النظام مسار يكتبه.
+     */
+    public function permissions(User $user): JsonResponse
+    {
+        $direct = $user->getDirectPermissions()->pluck('name')->values()->all();
+
+        return $this->ok([
+            'roles' => $user->getRoleNames()->values()->all(),
+            // من الأدوار وحدها — ما عداها استثناء على هذا الموظف
+            'from_roles' => $user->getPermissionsViaRoles()->pluck('name')->values()->all(),
+            'direct' => $direct,
+            'effective' => $user->getAllPermissions()->pluck('name')->values()->all(),
+        ]);
+    }
+
+    /** يضبط استثناءات الموظف (صلاحيات مباشرة فوق دوره). */
+    public function syncPermissions(Request $request, User $user): JsonResponse
+    {
+        $data = $request->validate([
+            'permissions' => ['present', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+        ]);
+
+        $direct = $this->users->syncDirectPermissions($user, $data['permissions']);
+
+        return $this->ok(
+            ['direct' => $direct],
+            $direct === [] ? 'أُزيلت استثناءات هذا الموظف' : 'تم تحديث صلاحيات الموظف الاستثنائية',
+        );
+    }
+
     public function destroy(Request $request, User $user): JsonResponse
     {
         if ($request->user()?->id === $user->id) {

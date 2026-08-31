@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
 
 /**
  * منطق إدارة المستخدمين.
@@ -73,5 +74,23 @@ class UserService
     public function delete(User $user): void
     {
         $user->delete();
+    }
+
+    /**
+     * استثناءات الموظف: صلاحيات مباشرة فوق دوره (طلب أيمن 2026-08-31).
+     *
+     * «كل المهندسين كذا، إلا فلانًا فله التسعير أيضًا» — تُخزَّن على المستخدم
+     * نفسه لا على دوره، فلا تمسّ زملاءه. وهي إضافةٌ لا سحب: ما منحه الدور لا
+     * يُنتزع من فرد (حدٌّ في مكتبة الصلاحيات)، فالسحب يكون بتضييق الدور.
+     *
+     * @param  array<int, string>  $permissions  أسماء الصلاحيات المباشرة كاملةً
+     * @return array<int, string> الصلاحيات المباشرة بعد المزامنة
+     */
+    public function syncDirectPermissions(User $user, array $permissions): array
+    {
+        $valid = Permission::whereIn('name', $permissions)->where('guard_name', 'web')->pluck('name')->all();
+        $user->syncPermissions($valid);
+
+        return $user->fresh()->getDirectPermissions()->pluck('name')->values()->all();
     }
 }

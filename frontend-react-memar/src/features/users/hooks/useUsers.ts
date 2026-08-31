@@ -65,3 +65,25 @@ export function useDeleteUser() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_KEY }),
   });
 }
+
+/** صلاحيات موظف بعينه — للوحة الاستثناءات. */
+export function useUserPermissions(userId: number | null) {
+  return useQuery({
+    queryKey: ['user-permissions', userId],
+    queryFn: () => usersApi.permissions(userId as number),
+    enabled: userId !== null,
+  });
+}
+
+/** يضبط استثناءات الموظف (صلاحيات مباشرة فوق دوره). */
+export function useSyncUserPermissions(userId: number) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (permissions: string[]) => usersApi.syncPermissions(userId, permissions),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-permissions', userId] });
+      qc.invalidateQueries({ queryKey: ['roles-catalog'] }); // عمود «استثناء» في شاشة الأدوار
+    },
+  });
+}

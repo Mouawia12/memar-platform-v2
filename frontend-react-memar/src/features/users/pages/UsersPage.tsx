@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { UserFormModal } from '../components/UserFormModal';
+import { UserPermissionsModal } from '../components/UserPermissionsModal';
 import { UsersTable } from '../components/UsersTable';
 import { useImpersonation } from '../hooks/useImpersonation';
 import { useDeleteUser, useRoles, useUsers } from '../hooks/useUsers';
@@ -9,6 +10,8 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 
 export function UsersPage() {
+  // نافذة استثناءات صلاحيات موظف بعينه (طلب أيمن 2026-08-31).
+  const [permsOf, setPermsOf] = useState<User | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,7 +60,7 @@ export function UsersPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المستخدمين.</p>}
-        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onDelete={handleDelete} onImpersonate={isOwner ? handleImpersonate : undefined} currentUserId={currentUser?.id} canManage={canManage} canDelete={canDelete} />}
+        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onPermissions={setPermsOf} onDelete={handleDelete} onImpersonate={isOwner ? handleImpersonate : undefined} currentUserId={currentUser?.id} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>
@@ -69,6 +72,7 @@ export function UsersPage() {
       </div>
 
       {modalOpen && <UserFormModal user={editing} roles={roles} onClose={() => setModalOpen(false)} />}
+      {permsOf && <UserPermissionsModal user={permsOf} onClose={() => setPermsOf(null)} />}
     </div>
   );
 }

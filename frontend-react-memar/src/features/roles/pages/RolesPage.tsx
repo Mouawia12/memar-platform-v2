@@ -1,6 +1,9 @@
 import { type CSSProperties, useEffect, useState } from 'react';
 
 import { useDeleteRole, usePermissionGroups, useRolesCatalog, useSaveRole } from '../hooks/useRoles';
+import { type PermissionsTarget } from '../../users/components/UserPermissionsModal';
+import { UserPermissionsPanel } from '../../users/components/UserPermissionsModal';
+import { useUsers } from '../../users/hooks/useUsers';
 import { RoleNavPanel } from '../components/RoleNavPanel';
 import { type DashboardType, type RbacSettings, type Role } from '../types';
 
@@ -15,6 +18,8 @@ interface Draft {
   dashboard: DashboardType;
   modules: string[];
   rights: RbacSettings['rights'];
+  /** حقوق كل وحدة على حدة (طلب أيمن 2026-08-31). */
+  module_rights: NonNullable<RbacSettings['module_rights']>;
   visibility: RbacSettings['visibility'];
   scope: RbacSettings['scope'];
   approval: boolean;
@@ -26,6 +31,7 @@ const toDraft = (r: Role): Draft => ({
   dashboard: r.dashboard,
   modules: [...r.rbac.modules],
   rights: { ...r.rbac.rights },
+  module_rights: { ...(r.rbac.module_rights ?? {}) },
   visibility: { ...r.rbac.visibility },
   scope: { ...r.rbac.scope },
   approval: r.rbac.approval_authority,
@@ -33,8 +39,6 @@ const toDraft = (r: Role): Draft => ({
 });
 
 const VIEW_OPTS = [['all', 'كامل (All)'], ['department', 'القسم (Department)'], ['assigned', 'المرتبطة به (Assigned)'], ['own', 'خاصته فقط (Own)']];
-const EDIT_OPTS = [['full', 'كامل (Full)'], ['limited', 'محدود (Limited)'], ['none', 'لا يوجد (None)']];
-const DELETE_OPTS = [['yes', 'مسموح (Yes)'], ['no', 'ممنوع (No)']];
 const PRICING_OPTS = [['full', 'كامل (تعديل وعرض)'], ['view_approve', 'عرض واعتماد فقط'], ['partial', 'تعديل مقيد'], ['readonly', 'قراءة فقط'], ['none', 'محجوب (None)']];
 const FIN_OPTS = [['full', 'كامل (Full)'], ['partial', 'جزئي (Partial)'], ['own', 'فواتيره فقط (Own)'], ['none', 'محجوب (None)']];
 const SCOPE_OPTS = [['all', 'كل المشاريع (All)'], ['partial', 'جزء من المشاريع (Partial)'], ['assigned', 'المرتبطة به (Assigned)'], ['own', 'مشروعه فقط (Own)']];
@@ -64,11 +68,40 @@ export function RolesPage() {
 
   const patch = (p: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...p } : d));
   const toggleModule = (g: string) => setDraft((d) => d ? { ...d, modules: d.modules.includes(g) ? d.modules.filter((x) => x !== g) : [...d.modules, g] } : d);
+  /*
+   * حقوق كل وحدة على حدة (طلب أيمن 2026-08-31): كان «التعديل» و«الحذف»
+   * مفتاحين عامّين يسريان على كل الوحدات المؤشَّرة، فيستحيل التعبير عن
+   * «يرى المشاريع ويعدّل المهام» — وهو جوهر تمييز صلاحيات كل موظف.
+   */
+  // الضغط على موظف في جدول الدور يفتح صلاحياته الخاصّة (طلب أيمن 2026-08-31):
+  // الدور يضبط الجماعة، والنافذة تمنح الفرد ما لا يملكه زملاؤه.
+  const [permsOf, setPermsOf] = useState<PermissionsTarget | null>(null);
+  // منتقي الموظف — الوصول إلى الفرد لا يمرّ بدوره: دورٌ بلا مستخدمين كان يقطع الطريق.
+  // قائمة الموظفين تحت قائمة الأدوار — الأسماء ظاهرة في الصفحة بلا نافذة.
+  const { data: usersPage } = useUsers({ per_page: 200 });
+  const [userSearch, setUserSearch] = useState('');
+  const staff = (usersPage?.data ?? []).filter((u) => {
+    if (u.contact_id) return false; // حسابات العملاء ليست موظفين
+    const q = userSearch.trim().toLowerCase();
+
+    return !q || `${u.name} ${u.email}`.toLowerCase().includes(q);
+  });
+
+  const rightOf = (g: string, key: 'manage' | 'delete') => !!draft?.module_rights?.[g]?.[key];
+  const toggleRight = (g: string, key: 'manage' | 'delete') => setDraft((d) => {
+    if (!d) return d;
+    const cur = d.module_rights?.[g] ?? {};
+    const next = { ...(d.module_rights ?? {}), [g]: { ...cur, [key]: !cur[key] } };
+    // تعديلٌ يقتضي عرضًا: تأشير الحقّ يؤشّر وحدته
+    const modules = d.modules.includes(g) ? d.modules : [...d.modules, g];
+
+    return { ...d, modules, module_rights: next };
+  });
   const toggleChat = (t: string) => setDraft((d) => d ? { ...d, chat: { ...d.chat, types: d.chat.types.includes(t) ? d.chat.types.filter((x) => x !== t) : [...d.chat.types, t] } } : d);
 
   const buildPayload = (d: Draft) => ({
     name: d.name, dashboard: d.dashboard, modules: d.modules,
-    rights: d.rights, visibility: d.visibility, scope: d.scope,
+    rights: d.rights, module_rights: d.module_rights, visibility: d.visibility, scope: d.scope,
     approval_authority: d.approval, chat: d.chat,
   });
 
@@ -97,14 +130,15 @@ export function RolesPage() {
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الأدوار.</p>}
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-        {/* ── قائمة الأدوار ── */}
-        <div className="card" style={{ width: '280px', flexShrink: 0, padding: 0, overflow: 'hidden' }}>
+        {/* ── العمود الجانبي: الأدوار ثم الموظفون تحتها (طلب أيمن 2026-08-31) ── */}
+        <div style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={listHead}>قائمة الأدوار ({roles?.length ?? 0})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '40vh', overflowY: 'auto' }}>
             {roles?.map((r) => {
               const active = selected?.id === r.id;
               return (
-                <div key={r.id} onClick={() => setSelectedId(r.id)} style={{ ...roleRow, ...(active ? roleRowActive : null) }}>
+                <div key={r.id} onClick={() => { setPermsOf(null); setSelectedId(r.id); }} style={{ ...roleRow, ...(active ? roleRowActive : null) }}>
                   <div>
                     <div style={{ fontWeight: 700, color: active ? '#1B6CA8' : '#1A1F2E' }}>{r.label}</div>
                     <div style={{ fontSize: '11px', color: '#8A93A3', marginTop: '3px', direction: 'ltr', textAlign: 'right' }}>{r.code}</div>
@@ -116,9 +150,51 @@ export function RolesPage() {
           </div>
         </div>
 
-        {/* ── محرّر صلاحيات الدور ── */}
+        {/* ── الموظفون تحت الأدوار: الاسم يفتح صلاحياته الخاصّة في المحرّر ── */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={listHead}>👤 الموظفون ({staff.length})</div>
+          <div style={{ padding: '10px' }}>
+            <input
+              className="input"
+              style={{ width: '100%' }}
+              placeholder="ابحث باسم الموظف…"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+            />
+            <p style={{ fontSize: '11px', color: '#8A93A3', margin: '8px 2px 0', lineHeight: 1.7 }}>
+              اضغط الاسم لتمنحه صلاحيةً <b>له وحده</b> فوق دوره.
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '34vh', overflowY: 'auto' }}>
+            {staff.length === 0 && <div style={{ padding: '14px', color: '#8A93A3', fontSize: '12.5px' }}>لا موظفين مطابقين.</div>}
+            {staff.map((u) => {
+              const active = permsOf?.id === u.id;
+
+              return (
+                <div
+                  key={u.id}
+                  onClick={() => setPermsOf({ id: u.id, name: u.name, roles: u.roles })}
+                  style={{ ...roleRow, ...(active ? roleRowActive : null) }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: active ? '#1B6CA8' : '#1A1F2E', fontSize: '13px' }}>{u.name}</div>
+                    <div style={{ fontSize: '11px', color: '#8A93A3', marginTop: '3px' }}>{u.roles.join('، ') || 'بلا دور'}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        </div>
+
+        {/* ── المحرّر: صلاحيات موظف بعينه، أو مصفوفة الدور ── */}
         <div className="card" style={{ flex: 1, padding: 0, minWidth: 0 }}>
-          {selected && draft ? (
+          {permsOf ? (
+            <div style={{ padding: '18px 20px' }}>
+              <UserPermissionsPanel user={permsOf} onClose={() => setPermsOf(null)} />
+            </div>
+          ) : selected && draft ? (
             <>
               <div style={editorHead}>
                 <div>
@@ -149,27 +225,56 @@ export function RolesPage() {
                   </div>
                 </div>
 
-                {/* 1. الوحدات */}
+                {/* 1+2. مصفوفة الوحدات وحقوقها — لكل وحدة عرضها وتعديلها وحذفها */}
                 <div style={sectionBox}>
-                  <div style={sectionTitle}>1. صلاحيات الوصول للوحدات (Modules Access)</div>
-                  <div style={{ padding: '15px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '14px' }}>
+                  <div style={sectionTitle}>1. مصفوفة الصلاحيات (لكل وحدة على حدة)</div>
+                  <div style={{ padding: '15px' }}>
                     {visibleModules.length === 0 && <span style={{ color: '#8A93A3', fontSize: '13px' }}>لا وحدات لهذا النوع.</span>}
-                    {visibleModules.map((g) => (
-                      <label key={g.group} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
-                        <input type="checkbox" checked={draft.modules.includes(g.group)} onChange={() => toggleModule(g.group)} style={{ width: '16px', height: '16px', accentColor: '#274A78' }} />
-                        <span>{g.label}</span>
-                      </label>
-                    ))}
+                    {visibleModules.length > 0 && (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '420px' }}>
+                          <thead>
+                            <tr>
+                              <th style={matrixTh}>الوحدة</th>
+                              <th style={{ ...matrixTh, textAlign: 'center' }}>عرض</th>
+                              <th style={{ ...matrixTh, textAlign: 'center' }}>تعديل</th>
+                              <th style={{ ...matrixTh, textAlign: 'center' }}>حذف</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {visibleModules.map((g) => {
+                              const on = draft.modules.includes(g.group);
+
+                              return (
+                                <tr key={g.group}>
+                                  <td style={matrixTd}>{g.label}</td>
+                                  <td style={{ ...matrixTd, textAlign: 'center' }}>
+                                    <input type="checkbox" checked={on} onChange={() => toggleModule(g.group)} style={box} />
+                                  </td>
+                                  <td style={{ ...matrixTd, textAlign: 'center' }}>
+                                    <input type="checkbox" checked={rightOf(g.group, 'manage')} onChange={() => toggleRight(g.group, 'manage')} style={box} />
+                                  </td>
+                                  <td style={{ ...matrixTd, textAlign: 'center' }}>
+                                    <input type="checkbox" checked={rightOf(g.group, 'delete')} onChange={() => toggleRight(g.group, 'delete')} style={box} />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    <p style={{ fontSize: '11.5px', color: '#8A93A3', margin: '10px 0 0' }}>
+                      «تعديل» أو «حذف» يقتضي «عرض» فيؤشَّر تلقائيًّا. ولكل وحدة حقوقها — لا تعميم على الكل.
+                    </p>
                   </div>
                 </div>
 
-                {/* 2. حقوق CRUD */}
+                {/* 2. نطاق العرض */}
                 <div style={sectionBox}>
-                  <div style={sectionTitle}>2. حقوق العمليات (CRUD Rights)</div>
-                  <div style={{ padding: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
+                  <div style={sectionTitle}>2. نطاق العرض (View Scope)</div>
+                  <div style={{ padding: '15px', display: 'grid', gridTemplateColumns: '1fr', gap: '14px', maxWidth: '320px' }}>
                     <Field label="نطاق العرض (View)"><Select value={draft.rights.view} opts={VIEW_OPTS} onChange={(v) => patch({ rights: { ...draft.rights, view: v } })} /></Field>
-                    <Field label="التعديل (Edit)"><Select value={draft.rights.edit} opts={EDIT_OPTS} onChange={(v) => patch({ rights: { ...draft.rights, edit: v } })} /></Field>
-                    <Field label="الحذف (Delete)"><Select value={draft.rights.delete ? 'yes' : 'no'} opts={DELETE_OPTS} onChange={(v) => patch({ rights: { ...draft.rights, delete: v === 'yes' } })} /></Field>
                   </div>
                 </div>
 
@@ -215,6 +320,9 @@ export function RolesPage() {
               <div style={{ padding: '0 20px 20px' }}>
                 <div style={sectionBox}>
                   <div style={sectionTitle}>5. المستخدمون المرتبطون ({selected.users.length})</div>
+                  <p style={{ margin: '10px 14px 0', fontSize: '11.5px', color: '#8A93A3' }}>
+                    اضغط اسم الموظف لتمنحه صلاحيةً <b>له وحده</b> فوق صلاحيات دوره — ولا يتأثّر بها زملاؤه في الدور نفسه.
+                  </p>
                   {selected.users.length === 0 ? (
                     <div style={{ padding: '20px', textAlign: 'center', color: '#8A93A3', fontSize: '13px' }}>لا يوجد مستخدمون مرتبطون بهذا الدور.</div>
                   ) : (
@@ -230,8 +338,13 @@ export function RolesPage() {
                         </thead>
                         <tbody>
                           {selected.users.map((u) => (
-                            <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                              <td style={{ ...td, fontWeight: 700 }}>{u.name}</td>
+                            <tr
+                              key={u.id}
+                              style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                              onClick={() => setPermsOf({ id: u.id, name: u.name, roles: [selected.label] })}
+                              title={`صلاحيات ${u.name} الخاصّة`}
+                            >
+                              <td style={{ ...td, fontWeight: 700, color: '#1B6CA8' }}>🔐 {u.name}</td>
                               <td style={{ ...td, color: '#8A93A3', direction: 'ltr', textAlign: 'right' }}>{u.email || '—'}</td>
                               <td style={{ ...td, textAlign: 'center' }}>
                                 <span style={u.is_active ? badgeGreen : badgeRed}>{u.is_active ? 'نشط' : 'معطّل'}</span>
@@ -307,6 +420,9 @@ const roleRowActive: CSSProperties = { background: '#E0F2FE', borderRight: '4px 
 const countBadge: CSSProperties = { fontSize: '11px', background: '#EEF2F7', color: '#5A6478', borderRadius: '999px', padding: '2px 9px', fontWeight: 700, whiteSpace: 'nowrap' };
 const editorHead: CSSProperties = { padding: '18px 20px', borderBottom: '1px solid #E4E8EF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: '#F8FAFC' };
 const superNote: CSSProperties = { margin: '0', padding: '10px 20px', fontSize: '13px', color: '#B45309', background: '#FEF3C7', borderBottom: '1px solid #FCD34D' };
+const matrixTh: CSSProperties = { textAlign: 'right', padding: '8px 10px', borderBottom: '2px solid #E4E8EF', fontSize: '12px', color: '#5A6478', fontWeight: 800, whiteSpace: 'nowrap' };
+const matrixTd: CSSProperties = { padding: '8px 10px', borderBottom: '1px solid #F1F5F9' };
+const box: CSSProperties = { width: '16px', height: '16px', accentColor: '#274A78', cursor: 'pointer' };
 const sectionBox: CSSProperties = { border: '1px solid #E4E8EF', borderRadius: '8px', overflow: 'hidden' };
 const sectionTitle: CSSProperties = { background: '#F1F5F9', padding: '10px 15px', fontWeight: 700, fontSize: '13.5px', borderBottom: '1px solid #E4E8EF' };
 const th: CSSProperties = { padding: '10px', fontWeight: 700, fontSize: '12.5px', color: '#5A6478' };

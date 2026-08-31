@@ -6,6 +6,8 @@ interface Props {
   users: User[];
   roles: Role[];
   onEdit: (user: User) => void;
+  /** فتح استثناءات صلاحيات الموظف (طلب أيمن 2026-08-31). */
+  onPermissions?: (user: User) => void;
   onDelete: (user: User) => void;
   /** دخول المالك بحساب الموظف (impersonation) — يُمرَّر لمدير النظام فقط. */
   onImpersonate?: (user: User) => void;
@@ -14,7 +16,7 @@ interface Props {
   canDelete?: boolean;  // إظهار زر الحذف (users.delete)
 }
 
-export function UsersTable({ users, roles, onEdit, onDelete, onImpersonate, currentUserId, canManage = true, canDelete = true }: Props) {
+export function UsersTable({ users, roles, onEdit, onPermissions, onDelete, onImpersonate, currentUserId, canManage = true, canDelete = true }: Props) {
   const roleLabel = (name: string) => roles.find((r) => r.name === name)?.label ?? name;
   // يمكن الدخول بحساب أي مستخدم عدا النفس ومديري النظام الآخرين.
   const canImpersonate = (u: User) => !!onImpersonate && u.id !== currentUserId && !u.roles.includes('super_admin');
@@ -61,6 +63,9 @@ export function UsersTable({ users, roles, onEdit, onDelete, onImpersonate, curr
                     </>
                   )}
                   {canManage && <button className="btn btn-sm" onClick={() => onEdit(user)} type="button">تعديل</button>}{' '}
+                  {canManage && onPermissions && (
+                    <button className="btn btn-sm" onClick={() => onPermissions(user)} type="button" title="صلاحيات هذا الموظف وحده">🔐 صلاحيات</button>
+                  )}{' '}
                   {canDelete && <button className="btn btn-sm" onClick={() => onDelete(user)} type="button" style={{ color: '#ef4444' }}>حذف</button>}
                 </td>
               )}

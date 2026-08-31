@@ -17,6 +17,8 @@ export interface Appointment {
   status: AppointmentStatus;
   notes: string | null;
   project: { id: number; name: string } | null;
+  /** الموظف المكلَّف بالموعد — يظهر اسمه في القوائم والتقويم. */
+  assignee: { id: number; name: string } | null;
   created_at: string | null;
 }
 
@@ -24,6 +26,7 @@ export interface AppointmentFormData {
   title: string;
   type: AppointmentType;
   project_id: number | '';
+  assignee_id: number | '';
   start_at: string;
   end_at: string;
   location: string;

@@ -24,6 +24,7 @@ class UpdateAppointmentRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'type' => ['sometimes', 'required', Rule::in(['meeting', 'appointment'])],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'start_at' => ['sometimes', 'required', 'date'],
             'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
             'location' => ['nullable', 'string', 'max:255'],

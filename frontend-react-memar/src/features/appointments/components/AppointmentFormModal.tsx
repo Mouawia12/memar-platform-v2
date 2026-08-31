@@ -2,6 +2,7 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useProjects } from '../../projects/hooks/useProjects';
+import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveAppointment } from '../hooks/useAppointments';
 import { LOCATION_KINDS, STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentFormData, type AppointmentStatus, type AppointmentType, type LocationKind } from '../types';
 
@@ -13,7 +14,7 @@ interface Props {
 }
 
 const empty: AppointmentFormData = {
-  title: '', type: 'appointment', project_id: '', start_at: '', end_at: '',
+  title: '', type: 'appointment', project_id: '', assignee_id: '', start_at: '', end_at: '',
   location: '', location_kind: '', is_video: false, status: 'scheduled', notes: '',
 };
 
@@ -22,6 +23,7 @@ const toLocalInput = (iso: string | null) => (iso ? iso.slice(0, 16) : '');
 export function AppointmentFormModal({ appointment, initialStart, onClose }: Props) {
   const save = useSaveAppointment();
   const { data: projectsData } = useProjects({ per_page: 100 });
+  const { data: usersData } = useAssignableUsers();
   const [form, setForm] = useState<AppointmentFormData>({ ...empty, start_at: initialStart ?? '' });
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
         title: appointment.title,
         type: appointment.type,
         project_id: appointment.project?.id ?? '',
+        assignee_id: appointment.assignee?.id ?? '',
         start_at: toLocalInput(appointment.start_at),
         end_at: toLocalInput(appointment.end_at),
         location: appointment.location ?? '',
@@ -71,6 +74,12 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
             <select className="input" style={input} value={form.project_id} onChange={(e) => set('project_id', e.target.value ? Number(e.target.value) : '')}>
               <option value="">— بدون —</option>
               {projectsData?.data.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          <label style={label}>الموظف المكلَّف
+            <select className="input" style={input} value={form.assignee_id} onChange={(e) => set('assignee_id', e.target.value ? Number(e.target.value) : '')}>
+              <option value="">— غير محدّد —</option>
+              {usersData?.data.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </label>
           <label style={label}>يبدأ

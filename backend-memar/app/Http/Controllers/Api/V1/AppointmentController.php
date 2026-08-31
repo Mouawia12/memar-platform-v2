@@ -24,6 +24,8 @@ class AppointmentController extends ApiController
             $request->string('type')->toString() ?: null,
             $request->string('status')->toString() ?: null,
             $this->perPage($request, 15),
+            // «مواعيدي فقط» — الموظف يرى ما يخصّه وحده (طلب أيمن 2026-08-31)
+            $request->boolean('mine') ? $request->user()?->id : null,
         );
 
         return $this->paginated($paginator, AppointmentResource::class);
@@ -41,7 +43,7 @@ class AppointmentController extends ApiController
 
     public function show(Appointment $appointment): JsonResponse
     {
-        return $this->ok(new AppointmentResource($appointment->load('project')));
+        return $this->ok(new AppointmentResource($appointment->load(['project', 'assignee'])));
     }
 
     public function update(UpdateAppointmentRequest $request, Appointment $appointment): JsonResponse

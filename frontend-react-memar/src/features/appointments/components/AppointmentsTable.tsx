@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react';
 
+import { personColor, shortName } from '../../crm/types';
 import { useCloseAppointment } from '../hooks/useAppointments';
 import { LOCATION_KIND_LABELS, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, type Appointment } from '../types';
+import { MINE_TAG, OTHERS_MUTED } from './mineStyles';
 
 interface Props {
   appointments: Appointment[];
@@ -9,6 +11,8 @@ interface Props {
   onDelete: (a: Appointment) => void;
   canManage?: boolean; // إظهار زر التعديل (appointments.manage)
   canDelete?: boolean; // إظهار زر الحذف (appointments.delete)
+  /** معرّف المستخدم — لتمييز مواعيده عن مواعيد الفريق. */
+  meId?: number | null;
 }
 
 const fmt = (iso: string | null) =>
@@ -22,9 +26,11 @@ function needsClosing(a: Appointment): boolean {
   return !!ends && new Date(ends).getTime() < Date.now();
 }
 
-export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = true, canDelete = true }: Props) {
+export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = true, canDelete = true, meId }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   const close = useCloseAppointment();
+  // بلا موعدٍ لي في الصفحة لا نُخفت شيئًا — وإلا بدا الجدول كلّه باهتًا.
+  const hasMine = !!meId && appointments.some((a) => a.assignee?.id === meId);
   if (appointments.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد مواعيد.</p>;
   }
@@ -36,6 +42,7 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
           <tr>
             <th style={th}>العنوان</th>
             <th style={th}>النوع</th>
+            <th style={th}>المكلَّف</th>
             <th style={th}>الموعد</th>
             <th style={th}>المكان</th>
             <th style={th}>فيديو</th>
@@ -44,13 +51,27 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
           </tr>
         </thead>
         <tbody>
-          {appointments.map((a) => (
-            <tr key={a.id}>
+          {appointments.map((a) => {
+            const mine = !!meId && a.assignee?.id === meId;
+
+            return (
+            // صفّي بخلفية زرقاء خفيفة، وصفوف غيري تخفت (طلب أيمن 2026-08-31)
+            <tr key={a.id} style={mine ? mineRow : (hasMine ? OTHERS_MUTED : undefined)}>
               <td style={td}>
                 <b>{a.title}</b>
                 {a.project && <div style={{ fontSize: '12px', opacity: 0.6 }}>🏗️ {a.project.name}</div>}
               </td>
               <td style={td}>{TYPE_LABELS[a.type]}</td>
+              <td style={td}>
+                {a.assignee
+                  ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <b style={{ color: personColor(a.assignee.id) }} title={a.assignee.name}>{shortName(a.assignee.name)}</b>
+                      {mine && <span style={MINE_TAG}>موعدي</span>}
+                    </span>
+                  )
+                  : <span style={{ color: '#B6BECC' }}>غير مكلَّف</span>}
+              </td>
               <td style={td}>{fmt(a.start_at)}</td>
               <td style={td}>
                 {/* نوع المكان أوّلًا ثم تفصيله — الجدول كان يعرض النصّ الحرّ وحده. */}
@@ -93,13 +114,15 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
                 </td>
               )}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
+const mineRow: CSSProperties = { background: '#F7FBFF', boxShadow: 'inset 3px 0 0 #1B6CA8' };
 const th: CSSProperties = { textAlign: 'right', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontSize: '13px', opacity: 0.7 };
 const td: CSSProperties = { padding: '10px 12px', borderBottom: '1px solid #f0f0f0' };
 const badge: CSSProperties = { display: 'inline-block', padding: '2px 10px', borderRadius: '6px', fontSize: '12px' };

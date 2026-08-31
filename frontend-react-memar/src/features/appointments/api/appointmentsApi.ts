@@ -7,6 +7,8 @@ export interface AppointmentsQuery {
   status?: string;
   page?: number;
   per_page?: number;
+  /** مواعيدي وحدها: ما كُلّفتُ به أو سجّلتُه. */
+  mine?: boolean;
 }
 
 export const appointmentsApi = {

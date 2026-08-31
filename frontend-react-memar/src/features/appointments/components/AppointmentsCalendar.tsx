@@ -122,10 +122,12 @@ function closedStyle(a: Appointment): CSSProperties {
 
 /** تلميح يفرّق سبب الشطب — «تمّ» عن «أُلغي». */
 function closedHint(a: Appointment): string {
-  if (a.status === 'done') return `${a.title} — تمّ`;
-  if (a.status === 'cancelled') return `${a.title} — أُلغي`;
+  // اسم المكلَّف في التلميح — خانة اليوم أضيق من أن تحمله نصًّا (2026-08-31).
+  const who = a.assignee ? ` · 👤 ${a.assignee.name}` : '';
+  if (a.status === 'done') return `${a.title} — تمّ${who}`;
+  if (a.status === 'cancelled') return `${a.title} — أُلغي${who}`;
 
-  return a.title;
+  return `${a.title}${who}`;
 }
 
 // ── شهر ──

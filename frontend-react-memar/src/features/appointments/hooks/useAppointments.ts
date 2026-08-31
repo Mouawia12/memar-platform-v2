@@ -18,6 +18,7 @@ function toPayload(data: AppointmentFormData): Record<string, unknown> {
   return {
     ...data,
     project_id: data.project_id === '' ? null : data.project_id,
+    assignee_id: data.assignee_id === '' ? null : data.assignee_id,
     end_at: data.end_at || null,
   };
 }

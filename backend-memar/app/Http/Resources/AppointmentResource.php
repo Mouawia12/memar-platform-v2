@@ -35,6 +35,11 @@ class AppointmentResource extends JsonResource
                 'id' => $this->project->id,
                 'name' => $this->project->name,
             ] : null),
+            // الموظف المكلَّف — يظهر اسمه في القوائم والتقويم (طلب أيمن 2026-08-31)
+            'assignee' => $this->whenLoaded('assignee', fn () => $this->assignee ? [
+                'id' => $this->assignee->id,
+                'name' => $this->assignee->name,
+            ] : null),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

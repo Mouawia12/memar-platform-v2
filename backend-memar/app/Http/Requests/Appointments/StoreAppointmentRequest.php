@@ -24,6 +24,7 @@ class StoreAppointmentRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['meeting', 'appointment'])],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'start_at' => ['required', 'date'],
             'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
             'location' => ['nullable', 'string', 'max:255'],

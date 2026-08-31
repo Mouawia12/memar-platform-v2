@@ -49,20 +49,44 @@ class RoleDashboardTest extends TestCase
         $this->assertDatabaseHas('roles', ['name' => 'محاسب مشاريع', 'dashboard' => 'admin']);
     }
 
-    public function test_employee_role_clamps_out_admin_only_permissions(): void
+    /**
+     * القاعدة الجديدة (طلب أيمن 2026-08-31): الوجهة تقرّر أين يهبط المستخدم لا
+     * ماذا يملك. فدور «محاسب» في بوابة الموظف يملك المالية، ولا يُقصّ منه إلا
+     * ما هو إدارةٌ للنظام نفسه (المستخدمون والأدوار والإعدادات).
+     */
+    public function test_employee_role_may_hold_operational_permissions(): void
     {
-        $this->perms(['finance.view', 'tasks.view']);
+        $this->perms(['finance.view', 'tasks.view', 'hr.view', 'leads.view', 'loyalty.view', 'clients.view']);
+        $this->actingAsUserWith(['users.manage']);
+
+        $this->postJson('/api/v1/roles', [
+            'name' => 'محاسب البوابة',
+            'dashboard' => 'employee',
+            'permissions' => ['finance.view', 'tasks.view', 'hr.view', 'leads.view', 'loyalty.view', 'clients.view'],
+        ])->assertCreated();
+
+        $role = Role::where('name', 'محاسب البوابة')->firstOrFail();
+        foreach (['finance.view', 'tasks.view', 'hr.view', 'leads.view', 'loyalty.view', 'clients.view'] as $perm) {
+            $this->assertTrue($role->hasPermissionTo($perm), "توقّعنا أن يحمل الدور {$perm}");
+        }
+    }
+
+    public function test_employee_role_still_cannot_hold_system_administration(): void
+    {
+        $this->perms(['users.manage', 'roles.manage', 'settings.manage', 'tasks.view']);
         $this->actingAsUserWith(['users.manage']);
 
         $this->postJson('/api/v1/roles', [
             'name' => 'مساعد',
             'dashboard' => 'employee',
-            'permissions' => ['finance.view', 'tasks.view'], // المالية للأدمن فقط
+            'permissions' => ['users.manage', 'roles.manage', 'settings.manage', 'tasks.view'],
         ])->assertCreated();
 
         $role = Role::where('name', 'مساعد')->firstOrFail();
         $this->assertTrue($role->hasPermissionTo('tasks.view'));
-        $this->assertFalse($role->hasPermissionTo('finance.view')); // قُصّت لأنها لا تخصّ نوع الموظف
+        foreach (['users.manage', 'roles.manage', 'settings.manage'] as $perm) {
+            $this->assertFalse($role->hasPermissionTo($perm), "إدارة النظام لا تُمنح لوجهة الموظف: {$perm}");
+        }
     }
 
     public function test_user_dashboard_resolves_from_role_type(): void

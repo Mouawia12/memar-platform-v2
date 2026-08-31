@@ -11,6 +11,8 @@ export const DASHBOARD_LABELS: Record<DashboardType, string> = {
 export interface RbacSettings {
   modules: string[];
   rights: { view: string; edit: string; delete: boolean };
+  /** حقوق كل وحدة على حدة — «يرى المشاريع ويعدّل المهام» (طلب أيمن 2026-08-31). */
+  module_rights?: Record<string, { manage?: boolean; delete?: boolean }>;
   visibility: { pricing: string; financial: string };
   scope: { projects: string };
   approval_authority: boolean;

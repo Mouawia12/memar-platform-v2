@@ -44,6 +44,7 @@ class RolesAndAdminSeeder extends Seeder
             'loyalty.view', 'loyalty.manage',
             'leads.view', 'leads.manage',
             'settings.manage',
+
             // الخدمة الذاتية للموظف (شؤوني/حسابي/محادثات/إشعارات في بوابة الموظف) — تُمنح للموظف
             // فيرى شؤونه؛ ودور محدود بلا هذه الصلاحية لا يرى إلا ما أُشّر له. طلب أيمن 2026-08-13.
             'self.view',
@@ -106,9 +107,17 @@ class RolesAndAdminSeeder extends Seeder
             $role->syncPermissions($spec['perms']);
         }
 
-        // ── تنظيف: إزالة أي أدوار متخصّصة قديمة لم تعُد نظامية (بعد فصل مستخدميها) ──
-        Role::whereNotIn('name', array_keys($roles))->get()->each(function (Role $role): void {
-            $role->users()->detach(); // فكّ ارتباط المستخدمين قبل الحذف (تُعاد إسنادهم عبر DemoUsersSeeder)
+        /*
+         * تنظيف أدوارٍ ميتة بالاسم وحده (طلب أيمن 2026-08-31).
+         *
+         * كان هنا حذفٌ لكل دور غير نظامي مع فكّ ارتباط مستخدميه — فأي دور مهني
+         * يُنشئه المكتب من شاشة الأدوار (محاسب، موارد بشرية…) يضيع مع أول
+         * تشغيل للبذور، ويفقد أصحابه صلاحياتهم بلا أثر. الآن لا يُحذف إلا ما
+         * نعرفه بالاسم من تجارب قديمة، وما عداه يبقى.
+         */
+        $deadRoles = ['architect', 'engineer', 'staff', 'manager'];
+        Role::whereIn('name', $deadRoles)->get()->each(function (Role $role): void {
+            $role->users()->detach();
             $role->delete();
         });
 

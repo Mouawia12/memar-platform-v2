@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use App\Models\Role;
-use App\Models\User;
 use Spatie\Permission\Models\Permission;
 
 class RoleController extends ApiController
@@ -57,29 +57,31 @@ class RoleController extends ApiController
     ];
 
     /**
-     * أي أنواع اللوحات يخصّها كل مجموعة صلاحيات. لوحة العميل بلا صلاحيات طاقم (الوصول
-     * يُدار من ملف العميل). ما لا يُذكر هنا يخصّ الأدمن فقط.
+     * أي وجهةٍ يجوز لها أن تحمل مجموعة صلاحية.
+     *
+     * القاعدة (طلب أيمن 2026-08-31): الوجهة تقرّر أين يهبط المستخدم لا ماذا
+     * يملك — فكل الوحدات التشغيلية متاحة للوجهتين، ولا يُستثنى إلا ما هو
+     * إدارةٌ للنظام نفسه (المستخدمون والأدوار والإعدادات).
+     *
+     * كان الحاجز يمنع دورًا وجهته «بوابة الموظف» من المالية والموارد البشرية
+     * والعقود والتسعير وملف العميل — فيستحيل بناء دور «محاسب» أو «موارد
+     * بشرية». وكانت «الفرص» و«الولاء» غائبتين عن الخريطة أصلًا، فيسقطان
+     * صامتَين من دور الموظف عند أول حفظ لمصفوفته.
      */
-    private const GROUP_DASHBOARDS = [
-        'crm' => ['admin', 'employee'],
-        'requests' => ['admin', 'employee'],
-        'projects' => ['admin', 'employee'],
-        'tasks' => ['admin', 'employee'],
-        'appointments' => ['admin', 'employee'],
-        'documents' => ['admin', 'employee'],
-        'forum' => ['admin', 'employee'],
-        'self' => ['employee'], // الخدمة الذاتية تخصّ بوابة الموظف فقط
-    ];
+    private const SYSTEM_ONLY_GROUPS = ['users', 'roles', 'settings'];
 
     private function dashboardOf(Role $role): string
     {
         return self::SYSTEM_DASHBOARDS[$role->name] ?? ($role->getAttribute('dashboard') ?: 'employee');
     }
 
-    /** الأنواع التي تُتاح لها مجموعة صلاحية (الافتراضي: الأدمن فقط). */
+    /**
+     * الوجهات التي تُتاح لها مجموعة صلاحية. إدارة النظام للوحة الإدارة وحدها،
+     * وما عداها متاح للوحة الإدارة وبوابة الموظف. وبوابة العميل لا تحمل شيئًا.
+     */
     private function groupDashboards(string $group): array
     {
-        return self::GROUP_DASHBOARDS[$group] ?? ['admin'];
+        return in_array($group, self::SYSTEM_ONLY_GROUPS, true) ? ['admin'] : ['admin', 'employee'];
     }
 
     /** قائمة الأدوار (للاختيار في نماذج المستخدمين). */
@@ -279,6 +281,13 @@ class RoleController extends ApiController
     {
         return [
             'rights' => ['view' => 'all', 'edit' => 'none', 'delete' => false],
+            /*
+             * حقوق كل وحدة على حدة (طلب أيمن 2026-08-31): {الوحدة: {manage, delete}}.
+             * كان «التعديل» و«الحذف» مفتاحين عامّين يسريان على كل الوحدات المؤشَّرة،
+             * فيستحيل التعبير عن «يرى المشاريع ويعدّل المهام». وتبقى `rights` أعلاه
+             * لأدوار حُفظت قبل هذا التغيير — تُقرأ منها الحقوق إن غابت المصفوفة.
+             */
+            'module_rights' => [],
             'visibility' => ['pricing' => 'none', 'financial' => 'none'],
             'scope' => ['projects' => 'assigned'],
             'approval_authority' => false,
@@ -303,15 +312,30 @@ class RoleController extends ApiController
         $stored = $role->getAttribute('settings');
         if (is_array($stored)) {
             // دمج علوي فقط (لا array_replace_recursive) حتى لا تُدمج القوائم كـ chat.types عنصرًا بعنصر.
-            return array_merge($this->defaultSettings(), $stored, ['modules' => $modules]);
+            $merged = array_merge($this->defaultSettings(), $stored, ['modules' => $modules]);
+
+            // دور حُفظ قبل مصفوفة الوحدات: نشتقّها من صلاحياته الفعلية كي لا يُعمَّم
+            // عليه حقٌّ لا يملكه ولا يُسحب منه حقٌّ يملكه.
+            if (empty($merged['module_rights'])) {
+                $merged['module_rights'] = collect($modules)->mapWithKeys(fn (string $g): array => [
+                    $g => ['manage' => $has("$g.manage"), 'delete' => $has("$g.delete")],
+                ])->all();
+            }
+
+            return $merged;
         }
 
         // اشتقاق العرض من الصلاحيات الحالية (لأدوار لم تُحفَظ إعداداتها بعد)
         $hasManage = collect($modules)->contains(fn (string $g): bool => $has("$g.manage"));
         $hasDelete = collect($modules)->contains(fn (string $g): bool => $has("$g.delete"));
+        // مصفوفة دقيقة لكل وحدة من صلاحياتها الفعلية — لا تعميم يخسر التفاصيل
+        $moduleRights = collect($modules)->mapWithKeys(fn (string $g): array => [
+            $g => ['manage' => $has("$g.manage"), 'delete' => $has("$g.delete")],
+        ])->all();
 
         return array_merge($this->defaultSettings(), [
             'modules' => $modules,
+            'module_rights' => $moduleRights,
             'rights' => ['view' => 'all', 'edit' => $hasManage ? 'full' : 'none', 'delete' => $hasDelete],
             'visibility' => [
                 'pricing' => $has('pricing.view') ? 'full' : 'none',
@@ -335,15 +359,29 @@ class RoleController extends ApiController
         $visibility = $data['visibility'] ?? [];
         $out = [];
 
+        $moduleRights = $data['module_rights'] ?? [];
+
         foreach (($data['modules'] ?? []) as $group) {
             if (! in_array($dashboard, $this->groupDashboards($group), true)) {
                 continue;
             }
             $out[] = "$group.view";
-            if (($rights['edit'] ?? 'none') !== 'none') {
+
+            /*
+             * حقوق هذه الوحدة وحدها إن وُجدت مصفوفة؛ وإلا فالمفتاحان العامّان
+             * (توافقًا مع أدوار حُفظت قبل المصفوفة).
+             */
+            $canManage = array_key_exists($group, $moduleRights)
+                ? ! empty($moduleRights[$group]['manage'])
+                : ($rights['edit'] ?? 'none') !== 'none';
+            $canDelete = array_key_exists($group, $moduleRights)
+                ? ! empty($moduleRights[$group]['delete'])
+                : ! empty($rights['delete']);
+
+            if ($canManage) {
                 $out[] = "$group.manage";
             }
-            if (! empty($rights['delete'])) {
+            if ($canDelete) {
                 $out[] = "$group.delete";
             }
         }
@@ -374,6 +412,9 @@ class RoleController extends ApiController
             'modules' => ['array'],
             'modules.*' => ['string'],
             'rights' => ['array'],
+            'module_rights' => ['array'],
+            'module_rights.*.manage' => ['boolean'],
+            'module_rights.*.delete' => ['boolean'],
             'visibility' => ['array'],
             'scope' => ['array'],
             'approval_authority' => ['boolean'],
@@ -389,6 +430,12 @@ class RoleController extends ApiController
         $def = $this->defaultSettings();
         $settings = [
             'rights' => array_replace($def['rights'], array_intersect_key($validated['rights'] ?? [], $def['rights'])),
+            // حقوق كل وحدة على حدة — تُحفظ للوحدات المؤشَّرة وحدها كي لا تتراكم بقايا
+            'module_rights' => collect($validated['modules'] ?? [])
+                ->mapWithKeys(fn (string $g): array => [$g => [
+                    'manage' => ! empty($validated['module_rights'][$g]['manage']),
+                    'delete' => ! empty($validated['module_rights'][$g]['delete']),
+                ]])->all(),
             'visibility' => array_replace($def['visibility'], array_intersect_key($validated['visibility'] ?? [], $def['visibility'])),
             'scope' => array_replace($def['scope'], array_intersect_key($validated['scope'] ?? [], $def['scope'])),
             'approval_authority' => (bool) ($validated['approval_authority'] ?? false),
@@ -401,7 +448,11 @@ class RoleController extends ApiController
         // إن أُرسلت وحدات RBAC نبني الصلاحيات منها؛ وإلا نستخدم قائمة الصلاحيات الصريحة (القديمة).
         $isRbac = $request->has('modules');
         $permissions = $isRbac
-            ? $this->permissionsFromRbac(array_merge($validated, ['rights' => $settings['rights'], 'visibility' => $settings['visibility']]), $validated['dashboard'])
+            ? $this->permissionsFromRbac(array_merge($validated, [
+                'rights' => $settings['rights'],
+                'module_rights' => $settings['module_rights'] ?? [],
+                'visibility' => $settings['visibility'],
+            ]), $validated['dashboard'])
             : ($validated['permissions'] ?? []);
 
         return [

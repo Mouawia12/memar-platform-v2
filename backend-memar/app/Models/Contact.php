@@ -129,6 +129,18 @@ class Contact extends Model
         return $this->belongsTo(Contact::class, 'parent_contact_id');
     }
 
+    /** مشاريع هذا العميل — عمود «المشاريع» في السجل. @return HasMany<Project, $this> */
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'client_id');
+    }
+
+    /** عقود هذا العميل — منها «إجمالي العقود». @return HasMany<Contract, $this> */
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class, 'client_id');
+    }
+
     /** الفرص المرتبطة بهذا العميل (فرص جديدة له). @return HasMany<Contact, $this> */
     public function opportunities(): HasMany
     {

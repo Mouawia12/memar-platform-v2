@@ -28,6 +28,9 @@ class RolesAndAdminSeeder extends Seeder
             'roles.view', 'roles.manage', 'roles.delete',
             'crm.view', 'crm.manage', 'crm.delete',
             'clients.view', // زيارة بروفيل العميل الداخلي (اجتماع 2026-08-05) — صلاحية منفصلة يمنحها الأدمن
+            // إجمالي عقود العميل في سجل العملاء (طلب أيمن 2026-09-09): للإدارة،
+            // أو لموظف بعينه عبر استثناءات الصلاحيات — لا لكل من يرى السجل.
+            'clients.finance.view',
 
             'requests.view', 'requests.view.all', 'requests.manage', 'requests.delete',
             'projects.view', 'projects.manage', 'projects.delete',

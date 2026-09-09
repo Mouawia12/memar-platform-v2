@@ -35,6 +35,16 @@ class ContactResource extends JsonResource
             // حقول الفرصة (المرحلة 3)
             'priority' => $this->priority ?? 'medium',
             'is_vip' => (bool) $this->is_vip,
+            // أعمدة سجل العملاء (طلب أيمن 2026-09-09)
+            'projects_count' => (int) ($this->projects_count ?? 0),
+            // الفرص المنسوبة لهذا العميل — تربط السجل بلوحة «عميل جديد»
+            'opportunities_count' => (int) ($this->opportunities_count ?? 0),
+            // إجمالي العقود بيانات مالية: لا تصل إلا من يملك clients.finance.view
+            'contracts_total_kwd' => $this->when(
+                (bool) $request->user()?->can('clients.finance.view'),
+                fn () => (string) round((float) ($this->contracts_sum_value_kwd ?? 0), 3),
+            ),
+            'last_contact_at' => $this->whenLoaded('latestUpdate', fn () => $this->latestUpdate?->created_at?->toDateString()),
             'is_urgent' => (bool) $this->is_urgent,
             'price_1_kwd' => $this->price_1_kwd,
             'price_2_kwd' => $this->price_2_kwd,

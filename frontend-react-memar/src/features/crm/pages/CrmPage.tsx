@@ -30,7 +30,9 @@ import '../crm.css';
 export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [search, setSearch] = useState('');
+  // ?search= يصل من سجل العملاء (شارة «الفرص») — يفتح اللوحة مفلترةً باسم
+  // العميل بدل أن يبحث المستخدم عنه بنفسه (طلب أيمن 2026-09-09).
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
   const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
   // فلاتر طبق الأصل: نوع العميل + المصدر + المسؤول. المصدر صار حقلًا حقيقيًا
   // على الفرصة (طلب أيمن 2026-08-22) بعد أن كان قائمة عرضية في المرجع.
@@ -40,7 +42,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   // مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
   // «فرصي فقط» هو الوضع الدائم عند فتح الصفحة، و«جميع الفرص» خيار بضغطة —
   // كما في المهام والمواعيد والاجتماعات (طلب أيمن 2026-08-31).
-  const [scope, setScope] = useState<'all' | 'mine'>('mine');
+  const [scope, setScope] = useState<'all' | 'mine'>(() => (searchParams.get('search') ? 'all' : 'mine'));
   // التمييز خيار لا سلوك تلقائي: «جميع الفرص» تعرضها كلّها واضحة، والزرّ يُخفت فرص غيري.
   const [highlight, setHighlight] = useState(false);
   const userId = useAuthStore((s) => s.user?.id);

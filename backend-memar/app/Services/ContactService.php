@@ -35,6 +35,9 @@ class ContactService
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
             ->with(['owner', 'createdBy:id,name', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
+            // أعمدة سجل العملاء: مشاريعه وفرصه وإجمالي عقوده (طلب أيمن 2026-09-09)
+            ->withCount(['projects', 'opportunities'])
+            ->withSum('contracts', 'value_kwd')
             // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).
             ->orderBy('board_position')
             ->latest()

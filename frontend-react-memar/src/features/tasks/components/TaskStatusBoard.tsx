@@ -83,6 +83,7 @@ function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlight
               onAck={onAck}
               avatarUrl={t.assignee ? avatars?.[String(t.assignee.id)] ?? null : null}
               mine={highlightMine && isMine(t)}
+              muted={highlightMine && !isMine(t)}
               onDirective={directiveFor(t)}
               onProgress={onProgress}
             />

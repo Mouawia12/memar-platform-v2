@@ -58,3 +58,9 @@ export function shortStamp(iso: string | null): string {
 /** التاريخ الكامل — في تلميح السطر وحده حيث تتّسع المساحة. */
 export const fullStamp = (iso: string | null): string =>
   iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+
+/**
+ * في وضع «مهامي مميزة» وحده: ما يخصّ غيري يخفت فتبرز مهامي فوقه
+ * (طلب أيمن 2026-09-09). في «جميع المهام» لا يخفت شيء — الكلّ سواء.
+ */
+export const OTHERS_MUTED: CSSProperties = { opacity: 0.5, filter: 'saturate(0.55)' };

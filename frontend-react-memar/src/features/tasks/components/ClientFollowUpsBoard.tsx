@@ -2,7 +2,7 @@ import { type CSSProperties, useRef, useState } from 'react';
 
 import { useEdgeAutoScroll } from '../../../hooks/useEdgeAutoScroll';
 import { personColor, personInitials, shortName } from '../../crm/types';
-import { CARD_ACTIVITY_STYLES, fullStamp, shortStamp } from './cardActivityStyles';
+import { CARD_ACTIVITY_STYLES, fullStamp, shortStamp, OTHERS_MUTED } from './cardActivityStyles';
 import type { FollowUp } from '../api/followUpsApi';
 import { FollowUpDetailModal } from './FollowUpDetailModal';
 import { repeatLabel } from './RepeatPicker';
@@ -112,7 +112,7 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
                   <div
                     key={f.id}
                     className={`crm-lead-card${unread > 0 ? ' task-card-directive' : ''}`}
-                    style={{ ...card, borderRight: `5px solid ${col.color}`, ...(mine ? mineRing : null) }}
+                    style={{ ...card, borderRight: `5px solid ${col.color}`, ...(mine ? mineRing : null), ...(markMine && !mine ? OTHERS_MUTED : null) }}
                     onClick={() => setDetail(f)} title="فتح تفاصيل المتابعة">
                     <div style={topLine}>
                       <span style={code}>#FUP-{String(f.id).padStart(3, '0')}</span>

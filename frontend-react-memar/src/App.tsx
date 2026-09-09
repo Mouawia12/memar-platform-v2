@@ -52,6 +52,7 @@ import { ImpersonationShell } from './features/users/components/ImpersonationBan
 import { UsersPage } from './features/users/pages/UsersPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
+import { useSessionRefresh } from './features/auth/hooks/useSessionRefresh';
 import { LandingRedirect, RequireDashboardHome, RequirePermission, RequireStaff } from './router/RequirePermission';
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
@@ -59,6 +60,10 @@ const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects',
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
 export default function App() {
+  // صلاحيات الجلسة تُحدَّث من الخادم — وإلا بقيت مجمّدة منذ الدخول
+  // فلا يصل المستخدمَ ما مُنح له من صلاحيات (طلب أيمن 2026-09-09).
+  useSessionRefresh();
+
   return (
     <ImpersonationShell>
     {/* تنبيهات عائمة في كل صفحات النظام: الفرص العاجلة + بقيّة إشعارات المنصة. */}

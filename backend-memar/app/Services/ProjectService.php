@@ -32,7 +32,7 @@ class ProjectService
                 });
             })
             ->when($status, fn ($query, string $st) => $query->where('status', $st))
-            ->with(['client', 'manager'])
+            ->with(['client', 'manager', 'activeStage'])
             ->latest()
             ->paginate($perPage);
     }

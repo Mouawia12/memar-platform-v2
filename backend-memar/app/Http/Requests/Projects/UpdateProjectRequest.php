@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Projects;
 
+use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +24,7 @@ class UpdateProjectRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'type' => ['nullable', 'string', Rule::in(Project::TYPES)],
             'client_id' => ['nullable', 'integer', 'exists:contacts,id'],
             'manager_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['sometimes', 'required', Rule::in(['draft', 'active', 'on_hold', 'done', 'cancelled'])],

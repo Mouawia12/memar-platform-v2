@@ -25,6 +25,12 @@ export interface Project {
   end_date: string | null;
   description: string | null;
   client: ProjectRef | null;
+  /** نوع المشروع (فيلا سكنية، مجمع تجاري…) — عمود «النوع» في السجل. */
+  type: string | null;
+  /** اسم المرحلة الجارية — عمود «المرحلة». */
+  current_stage?: string | null;
+  /** آخر تحديث للمشروع — عمود «آخر تحديث». */
+  updated_at?: string | null;
   manager: ProjectRef | null;
   is_vip: boolean;
   /** يظهران للطاقم المخوّل فقط (projects.manage) — غير موجودين للعميل. */
@@ -76,6 +82,7 @@ export const STAGE_STATUS_COLORS: Record<StageStatus, string> = {
 
 export interface ProjectFormData {
   name: string;
+  type: string;
   client_id: number | '';
   manager_id: number | '';
   status: ProjectStatus;
@@ -112,3 +119,9 @@ export interface StageTemplate {
   total_days: number;
   stages: string[];
 }
+
+/** أنواع المشاريع — نفس قائمة الخادم (Project::TYPES). */
+export const PROJECT_TYPES = [
+  'فيلا سكنية', 'مجمع سكني', 'مجمع تجاري', 'مبنى إداري',
+  'مستودع / مصنع', 'ترميم وتجديد', 'تنسيق حدائق', 'أخرى',
+];

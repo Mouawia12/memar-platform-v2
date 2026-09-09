@@ -5,6 +5,7 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { projectsApi } from '../api/projectsApi';
 import { ProjectFormModal } from '../components/ProjectFormModal';
 import { ProjectsTable } from '../components/ProjectsTable';
+import { StagePipelineCard } from '../components/StagePipelineCard';
 import { useDeleteProject, useProjects } from '../hooks/useProjects';
 import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus, PROJECT_TYPES } from '../types';
 
@@ -135,6 +136,9 @@ export function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {/* مراحل المشاريع — بطاقة مستقلّة تحت الجدول (طلب أيمن 2026-09-09). */}
+      <StagePipelineCard />
 
       {modalOpen && <ProjectFormModal project={editing} onClose={() => setModalOpen(false)} />}
     </div>

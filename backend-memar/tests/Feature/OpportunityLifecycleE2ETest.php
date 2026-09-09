@@ -9,7 +9,6 @@ use App\Models\LoyaltyRule;
 use App\Models\LoyaltyTransaction;
 use App\Models\PipelineStage;
 use App\Models\Project;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

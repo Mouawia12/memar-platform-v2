@@ -9,6 +9,7 @@ use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 /**
@@ -39,7 +40,7 @@ class ServiceRequestTest extends TestCase
         $assigned = ServiceRequest::create(['title' => 'طلب مُسنَد', 'type' => 'supervision', 'client_name' => 'عميل مسند', 'priority' => 'normal', 'status' => 'open', 'assigned_to' => $engineer->id]);
         ServiceRequest::create(['title' => 'طلب موظف آخر', 'type' => 'design', 'client_name' => 'عميل آخر', 'priority' => 'normal', 'status' => 'open']);
 
-        $engineer->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('requests.view', 'web'));
+        $engineer->givePermissionTo(Permission::findOrCreate('requests.view', 'web'));
         Sanctum::actingAs($engineer);
 
         $res = $this->getJson('/api/v1/service-requests');
@@ -56,7 +57,7 @@ class ServiceRequestTest extends TestCase
         ServiceRequest::create(['title' => 'طلب أنشأه الموظف', 'type' => 'other', 'client_name' => 'عميل', 'priority' => 'low', 'status' => 'open', 'requested_by' => $engineer->id]);
         ServiceRequest::create(['title' => 'طلب غريب', 'type' => 'other', 'client_name' => 'عميل', 'priority' => 'low', 'status' => 'open']);
 
-        $engineer->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('requests.view', 'web'));
+        $engineer->givePermissionTo(Permission::findOrCreate('requests.view', 'web'));
         Sanctum::actingAs($engineer);
 
         $res = $this->getJson('/api/v1/service-requests');
@@ -76,7 +77,7 @@ class ServiceRequestTest extends TestCase
         $this->assertDatabaseHas('service_requests', ['id' => $req->id, 'assigned_to' => $engineer->id]);
 
         // المهندس الآن يراه
-        $engineer->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('requests.view', 'web'));
+        $engineer->givePermissionTo(Permission::findOrCreate('requests.view', 'web'));
         Sanctum::actingAs($engineer);
         $res = $this->getJson('/api/v1/service-requests');
         $this->assertSame(1, $res->json('meta.total'));
@@ -90,7 +91,7 @@ class ServiceRequestTest extends TestCase
         $this->actingAsUserWith(['requests.view', 'requests.view.all']);
 
         // البحث «فيلا» يطابق الاثنين، لكن فلتر الحالة open يجب أن يُبقي واحدًا فقط
-        $res = $this->getJson('/api/v1/service-requests?search=' . urlencode('فيلا') . '&status=open');
+        $res = $this->getJson('/api/v1/service-requests?search='.urlencode('فيلا').'&status=open');
 
         $res->assertOk();
         $this->assertSame(1, $res->json('meta.total'));

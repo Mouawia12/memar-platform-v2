@@ -209,7 +209,10 @@ class User extends Authenticatable
         $slug = '';
         foreach (Str::of($this->name)->trim()->explode(' ') as $part) {
             $candidate = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', Str::ascii((string) $part)));
-            if (strlen($candidate) >= 2) { $slug = $candidate; break; }
+            if (strlen($candidate) >= 2) {
+                $slug = $candidate;
+                break;
+            }
         }
         $base = $slug !== '' ? "MEMAR-{$slug}{$year}" : 'MEMAR-'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT)."-{$year}";
 

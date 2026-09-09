@@ -10,6 +10,7 @@ use App\Models\LoyaltyRedemption;
 use App\Models\LoyaltyTransaction;
 use App\Models\Referral;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -73,7 +74,7 @@ class LoyaltyService
      */
     public function userPointsByStatus(User $user): array
     {
-        $base = fn (): \Illuminate\Database\Eloquent\Builder => LoyaltyTransaction::where('user_id', $user->id);
+        $base = fn (): Builder => LoyaltyTransaction::where('user_id', $user->id);
 
         return [
             'pending' => (int) $base()->where('status', LoyaltyTransaction::STATUS_PENDING)->where('points', '>', 0)->sum('points'),
@@ -195,7 +196,7 @@ class LoyaltyService
                 'points' => -$convertible,
                 'balance_after' => $newBalance,
                 'source' => 'salary_conversion',
-                'description' => "تحويل {$convertible} نقطة إلى رصيد راتب: " . number_format($kwd, 3) . ' د.ك',
+                'description' => "تحويل {$convertible} نقطة إلى رصيد راتب: ".number_format($kwd, 3).' د.ك',
             ]);
 
             return ['points' => $convertible, 'kwd' => $kwd, 'balance' => $newBalance];

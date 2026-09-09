@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -73,7 +74,7 @@ class UserReferralTest extends TestCase
 
     public function test_registration_with_referral_links_client_to_referrer(): void
     {
-        \Spatie\Permission\Models\Role::findOrCreate('client', 'web');
+        Role::findOrCreate('client', 'web');
         $referrer = User::factory()->create(['name' => 'Sara Sales']);
         $code = $referrer->ensureReferralCode();
 
@@ -93,7 +94,7 @@ class UserReferralTest extends TestCase
 
     public function test_registration_with_unknown_code_leaves_referrer_null(): void
     {
-        \Spatie\Permission\Models\Role::findOrCreate('client', 'web');
+        Role::findOrCreate('client', 'web');
         $this->postJson('/api/v1/auth/register', [
             'name' => 'عميل بلا محيل',
             'email' => 'noref@example.com',

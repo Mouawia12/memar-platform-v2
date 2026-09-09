@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\SyncController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +24,7 @@ Route::prefix('v1')->group(function (): void {
     ], 'الخدمة تعمل'));
 
     // نبضة التزامن اللحظي — طوابع تغيّر لكل نطاق (تُبطل الواجهة الكاش عند تغيّرها).
-    Route::middleware('auth:sanctum')->get('/sync/pulse', [\App\Http\Controllers\Api\V1\SyncController::class, 'pulse']);
+    Route::middleware('auth:sanctum')->get('/sync/pulse', [SyncController::class, 'pulse']);
 
     // ── وحدات الـAPI ─────────────────────────────
     require __DIR__.'/api/auth.php';

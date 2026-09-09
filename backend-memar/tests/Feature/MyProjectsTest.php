@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Contact;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\ProjectMemberService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -41,7 +43,7 @@ class MyProjectsTest extends TestCase
         $admin = $this->actingAsUserWith(['projects.view', 'projects.manage']);
         $project = Project::factory()->create(['name' => 'فيلا النرجس']);
         $staff = User::factory()->create(['contact_id' => null]);
-        app(\App\Services\ProjectMemberService::class)->assign($project, $staff, 'مشرف', $admin);
+        app(ProjectMemberService::class)->assign($project, $staff, 'مشرف', $admin);
 
         Sanctum::actingAs($staff);
 
@@ -62,7 +64,7 @@ class MyProjectsTest extends TestCase
         $admin = $this->actingAsUserWith(['projects.view', 'projects.manage']);
         $project = Project::factory()->create();
         $staff = User::factory()->create(['contact_id' => null]);
-        app(\App\Services\ProjectMemberService::class)->assign($project, $staff, null, $admin);
+        app(ProjectMemberService::class)->assign($project, $staff, null, $admin);
 
         Sanctum::actingAs($staff);
         $this->assertDatabaseHas('app_notifications', ['user_id' => $staff->id, 'read_at' => null]);
@@ -77,7 +79,7 @@ class MyProjectsTest extends TestCase
         $project = Project::factory()->create();
         $a = User::factory()->create(['contact_id' => null]);
         $b = User::factory()->create(['contact_id' => null]);
-        $svc = app(\App\Services\ProjectMemberService::class);
+        $svc = app(ProjectMemberService::class);
         $svc->assign($project, $a, 'معماري', $admin);
         $svc->assign($project, $b, 'إنشائي', $admin);
 
@@ -89,7 +91,7 @@ class MyProjectsTest extends TestCase
         $this->actingAsUserWith(['projects.view', 'projects.manage']);
         $project = Project::factory()->create();
         $staff = User::factory()->create(['contact_id' => null]);
-        $client = User::factory()->create(['contact_id' => \App\Models\Contact::factory()->create()->id]);
+        $client = User::factory()->create(['contact_id' => Contact::factory()->create()->id]);
 
         $res = $this->getJson("/api/v1/projects/{$project->id}/assignable-members")->assertOk();
         $ids = array_column($res->json('data'), 'id');
@@ -101,7 +103,7 @@ class MyProjectsTest extends TestCase
     {
         $admin = $this->actingAsUserWith(['projects.view', 'projects.manage']);
         $staff = User::factory()->create(['contact_id' => null]);
-        $svc = app(\App\Services\ProjectMemberService::class);
+        $svc = app(ProjectMemberService::class);
         $svc->assign(Project::factory()->create(), $staff, null, $admin);
         $svc->assign(Project::factory()->create(), $staff, null, $admin);
 

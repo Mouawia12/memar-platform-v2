@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\SettingsService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configurePasswordReset();
         // تطبيق تجاوزات الإعدادات الديناميكية على config (يضبطها الأدمن دون نشر).
-        $this->app->make(\App\Services\SettingsService::class)->apply();
+        $this->app->make(SettingsService::class)->apply();
     }
 
     /**

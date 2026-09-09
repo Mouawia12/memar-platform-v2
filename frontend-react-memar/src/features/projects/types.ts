@@ -54,6 +54,9 @@ export interface StageComment {
 }
 
 export interface ProjectStage {
+  /** المرحلة العامّة — بها تُجمَع المشاريع مهما اختلفت أسماء مراحلها. */
+  phase?: string | null;
+  phase_label?: string | null;
   id: number;
   project_id: number;
   name: string;
@@ -110,14 +113,28 @@ export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
   cancelled: '#DC2626',
 };
 
-/** قالب مراحل جاهز — لا كل مشروع يمرّ بالمسار نفسه (طلب أيمن 2026-08-31). */
+/** مرحلة داخل قالب — كما تُحرَّر في شاشة إدارة القوالب. */
+export interface TemplateStageRow {
+  id?: number;
+  name: string;
+  expected_days: number | null;
+  phase: string | null;
+}
+
+/**
+ * قالب مراحل يملكه المكتب — يُضيف ويعدّل ويحذف (طلب أيمن 2026-09-09).
+ * `is_system` يعني أنه جاء مع النظام؛ وتعديله وحذفه متاحان كغيره.
+ */
 export interface StageTemplate {
+  id: number;
   key: string;
   label: string;
-  hint: string;
+  hint: string | null;
+  is_system: boolean;
   stages_count: number;
   total_days: number;
   stages: string[];
+  stage_rows: TemplateStageRow[];
 }
 
 /** أنواع المشاريع — نفس قائمة الخادم (Project::TYPES). */
@@ -125,3 +142,24 @@ export const PROJECT_TYPES = [
   'فيلا سكنية', 'مجمع سكني', 'مجمع تجاري', 'مبنى إداري',
   'مستودع / مصنع', 'ترميم وتجديد', 'تنسيق حدائق', 'أخرى',
 ];
+
+/**
+ * التصنيفات العامّة للمراحل — نفس مفاتيح الخادم (ProjectStage::PHASES).
+ * اسم المرحلة يبقى ملك المشروع؛ التصنيف لبطاقة «مراحل المشاريع» وحدها.
+ */
+export const STAGE_PHASES: { key: string; label: string; color: string }[] = [
+  { key: 'collect', label: 'جمع بيانات', color: '#1B6CA8' },
+  { key: 'design', label: 'تصميم', color: '#7C3AED' },
+  { key: 'permit', label: 'البلدية', color: '#E8A838' },
+  { key: 'shop', label: 'تنفيذية', color: '#2D9B6F' },
+  { key: 'supervise', label: 'إشراف', color: '#DC4A3D' },
+  { key: 'handover', label: 'تسليم', color: '#059669' },
+];
+
+/** خانة في بطاقة «مراحل المشاريع»: مرحلة عامّة وكم مشروعًا يقف فيها. */
+export interface StagePipelineCell {
+  phase: string;
+  label: string;
+  color: string;
+  count: number;
+}

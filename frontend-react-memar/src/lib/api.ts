@@ -48,6 +48,11 @@ export async function apiPost<T>(url: string, body?: unknown, config?: AxiosRequ
   return res.data.data;
 }
 
+export async function apiPut<T>(url: string, body?: unknown, config?: AxiosRequestConfig): Promise<T> {
+  const res = await api.put<ApiEnvelope<T>>(url, body, config);
+  return res.data.data;
+}
+
 export async function apiPatch<T>(url: string, body?: unknown, config?: AxiosRequestConfig): Promise<T> {
   const res = await api.patch<ApiEnvelope<T>>(url, body, config);
   return res.data.data;

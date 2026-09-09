@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
-import { useActivateStage, useAddStage, useAddStageComment, useAdvanceStage, useRemoveStage, useSeedStages, useStageDetail, useStageTemplates } from '../hooks/useProjectStages';
-import { STAGE_STATUS_LABELS, type ProjectStage, type StageStatus, type StageTemplate } from '../types';
+import { useActivateStage, useAddStage, useAddStageComment, useAdvanceStage, useRemoveStage, useSeedStages, useStageDetail, useStageTemplates, useUpdateStage } from '../hooks/useProjectStages';
+import { StageTemplatesManager } from './StageTemplatesManager';
+import { STAGE_PHASES, STAGE_STATUS_LABELS, type ProjectStage, type StageStatus, type StageTemplate } from '../types';
 
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' }) : '');
@@ -25,8 +26,11 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
   const [adding, setAdding] = useState(false);
   // نافذة القوالب — للتوليد الأول أو لضمّ قالب إلى مراحل قائمة (طلب أيمن 2026-08-31).
   const [picker, setPicker] = useState<null | 'seed' | 'append'>(null);
+  const [managing, setManaging] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDays, setNewDays] = useState('');
+  // تصنيف اختياري: الاسم يبقى اسمَك، والتصنيف يُدخل المشروع بطاقةَ «مراحل المشاريع».
+  const [newPhase, setNewPhase] = useState('');
 
   const seed = useSeedStages(projectId);
   const advance = useAdvanceStage(projectId);
@@ -53,8 +57,8 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
     if (name.length < 2) return;
     // تُدرَج بعد المرحلة المختارة (التي يقف عليها المستخدم)؛ وإن لا تحديد تُلحَق في النهاية.
     addStage.mutate(
-      { name, expected_days: newDays ? Number(newDays) : null, after_stage_id: selectedId ?? null },
-      { onSuccess: (created) => { setNewName(''); setNewDays(''); setAdding(false); setSelectedId(created.id); } },
+      { name, expected_days: newDays ? Number(newDays) : null, after_stage_id: selectedId ?? null, phase: newPhase || null },
+      { onSuccess: (created) => { setNewName(''); setNewDays(''); setNewPhase(''); setAdding(false); setSelectedId(created.id); } },
     );
   };
 
@@ -165,8 +169,15 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <input className="input" placeholder="اسم المرحلة" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '160px' }} autoFocus />
                     <input className="input" placeholder="أيام متوقعة" type="number" min={0} value={newDays} onChange={(e) => setNewDays(e.target.value)} style={{ width: '120px' }} />
+                    <select className="input" value={newPhase} onChange={(e) => setNewPhase(e.target.value)} style={{ width: '150px' }} title="اختياري — لتُحسب في بطاقة «مراحل المشاريع» أعلى السجل">
+                      <option value="">التصنيف (اختياري)</option>
+                      {STAGE_PHASES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                    </select>
                     <button className="btn btn-primary btn-sm" type="button" disabled={addStage.isPending || newName.trim().length < 2} onClick={submitNewStage}>حفظ</button>
-                    <button className="btn btn-sm" type="button" onClick={() => { setAdding(false); setNewName(''); setNewDays(''); }}>إلغاء</button>
+                    <button className="btn btn-sm" type="button" onClick={() => { setAdding(false); setNewName(''); setNewDays(''); setNewPhase(''); }}>إلغاء</button>
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: '#8A93A6', marginTop: '8px' }}>
+                    الاسم حرٌّ تمامًا — سمِّ المرحلة كما تشاء. والتصنيف اختياري: به تُحسب في بطاقة «مراحل المشاريع»، وبدونه تُحسب في «مراحل خاصة».
                   </div>
                 </div>
               ) : (
@@ -178,12 +189,18 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
                   <button className="btn btn-sm" type="button" onClick={() => setPicker('append')} style={{ color: '#1B6CA8' }}>
                     ＋ إضافة قالب مراحل
                   </button>
+                  {/* القوالب مِلك المكتب: إنشاء وتعديل وحذف (طلب أيمن 2026-09-09). */}
+                  <button className="btn btn-sm" type="button" onClick={() => setManaging(true)} style={{ color: '#5A6478' }}>
+                    ⚙️ إدارة القوالب
+                  </button>
                 </div>
               )}
             </div>
           )}
         </>
       )}
+
+      {managing && <StageTemplatesManager onClose={() => setManaging(false)} />}
 
       {picker && (
         <TemplatePicker
@@ -214,6 +231,27 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, canSt
   onRemove: () => void;
 }) {
   const pal = PALETTE[stage.status];
+  const update = useUpdateStage(projectId);
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(stage.name);
+  const [draftDays, setDraftDays] = useState(stage.expected_days?.toString() ?? '');
+  const [draftPhase, setDraftPhase] = useState(stage.phase ?? '');
+
+  const startEdit = () => {
+    setDraftName(stage.name);
+    setDraftDays(stage.expected_days?.toString() ?? '');
+    setDraftPhase(stage.phase ?? '');
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    const name = draftName.trim();
+    if (name.length < 2) return;
+    update.mutate(
+      { stageId: stage.id, name, expected_days: draftDays ? Number(draftDays) : null, phase: draftPhase || null },
+      { onSuccess: () => setEditing(false) },
+    );
+  };
 
   return (
     <div style={{ ...panel, background: pal.soft, borderColor: pal.border }}>
@@ -225,7 +263,21 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, canSt
             </span>
             <span style={{ fontSize: '11.5px', color: '#8A93A3' }}>المرحلة {index + 1} من {total}</span>
           </div>
-          <h4 style={{ margin: '8px 0 0', fontSize: '17px', fontWeight: 800, color: '#0F2E4D' }}>{stage.name}</h4>
+          {editing ? (
+            /* تحرير المرحلة في مكانها: الاسم والأيام والتصنيف (طلب أيمن 2026-09-09). */
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
+              <input className="input" value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="اسم المرحلة" style={{ minWidth: '180px', flex: 1 }} autoFocus />
+              <input className="input" type="number" min={0} value={draftDays} onChange={(e) => setDraftDays(e.target.value)} placeholder="أيام" style={{ width: '90px' }} />
+              <select className="input" value={draftPhase} onChange={(e) => setDraftPhase(e.target.value)} style={{ width: '130px' }} title="التصنيف — به تُحسب في بطاقة «مراحل المشاريع»">
+                <option value="">بلا تصنيف</option>
+                {STAGE_PHASES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+              <button className="btn btn-primary btn-sm" type="button" disabled={update.isPending || draftName.trim().length < 2} onClick={saveEdit}>حفظ</button>
+              <button className="btn btn-sm" type="button" onClick={() => setEditing(false)}>إلغاء</button>
+            </div>
+          ) : (
+            <h4 style={{ margin: '8px 0 0', fontSize: '17px', fontWeight: 800, color: '#0F2E4D' }}>{stage.name}</h4>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
             {stage.started_at && <span style={metaChip}>📅 بدأت {fmtDate(stage.started_at)}</span>}
             {stage.completed_at && <span style={metaChip}>🏁 انتهت {fmtDate(stage.completed_at)}</span>}
@@ -245,6 +297,7 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, canSt
                 {starting ? '…' : '▶ بدء المرحلة'}
               </button>
             )}
+            {!editing && <button className="btn btn-sm" type="button" onClick={startEdit}>✏️ تعديل</button>}
             {stage.status === 'pending' && (
               <button className="btn btn-sm" type="button" onClick={onRemove} style={{ color: '#DC2626' }}>🗑 حذف</button>
             )}

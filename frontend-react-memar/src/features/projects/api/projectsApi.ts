@@ -1,5 +1,8 @@
-import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
-import type { AssessmentPayload, Project, ProjectStage, StageComment, StageTemplate } from '../types';
+import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost, apiPut } from '../../../lib/api';
+import type { AssessmentPayload, Project, ProjectStage, StageComment, StagePipelineCell, StageTemplate, TemplateStageRow } from '../types';
+
+/** حمولة حفظ قالب — اسمه ووصفه ومراحله بترتيبها. */
+export interface TemplatePayload { label: string; hint: string | null; stages: TemplateStageRow[] }
 
 export interface ProjectsQuery {
   search?: string;
@@ -32,12 +35,22 @@ export const projectsApi = {
   stage: (projectId: number, stageId: number) => apiGet<ProjectStage>(`/projects/${projectId}/stages/${stageId}`),
   /** قوالب المراحل المتاحة — يختار منها المستخدم قبل التوليد. */
   stageTemplates: () => apiGet<StageTemplate[]>('/projects/stage-templates'),
+
+  // إدارة القوالب — كلّها تُرجع الكتالوج بعد التغيير (طلب أيمن 2026-09-09)
+  createTemplate: (payload: TemplatePayload) =>
+    apiPost<{ key: string; templates: StageTemplate[] }>('/projects/stage-templates', payload),
+  updateTemplate: (id: number, payload: TemplatePayload) =>
+    apiPut<{ templates: StageTemplate[] }>(`/projects/stage-templates/${id}`, payload),
+  deleteTemplate: (id: number) =>
+    apiDelete<{ templates: StageTemplate[] }>(`/projects/stage-templates/${id}`),
+  /** توزيع المشاريع على المراحل العامّة — بطاقة «مراحل المشاريع». */
+  stagePipeline: () => apiGet<StagePipelineCell[]>('/projects/stage-pipeline'),
   /** يزرع قالب مراحل — إضافةً لا استبدالًا: لا يُحذف شيء من المراحل القائمة. */
   seedStages: (projectId: number, payload: { template?: string } = {}) =>
     apiPost<ProjectStage[]>(`/projects/${projectId}/stages/seed-defaults`, payload),
-  addStage: (projectId: number, payload: { name: string; expected_days?: number | null; after_stage_id?: number | null }) =>
+  addStage: (projectId: number, payload: { name: string; expected_days?: number | null; after_stage_id?: number | null; phase?: string | null }) =>
     apiPost<ProjectStage>(`/projects/${projectId}/stages`, payload),
-  updateStage: (projectId: number, stageId: number, payload: { name?: string; expected_days?: number | null }) =>
+  updateStage: (projectId: number, stageId: number, payload: { name?: string; expected_days?: number | null; phase?: string | null }) =>
     apiPatch<ProjectStage>(`/projects/${projectId}/stages/${stageId}`, payload),
   advanceStage: (projectId: number, stageId: number) =>
     apiPost<ProjectStage>(`/projects/${projectId}/stages/${stageId}/advance`, {}),

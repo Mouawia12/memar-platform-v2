@@ -7,6 +7,8 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\ProjectStage;
 use App\Models\ProjectStageComment;
+use App\Models\StageTemplate;
+use App\Models\StageTemplateStage;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -23,74 +25,79 @@ class ProjectStageService
      *
      * @var array<string, array{label: string, hint: string, stages: array<int, array{name: string, expected_days: int}>}>
      */
+    /**
+     * بذرة القوالب الأولى فقط — نُقلت إلى جدول stage_templates بترحيل
+     * 2026_09_09_120000، وصارت الخدمة تقرأ من القاعدة. تبقى هنا مرجعًا
+     * للترحيل ولتهيئة قاعدة جديدة، ولا تُقرأ في التشغيل.
+     */
     public const TEMPLATES = [
         'full_design' => [
             'label' => 'مشروع تصميم متكامل',
             'hint' => 'من الدراسات حتى التسليم — المسار الكامل لفيلا أو مبنى جديد.',
             'stages' => [
-                ['name' => 'دراسات أولية', 'expected_days' => 7],
-                ['name' => 'تصميم معماري', 'expected_days' => 21],
-                ['name' => 'تصميم إنشائي', 'expected_days' => 21],
-                ['name' => 'الترخيص', 'expected_days' => 30],
-                ['name' => 'تصميم داخلي', 'expected_days' => 21],
-                ['name' => 'إشراف تنفيذ', 'expected_days' => 60],
-                ['name' => 'تسليم نهائي', 'expected_days' => 7],
+                ['name' => 'دراسات أولية', 'expected_days' => 7, 'phase' => 'collect'],
+                ['name' => 'تصميم معماري', 'expected_days' => 21, 'phase' => 'design'],
+                ['name' => 'تصميم إنشائي', 'expected_days' => 21, 'phase' => 'design'],
+                ['name' => 'الترخيص', 'expected_days' => 30, 'phase' => 'permit'],
+                ['name' => 'تصميم داخلي', 'expected_days' => 21, 'phase' => 'design'],
+                ['name' => 'إشراف تنفيذ', 'expected_days' => 60, 'phase' => 'supervise'],
+                ['name' => 'تسليم نهائي', 'expected_days' => 7, 'phase' => 'handover'],
             ],
         ],
         'permit_amendment' => [
             'label' => 'رخصة تعديل',
             'hint' => 'تعديل على مبنى قائم — بلا تصميم داخلي ولا إشراف طويل.',
             'stages' => [
-                ['name' => 'معاينة الوضع القائم', 'expected_days' => 3],
-                ['name' => 'رفع مساحي ومخطط قائم', 'expected_days' => 7],
-                ['name' => 'مخطط التعديل المقترح', 'expected_days' => 10],
-                ['name' => 'اعتماد العميل', 'expected_days' => 5],
-                ['name' => 'تقديم الرخصة ومتابعتها', 'expected_days' => 30],
-                ['name' => 'تسليم الرخصة', 'expected_days' => 3],
+                ['name' => 'معاينة الوضع القائم', 'expected_days' => 3, 'phase' => 'collect'],
+                ['name' => 'رفع مساحي ومخطط قائم', 'expected_days' => 7, 'phase' => 'collect'],
+                ['name' => 'مخطط التعديل المقترح', 'expected_days' => 10, 'phase' => 'design'],
+                ['name' => 'اعتماد العميل', 'expected_days' => 5, 'phase' => 'design'],
+                ['name' => 'تقديم الرخصة ومتابعتها', 'expected_days' => 30, 'phase' => 'permit'],
+                ['name' => 'تسليم الرخصة', 'expected_days' => 3, 'phase' => 'handover'],
             ],
         ],
         'permit_only' => [
             'label' => 'ترخيص فقط',
             'hint' => 'المخططات جاهزة من مكتب آخر، ودورنا تجهيز الملف وإصداره.',
             'stages' => [
-                ['name' => 'مراجعة المخططات المستلمة', 'expected_days' => 5],
-                ['name' => 'تجهيز ملف الرخصة', 'expected_days' => 7],
-                ['name' => 'التقديم ومتابعة البلدية', 'expected_days' => 30],
-                ['name' => 'تسليم الرخصة', 'expected_days' => 3],
+                ['name' => 'مراجعة المخططات المستلمة', 'expected_days' => 5, 'phase' => 'collect'],
+                ['name' => 'تجهيز ملف الرخصة', 'expected_days' => 7, 'phase' => 'permit'],
+                ['name' => 'التقديم ومتابعة البلدية', 'expected_days' => 30, 'phase' => 'permit'],
+                ['name' => 'تسليم الرخصة', 'expected_days' => 3, 'phase' => 'handover'],
             ],
         ],
         'supervision_only' => [
             'label' => 'إشراف تنفيذ فقط',
             'hint' => 'العميل يملك التصميم والرخصة، ودورنا الإشراف حتى التسليم.',
             'stages' => [
-                ['name' => 'استلام الموقع والمخططات', 'expected_days' => 5],
-                ['name' => 'أعمال الأساسات', 'expected_days' => 45],
-                ['name' => 'الهيكل الخرساني', 'expected_days' => 90],
-                ['name' => 'التشطيبات', 'expected_days' => 60],
-                ['name' => 'الاستلام النهائي', 'expected_days' => 10],
+                ['name' => 'استلام الموقع والمخططات', 'expected_days' => 5, 'phase' => 'collect'],
+                ['name' => 'أعمال الأساسات', 'expected_days' => 45, 'phase' => 'supervise'],
+                ['name' => 'الهيكل الخرساني', 'expected_days' => 90, 'phase' => 'supervise'],
+                ['name' => 'التشطيبات', 'expected_days' => 60, 'phase' => 'supervise'],
+                ['name' => 'الاستلام النهائي', 'expected_days' => 10, 'phase' => 'handover'],
             ],
         ],
         'interior' => [
             'label' => 'تصميم داخلي',
             'hint' => 'شقة أو مكتب أو محل — تصميم وتنفيذ داخلي بلا ترخيص.',
             'stages' => [
-                ['name' => 'المعاينة وأخذ المقاسات', 'expected_days' => 3],
-                ['name' => 'المفهوم التصميمي (Mood Board)', 'expected_days' => 7],
-                ['name' => 'التصميم ثلاثي الأبعاد', 'expected_days' => 14],
-                ['name' => 'اعتماد العميل', 'expected_days' => 5],
-                ['name' => 'مخططات التنفيذ والكميات', 'expected_days' => 10],
-                ['name' => 'الإشراف على التنفيذ', 'expected_days' => 45],
-                ['name' => 'التسليم', 'expected_days' => 5],
+                ['name' => 'المعاينة وأخذ المقاسات', 'expected_days' => 3, 'phase' => 'collect'],
+                ['name' => 'المفهوم التصميمي (Mood Board)', 'expected_days' => 7, 'phase' => 'design'],
+                ['name' => 'التصميم ثلاثي الأبعاد', 'expected_days' => 14, 'phase' => 'design'],
+                ['name' => 'اعتماد العميل', 'expected_days' => 5, 'phase' => 'design'],
+                ['name' => 'مخططات التنفيذ والكميات', 'expected_days' => 10, 'phase' => 'shop'],
+                ['name' => 'الإشراف على التنفيذ', 'expected_days' => 45, 'phase' => 'supervise'],
+                ['name' => 'التسليم', 'expected_days' => 5, 'phase' => 'handover'],
             ],
         ],
         'study' => [
             'label' => 'دراسة واستشارة',
             'hint' => 'دراسة جدوى أو رأي فنّي — بلا مخططات تنفيذية.',
             'stages' => [
-                ['name' => 'جمع المتطلبات', 'expected_days' => 5],
-                ['name' => 'الدراسة والتحليل', 'expected_days' => 14],
-                ['name' => 'إعداد التقرير', 'expected_days' => 7],
-                ['name' => 'العرض والتسليم', 'expected_days' => 3],
+                ['name' => 'جمع المتطلبات', 'expected_days' => 5, 'phase' => 'collect'],
+                ['name' => 'الدراسة والتحليل', 'expected_days' => 14, 'phase' => 'design'],
+                ['name' => 'إعداد التقرير', 'expected_days' => 7, 'phase' => 'handover'],
+                ['name' => 'العرض والتسليم', 'expected_days' => 3, 'phase' => 'handover'],
             ],
         ],
     ];
@@ -105,14 +112,63 @@ class ProjectStageService
      */
     public function templates(): array
     {
-        return collect(self::TEMPLATES)->map(fn (array $t, string $key): array => [
-            'key' => $key,
-            'label' => $t['label'],
-            'hint' => $t['hint'],
-            'stages_count' => count($t['stages']),
-            'total_days' => array_sum(array_column($t['stages'], 'expected_days')),
-            'stages' => array_column($t['stages'], 'name'),
-        ])->values()->all();
+        return StageTemplate::with('stages')->orderBy('position')->orderBy('id')->get()
+            ->map(fn (StageTemplate $t): array => [
+                'id' => $t->id,
+                'key' => $t->key,
+                'label' => $t->label,
+                'hint' => $t->hint,
+                'is_system' => $t->is_system,
+                'stages_count' => $t->stages->count(),
+                'total_days' => (int) $t->stages->sum('expected_days'),
+                // الأسماء وحدها لبطاقة الاختيار، والتفاصيل الكاملة لشاشة التحرير
+                'stages' => $t->stages->pluck('name')->all(),
+                'stage_rows' => $t->stages->map(fn (StageTemplateStage $s): array => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'expected_days' => $s->expected_days,
+                    'phase' => $s->phase,
+                ])->all(),
+            ])->values()->all();
+    }
+
+    /**
+     * توزيع المشاريع على المراحل العامّة (طلب أيمن 2026-09-09): كم مشروعًا يقف
+     * الآن في كل مرحلة. يُحسب بتصنيف المرحلة الجارية لا باسمها، فيعمل مهما
+     * اختلفت قوالب المشاريع وأسماء مراحلها.
+     *
+     * @return array<int, array{phase: string, label: string, color: string, count: int}>
+     */
+    /** خانة المراحل التي سمّاها المكتب بنفسه ولم يُصنّفها. */
+    public const PHASE_OTHER = 'other';
+
+    public function pipeline(): array
+    {
+        $counts = ProjectStage::query()
+            ->where('project_stages.status', 'active')
+            // المشاريع المحذوفة أو المنجَزة لا تُحسب في «أين نقف الآن»
+            ->whereHas('project', fn ($q) => $q->whereNotIn('status', ['done', 'cancelled']))
+            ->selectRaw('COALESCE(phase, ?) as phase, COUNT(DISTINCT project_id) as total', [self::PHASE_OTHER])
+            ->groupBy('phase')
+            ->pluck('total', 'phase');
+
+        $cells = collect(ProjectStage::PHASES)
+            ->map(fn (array $meta, string $key): array => [
+                'phase' => $key,
+                'label' => $meta['label'],
+                'color' => $meta['color'],
+                'count' => (int) ($counts[$key] ?? 0),
+            ])
+            ->values()->all();
+
+        // مرحلةٌ سمّاها المكتب بنفسه ولم يُصنّفها: تظهر في «أخرى» ولا تسقط صامتةً
+        // من البطاقة — فمشروعٌ بلا خانة يعني مشروعًا اختفى من نظر الإدارة.
+        $other = (int) ($counts[self::PHASE_OTHER] ?? 0);
+        if ($other > 0) {
+            $cells[] = ['phase' => self::PHASE_OTHER, 'label' => 'مراحل خاصة', 'color' => '#64748B', 'count' => $other];
+        }
+
+        return $cells;
     }
 
     /**
@@ -130,15 +186,28 @@ class ProjectStageService
      */
     public function seedDefaults(Project $project, ?string $template = null): int
     {
-        $key = $template !== null && isset(self::TEMPLATES[$template]) ? $template : self::DEFAULT_TEMPLATE_KEY;
+        // القالب من القاعدة — يملكه المكتب ويعدّله؛ وإن غاب المطلوب رجعنا للافتراضي ثم لأوّل قالب.
+        $model = StageTemplate::with('stages')
+            ->when($template !== null, fn ($q) => $q->where('key', $template))
+            ->first()
+            ?? StageTemplate::with('stages')->where('key', self::DEFAULT_TEMPLATE_KEY)->first()
+            ?? StageTemplate::with('stages')->orderBy('position')->first();
 
-        return DB::transaction(function () use ($project, $key): int {
+        if ($model === null || $model->stages->isEmpty()) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($project, $model): int {
             $existingNames = $project->stages()->pluck('name')
                 ->map(fn (string $n): string => trim($n))->all();
-            $fresh = array_values(array_filter(
-                self::TEMPLATES[$key]['stages'],
-                fn (array $stage): bool => ! in_array(trim($stage['name']), $existingNames, true),
-            ));
+            $fresh = $model->stages
+                ->reject(fn (StageTemplateStage $s): bool => in_array(trim($s->name), $existingNames, true))
+                ->map(fn (StageTemplateStage $s): array => [
+                    'name' => $s->name,
+                    'expected_days' => $s->expected_days,
+                    'phase' => $s->phase,
+                ])
+                ->values()->all();
 
             $hadStages = $existingNames !== [];
             $offset = (int) ($project->stages()->max('position') ?? -1) + 1;
@@ -146,6 +215,8 @@ class ProjectStageService
             foreach ($fresh as $i => $stage) {
                 $project->stages()->create([
                     'name' => $stage['name'],
+                    // التصنيف العامّ — به تُجمَع المشاريع في بطاقة «مراحل المشاريع»
+                    'phase' => $stage['phase'] ?? null,
                     'expected_days' => $stage['expected_days'],
                     'position' => $offset + $i,
                     // أول مرحلة في مشروع فارغ تبدأ جارية؛ وما يُلحَق بمسارٍ قائم ينتظر دوره.

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\MyProjectsController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ProjectMemberController;
 use App\Http\Controllers\Api\V1\ProjectStageController;
+use App\Http\Controllers\Api\V1\StageTemplateController;
 use App\Http\Controllers\Api\V1\TeamProjectsController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
      * «stage-templates» على أنه معرّف مشروع فيردّ الخادم 404.
      */
     Route::get('/projects/stage-templates', [ProjectStageController::class, 'templates'])->middleware('permission:projects.view');
+    Route::get('/projects/stage-pipeline', [ProjectStageController::class, 'pipeline'])->middleware('permission:projects.view');
+
+    // إدارة القوالب — المكتب يضيف ويعدّل ويحذف (طلب أيمن 2026-09-09).
+    Route::post('/projects/stage-templates', [StageTemplateController::class, 'store'])->middleware('permission:projects.manage');
+    Route::put('/projects/stage-templates/{stageTemplate}', [StageTemplateController::class, 'update'])->middleware('permission:projects.manage');
+    Route::delete('/projects/stage-templates/{stageTemplate}', [StageTemplateController::class, 'destroy'])->middleware('permission:projects.manage');
 
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('permission:projects.view');
     Route::post('/projects', [ProjectController::class, 'store'])->middleware('permission:projects.manage');

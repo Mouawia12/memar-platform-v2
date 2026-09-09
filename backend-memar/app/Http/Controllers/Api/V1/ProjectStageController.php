@@ -38,6 +38,12 @@ class ProjectStageController extends ApiController
     }
 
     /** توليد المراحل الافتراضية إن لم تكن للمشروع مراحل. */
+    /** توزيع المشاريع على المراحل العامّة — بطاقة «مراحل المشاريع». */
+    public function pipeline(): JsonResponse
+    {
+        return $this->ok($this->stages->pipeline());
+    }
+
     /** كتالوج قوالب المراحل — تختار منه الواجهة قبل التوليد. */
     public function templates(): JsonResponse
     {
@@ -51,7 +57,8 @@ class ProjectStageController extends ApiController
     public function seedDefaults(Request $request, Project $project): JsonResponse
     {
         $data = $request->validate([
-            'template' => ['nullable', 'string', Rule::in(array_keys(ProjectStageService::TEMPLATES))],
+            // القوالب من القاعدة لا من الشيفرة — فقالب أنشأه المكتب يُزرع كأيّ قالب
+            'template' => ['nullable', 'string', Rule::exists('stage_templates', 'key')],
         ]);
 
         $had = $project->stages()->exists();

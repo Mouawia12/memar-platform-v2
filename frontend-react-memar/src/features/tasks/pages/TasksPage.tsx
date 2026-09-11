@@ -1,13 +1,16 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 
+import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { ClientFollowUpsBoard } from '../components/ClientFollowUpsBoard';
 import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from '../components/DateRangeFilter';
 import { FollowUpFormModal } from '../components/FollowUpFormModal';
+import { StaffFilter } from '../components/StaffFilter';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
 import { useFollowUps } from '../hooks/useFollowUps';
+import { isFollowUpOf, isTaskOf } from '../ownership';
 import { useTaskAlertAcks } from '../taskAlerts';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 import type { CardRef } from '../hooks/useCardActivity';
@@ -54,11 +57,24 @@ export function TasksPage() {
   const [fupRange, setFupRange] = useState<DateRange>(EMPTY_RANGE);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const meId = useAuthStore((st) => st.user?.id);
-  // الجميع يفتحون الصفحة على «مهامي فقط» — الإدارة كذلك (طلب أيمن 2026-08-29،
-  // يلغي التمييز حسب الدور الذي كان يفتح للإدارة على «الكل»). فمَن يفتح الصفحة
-  // يبدأ بشغله هو، و«جميع المهام» بضغطة واحدة ومهامه فيها مميّزة. وترتيب الزرّين
-  // يتبع ذلك: الافتراضي أوّلًا (يمينًا في RTL) والأشمل بعده.
-  const defaultScope: 'all' | 'mine' = 'mine';
+  // الموظف يفتح الصفحة على «مهامي فقط» فيبدأ بشغله هو، وإدارة النظام تفتحها على
+  // «جميع المهام» لأن عملها الإشراف لا التنفيذ (طلب أيمن 2026-09-11، يعيد التمييز
+  // حسب الدور الذي أُلغي في 2026-08-29 — هذه المرة للأدمن والمدير العام وحدهما،
+  // لا لكل من يهبط على لوحة الإدارة). الزرّان يبقيان بترتيب ثابت لكل الأدوار
+  // فلا يتبدّل مكانهما على المستخدم، والمختار منهما هو المُظلَّل.
+  const isAdmin = useIsAdmin();
+  const defaultScope: 'all' | 'mine' = isAdmin ? 'all' : 'mine';
+  /*
+   * فلتر الموظف (طلب أيمن 2026-09-11): حالة واحدة تسري على اللوحتين — تختار موظفًا
+   * فترى مهامه ومتابعاته معًا. يظهر المُبدِّل في شريطَي اللوحتين وكلاهما يقرأ ويكتب
+   * الحالة نفسها، فلا يتفاجأ أحد بلوحة مفلترة خارج شاشته.
+   *
+   * هو وأزرار النطاق سؤال واحد: «شغل مَن أرى؟» — فما دام موظف مختارًا لا يسري النطاق،
+   * وضغط أيّ زرّ نطاق يُلغي الاختيار (مخرج بضغطة بدل أزرار معطّلة تُحيّر).
+   */
+  const [staffId, setStaffId] = useState<number | ''>('');
+  const byStaff = staffId !== ''; // فلتر الموظف فعّال — يتقدّم على النطاق والتمييز
+  const pickScope = (set: (v: 'all' | 'mine') => void, v: 'all' | 'mine') => { setStaffId(''); set(v); };
   const effTaskScope = taskScope ?? defaultScope;
   const effFupScope = fupScope ?? defaultScope;
   // إطفاء وميض التأخّر بطريقتين (طلب أيمن 2026-08-25): زرّ 🔕 على البطاقة،
@@ -68,7 +84,8 @@ export function TasksPage() {
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
-  const { data: followUps } = useFollowUps(effFupScope === 'mine');
+  // عند اختيار موظف نطلب القائمة كاملة ثم نرشّحها عليه — «mine» الخادمية تخصّني أنا.
+  const { data: followUps } = useFollowUps(staffId === '' && effFupScope === 'mine');
   // «توزيع المهام على الفريق» بيانات إدارية — للإدارة وحدها (طلب أيمن 2026-08-25).
   const { data: workload } = useWorkload(canDelete);
   const move = useMoveTask();
@@ -91,13 +108,19 @@ export function TasksPage() {
   }, [tasks]);
 
   // اللوحة العليا تعرض المهام حسب النطاق المختار.
-  const scopedTasks = useMemo(
-    () => (effTaskScope === 'mine' ? (tasks ?? []).filter((t) => t.assignee?.id === meId) : (tasks ?? [])),
-    [tasks, effTaskScope, meId],
-  );
+  const scopedTasks = useMemo(() => {
+    const list = tasks ?? [];
+    if (staffId !== '') return list.filter((t) => isTaskOf(t, staffId));
+
+    return effTaskScope === 'mine' ? list.filter((t) => isTaskOf(t, meId)) : list;
+  }, [tasks, effTaskScope, meId, staffId]);
   const boardTasks = useMemo(() => scopedTasks.filter((t) => inRange(t.due_date, taskRange)), [scopedTasks, taskRange]);
 
-  const scopedFollowUps = followUps ?? [];
+  const scopedFollowUps = useMemo(() => {
+    const list = followUps ?? [];
+
+    return staffId === '' ? list : list.filter((f) => isFollowUpOf(f, staffId));
+  }, [followUps, staffId]);
   const boardFollowUps = useMemo(() => scopedFollowUps.filter((f) => inRange(f.remind_at, fupRange)), [scopedFollowUps, fupRange]);
 
   // إشارة البطاقة التي تفتحها النوافذ المشتركة (مهمة أو متابعة).
@@ -160,18 +183,25 @@ export function TasksPage() {
 
       <div style={hintLine}>💡 اسحب أي بطاقة وأفلتها في عمود آخر لتغيير مرحلتها، أو اضغط عليها لعرض التفاصيل الكاملة.</div>
 
-      <div style={scopeRow}>
-        <button type="button" onClick={() => setTaskScope('mine')} style={{ ...scopeBtn, ...(effTaskScope === 'mine' ? scopeOn : null) }}>مهامي فقط</button>
-        <button type="button" onClick={() => { setTaskScope('all'); setTaskHighlight(false); }} style={{ ...scopeBtn, ...(effTaskScope === 'all' && !taskHighlight ? scopeOn : null) }}>جميع المهام</button>
-        <button
-          type="button"
-          onClick={() => { setTaskScope('all'); setTaskHighlight(true); }}
-          style={{ ...scopeBtn, ...(effTaskScope === 'all' && taskHighlight ? scopeOn : null) }}
-          title="تظهر كل المهام، ومهام غيري تخفت ليبرز ما يخصّني"
-        >🔷 مهامي مميّزة</button>
-      </div>
+      {/* شريط واحد: النطاق + الموظف + التاريخ — بدل ثلاثة صفوف تهدر عرض الشاشة. */}
+      <div style={toolbar}>
+        <span style={group}>
+          <button type="button" onClick={() => pickScope(setTaskScope, 'mine')} style={{ ...scopeBtn, ...(byStaff ? null : effTaskScope === 'mine' ? scopeOn : null) }}>مهامي فقط</button>
+          <button type="button" onClick={() => { pickScope(setTaskScope, 'all'); setTaskHighlight(false); }} style={{ ...scopeBtn, ...(byStaff ? null : effTaskScope === 'all' && !taskHighlight ? scopeOn : null) }}>جميع المهام</button>
+          <button
+            type="button"
+            onClick={() => { pickScope(setTaskScope, 'all'); setTaskHighlight(true); }}
+            style={{ ...scopeBtn, ...(byStaff ? null : effTaskScope === 'all' && taskHighlight ? scopeOn : null) }}
+            title="تظهر كل المهام، ومهام غيري تخفت ليبرز ما يخصّني"
+          >🔷 مهامي مميّزة</button>
+        </span>
 
-      <DateRangeFilter value={taskRange} onChange={setTaskRange} shown={boardTasks.length} total={scopedTasks.length} />
+        <span style={divider} />
+        <StaffFilter value={staffId} onChange={setStaffId} shown={scopedTasks.length} />
+        <span style={divider} />
+
+        <DateRangeFilter inline value={taskRange} onChange={setTaskRange} shown={boardTasks.length} total={scopedTasks.length} />
+      </div>
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
@@ -183,7 +213,7 @@ export function TasksPage() {
           onAck={ack}
           onMove={(t, status) => handleMove(t, { status })}
           meId={meId}
-          highlightMine={effTaskScope === 'all' && taskHighlight}
+          highlightMine={!byStaff && effTaskScope === 'all' && taskHighlight}
           onProgress={canManage ? (t, pct) => progress.mutate({ id: t.id, progress: pct }) : undefined}
           onDirective={setDirectiveOf}
           canSendDirective={canDelete}
@@ -203,23 +233,29 @@ export function TasksPage() {
         )}
       </div>
 
-      <div style={scopeRow}>
-        <button type="button" onClick={() => setFupScope('mine')} style={{ ...scopeBtn, ...(effFupScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
-        <button type="button" onClick={() => { setFupScope('all'); setFupHighlight(false); }} style={{ ...scopeBtn, ...(effFupScope === 'all' && !fupHighlight ? scopeOn : null) }}>جميع المتابعات</button>
-        <button
-          type="button"
-          onClick={() => { setFupScope('all'); setFupHighlight(true); }}
-          style={{ ...scopeBtn, ...(effFupScope === 'all' && fupHighlight ? scopeOn : null) }}
-          title="تظهر كل المتابعات، ومتابعات غيري تخفت ليبرز ما يخصّني"
-        >🔷 متابعاتي مميّزة</button>
-      </div>
+      <div style={toolbar}>
+        <span style={group}>
+          <button type="button" onClick={() => pickScope(setFupScope, 'mine')} style={{ ...scopeBtn, ...(byStaff ? null : effFupScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
+          <button type="button" onClick={() => { pickScope(setFupScope, 'all'); setFupHighlight(false); }} style={{ ...scopeBtn, ...(byStaff ? null : effFupScope === 'all' && !fupHighlight ? scopeOn : null) }}>جميع المتابعات</button>
+          <button
+            type="button"
+            onClick={() => { pickScope(setFupScope, 'all'); setFupHighlight(true); }}
+            style={{ ...scopeBtn, ...(byStaff ? null : effFupScope === 'all' && fupHighlight ? scopeOn : null) }}
+            title="تظهر كل المتابعات، ومتابعات غيري تخفت ليبرز ما يخصّني"
+          >🔷 متابعاتي مميّزة</button>
+        </span>
 
-      <DateRangeFilter value={fupRange} onChange={setFupRange} shown={boardFollowUps.length} total={scopedFollowUps.length} />
+        <span style={divider} />
+        <StaffFilter value={staffId} onChange={setStaffId} shown={scopedFollowUps.length} />
+        <span style={divider} />
+
+        <DateRangeFilter inline value={fupRange} onChange={setFupRange} shown={boardFollowUps.length} total={scopedFollowUps.length} />
+      </div>
 
       <ClientFollowUpsBoard
         items={boardFollowUps}
         meId={meId}
-        highlightMine={effFupScope === 'all' && fupHighlight}
+        highlightMine={!byStaff && effFupScope === 'all' && fupHighlight}
         onDirective={setFupDirectiveOf}
         canSendDirective={canSendFupDirective}
       />
@@ -341,8 +377,14 @@ const kpiLabel: CSSProperties = { fontSize: '11.5px', color: '#64748B', fontWeig
 const kpiValue: CSSProperties = { fontSize: '23px', fontWeight: 800, color: '#1E293B', lineHeight: 1.1 };
 const kpiSub: CSSProperties = { fontSize: '11px', color: '#64748B', marginTop: '2px' };
 const hintLine: CSSProperties = { fontSize: '12px', color: '#5A6478', background: '#F1F5F9', borderRadius: '9px', padding: '8px 12px', marginBottom: '12px' };
-const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '14px', justifyContent: 'center', flexWrap: 'wrap' };
-const scopeBtn: CSSProperties = { padding: '8px 18px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer' };
+// شريط أدوات اللوحة: النطاق ثم الموظف ثم التاريخ في سطر واحد، ويلتفّ عند ضيق الشاشة.
+const toolbar: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px', flexWrap: 'wrap',
+  background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '8px 10px',
+};
+const group: CSSProperties = { display: 'inline-flex', gap: '6px', flexWrap: 'wrap' };
+const divider: CSSProperties = { width: '1px', alignSelf: 'stretch', minHeight: '22px', background: '#E2E8F0' };
+const scopeBtn: CSSProperties = { padding: '6px 10px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
 const scopeOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };
 // فاصل بين قسم المهام وقسم المتابعة — كل قسم قائم بذاته (طلب أيمن 2026-08-24).
 const sectionDivider: CSSProperties = { height: '3px', background: '#E2E8F0', borderRadius: '3px', margin: '26px 0 20px' };

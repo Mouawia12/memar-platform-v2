@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
-use App\Models\Project;
 use App\Models\StoredFile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -19,7 +17,7 @@ class EmployeeDocumentsController extends ApiController
     /** ملفات مشاريع الموظف الحالي (عضو/مدير). */
     public function mine(Request $request): JsonResponse
     {
-        $files = StoredFile::whereIn('project_id', $this->myProjectIds($request->user()->id))
+        $files = StoredFile::whereIn('project_id', $request->user()->projectIds())
             ->with('project:id,name')
             ->latest()->limit(100)->get()
             ->map(fn (StoredFile $f): array => [
@@ -38,18 +36,9 @@ class EmployeeDocumentsController extends ApiController
     /** تنزيل ملف — مسموح فقط إن كان ضمن مشاريع الموظف. */
     public function download(Request $request, StoredFile $file): StreamedResponse
     {
-        abort_unless($this->myProjectIds($request->user()->id)->contains($file->project_id), 403, 'غير مصرّح');
+        abort_unless($request->user()->projectIds()->contains($file->project_id), 403, 'غير مصرّح');
         abort_unless(Storage::disk($file->disk)->exists($file->path), 404, 'الملف غير موجود');
 
         return Storage::disk($file->disk)->download($file->path, $file->original_name);
-    }
-
-    /** معرّفات مشاريع الموظف (مدير أو عضو). @return Collection<int, int> */
-    private function myProjectIds(int $userId): Collection
-    {
-        return Project::where(fn ($q) => $q
-            ->where('manager_id', $userId)
-            ->orWhereHas('members', fn ($m) => $m->where('users.id', $userId)))
-            ->pluck('id');
     }
 }

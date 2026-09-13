@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { sanitizeHtml } from '../../../lib/sanitizeHtml';
 import type { Appointment } from '../../appointments/types';
 import type { Contract } from '../../contracts/types';
 import type { GeneratedDocument } from '../../documents/types';
@@ -914,7 +915,8 @@ export function PapersSection({ contracts, documents }: { contracts: Contract[];
                 <button className="btn btn-sm" type="button" onClick={() => setOpen(null)}>إغلاق</button>
               </div>
             </div>
-            <div style={docBody} dangerouslySetInnerHTML={{ __html: open.body_html }} />
+            {/* المستند يكتبه موظف ويُعرض هنا للعميل — يُنقّى قبل الحقن (منع XSS مخزَّن). */}
+            <div style={docBody} dangerouslySetInnerHTML={{ __html: sanitizeHtml(open.body_html) }} />
           </div>
         </div>
       )}

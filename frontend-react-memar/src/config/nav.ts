@@ -24,6 +24,17 @@ export type LandingCtx = { dashboard?: string | null; roles?: string[] | null } 
 /** أدوار نظامية تدخل لوحة الإدارة — تُستخدم كاحتياط فقط إن غاب حقل dashboard. */
 const ADMIN_ROLES = new Set(['super_admin', 'admin']);
 
+/**
+ * هل المستخدم من إدارة النظام (المدير العام أو الأدمن)؟
+ *
+ * ليست كل لوحة إدارة إدارةً للنظام: «مدير مشاريع» و«محاسب» و«موارد بشرية» تهبط على
+ * لوحة الإدارة (dashboard === 'admin') وهم موظفون. فالتمييز هنا بالدور النظامي وحده.
+ * تُستعمل لاختيار النطاق الافتراضي في لوحات المهام والمتابعة والفرص.
+ */
+export function isSystemAdmin(u: LandingCtx): boolean {
+  return (u?.roles ?? []).some((r) => ADMIN_ROLES.has(r));
+}
+
 /** هل المستخدم عميل فقط؟ يعتمد نوع اللوحة (client)، ويحتاط بالأدوار. */
 export function isClientOnly(u: LandingCtx): boolean {
   if (u?.dashboard) return u.dashboard === 'client';

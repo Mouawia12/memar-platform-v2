@@ -28,18 +28,24 @@ class FileController extends ApiController
             $request->string('folder')->toString() ?: null,
             $request->integer('project_id') ?: null,
             $this->perPage($request, 24),
+            $request->user(),
         );
 
         return $this->paginated($paginator, StoredFileResource::class);
     }
 
-    /** إحصاءات سريعة (العدد والمساحة والمجلدات). */
-    public function stats(): JsonResponse
+    /**
+     * إحصاءات سريعة (العدد والمساحة والمجلدات) — بنفس نطاق السجل:
+     * أرقام المكتب كلّه لمن يملك documents.view.all، وإلا أرقام ما يراه هو.
+     */
+    public function stats(Request $request): JsonResponse
     {
+        $scoped = $this->files->visibleTo($request->user());
+
         return $this->ok([
-            'count' => StoredFile::count(),
-            'total_size' => $this->files->totalSize(),
-            'folders' => StoredFile::query()->whereNotNull('folder')->distinct()->orderBy('folder')->pluck('folder'),
+            'count' => (clone $scoped)->count(),
+            'total_size' => (int) (clone $scoped)->sum('size'),
+            'folders' => (clone $scoped)->whereNotNull('folder')->distinct()->orderBy('folder')->pluck('folder'),
         ]);
     }
 
@@ -54,9 +60,10 @@ class FileController extends ApiController
         return $this->created(new StoredFileResource($file), 'تم رفع الملف');
     }
 
-    /** تنزيل الملف من القرص الخاص (محميّ بالمصادقة). */
-    public function download(StoredFile $file): StreamedResponse
+    /** تنزيل الملف من القرص الخاص — محميّ بالمصادقة وبنطاق الموظف. */
+    public function download(Request $request, StoredFile $file): StreamedResponse
     {
+        abort_unless($this->files->canAccess($file, $request->user()), 403, 'لا صلاحية لك على هذا الملف.');
         abort_unless(Storage::disk($file->disk)->exists($file->path), 404, 'الملف غير موجود على القرص');
 
         return Storage::disk($file->disk)->download($file->path, $file->original_name);
@@ -64,6 +71,8 @@ class FileController extends ApiController
 
     public function update(Request $request, StoredFile $file): JsonResponse
     {
+        abort_unless($this->files->canAccess($file, $request->user()), 403, 'لا صلاحية لك على هذا الملف.');
+
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'folder' => ['nullable', 'string', 'max:120'],
@@ -74,8 +83,10 @@ class FileController extends ApiController
         return $this->ok(new StoredFileResource($this->files->update($file, $data)), 'تم تحديث الملف');
     }
 
-    public function destroy(StoredFile $file): JsonResponse
+    public function destroy(Request $request, StoredFile $file): JsonResponse
     {
+        abort_unless($this->files->canAccess($file, $request->user()), 403, 'لا صلاحية لك على هذا الملف.');
+
         $this->files->delete($file);
 
         return $this->ok(null, 'تم حذف الملف');

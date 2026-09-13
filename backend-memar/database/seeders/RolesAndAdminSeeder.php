@@ -36,7 +36,9 @@ class RolesAndAdminSeeder extends Seeder
             'projects.view', 'projects.manage', 'projects.delete',
             'tasks.view', 'tasks.manage', 'tasks.delete',
             'appointments.view', 'appointments.manage', 'appointments.delete',
-            'documents.view', 'documents.manage', 'documents.delete',
+            // documents.view = ملفات مشاريعه · documents.view.all = ملفات المكتب كلها
+            // (بما فيها مرفوعات بوابة العميل) — على نمط requests.view.all
+            'documents.view', 'documents.view.all', 'documents.manage', 'documents.delete',
             'contracts.view', 'contracts.manage', 'contracts.delete',
             'finance.view', 'finance.manage', 'finance.delete',
             'hr.view', 'hr.manage', 'hr.delete',

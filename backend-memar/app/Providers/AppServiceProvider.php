@@ -48,13 +48,20 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * محدّدات معدّل الطلبات (Rate Limiting).
-     * - api: 60 طلب/دقيقة لكل مستخدم (أو IP للزائر).
+     * - api: 120 طلب/دقيقة لكل مستخدم (أو IP للزائر).
+     * - نبضة التزامن: دلو مستقل 30/دقيقة — تُستدعى كل 5 ث (12 طلبًا/دقيقة)، وكانت
+     *   تلتهم خُمس حصّة المستخدم فتصطدم لوحة تفتح عدّة استعلامات دفعةً واحدة بـ429.
      * - auth: 5 محاولات/دقيقة لمسارات الدخول (يُطبّق في وحدة auth).
      */
     private function configureRateLimiting(): void
     {
-        RateLimiter::for('api', fn (Request $request): Limit => Limit::perMinute(60)
-            ->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('api', function (Request $request): Limit {
+            $key = (string) ($request->user()?->id ?: $request->ip());
+
+            return $request->is('api/*/sync/pulse')
+                ? Limit::perMinute(30)->by('pulse:'.$key)
+                : Limit::perMinute(120)->by($key);
+        });
 
         RateLimiter::for('auth', fn (Request $request): Limit => Limit::perMinute(5)
             ->by($request->ip()));

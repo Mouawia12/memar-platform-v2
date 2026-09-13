@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { useStaffAvatars } from '../../users/hooks/useUsers';
+import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { useAuthStore } from '../../../store/auth';
 import { useExportDisabled } from '../../../components/ExportGuard';
 import { downloadCsv } from '../../../lib/csv';
@@ -39,10 +40,18 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const [clientFilter, setClientFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
-  // مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
-  // «فرصي فقط» هو الوضع الدائم عند فتح الصفحة، و«جميع الفرص» خيار بضغطة —
-  // كما في المهام والمواعيد والاجتماعات (طلب أيمن 2026-08-31).
-  const [scope, setScope] = useState<'all' | 'mine'>(() => (searchParams.get('search') ? 'all' : 'mine'));
+  /*
+   * مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
+   * المندوب يفتح الصفحة على «فرصي فقط»، وإدارة النظام على «جميع الفرص» لأن عملها
+   * الإشراف لا البيع (طلب أيمن 2026-09-11 — كما في لوحة المهام). والبحث القادم من
+   * الرابط يفتح على «الكل» دائمًا وإلا اختفت نتيجة بحثٍ عن فرصة غير مملوكة للباحث.
+   *
+   * null = لم يختر المستخدم بعد فيسري افتراض دوره. تركُه null بدل حسابه مرّة في
+   * مُهيّئ useState يجعله يصحّ حتى لو وصلت بيانات المستخدم بعد أول رسم.
+   */
+  const isAdmin = useIsAdmin();
+  const [scope, setScope] = useState<'all' | 'mine' | null>(null);
+  const effScope: 'all' | 'mine' = scope ?? (searchParams.get('search') || isAdmin ? 'all' : 'mine');
   // التمييز خيار لا سلوك تلقائي: «جميع الفرص» تعرضها كلّها واضحة، والزرّ يُخفت فرص غيري.
   const [highlight, setHighlight] = useState(false);
   const userId = useAuthStore((s) => s.user?.id);
@@ -149,7 +158,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     const cutoff = period === 'all' ? 0 : Date.now() - Number(period) * 86_400_000;
     return leads.filter((l) => {
       if (period !== 'all' && !(l.created_at && new Date(l.created_at).getTime() >= cutoff)) return false;
-      if (scope === 'mine' && l.owner?.id !== userId) return false;
+      if (effScope === 'mine' && l.owner?.id !== userId) return false;
       if (ownerFilter !== 'all' && String(l.owner?.id ?? '') !== ownerFilter) return false;
       // «بلا مصدر» يلتقط الفرص القديمة التي لم يُسجَّل مصدرها
       if (sourceFilter === 'none' && l.source) return false;
@@ -159,7 +168,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       if ((clientFilter === 'hot' || clientFilter === 'warm' || clientFilter === 'cold') && l.temperature !== clientFilter) return false;
       return true;
     });
-  }, [leads, period, scope, userId, ownerFilter, clientFilter, sourceFilter]);
+  }, [leads, period, effScope, userId, ownerFilter, clientFilter, sourceFilter]);
 
   // نفس مجموعة المعرّفات التي تطلبها اللوحة → نفس مفتاح الاستعلام → بلا طلب إضافي.
   const ownerIds = useMemo(
@@ -322,19 +331,19 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
       {/* ── مبدّل النطاق طبق الأصل ── */}
       <div style={scopeRow}>
-        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(scope === 'mine' ? scopeOn : null) }}>فرصي فقط</button>
-        <button type="button" onClick={() => { setScope('all'); setHighlight(false); }} style={{ ...scopeBtn, ...(scope === 'all' && !highlight ? scopeOn : null) }}>جميع الفرص</button>
+        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(effScope === 'mine' ? scopeOn : null) }}>فرصي فقط</button>
+        <button type="button" onClick={() => { setScope('all'); setHighlight(false); }} style={{ ...scopeBtn, ...(effScope === 'all' && !highlight ? scopeOn : null) }}>جميع الفرص</button>
         <button
           type="button"
           onClick={() => { setScope('all'); setHighlight(true); }}
-          style={{ ...scopeBtn, ...(scope === 'all' && highlight ? scopeOn : null) }}
+          style={{ ...scopeBtn, ...(effScope === 'all' && highlight ? scopeOn : null) }}
           title="تظهر كل الفرص، وفرص غيري تخفت ليبرز ما يخصّني"
         >🔷 فرصي مميّزة</button>
       </div>
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} meId={userId} highlightMine={scope === 'all' && highlight} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} meId={userId} highlightMine={effScope === 'all' && highlight} />}
 
       {detailLead && (
         <LeadDetailModal

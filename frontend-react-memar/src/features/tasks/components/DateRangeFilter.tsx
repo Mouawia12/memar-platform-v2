@@ -32,12 +32,12 @@ function weekRange(): DateRange {
 }
 
 const PRESETS: { key: string; label: string; range: () => DateRange }[] = [
-  { key: 'all', label: 'كل التواريخ', range: () => EMPTY_RANGE },
+  { key: 'all', label: 'الكل', range: () => EMPTY_RANGE },
   { key: 'today', label: 'اليوم', range: () => ({ from: ymd(new Date()), to: ymd(new Date()) }) },
-  { key: 'week', label: 'هذا الأسبوع', range: weekRange },
+  { key: 'week', label: 'الأسبوع', range: weekRange },
   {
     key: 'month',
-    label: 'هذا الشهر',
+    label: 'الشهر',
     range: () => {
       const n = new Date();
 
@@ -59,7 +59,7 @@ export function inRange(day: string | null | undefined, r: DateRange): boolean {
  * فلتر التاريخ (طلب أيمن 2026-08-26) — فترات جاهزة + نطاق مخصّص.
  * يُستعمل للوحتين: المهام حسب تاريخ الاستحقاق، والمتابعات حسب موعد التذكير.
  */
-export function DateRangeFilter({ value, onChange, shown, total }: { value: DateRange; onChange: (r: DateRange) => void; shown: number; total: number }) {
+export function DateRangeFilter({ value, onChange, shown, total, inline = false }: { value: DateRange; onChange: (r: DateRange) => void; shown: number; total: number; inline?: boolean }) {
   const matched = PRESETS.find((p) => {
     const r = p.range();
 
@@ -70,7 +70,7 @@ export function DateRangeFilter({ value, onChange, shown, total }: { value: Date
   const showCustom = customOpen || active === 'custom';
 
   return (
-    <div style={wrap}>
+    <div style={inline ? { ...wrap, ...wrapInline } : wrap}>
       <span style={icon}>📅</span>
       {PRESETS.map((p) => (
         <button
@@ -82,7 +82,7 @@ export function DateRangeFilter({ value, onChange, shown, total }: { value: Date
           {p.label}
         </button>
       ))}
-      <button type="button" onClick={() => setCustomOpen(true)} style={{ ...pill, ...(showCustom ? pillOn : null) }}>نطاق مخصّص</button>
+      <button type="button" onClick={() => setCustomOpen(true)} style={{ ...pill, ...(showCustom ? pillOn : null) }}>مخصّص</button>
 
       {showCustom && (
         <span style={customBox}>
@@ -103,9 +103,11 @@ export function DateRangeFilter({ value, onChange, shown, total }: { value: Date
   );
 }
 
-const wrap: CSSProperties = { display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '14px' };
+const wrap: CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '14px' };
+// داخل شريط أدوات موحّد: بلا توسيط ولا هامش سفلي — الشريط الأب يتكفّل بهما.
+const wrapInline: CSSProperties = { justifyContent: 'flex-start', marginBottom: 0 };
 const icon: CSSProperties = { fontSize: '14px', opacity: 0.7 };
-const pill: CSSProperties = { padding: '6px 14px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' };
+const pill: CSSProperties = { padding: '6px 10px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' };
 const pillOn: CSSProperties = { background: '#EBF5FF', color: '#1B6CA8', borderColor: '#1B6CA8' };
 const customBox: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '4px 9px' };
 const lbl: CSSProperties = { fontSize: '12px', color: '#64748B', fontWeight: 700 };

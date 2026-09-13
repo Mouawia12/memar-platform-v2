@@ -18,6 +18,8 @@ class ContactResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $me = $request->user()?->id;
+
         return [
             'id' => $this->id,
             'full_name' => $this->full_name,
@@ -125,6 +127,49 @@ class ContactResource extends JsonResource
                 'name' => $this->owner->name,
             ] : null),
             'created_at' => $this->created_at?->toIso8601String(),
+            // ── توجيه الإدارة على الفرصة (طلب أيمن 2026-09-13) ──
+            // منه لون البطاقة في اللوحة: أحمر ينتظر ردًّا، أخضر رُدَّ عليه، بلا توجيه أبيض.
+            'directive' => $this->whenLoaded('directives', function () {
+                $latest = $this->directives->first();
+                if ($latest === null) {
+                    return null;
+                }
+                $res = new DirectiveResource($latest);
+                $res->ownerId = $this->activityOwnerId();
+
+                return $res->toArray(request());
+            }),
+            'directive_messages_count' => $this->whenLoaded(
+                'directives',
+                fn (): int => $this->directives->count() + $this->directives->sum(fn ($d): int => $d->messages->count()),
+            ),
+            // رسائل لم يرَها المستخدم الحالي — الرقم على الشارة
+            'directive_unread' => $this->whenLoaded(
+                'directives',
+                fn (): int => (int) $this->directives->sum(fn ($d): int => $d->unseenCountFor($me)),
+            ),
+            /*
+             * حالة الخيط كما تراها الإدارة والموظف معًا:
+             * awaiting = الإدارة سألت ولم يردّ صاحب الفرصة بعد (أحمر)
+             * replied  = صاحب الفرصة ردّ آخرًا (أخضر) · null = لا توجيه (أبيض)
+             */
+            'directive_state' => $this->whenLoaded('directives', fn (): ?string => $this->directiveState()),
         ];
+    }
+
+    /** حالة آخر خيط توجيه: أينتظر ردّ صاحب الفرصة أم رُدّ عليه؟ */
+    private function directiveState(): ?string
+    {
+        $latest = $this->directives->first();
+        if ($latest === null) {
+            return null;
+        }
+
+        $owner = $this->activityOwnerId();
+        $last = $latest->lastMessage();
+        $lastBy = $last !== null ? $last->user_id : $latest->sender_id;
+
+        // آخر كلمة لصاحب الفرصة = ردَّ؛ وإلّا فالكرة في ملعبه
+        return $owner !== null && $lastBy === $owner ? 'replied' : 'awaiting';
     }
 }

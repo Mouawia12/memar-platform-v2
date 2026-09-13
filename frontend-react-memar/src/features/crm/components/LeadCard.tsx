@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useCreateCrmTag, useCrmTags, useLogLeadUpdate } from '../hooks/useCrm';
-import { personColor, personInitials, shortName, STAGE_COLOR_FALLBACK, tagColor, type Lead, type Priority } from '../types';
+import { cardStateOf, personColor, personInitials, shortName, STAGE_COLOR_FALLBACK, tagColor, type CardState, type Lead, type Priority } from '../types';
 
 interface Props {
   lead: Lead;
@@ -23,6 +23,8 @@ interface Props {
   mine?: boolean;
   /** صورة مَن نقل الفرصة — إن غابت تُعرض أحرف اسمه بلونه. */
   moverAvatarUrl?: string | null;
+  /** فتح خيط توجيه الإدارة على الفرصة (طلب أيمن 2026-09-13). */
+  onDirective?: (l: Lead) => void;
 }
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
@@ -122,7 +124,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 /** بطاقة فرصة — طبق أصل بطاقة CRM في «معمار customer portal» (opsOppCardHTML). */
-export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen, moverFromLabel, moverAvatarUrl, mine }: Props) {
+export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMoveUp, canMoveDown, avatarUrl, justSeen, moverFromLabel, moverAvatarUrl, mine, onDirective }: Props) {
   const reorderable = !!(onMoveUp || onMoveDown);
   // طلب اختصار من داخل الكرت (طلب العميل، فيديو 2026-08-17): المدير يعتمده مباشرة، والموظف يُرسله طلبًا.
   const isTagManager = usePermission('crm.delete');
@@ -192,6 +194,16 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
     lead.area_sqm && Number(lead.area_sqm) > 0 ? `· ${Number(lead.area_sqm).toLocaleString('ar')} م²` : '',
   ].filter(Boolean).join(' ');
 
+  /*
+   * لون البطاقة بالأولوية (طلب أيمن 2026-09-13):
+   * أحمر  — الإدارة سألت ولم يُردّ: سؤالٌ مباشر يتقدّم على كل شيء
+   * أصفر  — حان موعد تواصلها أو عُلّمت عاجلة: مطلوب تحديث
+   * أخضر  — رُدَّ على آخر توجيه ولا شيء مستحقّ
+   * أبيض  — لا توجيه ولا استحقاق
+   */
+  const dir: CardState = cardStateOf(lead);
+  const unreadDirective = lead.directive_unread ?? 0;
+
   return (
     <div
       className={`crm-lead-card${blinkUrgent ? ' crm-card-blink' : ''}${blinkLate ? ' crm-card-blink-late' : ''}${justSeen ? ' crm-card-seen' : ''}`}
@@ -200,6 +212,9 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
         ...card,
         borderRight: `5px solid ${urgent ? '#DC4A3D' : imp.color ?? stageColor ?? STAGE_COLOR_FALLBACK}`,
         ...(urgent ? cardUrgent : null),
+        /* لون حالة التوجيه (طلب أيمن 2026-09-13): أحمر ينتظر ردّ الموظف،
+           أخضر رُدَّ عليه، وبلا توجيه تبقى البطاقة بيضاء كما كانت. */
+        ...(dir ? DIRECTIVE_SKIN[dir] : null),
         // الظلّ inline يغلب أي قاعدة CSS، فحلقة الإبراز تُضبط هنا.
         ...(mine ? mineRing : null),
       }}
@@ -220,6 +235,30 @@ export function LeadCard({ lead, onOpen, stageColor, onMoveUp, onMoveDown, canMo
             {lead.full_name} {rating > 0 && <Stars rating={Math.min(5, rating)} />}
             {mine && <span style={mineTag}>فرصتي</span>}
           </div>
+          {/* حالة التوجيه بكلمة واحدة، والرقم عدد ما لم يقرأه المستخدم بعد. */}
+          {(dir || onDirective) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px' }}>
+              {dir && (
+                <span style={{ ...dirChip, ...DIRECTIVE_CHIP[dir] }} title={DIRECTIVE_HINT[dir]}>
+                  ● {DIRECTIVE_LABEL[dir]}
+                </span>
+              )}
+              {unreadDirective > 0 && (
+                <span style={dirCount} title={`${unreadDirective} رسالة جديدة لم تقرأها`}>{unreadDirective}</span>
+              )}
+              {/* الضغط يفتح خيط التوجيه لا تفاصيل الفرصة (طلب أيمن 2026-08-31). */}
+              {onDirective && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onDirective(lead); }}
+                  style={dirBtn}
+                  title={dir ? 'فتح خيط التوجيه' : 'كتابة توجيه للموظف على هذه الفرصة'}
+                >
+                  📩
+                </button>
+              )}
+            </div>
+          )}
           {lead.company && <div style={sub}>{lead.position || 'جهة اتصال'} — {lead.company}</div>}
           <div style={leadSvc} title={service}>{service}</div>
         </div>
@@ -436,3 +475,35 @@ const last: CSSProperties = { fontSize: '10px', color: '#64748B', borderTop: '1p
 const reorderGroup: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '1px', marginTop: '2px' };
 const reorderBtn: CSSProperties = { width: '18px', height: '13px', display: 'grid', placeItems: 'center', border: '1px solid #E4E8EF', background: '#F7F9FC', color: '#5A6478', borderRadius: '4px', cursor: 'pointer', fontSize: '7px', lineHeight: 1, padding: 0 };
 const reorderBtnOff: CSSProperties = { opacity: 0.3, cursor: 'default' };
+
+/**
+ * ألوان حالة التوجيه على بطاقة الفرصة (طلب أيمن 2026-09-13).
+ * أحمر: الإدارة سألت ولم يردّ صاحب الفرصة · أخضر: ردَّ · بلا توجيه: أبيض كما كان.
+ */
+const DIRECTIVE_SKIN: Record<NonNullable<CardState>, CSSProperties> = {
+  awaiting: { background: '#FEF3F2', borderColor: '#F3B5AE', boxShadow: '0 0 0 1.5px rgba(220,74,61,.22)' },
+  needs_update: { background: '#FFF8EC', borderColor: '#F0CE90', boxShadow: '0 0 0 1.5px rgba(232,168,56,.22)' },
+  replied: { background: '#F0FDF6', borderColor: '#A7E3C4', boxShadow: '0 0 0 1.5px rgba(5,150,105,.20)' },
+};
+
+const DIRECTIVE_LABEL: Record<NonNullable<CardState>, string> = {
+  awaiting: 'بانتظار ردّك',
+  needs_update: 'مطلوب تحديث',
+  replied: 'تم الرد',
+};
+
+const DIRECTIVE_HINT: Record<NonNullable<CardState>, string> = {
+  awaiting: 'الإدارة كتبت توجيهًا على هذه الفرصة ولم يُردّ عليه بعد',
+  needs_update: 'حان موعد التواصل مع هذه الفرصة — سجّل تحديثًا عليها',
+  replied: 'رُدَّ على آخر توجيه من الإدارة',
+};
+
+const DIRECTIVE_CHIP: Record<NonNullable<CardState>, CSSProperties> = {
+  awaiting: { color: '#C0392B', background: '#FDECEA', border: '1px solid #F3B5AE' },
+  needs_update: { color: '#A5710F', background: '#FDF3E0', border: '1px solid #F0CE90' },
+  replied: { color: '#067A4B', background: '#E7F8EF', border: '1px solid #A7E3C4' },
+};
+
+const dirBtn: CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '1px 3px', lineHeight: 1 };
+const dirChip: CSSProperties = { fontSize: '10px', fontWeight: 800, borderRadius: '20px', padding: '2px 8px', whiteSpace: 'nowrap' };
+const dirCount: CSSProperties = { minWidth: '17px', height: '17px', borderRadius: '50%', background: '#DC4A3D', color: '#fff', fontSize: '10px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' };

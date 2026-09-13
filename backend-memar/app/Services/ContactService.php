@@ -20,6 +20,7 @@ class ContactService
         private readonly ProjectService $projects,
         private readonly LoyaltyService $loyalty,
         private readonly LoyaltyRuleService $rules,
+        private readonly CardActivityService $activity,
     ) {}
 
     public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
@@ -38,6 +39,8 @@ class ContactService
             // أعمدة سجل العملاء: مشاريعه وفرصه وإجمالي عقوده (طلب أيمن 2026-09-09)
             ->withCount(['projects', 'opportunities'])
             ->withSum('contracts', 'value_kwd')
+            // توجيهات الإدارة على الفرصة: منها لون البطاقة وعدّاد الجديد (طلب أيمن 2026-09-13)
+            ->tap(fn ($q) => $this->activity->withCardActivity($q, auth()->id(), Contact::class))
             // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).
             ->orderBy('board_position')
             ->latest()

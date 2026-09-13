@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\ClientPortalController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\FollowUpActivityController;
+use App\Http\Controllers\Api\V1\OpportunityActivityController;
 use App\Http\Controllers\Api\V1\OpportunityUpdateController;
 use App\Http\Controllers\Api\V1\PipelineStageController;
 use App\Http\Controllers\Api\V1\QuickActionController;
@@ -51,6 +52,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
      * نشاط بطاقة المتابعة (طلب أيمن 2026-08-29) — طبق بطاقة المهمة:
      * الإرسال للإدارة (crm.delete)، والردّ والتعليق لمن يعمل على المتابعة.
      */
+    // توجيهات الإدارة على بطاقة الفرصة — منها لون البطاقة (طلب أيمن 2026-09-13)
+    Route::get('/contacts/{contact}/directives', [OpportunityActivityController::class, 'directives'])->middleware('permission:crm.view');
+    Route::post('/contacts/{contact}/directives', [OpportunityActivityController::class, 'sendDirective'])->middleware('permission:crm.delete');
+    Route::post('/contacts/{contact}/directives/{directive}/messages', [OpportunityActivityController::class, 'addDirectiveMessage'])->middleware('permission:crm.view');
+
     Route::get('/follow-ups/{reminder}/directives', [FollowUpActivityController::class, 'directives'])->middleware('permission:crm.view');
     Route::post('/follow-ups/{reminder}/directives', [FollowUpActivityController::class, 'sendDirective'])->middleware('permission:crm.delete');
     Route::post('/follow-ups/{reminder}/directives/{directive}/messages', [FollowUpActivityController::class, 'addDirectiveMessage'])->middleware('permission:crm.view');

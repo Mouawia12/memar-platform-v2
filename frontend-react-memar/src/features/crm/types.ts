@@ -1,3 +1,5 @@
+import type { TaskDirective } from '../tasks/types';
+
 // المرحلة = مفتاح ديناميكي يأتي من جدول pipeline_stages (قابل للتعديل والإضافة)
 export type Stage = string;
 export type ContactType = 'lead' | 'client' | 'contact';
@@ -17,6 +19,12 @@ export interface PipelineStage {
   is_lost: boolean;
   is_protected: boolean;
 }
+
+/**
+ * حالة بطاقة الفرصة في اللوحة — منها لونها (طلب أيمن 2026-09-13).
+ * `needs_update` تُحسب في الواجهة من استحقاق التواصل، لا من الخادم.
+ */
+export type CardState = 'awaiting' | 'needs_update' | 'replied' | null;
 
 export interface Lead {
   id: number;
@@ -52,6 +60,15 @@ export interface Lead {
   // تقييم داخلي خاص بالفريق (اجتماع 2026-08-05)
   internal_rating: number | null;
   internal_notes: string | null;
+  // ── توجيه الإدارة على الفرصة (طلب أيمن 2026-09-13) ──
+  /** آخر خيط توجيه — رأسه وآخر رسالة فيه. */
+  directive?: TaskDirective | null;
+  /** مجموع رسائل الخيوط — الرقم على الشارة. */
+  directive_messages_count?: number;
+  /** رسائل لم يرَها المستخدم الحالي — النقطة الحمراء. */
+  directive_unread?: number;
+  /** لون البطاقة: awaiting أحمر · replied أخضر · غياب الحقل أبيض. */
+  directive_state?: 'awaiting' | 'replied' | null;
   // حقول الفرصة (المرحلة 3 — طلب أيمن 2026-08-15)
   priority: Priority;
   is_vip: boolean;
@@ -257,4 +274,17 @@ export function shortName(name: string): string {
   if (title) return parts.length >= 2 ? `${title} ${parts[1]}` : title;
 
   return parts.slice(0, 2).join(' ');
+}
+
+/**
+ * حالة بطاقة الفرصة بالأولوية — مصدرٌ واحد للبطاقة ولشريط العدّادات فوقها،
+ * كي لا يقول الشريط رقمًا وتقول الألوان غيره (طلب أيمن 2026-09-13).
+ *
+ * أحمر يتقدّم: سؤال الإدارة المباشر أولى من موعدٍ في التقويم.
+ */
+export function cardStateOf(lead: Lead): CardState {
+  if (lead.directive_state === 'awaiting') return 'awaiting';
+  if (lead.reminder?.due || lead.is_urgent) return 'needs_update';
+
+  return lead.directive_state === 'replied' ? 'replied' : null;
 }

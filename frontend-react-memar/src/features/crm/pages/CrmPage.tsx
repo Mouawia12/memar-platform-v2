@@ -11,6 +11,7 @@ import { downloadCsv } from '../../../lib/csv';
 import { LEAD_SOURCE_META, LEAD_SOURCE_ORDER, TEMPERATURE_META, sourceLabel } from '../types';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
+import { DirectiveModal } from '../../tasks/components/DirectiveModal';
 import { CrmBoard } from '../components/CrmBoard';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
@@ -70,6 +71,8 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   // الكرت الذي أُغلقت نافذته للتوّ — يُبرَز ~3 ثوانٍ ليعرف المستخدم أين كان
   // في العمود (طلب أيمن 2026-08-22).
   const [justSeenId, setJustSeenId] = useState<number | null>(null);
+  // خيط توجيه الإدارة على فرصة — نفس نافذة المهام والمتابعات (طلب أيمن 2026-09-13)
+  const [directiveFor, setDirectiveFor] = useState<Lead | null>(null);
   const closeDetail = () => {
     setJustSeenId(detailId);
     setDetailId(null);
@@ -343,7 +346,23 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} meId={userId} highlightMine={effScope === 'all' && highlight} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} meId={userId} highlightMine={effScope === 'all' && highlight} onDirective={setDirectiveFor} />}
+
+      {directiveFor && (
+        <DirectiveModal
+          card={{
+            kind: 'opportunity',
+            id: directiveFor.id,
+            code: `#${directiveFor.id}`,
+            title: directiveFor.full_name,
+            owner: directiveFor.owner?.name ?? null,
+            ownerLabel: 'صاحب الفرصة',
+          }}
+          canSend={canDelete}
+          canReply={canDelete || directiveFor.owner?.id === userId}
+          onClose={() => setDirectiveFor(null)}
+        />
+      )}
 
       {detailLead && (
         <LeadDetailModal

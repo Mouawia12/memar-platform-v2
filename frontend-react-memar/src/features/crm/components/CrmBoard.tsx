@@ -15,10 +15,13 @@ import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, us
 import { useStaffAvatars } from '../../users/hooks/useUsers';
 import { LeadCard } from './LeadCard';
 import { isStageCollapsed, setStageCollapsed, useCollapsedStages, useHiddenStages } from '../boardPrefs';
+import { cardStateOf } from '../types';
 import type { Lead, PipelineStage, Stage } from '../types';
 
 interface Props {
   leads: Lead[];
+  /** فتح خيط توجيه الإدارة على الفرصة (طلب أيمن 2026-09-13). */
+  onDirective?: (l: Lead) => void;
   stages: PipelineStage[];
   onMove: (l: Lead, stage: Stage) => void;
   onOpen: (l: Lead) => void;
@@ -163,7 +166,7 @@ function BoardColumn({ stage, count, totalCount, total, showTotals, colLeads, is
   );
 }
 
-export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, justSeenId, showTotals = true, meId, highlightMine }: Props) {
+export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, justSeenId, showTotals = true, meId, highlightMine, onDirective }: Props) {
   const [active, setActive] = useState<Lead | null>(null);
   /** العمود المكبّر بكامل العرض (⛶) — طبق أصل ops-col-full. */
   const [maxStage, setMaxStage] = useState<string | null>(null);
@@ -419,6 +422,7 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
             onMoveDown={() => moveInColumn(colLeads, i, 1)}
             canMoveUp={i > 0}
             canMoveDown={i < colLeads.length - 1}
+            onDirective={onDirective}
           />
         </DragCard>
       ))}
@@ -426,9 +430,43 @@ export function CrmBoard({ leads, stages, onMove, onOpen, onReorder, onAdd, just
     </>
   );
 
+  /*
+   * شريط حالة التوجيهات فوق اللوحة (طلب أيمن 2026-09-13): كم فرصة تنتظر ردًّا،
+   * وكم رُدَّ عليها، وكم بلا توجيه — فتُقرأ حال اللوحة قبل قراءة بطاقاتها.
+   */
+  const tally = useMemo(() => {
+    const counts = { awaiting: 0, needs_update: 0, replied: 0, none: 0 };
+    // نفس أولوية ألوان البطاقة حرفًا بحرف — وإلا خالف الشريطُ ما تراه العين
+    leads.forEach((l) => { counts[cardStateOf(l) ?? 'none']++; });
+
+    return counts;
+  }, [leads]);
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="crm-board-shell">
+        {leads.length > 0 && (
+          <div style={tallyRow}>
+            {tally.awaiting > 0 && (
+              <span style={{ ...tallyChip, color: '#C0392B', background: '#FDECEA', borderColor: '#F3B5AE' }} title="الإدارة كتبت توجيهًا ولم يُردّ عليه بعد">
+                بانتظار الرد: {tally.awaiting}
+              </span>
+            )}
+            {tally.needs_update > 0 && (
+              <span style={{ ...tallyChip, color: '#A5710F', background: '#FDF3E0', borderColor: '#F0CE90' }} title="حان موعد التواصل معها — مطلوب تحديث">
+                مطلوب تحديث: {tally.needs_update}
+              </span>
+            )}
+            {tally.replied > 0 && (
+              <span style={{ ...tallyChip, color: '#067A4B', background: '#E7F8EF', borderColor: '#A7E3C4' }} title="رُدَّ على آخر توجيه من الإدارة">
+                تم الرد: {tally.replied}
+              </span>
+            )}
+            <span style={{ ...tallyChip, color: '#7A8394', background: '#F4F6F9', borderColor: '#E2E7EF' }} title="لا توجيه عليها ولا تواصلٌ مستحقّ">
+              بدون تحديث: {tally.none}
+            </span>
+          </div>
+        )}
         <div className={`crm-hscroll${maxStage ? ' crm-board-full' : ''}`} ref={boardRef} style={{ ...board, ...(maxStage ? { overflowX: 'hidden' } : null) }} onScroll={syncArrows}>
           {(maxStage ? visibleStages.filter((s) => s.key === maxStage) : visibleStages).map((stage) => {
             const all = leads.filter((l) => l.stage === stage.key);
@@ -503,3 +541,7 @@ const collapsedCol: CSSProperties = { background: '#F0F4F8', borderRadius: '10px
 const collapsedHead: CSSProperties = { background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '6px 2px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0 };
 const collapsedCount: CSSProperties = { fontSize: '13px', fontWeight: 800, minWidth: '20px', textAlign: 'center' };
 const collapsedLabel: CSSProperties = { writingMode: 'vertical-rl', fontWeight: 700, fontSize: '12.5px', whiteSpace: 'nowrap', flex: 1 };
+
+/** شريط حالة التوجيهات فوق اللوحة — أرقامٌ تُقرأ قبل البطاقات. */
+const tallyRow: CSSProperties = { display: 'flex', gap: '7px', flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: '10px' };
+const tallyChip: CSSProperties = { fontSize: '11.5px', fontWeight: 800, borderRadius: '20px', padding: '4px 12px', border: '1px solid', whiteSpace: 'nowrap' };

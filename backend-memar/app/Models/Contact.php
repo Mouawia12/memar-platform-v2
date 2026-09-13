@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCardActivity;
 use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,8 +19,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class Contact extends Model
 {
     /** @use HasFactory<ContactFactory> */
-    use HasFactory;
+    use HasCardActivity; // توجيهات الإدارة على بطاقة الفرصة وردود الموظف
 
+    use HasFactory;
     use LogsActivity;
     use SoftDeletes;
 
@@ -116,6 +118,12 @@ class Contact extends Model
             'welcome_discount_used' => 'boolean',
             'welcome_discount_kwd' => 'decimal:3',
         ];
+    }
+
+    /** صاحب بطاقة الفرصة — الموظف المسؤول عنها، وهو مَن يُنتظر ردّه. */
+    public function activityOwnerId(): ?int
+    {
+        return $this->owner_id;
     }
 
     public function owner(): BelongsTo

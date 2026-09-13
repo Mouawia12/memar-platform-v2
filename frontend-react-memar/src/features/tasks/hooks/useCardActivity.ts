@@ -4,7 +4,7 @@ import { apiGet, apiPost } from '../../../lib/api';
 import type { DirectiveMessage, TaskDirective } from '../types';
 
 /** نوع البطاقة — يحدّد مسار الخادم ومفاتيح الاستعلام التي تُنعَش. */
-export type CardKind = 'task' | 'follow-up';
+export type CardKind = 'task' | 'follow-up' | 'opportunity';
 
 /**
  * إشارة إلى بطاقة يجري عليها نشاط (توجيه/تعليق). المهام والمتابعات تتشاركان
@@ -22,10 +22,13 @@ export interface CardRef {
   ownerLabel?: string;
 }
 
-const basePath = (card: CardRef) => (card.kind === 'task' ? `/tasks/${card.id}` : `/follow-ups/${card.id}`);
+const PATHS: Record<CardKind, string> = { task: 'tasks', 'follow-up': 'follow-ups', opportunity: 'contacts' };
+
+const basePath = (card: CardRef) => `/${PATHS[card.kind]}/${card.id}`;
 
 /** مفاتيح القوائم التي تعرض البطاقة — تُنعَش بعد كل نشاط كي تتحدّث شاراتها. */
-const listKeys = (kind: CardKind): unknown[][] => (kind === 'task' ? [['tasks']] : [['crm-follow-ups'], ['crm-leads']]);
+const listKeys = (kind: CardKind): unknown[][] =>
+  (kind === 'task' ? [['tasks']] : kind === 'opportunity' ? [['crm-leads']] : [['crm-follow-ups'], ['crm-leads']]);
 
 const threadKey = (card: CardRef) => ['card-activity', card.kind, card.id, 'directives'];
 

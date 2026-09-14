@@ -1,5 +1,5 @@
-import { apiDelete, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
-import type { Service } from '../types';
+import { apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../../../lib/api';
+import type { Service, ServiceStats } from '../types';
 
 export interface ServicesQuery {
   search?: string;
@@ -10,6 +10,7 @@ export interface ServicesQuery {
 
 export const servicesApi = {
   list: (params: ServicesQuery) => apiGetPaginated<Service>('/services', { params }),
+  stats: () => apiGet<ServiceStats>('/services/stats'),
   create: (payload: Record<string, unknown>) => apiPost<Service>('/services', payload),
   update: (id: number, payload: Record<string, unknown>) => apiPatch<Service>(`/services/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/services/${id}`),

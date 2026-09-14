@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/services', [ServiceController::class, 'index'])->middleware('permission:pricing.view');
     Route::post('/services', [ServiceController::class, 'store'])->middleware('permission:pricing.manage');
+    // قبل /services/{service} وإلّا حُسبت «stats» معرّفَ خدمة فردّ الخادم 404
+    Route::get('/services/stats', [ServiceController::class, 'stats'])->middleware('permission:pricing.view');
     Route::get('/services/{service}', [ServiceController::class, 'show'])->middleware('permission:pricing.view');
     Route::match(['put', 'patch'], '/services/{service}', [ServiceController::class, 'update'])->middleware('permission:pricing.manage');
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->middleware('permission:pricing.manage');

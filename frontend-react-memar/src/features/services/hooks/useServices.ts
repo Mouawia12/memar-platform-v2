@@ -13,6 +13,15 @@ export function useServices(params: ServicesQuery) {
   });
 }
 
+/** مؤشّرات أعلى الصفحة — تُنعَش مع كل تغيير على الخدمات. */
+export function useServiceStats() {
+  return useQuery({
+    queryKey: [...KEY, 'stats'],
+    queryFn: () => servicesApi.stats(),
+    staleTime: 60_000,
+  });
+}
+
 export function useSaveService() {
   const qc = useQueryClient();
   return useMutation({

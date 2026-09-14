@@ -28,6 +28,12 @@ class ServiceController extends ApiController
         return $this->paginated($paginator, ServiceResource::class);
     }
 
+    /** مؤشّرات أعلى الصفحة: عدد الخدمات والعروض ونسبة القبول والتصنيفات. */
+    public function stats(): JsonResponse
+    {
+        return $this->ok($this->services->stats());
+    }
+
     public function store(StoreServiceRequest $request): JsonResponse
     {
         $service = $this->services->create($request->validated());

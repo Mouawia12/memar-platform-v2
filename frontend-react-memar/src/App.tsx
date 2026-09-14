@@ -50,7 +50,7 @@ const MyProjectsPage = lazyPage(() => import('./features/myProjects/pages/MyProj
 const PayrollPage = lazyPage(() => import('./features/payroll/pages/PayrollPage'), 'PayrollPage');
 const ProjectDetailPage = lazyPage(() => import('./features/projects/pages/ProjectDetailPage'), 'ProjectDetailPage');
 const ProjectsPage = lazyPage(() => import('./features/projects/pages/ProjectsPage'), 'ProjectsPage');
-const QuotationsPage = lazyPage(() => import('./features/quotations/pages/QuotationsPage'), 'QuotationsPage');
+const PricingEnginePage = lazyPage(() => import('./features/pricing/pages/PricingEnginePage'), 'PricingEnginePage');
 const ReportsPage = lazyPage(() => import('./features/reports/pages/ReportsPage'), 'ReportsPage');
 const RequestsPage = lazyPage(() => import('./features/requests/pages/RequestsPage'), 'RequestsPage');
 const RolesPage = lazyPage(() => import('./features/roles/pages/RolesPage'), 'RolesPage');
@@ -120,7 +120,7 @@ export default function App() {
           <Route path="/chatbot" element={<RequireStaff><ChatbotPage /></RequireStaff>} />
           <Route path="/meetings" element={<RequirePermission perm="appointments.view"><MeetingsPage /></RequirePermission>} />
           <Route path="/services" element={<RequirePermission perm="pricing.view"><ServicesPage /></RequirePermission>} />
-          <Route path="/pricing" element={<RequirePermission perm="pricing.view"><QuotationsPage /></RequirePermission>} />
+          <Route path="/pricing" element={<RequirePermission perm="pricing.view"><PricingEnginePage /></RequirePermission>} />
           <Route path="/documents" element={<RequirePermission perm="documents.view"><DocumentsPage /></RequirePermission>} />
           <Route path="/files" element={<RequirePermission perm="documents.view"><FilesPage /></RequirePermission>} />
           <Route path="/field-visits" element={<RequirePermission perm="projects.view"><FieldVisitsPage /></RequirePermission>} />

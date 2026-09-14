@@ -71,7 +71,8 @@ class EmployeeDashboardSeeder extends Seeder
         foreach ($appts as [$title, $start, $loc, $status, $pi]) {
             Appointment::updateOrCreate(
                 ['title' => $title, 'start_at' => $start],
-                ['type' => 'meeting', 'project_id' => $proj($pi), 'end_at' => $start->copy()->addHour(), 'location' => $loc, 'is_video' => false, 'status' => $status, 'created_by' => $adminId],
+                // مواعيد الموظف مُسندة إليه — بها يرى «مواعيدي» ويظهر اسمه في القوائم
+                ['type' => 'meeting', 'project_id' => $proj($pi), 'assignee_id' => $emp->id, 'end_at' => $start->copy()->addHour(), 'location' => $loc, 'is_video' => false, 'status' => $status, 'created_by' => $adminId],
             );
         }
 

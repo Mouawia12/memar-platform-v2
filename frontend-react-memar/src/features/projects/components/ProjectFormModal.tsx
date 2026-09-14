@@ -8,7 +8,7 @@ import { CLIENT_KIND_LABELS, type ClientKind } from '../../clients/types';
 import { useContacts } from '../../clients/hooks/useContacts';
 import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveProject } from '../hooks/useProjects';
-import { PROJECT_STATUS_LABELS, type Project, type ProjectFormData, type ProjectStatus } from '../types';
+import { PROJECT_STATUS_LABELS, type Project, type ProjectFormData, type ProjectStatus, PROJECT_TYPES } from '../types';
 
 interface Props {
   project: Project | null;
@@ -16,7 +16,7 @@ interface Props {
 }
 
 const empty: ProjectFormData = {
-  name: '', client_id: '', manager_id: '', status: 'draft',
+  name: '', type: '', client_id: '', manager_id: '', status: 'draft',
   budget_kwd: '', start_date: '', end_date: '', description: '',
 };
 
@@ -40,6 +40,7 @@ export function ProjectFormModal({ project, onClose }: Props) {
     if (project) {
       setForm({
         name: project.name,
+        type: project.type ?? '',
         client_id: project.client?.id ?? '',
         manager_id: project.manager?.id ?? '',
         status: project.status,
@@ -98,6 +99,14 @@ export function ProjectFormModal({ project, onClose }: Props) {
 
         <label style={label}>اسم المشروع
           <input className="input" style={input} value={form.name} onChange={(e) => set('name', e.target.value)} required />
+        </label>
+
+        {/* نوع المشروع — يظهر في عمود «النوع» ويُفلتَر به السجل (طلب أيمن 2026-09-09). */}
+        <label style={label}>نوع المشروع
+          <select className="input" style={input} value={form.type} onChange={(e) => set('type', e.target.value)}>
+            <option value="">— غير محدّد —</option>
+            {PROJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
         </label>
 
         {/* ── العميل: موجود أو جديد ── */}

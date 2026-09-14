@@ -19,8 +19,9 @@ class AppSetting extends Model
     /**
      * الفضاءات المسموح بتجاوزها فقط — حماية: لا يجوز تجاوز app.* أو database.* إلخ
      * عبر لوحة الإدارة. تُوسَّع مع المراحل اللاحقة (leads، hr…).
+     * crm: أرقام نافذة «إعدادات النقاط» (config/crm.php).
      */
-    public const ALLOWED_GROUPS = ['loyalty'];
+    public const ALLOWED_GROUPS = ['loyalty', 'crm'];
 
     protected function casts(): array
     {

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryClient } from '../../../lib/queryClient';
 import { tasksApi, type TasksQuery } from '../api/tasksApi';
-import type { TaskFormData, TaskStatus } from '../types';
+import type { Task, TaskFormData, TaskStatus } from '../types';
 
 const KEY = ['tasks'];
 
@@ -15,9 +15,11 @@ export function useTasks(params: TasksQuery, enabled = true) {
 }
 
 /** حِمل العمل لكل موظف (DASH-1). */
-export function useWorkload() {
-  return useQuery({ queryKey: [...KEY, 'workload'], queryFn: () => tasksApi.workload() });
+/** توزيع المهام على الفريق — استعلام إداري، لا يُطلق لغير المخوّل. */
+export function useWorkload(enabled = true) {
+  return useQuery({ queryKey: [...KEY, 'workload'], queryFn: () => tasksApi.workload(), enabled });
 }
+
 
 function toPayload(data: TaskFormData): Record<string, unknown> {
   return {
@@ -45,6 +47,28 @@ export function useMoveTask() {
     mutationFn: ({ id, payload }: { id: number; payload: { due_date?: string; status?: TaskStatus } }) =>
       tasksApi.update(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/**
+ * تعديل نسبة الإنجاز من شريط البطاقة مباشرةً (طلب أيمن 2026-08-29).
+ * تحديث متفائل: الشريط يتحرّك فور الإفلات، ويُستعاد رقمه السابق إن فشل الحفظ.
+ */
+export function useUpdateProgress() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, progress }: { id: number; progress: number }) => tasksApi.update(id, { progress }),
+    onMutate: async ({ id, progress }) => {
+      await qc.cancelQueries({ queryKey: KEY });
+      const prev = qc.getQueriesData<Task[]>({ queryKey: KEY });
+      qc.setQueriesData<Task[]>({ queryKey: KEY }, (old) => old?.map((t) => (t.id === id ? { ...t, progress } : t)));
+
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => ctx?.prev?.forEach(([key, data]) => qc.setQueryData(key, data)),
+    // نُعيد الجلب دائمًا: الردّ يحمل صاحب التعديل ووقته، ولا يمكن تخمينهما محليًّا.
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
 

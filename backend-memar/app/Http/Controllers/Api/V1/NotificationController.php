@@ -6,9 +6,12 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Appointment;
+use App\Models\Comment;
+use App\Models\Directive;
 use App\Models\FieldVisit;
 use App\Models\Invoice;
 use App\Models\JobApplication;
+use App\Models\LeadReminder;
 use App\Models\ServiceRequest;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
@@ -51,6 +54,58 @@ class NotificationController extends ApiController
                 ->count();
             if ($mine > 0) {
                 $items[] = $this->item('📋', 'مهام مسندة إليك', "{$mine} مهمة بانتظارك", '/tasks', 'info', $mine);
+            }
+        }
+
+        /*
+         * بنود بطاقات المهام والمتابعات معًا (طلب أيمن 2026-08-29) — نشاطهما
+         * جدولٌ واحد، فبندٌ واحد يجمع الاثنين بدل بندين متطابقين.
+         */
+        if ($user) {
+            /*
+             * خيوط بانتظار ردّي: أنا صاحب البطاقة وآخر رسالة في الخيط ليست منّي.
+             * الخيط مفتوح فلا يكفي «بلا ردّ» — الدور ينتقل بين الطرفين.
+             */
+            $awaiting = Directive::with('messages')
+                ->where(fn ($q) => $q
+                    ->whereHasMorph('subject', [Task::class], fn ($t) => $t->where('assignee_id', $user->id))
+                    ->orWhereHasMorph('subject', [LeadReminder::class], fn ($r) => $r->where('created_by', $user->id)))
+                ->get()
+                ->filter(function (Directive $d) use ($user): bool {
+                    $last = $d->lastMessage();
+
+                    return $last !== null ? $last->user_id !== $user->id : $d->sender_id !== $user->id;
+                })
+                ->count();
+            if ($awaiting > 0) {
+                $items[] = $this->item('📣', 'توجيهات بانتظار ردّك', "{$awaiting} توجيه على بطاقاتك ينتظر ردّك", '/tasks', 'warning', $awaiting);
+            }
+
+            // ردود لم أطّلع عليها في خيوط أنا طرفٌ فيها (مُرسِلها أو مشارك)
+            $replies = Directive::with(['messages', 'reads' => fn ($q) => $q->where('user_id', $user->id)])
+                ->where('sender_id', $user->id)
+                ->get()
+                ->sum(fn (Directive $d): int => $d->unseenCountFor($user->id));
+            if ($replies > 0) {
+                $items[] = $this->item('✅', 'ردود على توجيهاتك', "{$replies} ردّ جديد لم تطّلع عليه", '/tasks', 'info', $replies);
+            }
+
+            $comments = Comment::where('user_id', '!=', $user->id)
+                ->where('subject_type', '!=', Directive::class) // رسائل الخيوط لها بندها
+                ->whereRaw(
+                    'comments.created_at > coalesce((select read_at from activity_reads'
+                    .' where activity_reads.subject_type = comments.subject_type'
+                    .' and activity_reads.subject_id = comments.subject_id and activity_reads.user_id = ?), ?)',
+                    [$user->id, '1970-01-01 00:00:00'],
+                )
+                // بطاقاتي وحدها — لا كل تعليقات المكتب
+                ->where(fn ($q) => $q
+                    ->whereHasMorph('subject', [Task::class], fn ($t) => $t->where('assignee_id', $user->id)
+                        ->orWhereHas('participants', fn ($p) => $p->where('users.id', $user->id)))
+                    ->orWhereHasMorph('subject', [LeadReminder::class], fn ($r) => $r->where('created_by', $user->id)))
+                ->count();
+            if ($comments > 0) {
+                $items[] = $this->item('💬', 'تعليقات جديدة', "{$comments} تعليق جديد على بطاقاتك", '/tasks', 'info', $comments);
             }
         }
 

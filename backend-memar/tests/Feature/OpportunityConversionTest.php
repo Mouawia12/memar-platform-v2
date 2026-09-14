@@ -11,6 +11,7 @@ use App\Models\PipelineStage;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\ContactService;
+use App\Services\LoyaltyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -45,7 +46,7 @@ class OpportunityConversionTest extends TestCase
         $this->assertSame(LoyaltyTransaction::STATUS_EARNED, $tx->status);
 
         // المتاح 0 (مستحقة فقط) — لا تُحتسب في الرصيد القابل للتحويل قبل الاعتماد
-        $this->assertSame(0, app(\App\Services\LoyaltyService::class)->userAvailableBalance($owner));
+        $this->assertSame(0, app(LoyaltyService::class)->userAvailableBalance($owner));
     }
 
     public function test_referred_customer_gets_first_project_discount(): void
@@ -92,6 +93,6 @@ class OpportunityConversionTest extends TestCase
         $this->actingAsUserWith(['loyalty.manage']);
         $this->postJson("/api/v1/loyalty/transactions/{$tx->id}/approve")->assertOk();
 
-        $this->assertSame(20, app(\App\Services\LoyaltyService::class)->userAvailableBalance($owner));
+        $this->assertSame(20, app(LoyaltyService::class)->userAvailableBalance($owner));
     }
 }

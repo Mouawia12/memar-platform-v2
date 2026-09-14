@@ -1,9 +1,8 @@
 /* نظام التنبيهات الصوتية والاحتفال — طبق أصل V42 ops-notify.js.
    • نغمات مولّدة عبر WebAudio (بدون ملفات صوت خارجية).
    • احتفال (Confetti + بانر) عند الفرصة الرابحة.
-   • مفتاح تشغيل/إيقاف الصوت محفوظ في localStorage. */
-
-const SOUND_KEY = 'memar_sound_enabled';
+   • الصوت مفعّل دائمًا لجميع الموظفين (طلب أيمن 2026-08-22) — لا مفتاح إيقاف،
+     وأي تفضيل إيقاف قديم في localStorage يُتجاهل. */
 
 /** نغمات كل حالة: [تردد Hz, مدة ثانية] لكل نوتة. */
 const TONES: Record<string, [number, number][]> = {
@@ -12,6 +11,11 @@ const TONES: Record<string, [number, number][]> = {
   delay: [[440, 0.18], [392, 0.22]],
   late: [[330, 0.2], [294, 0.2], [247, 0.3]],
   urgent: [[988, 0.1], [0, 0.06], [988, 0.1], [0, 0.06], [988, 0.16]],
+  // جرس الفرصة العاجلة — نغمة خاصة به وحده (طلب أيمن 2026-08-22): رنّة مزدوجة
+  // صاعدة تتكرّر، مميّزة عن نغمة urgent القصيرة وعن بقية التنبيهات.
+  urgentBell: [[1318, 0.14], [1046, 0.12], [0, 0.05], [1318, 0.14], [1046, 0.12], [0, 0.07], [1568, 0.34]],
+  // نقل كرت الفرصة بين الأعمدة — نغمة قصيرة صاعدة خاصة بالنقل وحده.
+  move: [[587, 0.07], [784, 0.07], [1046, 0.1]],
   success: [[659, 0.12], [880, 0.2]],
   error: [[311, 0.16], [233, 0.26]],
   reminder: [[784, 0.12], [988, 0.12], [784, 0.16]],
@@ -19,23 +23,6 @@ const TONES: Record<string, [number, number][]> = {
 
 let audioCtx: AudioContext | null = null;
 const lastPlayed: Record<string, number> = {};
-
-export function isSoundEnabled(): boolean {
-  try {
-    return localStorage.getItem(SOUND_KEY) !== '0';
-  } catch {
-    return true;
-  }
-}
-
-export function toggleSound(): boolean {
-  const next = !isSoundEnabled();
-  try {
-    localStorage.setItem(SOUND_KEY, next ? '1' : '0');
-  } catch { /* ignore */ }
-  if (next) playSound('success');
-  return next;
-}
 
 function ensureCtx(): AudioContext | null {
   if (audioCtx) return audioCtx;
@@ -49,9 +36,19 @@ function ensureCtx(): AudioContext | null {
   return audioCtx;
 }
 
+// سياسة المتصفحات تمنع الصوت قبل أول تفاعل من المستخدم. وبما أن الصوت صار مفعّلًا
+// دائمًا، نفكّ قفل سياق الصوت عند أول نقرة/ضغطة مفتاح فتُسمع التنبيهات اللاحقة كلها.
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    const ctx = ensureCtx();
+    if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
+  };
+  window.addEventListener('pointerdown', unlock, { once: true });
+  window.addEventListener('keydown', unlock, { once: true });
+}
+
 /** تشغيل نغمة تنبيه حسب النوع، مع throttle اختياري لمنع التكرار السريع. */
 export function playSound(type: string, options: { throttleMs?: number } = {}): void {
-  if (!isSoundEnabled()) return;
   const tones = TONES[type] || TONES.notification;
   const throttle = Number(options.throttleMs || 0);
   const now = Date.now();
@@ -87,16 +84,20 @@ function ensureCelebrationStyles(): void {
   const style = document.createElement('style');
   style.id = 'crm-celebrate-styles';
   style.textContent = `
-  .crm-celebrate-layer { position:fixed; inset:0; pointer-events:none; z-index:12000; overflow:hidden; }
+  .crm-celebrate-layer { position:fixed; inset:0; pointer-events:none; z-index:1000001; overflow:hidden; }
   .crm-confetti { position:absolute; top:-16px; width:9px; height:15px; border-radius:2px; opacity:.95; animation: crmConfettiFall linear forwards; }
   @keyframes crmConfettiFall { 0% { transform: translateY(-20px) rotate(0deg); opacity:1; } 100% { transform: translateY(105vh) rotate(760deg); opacity:.15; } }
-  .crm-win-banner { position:fixed; top:16%; left:50%; transform:translate(-50%,-50%) scale(.7); background:linear-gradient(135deg,#2D9B6F,#1B6CA8); color:#fff; border-radius:18px; padding:20px 34px; text-align:center; z-index:12001; font-family:'Cairo',sans-serif; box-shadow:0 22px 60px rgba(15,23,42,.35); animation: crmWinPop .5s cubic-bezier(.2,1.4,.4,1) forwards; }
+  .crm-win-banner { position:fixed; top:16%; left:50%; transform:translate(-50%,-50%) scale(.7); background:linear-gradient(135deg,#2D9B6F,#1B6CA8); color:#fff; border-radius:18px; padding:20px 34px; text-align:center; z-index:1000001; font-family:'Cairo',sans-serif; box-shadow:0 22px 60px rgba(15,23,42,.35); animation: crmWinPop .5s cubic-bezier(.2,1.4,.4,1) forwards; }
   .crm-win-banner .cwb-icon { font-size:40px; display:block; margin-bottom:6px; animation: crmWinSpin 1.5s ease-in-out infinite; }
   .crm-win-banner .cwb-title { font-size:19px; font-weight:900; }
   .crm-win-banner .cwb-sub { font-size:12.5px; font-weight:600; opacity:.92; margin-top:5px; }
   @keyframes crmWinPop { to { transform:translate(-50%,-50%) scale(1); } }
   @keyframes crmWinSpin { 0%,100%{ transform:rotate(-9deg) } 50%{ transform:rotate(9deg) scale(1.1) } }
   .crm-win-banner.cwb-out { animation: crmWinOut .45s ease forwards; }
+  .crm-balloon { position:absolute; bottom:-150px; width:42px; height:53px; border-radius:50% 50% 47% 47%; opacity:0; box-shadow: inset -7px -9px 14px rgba(0,0,0,.13); animation: crmBalloonRise ease-in forwards; }
+  .crm-balloon::before { content:''; position:absolute; top:9px; left:9px; width:11px; height:15px; border-radius:50%; background:rgba(255,255,255,.42); }
+  .crm-balloon::after { content:''; position:absolute; left:50%; top:100%; width:1.5px; height:46px; background:rgba(148,163,184,.6); transform:translateX(-50%); }
+  @keyframes crmBalloonRise { 0% { transform:translate(0,0) rotate(-5deg); opacity:0; } 10% { opacity:.96; } 100% { transform:translate(var(--sway,18px),-122vh) rotate(5deg); opacity:.9; } }
   @keyframes crmWinOut { to { opacity:0; transform:translate(-50%,-90%) scale(.85); } }
   `;
   document.head.appendChild(style);
@@ -119,15 +120,37 @@ export function celebrate(title?: string, subtitle?: string): void {
     piece.style.height = `${10 + Math.random() * 11}px`;
     layer.appendChild(piece);
   }
+  // بالونات تصعد مع القصاصات (طلب أيمن 2026-08-22) — تفاعل الفوز بالصفقة.
+  for (let i = 0; i < 14; i += 1) {
+    const balloon = document.createElement('div');
+    balloon.className = 'crm-balloon';
+    balloon.style.left = `${4 + Math.random() * 90}%`;
+    balloon.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    balloon.style.animationDuration = `${3.4 + Math.random() * 2.2}s`;
+    balloon.style.animationDelay = `${Math.random() * 1.1}s`;
+    balloon.style.setProperty('--sway', `${Math.random() * 60 - 30}px`);
+    const scale = 0.75 + Math.random() * 0.7;
+    balloon.style.width = `${42 * scale}px`;
+    balloon.style.height = `${53 * scale}px`;
+    layer.appendChild(balloon);
+  }
   document.body.appendChild(layer);
 
+  // نصّ البانر عبر textContent لا innerHTML — الاسم يأتي من بيانات العميل.
   const banner = document.createElement('div');
   banner.className = 'crm-win-banner';
-  banner.innerHTML = '<span class="cwb-icon">🏆</span>'
-    + `<div class="cwb-title">${title || 'فرصة رابحة!'}</div>`
-    + `<div class="cwb-sub">${subtitle || 'مبروك — تم نقل الفرصة إلى «صفقة رابحة»'}</div>`;
+  const icon = document.createElement('span');
+  icon.className = 'cwb-icon';
+  icon.textContent = '🏆';
+  const ttl = document.createElement('div');
+  ttl.className = 'cwb-title';
+  ttl.textContent = title || 'مبروك الصفقة! 🎉';
+  const sub = document.createElement('div');
+  sub.className = 'cwb-sub';
+  sub.textContent = subtitle || 'تم نقل الفرصة إلى «صفقة رابحة»';
+  banner.append(icon, ttl, sub);
   document.body.appendChild(banner);
 
   setTimeout(() => { banner.classList.add('cwb-out'); setTimeout(() => banner.remove(), 480); }, 2600);
-  setTimeout(() => layer.remove(), 4200);
+  setTimeout(() => layer.remove(), 6200);
 }

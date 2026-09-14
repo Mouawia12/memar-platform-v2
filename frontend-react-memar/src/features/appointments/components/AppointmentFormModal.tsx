@@ -2,8 +2,9 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useProjects } from '../../projects/hooks/useProjects';
+import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveAppointment } from '../hooks/useAppointments';
-import { STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentFormData, type AppointmentStatus, type AppointmentType } from '../types';
+import { LOCATION_KINDS, STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentFormData, type AppointmentStatus, type AppointmentType, type LocationKind } from '../types';
 
 interface Props {
   appointment: Appointment | null;
@@ -13,8 +14,8 @@ interface Props {
 }
 
 const empty: AppointmentFormData = {
-  title: '', type: 'appointment', project_id: '', start_at: '', end_at: '',
-  location: '', is_video: false, status: 'scheduled', notes: '',
+  title: '', type: 'appointment', project_id: '', assignee_id: '', start_at: '', end_at: '',
+  location: '', location_kind: '', is_video: false, status: 'scheduled', notes: '',
 };
 
 const toLocalInput = (iso: string | null) => (iso ? iso.slice(0, 16) : '');
@@ -22,6 +23,7 @@ const toLocalInput = (iso: string | null) => (iso ? iso.slice(0, 16) : '');
 export function AppointmentFormModal({ appointment, initialStart, onClose }: Props) {
   const save = useSaveAppointment();
   const { data: projectsData } = useProjects({ per_page: 100 });
+  const { data: usersData } = useAssignableUsers();
   const [form, setForm] = useState<AppointmentFormData>({ ...empty, start_at: initialStart ?? '' });
 
   useEffect(() => {
@@ -30,9 +32,11 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
         title: appointment.title,
         type: appointment.type,
         project_id: appointment.project?.id ?? '',
+        assignee_id: appointment.assignee?.id ?? '',
         start_at: toLocalInput(appointment.start_at),
         end_at: toLocalInput(appointment.end_at),
         location: appointment.location ?? '',
+        location_kind: appointment.location_kind ?? '',
         is_video: appointment.is_video,
         status: appointment.status,
         notes: appointment.notes ?? '',
@@ -48,6 +52,8 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
     e.preventDefault();
     save.mutate({ id: appointment?.id, data: form }, { onSuccess: onClose });
   };
+
+  const kind = LOCATION_KINDS.find((k) => k.key === form.location_kind) ?? null;
 
   return (
     <div style={overlay} onClick={onClose}>
@@ -70,6 +76,12 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
               {projectsData?.data.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
+          <label style={label}>الموظف المكلَّف
+            <select className="input" style={input} value={form.assignee_id} onChange={(e) => set('assignee_id', e.target.value ? Number(e.target.value) : '')}>
+              <option value="">— غير محدّد —</option>
+              {usersData?.data.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </label>
           <label style={label}>يبدأ
             <input className="input" style={input} type="datetime-local" value={form.start_at} onChange={(e) => set('start_at', e.target.value)} required />
           </label>
@@ -77,7 +89,23 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
             <input className="input" style={input} type="datetime-local" value={form.end_at} onChange={(e) => set('end_at', e.target.value)} />
           </label>
           <label style={label}>المكان
-            <input className="input" style={input} value={form.location} onChange={(e) => set('location', e.target.value)} />
+            <select
+              className="input"
+              style={input}
+              value={form.location_kind}
+              onChange={(e) => {
+                const kind = e.target.value as LocationKind | '';
+                setForm((f) => ({
+                  ...f,
+                  location_kind: kind,
+                  // «أونلاين» اجتماع فيديو بطبعه، فيُفعَّل الرابط التلقائي معه.
+                  is_video: kind === 'online' ? true : f.is_video,
+                }));
+              }}
+            >
+              <option value="">— غير محدّد —</option>
+              {LOCATION_KINDS.map((k) => <option key={k.key} value={k.key}>{k.icon} {k.label}</option>)}
+            </select>
           </label>
           <label style={label}>الحالة
             <select className="input" style={input} value={form.status} onChange={(e) => set('status', e.target.value as AppointmentStatus)}>
@@ -85,6 +113,19 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
             </select>
           </label>
         </div>
+
+        {/* تفصيل المكان — عنوانه ومثاله يتبدّلان بنوعه (طلب أيمن 2026-08-30). */}
+        {kind && (
+          <label style={label}>{kind.detailLabel}
+            <input
+              className="input"
+              style={input}
+              placeholder={kind.detailHint}
+              value={form.location}
+              onChange={(e) => set('location', e.target.value)}
+            />
+          </label>
+        )}
 
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '10px 0' }}>
           <input type="checkbox" checked={form.is_video} onChange={(e) => set('is_video', e.target.checked)} />

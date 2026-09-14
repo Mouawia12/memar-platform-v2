@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CrmTag extends Model
 {
-    protected $fillable = ['name', 'status', 'requested_by', 'decided_by', 'decided_at'];
+    protected $fillable = ['name', 'color', 'status', 'requested_by', 'decided_by', 'decided_at'];
 
     /**
      * @return array<string, string>

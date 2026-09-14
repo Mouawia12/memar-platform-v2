@@ -15,9 +15,15 @@ class Appointment extends Model
     use LogsActivity;
     use SoftDeletes;
 
+    /**
+     * أنواع مكان الاجتماع (طلب أيمن 2026-08-30) — و`location` يبقى تفصيلَه:
+     * القاعة في المكتب، عنوان الموقع، أو رقم الاتصال.
+     */
+    public const LOCATION_KINDS = ['office', 'site', 'online', 'call'];
+
     protected $fillable = [
-        'title', 'type', 'project_id', 'start_at', 'end_at',
-        'location', 'is_video', 'video_room', 'status', 'notes', 'created_by',
+        'title', 'type', 'project_id', 'assignee_id', 'start_at', 'end_at',
+        'location', 'location_kind', 'is_video', 'video_room', 'status', 'notes', 'created_by',
     ];
 
     /**
@@ -37,6 +43,12 @@ class Appointment extends Model
         return $this->belongsTo(Project::class, 'project_id');
     }
 
+    /** الموظف المكلَّف بالموعد — هو مَن يحضره، لا مَن سجّله. */
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assignee_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -45,7 +57,7 @@ class Appointment extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['title', 'type', 'start_at', 'status', 'is_video'])
+            ->logOnly(['title', 'type', 'start_at', 'status', 'is_video', 'assignee_id'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

@@ -81,3 +81,51 @@
   .app:not(.sidebar-collapsed) .sidebar { width: 280px !important; min-width: 280px !important; }
   .app:not(.sidebar-collapsed) .main { margin-right: 280px !important; max-width: calc(100vw - 280px) !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   سايدبار بلون الهيدر (طلب أيمن 2026-08-26: «اللون يكون نفس لون الهيدر»).
+   نفس محطّتَي تدرّج التوب‑بار لكن باتجاه عموديّ — الشريط عالٍ، ولو استُعمل
+   135deg حرفيًّا لبدا لونًا مسطّحًا واحدًا. النصوص تُقلب بيضاء لتبقى مقروءة.
+   يأتي بعد قواعد mimar-skin (خلفية بيضاء) فيغلبها.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.app .sidebar {
+  background: linear-gradient(180deg, #0D4A7A 0%, #1B6CA8 100%) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: -2px 0 14px rgba(8, 45, 78, 0.25) !important;
+}
+
+/* ── الشعار ──
+   premium.css يفرض `.sb-logo { background:#F8FAFC !important }` — شريطٌ فاتح أعلى
+   السايدبار. بعد تلوين النصّ أبيض صار «معمار ERP» أبيضَ على أبيضَ فاختفى، وبقيت
+   كتلة فاتحة ملتصقة بالتوب‑بار الأزرق تقطع اتّصاله بالقائمة. تصفيرها يُظهر
+   تدرّج السايدبار تحتها فيتّصل اللون من أعلى الشاشة إلى أسفلها. */
+.app .sidebar .sb-logo {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+.app .sidebar .sb-logo::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent) !important; }
+/* أيقونة الشعار كانت تدرّجًا أزرق على أبيض؛ على الأزرق تذوب — فتصير زجاجية بحلقة بيضاء. */
+.app .sidebar .sb-logo-icon {
+  background: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35) !important;
+  color: #fff !important;
+}
+.app .sidebar .sb-logo-text h1 { color: #fff !important; }
+.app .sidebar .sb-logo-text span { color: rgba(255, 255, 255, 0.62) !important; }
+
+/* ── عناوين الأقسام ── */
+.app .sidebar .sb-section-label { color: rgba(255, 255, 255, 0.55) !important; }
+.app .sidebar .sb-section-label .chevron { color: rgba(255, 255, 255, 0.45) !important; }
+
+/* ── عناصر التنقّل ── */
+.app .sidebar .nav-item { color: rgba(255, 255, 255, 0.80) !important; }
+.app .sidebar .nav-item:hover { background: rgba(255, 255, 255, 0.10) !important; color: #fff !important; }
+.app .sidebar .nav-item.active {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+/* الحدّ الذهبي على حافة البدء يبقى — يقرأ فوق الأزرق أوضح مما كان فوق الأبيض. */
+.app .sidebar .nav-item .nav-icon { color: rgba(255, 255, 255, 0.75) !important; opacity: 1 !important; }
+.app .sidebar .nav-item.active .nav-icon,
+.app .sidebar .nav-item:hover .nav-icon { color: #fff !important; }

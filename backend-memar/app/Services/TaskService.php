@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Models\StoredFile;
 use App\Models\Task;
-use App\Models\TaskComment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -16,7 +15,10 @@ use Illuminate\Support\Str;
  */
 class TaskService
 {
-    public function __construct(private readonly FileStorageService $files) {}
+    public function __construct(
+        private readonly FileStorageService $files,
+        private readonly CardActivityService $activity,
+    ) {}
 
     /**
      * قائمة المهام (للوحة Kanban — بدون تصفّح، مجمّعة على الواجهة).
@@ -27,26 +29,30 @@ class TaskService
     {
         $userId = auth()->id();
 
-        return Task::query()
-            ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
-            ->when($projectId, fn ($q, int $id) => $q->where('project_id', $id))
-            ->when($assigneeId, fn ($q, int $id) => $q->where('assignee_id', $id))
-            ->with(['project', 'assignee'])
-            // قراءة المستخدم الحالي فقط لهذه المهمة — لحساب جرس «غير مقروء» لكل مستخدم على حدة
-            ->with(['reads' => fn ($q) => $q->where('user_id', $userId)])
-            ->withCount('comments')
+        return $this->activity->withCardActivity(
+            Task::query()
+                ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
+                ->when($projectId, fn ($q, int $id) => $q->where('project_id', $id))
+                ->when($assigneeId, fn ($q, int $id) => $q->where('assignee_id', $id))
+                ->with(['project', 'assignee', 'progressBy']),
+            $userId,
+            Task::class,
+        )
             ->orderBy('position')
-            ->latest()
+            /*
+             * الأحدث فوق والأقدم تحت في كل عمود (طلب أيمن 2026-08-29).
+             * latest() وحدها لا تكفي: created_at بدقّة الثانية، ومهام أُنشئت في
+             * الثانية نفسها كان ترتيبها متروكًا لقاعدة البيانات — فنفصل بالمعرّف.
+             */
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
     }
 
     /** يعلّم نشاط المهمة كمقروء للمستخدم (يُخفي الجرس عنده وحده). */
     public function markRead(Task $task, int $userId): void
     {
-        $task->reads()->updateOrCreate(
-            ['user_id' => $userId],
-            ['read_at' => now()],
-        );
+        $this->activity->markRead($task, $userId);
     }
 
     /**
@@ -91,7 +97,7 @@ class TaskService
     public function detail(Task $task): Task
     {
         return $task->load([
-            'project:id,name', 'assignee:id,name', 'creator:id,name',
+            'project:id,name', 'assignee:id,name', 'creator:id,name', 'progressBy:id,name',
             'participants:id,name', 'comments.user:id,name', 'files',
             // سجل التعديلات (اجتماع 2026-08-05): آخر 20 حركة من سجل النشاط.
             'activities' => fn ($q) => $q->with('causer:id,name')->latest()->limit(20),
@@ -114,12 +120,6 @@ class TaskService
         }
 
         return $task->load(['project', 'assignee']);
-    }
-
-    /** إضافة رسالة لمحادثة المهمة. */
-    public function addComment(Task $task, string $body, ?int $userId): TaskComment
-    {
-        return $task->comments()->create(['user_id' => $userId, 'body' => $body])->load('user:id,name');
     }
 
     /**
@@ -157,11 +157,21 @@ class TaskService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(Task $task, array $data): Task
+    public function update(Task $task, array $data, ?int $actorId = null): Task
     {
+        // تسجيل صاحب تعديل النسبة ووقته — عند تغيّرها فعلًا لا عند كل حفظ،
+        // وإلّا نُسب التعديل لمن غيّر العنوان وحده. القيمتان من الجلسة لا من
+        // الطلب، فتُكتبان بـ forceFill خارج $fillable منعًا للانتحال.
+        if (array_key_exists('progress', $data) && $actorId !== null) {
+            $next = (int) ($data['progress'] ?? 0);
+            if ($next !== (int) $task->progress) {
+                $task->forceFill(['progress_by' => $actorId, 'progress_at' => now()]);
+            }
+        }
+
         $task->update($data);
 
-        return $task->load(['project', 'assignee']);
+        return $task->load(['project', 'assignee', 'progressBy']);
     }
 
     public function delete(Task $task): void

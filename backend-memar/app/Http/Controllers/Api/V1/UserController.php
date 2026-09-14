@@ -33,6 +33,37 @@ class UserController extends ApiController
      * تخصّ إدارة المستخدمين) — طلب أيمن 2026-08-17: الموظف يضيف مهمة ويسندها دون كشف بيانات
      * إدارة المستخدمين. حسابات العملاء ممنوعة.
      */
+    /**
+     * صور الطاقم الشخصية دفعةً واحدة (ids=1,2,3) — تستدعيها لوحة CRM مرّة واحدة
+     * لأصحاب الفرص المعروضين بدل تضمين صورة في كل فرصة (طلب أيمن 2026-08-22).
+     * يُرجع من لديه صورة فقط، ومن لا صورة له تعرض الواجهة أحرف اسمه.
+     */
+    public function avatars(Request $request): JsonResponse
+    {
+        $ids = collect(explode(',', $request->string('ids')->toString()))
+            ->map(fn (string $v): int => (int) trim($v))
+            ->filter()
+            ->unique()
+            ->take(100)
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return $this->ok([]);
+        }
+
+        $avatars = User::query()
+            ->whereIn('id', $ids)
+            ->whereNotNull('avatar_file_id')
+            ->with('avatarFile')
+            ->get()
+            ->mapWithKeys(fn (User $u): array => [(string) $u->id => $u->avatarDataUri()])
+            ->filter()
+            ->all();
+
+        return $this->ok($avatars);
+    }
+
     public function assignable(Request $request): JsonResponse
     {
         abort_if($request->user()?->contact_id !== null, 403, 'غير متاح لحسابات العملاء.');
@@ -63,6 +94,39 @@ class UserController extends ApiController
         $user = $this->users->update($user, $request->validated());
 
         return $this->ok(new UserResource($user), 'تم تحديث المستخدم');
+    }
+
+    /**
+     * صلاحيات الموظف: الموروثة من أدواره، والمباشرة (الاستثناءات).
+     * شاشة الأدوار كانت تعرض عمود «استثناء» ولا يوجد في النظام مسار يكتبه.
+     */
+    public function permissions(User $user): JsonResponse
+    {
+        $direct = $user->getDirectPermissions()->pluck('name')->values()->all();
+
+        return $this->ok([
+            'roles' => $user->getRoleNames()->values()->all(),
+            // من الأدوار وحدها — ما عداها استثناء على هذا الموظف
+            'from_roles' => $user->getPermissionsViaRoles()->pluck('name')->values()->all(),
+            'direct' => $direct,
+            'effective' => $user->getAllPermissions()->pluck('name')->values()->all(),
+        ]);
+    }
+
+    /** يضبط استثناءات الموظف (صلاحيات مباشرة فوق دوره). */
+    public function syncPermissions(Request $request, User $user): JsonResponse
+    {
+        $data = $request->validate([
+            'permissions' => ['present', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+        ]);
+
+        $direct = $this->users->syncDirectPermissions($user, $data['permissions']);
+
+        return $this->ok(
+            ['direct' => $direct],
+            $direct === [] ? 'أُزيلت استثناءات هذا الموظف' : 'تم تحديث صلاحيات الموظف الاستثنائية',
+        );
     }
 
     public function destroy(Request $request, User $user): JsonResponse

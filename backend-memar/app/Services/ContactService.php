@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Company;
 use App\Models\Contact;
 use App\Models\LoyaltyTransaction;
 use App\Models\PipelineStage;
@@ -19,6 +20,7 @@ class ContactService
         private readonly ProjectService $projects,
         private readonly LoyaltyService $loyalty,
         private readonly LoyaltyRuleService $rules,
+        private readonly CardActivityService $activity,
     ) {}
 
     public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
@@ -33,7 +35,12 @@ class ContactService
                 });
             })
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
-            ->with(['owner', 'convertedProject', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
+            ->with(['owner', 'createdBy:id,name', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
+            // أعمدة سجل العملاء: مشاريعه وفرصه وإجمالي عقوده (طلب أيمن 2026-09-09)
+            ->withCount(['projects', 'opportunities'])
+            ->withSum('contracts', 'value_kwd')
+            // توجيهات الإدارة على الفرصة: منها لون البطاقة وعدّاد الجديد (طلب أيمن 2026-09-13)
+            ->tap(fn ($q) => $this->activity->withCardActivity($q, auth()->id(), Contact::class))
             // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).
             ->orderBy('board_position')
             ->latest()
@@ -47,9 +54,10 @@ class ContactService
     {
         $data = $this->withExpectedPoints($data);
         $contact = Contact::create($data);
+        $this->syncCompanyRecord($contact);
         $this->maybeConvertToProject($contact);
 
-        return $contact->load('owner', 'convertedProject');
+        return $contact->load('owner', 'createdBy', 'convertedProject');
     }
 
     /**
@@ -58,10 +66,25 @@ class ContactService
     public function update(Contact $contact, array $data): Contact
     {
         $data = $this->withExpectedPoints($data, $contact);
+
+        // مَن نقل الفرصة لمرحلة أخرى ومتى ومن أين — من جلسة المستخدم لا من الطلب.
+        $movedStage = array_key_exists('stage', $data) && $data['stage'] !== $contact->stage;
+        $previousStage = $contact->stage;
+
         $contact->update($data);
+
+        if ($movedStage) {
+            $contact->forceFill([
+                'moved_by' => auth()->id(),
+                'moved_at' => now(),
+                'moved_from' => $previousStage,
+            ])->save();
+        }
+
+        $this->syncCompanyRecord($contact);
         $this->maybeConvertToProject($contact);
 
-        return $contact->load('owner', 'convertedProject');
+        return $contact->load('owner', 'createdBy', 'movedBy', 'convertedProject');
     }
 
     /**
@@ -71,6 +94,55 @@ class ContactService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    /**
+     * مزامنة بطاقة الشركة (طلب أيمن 2026-08-25): كل جهة اتصال نوعها «شركة»
+     * ولها اسم شركة تُنشأ لها — أو تُربط بـ — بطاقة في سجلّ الشركات، فتُحفظ
+     * بيانات الشركة هناك وبيانات الشخص في سجلّ العملاء.
+     *
+     * البحث بالاسم يمنع تكرار الشركة حين يُسجَّل لها أكثر من جهة اتصال،
+     * والحقول الفارغة في بطاقة الشركة تُملأ من جهة الاتصال دون أن تطمس
+     * ما أدخلته الإدارة يدويًا.
+     */
+    /**
+     * إخراج الفرصة من لوحة CRM دون حذف صاحبها من السجلات (طلب أيمن 2026-08-25).
+     * السجل واحد: الفرصة وجهة الاتصال صفٌّ واحد في contacts، فحذفها من اللوحة
+     * كان يمحوها من سجلّ العملاء أيضًا. صار يُغيَّر تصنيفها فقط: مَن فاز
+     * بمشروعه يصير «عميلًا»، وغيره «جهة اتصال». بطاقة الشركة لا تُمسّ.
+     * الحذف النهائي يبقى من سجلّ العملاء أو سجلّ الشركات وحدهما.
+     */
+    public function removeFromPipeline(Contact $contact): Contact
+    {
+        $contact->forceFill([
+            'type' => $contact->converted_project_id ? 'client' : 'contact',
+        ])->save();
+
+        return $contact->refresh();
+    }
+
+    private function syncCompanyRecord(Contact $contact): void
+    {
+        $name = trim((string) $contact->company);
+        if ($contact->client_kind !== 'company' || $name === '') {
+            return;
+        }
+
+        $company = Company::firstOrCreate(
+            ['name' => $name],
+            ['type' => 'client'],
+        );
+
+        $company->fill(array_filter([
+            'phone' => $company->phone ?: $contact->phone,
+            'email' => $company->email ?: $contact->email,
+            'address' => $company->address ?: $contact->address,
+            'notes' => $company->notes ?: $contact->company_about,
+        ], fn ($v): bool => $v !== null && $v !== ''))->save();
+
+        if ($contact->company_id !== $company->id) {
+            $contact->forceFill(['company_id' => $company->id])->save();
+        }
+    }
+
     private function withExpectedPoints(array $data, ?Contact $existing = null): array
     {
         $touchesPricing = array_key_exists('expected_price_kwd', $data) || array_key_exists('project_type', $data);

@@ -32,6 +32,8 @@ export interface OpportunityUpdate {
 export interface CrmTag {
   id: number;
   name: string;
+  /** لون الشريحة كما ضبطته الإدارة؛ null = تشتقّه الواجهة من الاسم. */
+  color: string | null;
   status: 'pending' | 'approved' | 'rejected';
   requested_by: string | null;
   decided_by: string | null;
@@ -59,7 +61,11 @@ export const crmApi = {
   setTemperature: (id: number, temperature: Temperature) => apiPatch<Lead>(`/contacts/${id}`, { temperature }),
   /** إعادة ترتيب الفرص داخل عمود (قائمة المعرّفات بالترتيب الجديد) — متاح لكل الأدوار. */
   reorder: (ids: number[]) => apiPost<null>('/contacts/reorder', { ids }),
-  remove: (id: number) => apiDelete<null>(`/contacts/${id}`),
+  /**
+   * إزالة الفرصة من اللوحة فقط — يبقى صاحبها في سجلّ العملاء وشركتُه في سجلّ
+   * الشركات. الحذف النهائي من السجلات وحدها (طلب أيمن 2026-08-25).
+   */
+  remove: (id: number) => apiDelete<null>(`/crm/opportunities/${id}`),
   /** سجل تعديلات الصفقة (AUDIT-1). */
   history: (id: number) => apiGetPaginated<LeadActivity>('/activity-log', { params: { subject_type: 'Contact', subject_id: id, per_page: 40 } }),
 
@@ -72,13 +78,16 @@ export const crmApi = {
   // اختصارات (وسوم) الفرص + طلبات الاعتماد (طبق أصل V42)
   tags: () => apiGet<CrmTag[]>('/crm/tags'),
   createTag: (name: string) => apiPost<CrmTag>('/crm/tags', { name }),
+  updateTag: (id: number, payload: { name?: string; color?: string | null }) => apiPatch<CrmTag>(`/crm/tags/${id}`, payload),
   approveTag: (id: number) => apiPost<CrmTag>(`/crm/tags/${id}/approve`),
   rejectTag: (id: number) => apiPost<CrmTag>(`/crm/tags/${id}/reject`),
   deleteTag: (id: number) => apiDelete<null>(`/crm/tags/${id}`),
 
   // تذكيرات المتابعة (اجتماع 2026-08-05)
+  /** عدّاد الفرص العاجلة/المستحقّة — لتنبيه الجرس العام. */
+  urgentCount: () => apiGet<{ urgent: number; due: number; first_urgent_id: number | null }>('/crm/urgent-count'),
   reminders: (id: number) => apiGet<LeadReminder[]>(`/contacts/${id}/reminders`),
-  addReminder: (id: number, payload: { remind_at: string; note?: string }) => apiPost<LeadReminder>(`/contacts/${id}/reminders`, payload),
+  addReminder: (id: number, payload: { remind_at: string; note?: string; repeat_every?: string }) => apiPost<LeadReminder>(`/contacts/${id}/reminders`, payload),
   toggleReminder: (reminderId: number) => apiPatch<LeadReminder>(`/reminders/${reminderId}`, {}),
   deleteReminder: (reminderId: number) => apiDelete<null>(`/reminders/${reminderId}`),
 };

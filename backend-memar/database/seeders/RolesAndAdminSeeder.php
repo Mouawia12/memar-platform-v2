@@ -28,12 +28,17 @@ class RolesAndAdminSeeder extends Seeder
             'roles.view', 'roles.manage', 'roles.delete',
             'crm.view', 'crm.manage', 'crm.delete',
             'clients.view', // زيارة بروفيل العميل الداخلي (اجتماع 2026-08-05) — صلاحية منفصلة يمنحها الأدمن
+            // إجمالي عقود العميل في سجل العملاء (طلب أيمن 2026-09-09): للإدارة،
+            // أو لموظف بعينه عبر استثناءات الصلاحيات — لا لكل من يرى السجل.
+            'clients.finance.view',
 
             'requests.view', 'requests.view.all', 'requests.manage', 'requests.delete',
             'projects.view', 'projects.manage', 'projects.delete',
             'tasks.view', 'tasks.manage', 'tasks.delete',
             'appointments.view', 'appointments.manage', 'appointments.delete',
-            'documents.view', 'documents.manage', 'documents.delete',
+            // documents.view = ملفات مشاريعه · documents.view.all = ملفات المكتب كلها
+            // (بما فيها مرفوعات بوابة العميل) — على نمط requests.view.all
+            'documents.view', 'documents.view.all', 'documents.manage', 'documents.delete',
             'contracts.view', 'contracts.manage', 'contracts.delete',
             'finance.view', 'finance.manage', 'finance.delete',
             'hr.view', 'hr.manage', 'hr.delete',
@@ -44,6 +49,7 @@ class RolesAndAdminSeeder extends Seeder
             'loyalty.view', 'loyalty.manage',
             'leads.view', 'leads.manage',
             'settings.manage',
+
             // الخدمة الذاتية للموظف (شؤوني/حسابي/محادثات/إشعارات في بوابة الموظف) — تُمنح للموظف
             // فيرى شؤونه؛ ودور محدود بلا هذه الصلاحية لا يرى إلا ما أُشّر له. طلب أيمن 2026-08-13.
             'self.view',
@@ -80,6 +86,12 @@ class RolesAndAdminSeeder extends Seeder
             'self.view',
         ];
 
+        // حدّ قائمة الموظف الجانبية (اعتماد أيمن 2026-08-23): يرى قسمَي «الرئيسية»
+        // و«إدارة الأعمال» كاملَين حتى «التواصل»، وما بعدهما يُخفى عنه — التسعير
+        // والموظفين والصلاحيات والحسابات. وداخل القسمين لا يظهر له إلا ما يملك
+        // صلاحيته أصلًا (الإخفاء طبقة عرض، والصلاحيات تحمي المسارات).
+        $employeeNavHidden = ['pricing', 'employees', 'permissions', 'accounts'];
+
         $roles = [
             'super_admin' => ['dashboard' => 'admin', 'perms' => $permissions],
             'admin' => ['dashboard' => 'admin', 'perms' => $adminPerms],
@@ -89,13 +101,28 @@ class RolesAndAdminSeeder extends Seeder
         foreach ($roles as $roleName => $spec) {
             $role = Role::findOrCreate($roleName, 'web');
             $role->dashboard = $spec['dashboard'];
+
+            if ($roleName === 'employee') {
+                $settings = (array) ($role->getAttribute('settings') ?? []);
+                $settings['nav_hidden'] = $employeeNavHidden;
+                $role->settings = $settings;
+            }
+
             $role->save();
             $role->syncPermissions($spec['perms']);
         }
 
-        // ── تنظيف: إزالة أي أدوار متخصّصة قديمة لم تعُد نظامية (بعد فصل مستخدميها) ──
-        Role::whereNotIn('name', array_keys($roles))->get()->each(function (Role $role): void {
-            $role->users()->detach(); // فكّ ارتباط المستخدمين قبل الحذف (تُعاد إسنادهم عبر DemoUsersSeeder)
+        /*
+         * تنظيف أدوارٍ ميتة بالاسم وحده (طلب أيمن 2026-08-31).
+         *
+         * كان هنا حذفٌ لكل دور غير نظامي مع فكّ ارتباط مستخدميه — فأي دور مهني
+         * يُنشئه المكتب من شاشة الأدوار (محاسب، موارد بشرية…) يضيع مع أول
+         * تشغيل للبذور، ويفقد أصحابه صلاحياتهم بلا أثر. الآن لا يُحذف إلا ما
+         * نعرفه بالاسم من تجارب قديمة، وما عداه يبقى.
+         */
+        $deadRoles = ['architect', 'engineer', 'staff', 'manager'];
+        Role::whereIn('name', $deadRoles)->get()->each(function (Role $role): void {
+            $role->users()->detach();
             $role->delete();
         });
 

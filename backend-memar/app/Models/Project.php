@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\LogOptions;
@@ -26,8 +27,14 @@ class Project extends Model
     /** سبب تغيير الحالة — عابر (لا يُخزَّن)، يُرفق بسجل التدقيق فقط (PROJ-5). */
     public ?string $statusChangeReason = null;
 
+    /** أنواع المشاريع — نفس قائمة «طلب مشروع جديد» في بوابة العميل. */
+    public const TYPES = [
+        'فيلا سكنية', 'مجمع سكني', 'مجمع تجاري', 'مبنى إداري',
+        'مستودع / مصنع', 'ترميم وتجديد', 'تنسيق حدائق', 'أخرى',
+    ];
+
     protected $fillable = [
-        'code', 'name', 'client_id', 'manager_id', 'status', 'progress',
+        'code', 'name', 'type', 'client_id', 'manager_id', 'status', 'progress',
         'budget_kwd', 'start_date', 'end_date', 'description',
         'rating_profitability', 'rating_ease', 'rating_revisions',
         'client_rating_commitment', 'client_rating_cooperation',
@@ -76,6 +83,12 @@ class Project extends Model
     }
 
     /** @return HasMany<ProjectStage, $this> */
+    /** المرحلة الجارية — تُعرض في سجل المشاريع (طلب أيمن 2026-09-09). */
+    public function activeStage(): HasOne
+    {
+        return $this->hasOne(ProjectStage::class)->where('status', 'active')->orderBy('position');
+    }
+
     public function stages(): HasMany
     {
         return $this->hasMany(ProjectStage::class)->orderBy('position');

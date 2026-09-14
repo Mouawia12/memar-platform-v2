@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\StoredFile;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,9 +23,9 @@ class FileStorageService
 
     private const DIRECTORY = 'files';
 
-    public function list(?string $search, ?string $folder, ?int $projectId, int $perPage = 24): LengthAwarePaginator
+    public function list(?string $search, ?string $folder, ?int $projectId, int $perPage = 24, ?User $viewer = null): LengthAwarePaginator
     {
-        return StoredFile::query()
+        return $this->visibleTo($viewer)
             ->when($search, function ($q, string $s): void {
                 $q->where(function ($inner) use ($s): void {
                     $inner->where('name', 'like', "%{$s}%")->orWhere('original_name', 'like', "%{$s}%");
@@ -34,6 +36,55 @@ class FileStorageService
             ->with(['project:id,name', 'uploader:id,name'])
             ->latest()
             ->paginate($perPage);
+    }
+
+    /**
+     * هل يرى هذا المستخدم ملفات المكتب كلها؟ (`documents.view.all` — للإدارة ومن يحتاجها
+     * بحكم عمله: مدير المشاريع، المحاسب، الموارد البشرية، السكرتارية.)
+     */
+    public function seesEverything(?User $viewer): bool
+    {
+        return (bool) $viewer?->can('documents.view.all');
+    }
+
+    /**
+     * استعلام الملفات التي يحقّ لهذا المستخدم رؤيتها: ملفات مشاريعه، أو ما رفعه هو.
+     *
+     * مرفوعات بوابة العميل (صكوك، كروكيات، صور شخصية) تحمل contact_id بلا project_id،
+     * فتخرج من هذا النطاق تلقائيًّا ولا يراها إلا من يملك `documents.view.all`.
+     *
+     * @return Builder<StoredFile>
+     */
+    public function visibleTo(?User $viewer)
+    {
+        $query = StoredFile::query();
+
+        if ($this->seesEverything($viewer)) {
+            return $query;
+        }
+
+        if (! $viewer) {
+            return $query->whereRaw('1 = 0'); // بلا مستخدم لا شيء يُعرض
+        }
+
+        return $query->where(fn ($q) => $q
+            ->whereIn('project_id', $viewer->projectIds())
+            ->orWhere('uploaded_by', $viewer->id));
+    }
+
+    /** هل يُسمح لهذا المستخدم بفتح/تنزيل هذا الملف تحديدًا؟ */
+    public function canAccess(StoredFile $file, ?User $viewer): bool
+    {
+        if ($this->seesEverything($viewer)) {
+            return true;
+        }
+
+        if (! $viewer) {
+            return false;
+        }
+
+        return $file->uploaded_by === $viewer->id
+            || ($file->project_id !== null && $viewer->projectIds()->contains($file->project_id));
     }
 
     /**

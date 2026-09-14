@@ -9,7 +9,6 @@ use App\Models\ForumReply;
 use App\Models\ForumTopic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**

@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { navLabel, portalLabel } from '../../config/nav';
 import { useAuthStore } from '../../store/auth';
 import { useLiveSync } from '../../hooks/useLiveSync';
 import { ExportDisabledProvider } from '../../components/ExportGuard';
@@ -31,70 +32,73 @@ import './employeePortal.css';
 
 interface SbLink { id: string; icon: string; text: string; badge?: string; badgeRed?: boolean; perm?: string }
 
-// ترتيب اجتماع 2026-08-07: نظرة عامة (أعلى) ثم مجموعات دروب-داون قابلة للطي.
-export const TOP: SbLink = { id: 'ep-dashboard', icon: '🏠', text: 'نظرة عامة' };
+// ترتيب اجتماع 2026-08-07: لوحة التحكم (أعلى) ثم مجموعات دروب-داون قابلة للطي.
+// كل تسمية تُقرأ من مصدر واحد: navLabel لما له مقابل في لوحة الإدارة، و
+// portalLabel لما يخصّ البوابة وحدها — فلا تحمل شاشةٌ واحدة اسمين (طلب أيمن
+// 2026-08-31). النصّ الثاني احتياطٌ إن حُذف المفتاح.
+export const TOP: SbLink = { id: 'ep-dashboard', icon: '🏠', text: navLabel('dashboard', 'لوحة التحكم') };
 export const GROUPS: { id: string; icon: string; title: string; links: SbLink[] }[] = [
   {
-    id: 'g-business', icon: '💼', title: 'إدارة الأعمال',
+    id: 'g-business', icon: '💼', title: portalLabel('g-business', 'إدارة الأعمال'),
     links: [
-      { id: 'ep-appointments', icon: '📅', text: 'المواعيد', perm: 'appointments.view' },
-      { id: 'ep-tasks', icon: '✅', text: 'المهام والمتابعة', badge: '5', perm: 'tasks.view' },
-      { id: 'ep-crm', icon: '🎯', text: 'العملاء المحتملون', perm: 'crm.view' },
-      { id: 'ep-projects', icon: '📁', text: 'مشاريعي', perm: 'projects.view' },
+      { id: 'ep-appointments', icon: '📅', text: navLabel('appointments', 'المواعيد'), perm: 'appointments.view' },
+      { id: 'ep-tasks', icon: '✅', text: navLabel('tasks', 'المهام والمتابعة'), badge: '5', perm: 'tasks.view' },
+      { id: 'ep-crm', icon: '🎯', text: navLabel('crm', 'عميل جديد'), perm: 'crm.view' },
+      { id: 'ep-projects', icon: '📁', text: navLabel('my_projects', 'مشاريعي'), perm: 'projects.view' },
     ],
   },
   {
     // السجلات المكتبية العامة (اجتماع 2026-08-07) — منفصلة عن «مشاريعي»/«العملاء المحتملون».
-    id: 'g-records', icon: '🗄️', title: 'السجلات',
+    id: 'g-records', icon: '🗄️', title: portalLabel('g-records', 'السجلات'),
     links: [
-      { id: 'ep-rec-projects', icon: '📚', text: 'سجل المشاريع', perm: 'projects.view' },
-      { id: 'ep-rec-clients', icon: '👥', text: 'سجل العملاء', perm: 'crm.view' },
-      { id: 'ep-rec-companies', icon: '🏢', text: 'سجل الشركات', perm: 'crm.view' },
+      { id: 'ep-rec-projects', icon: '📚', text: navLabel('projects', 'المشاريع'), perm: 'projects.view' },
+      { id: 'ep-rec-clients', icon: '👥', text: navLabel('clients', 'سجل العملاء'), perm: 'crm.view' },
+      { id: 'ep-rec-companies', icon: '🏢', text: navLabel('companies', 'سجل الشركات'), perm: 'crm.view' },
     ],
   },
   {
     // شؤوني (الخدمة الذاتية) — محكومة بصلاحية self.view؛ المستندات بصلاحية عرض المستندات. طلب أيمن 2026-08-13.
-    id: 'g-self', icon: '🗂️', title: 'شؤوني',
+    id: 'g-self', icon: '🗂️', title: portalLabel('g-self', 'شؤوني'),
     links: [
-      { id: 'ep-attendance', icon: '⏰', text: 'الحضور والانصراف', perm: 'self.view' },
-      { id: 'ep-leaves', icon: '🏖️', text: 'الإجازات', perm: 'self.view' },
-      { id: 'ep-salary', icon: '💰', text: 'كشف الراتب', perm: 'self.view' },
-      { id: 'ep-reports', icon: '📝', text: 'التقارير اليومية', perm: 'self.view' },
-      { id: 'ep-documents', icon: '📄', text: 'المستندات', perm: 'documents.view' },
+      { id: 'ep-attendance', icon: '⏰', text: navLabel('attendance', 'الحضور'), perm: 'self.view' },
+      { id: 'ep-leaves', icon: '🏖️', text: portalLabel('ep-leaves', 'الإجازات'), perm: 'self.view' },
+      { id: 'ep-salary', icon: '💰', text: portalLabel('ep-salary', 'كشف الراتب'), perm: 'self.view' },
+      { id: 'ep-reports', icon: '📝', text: portalLabel('ep-reports', 'التقارير اليومية'), perm: 'self.view' },
+      { id: 'ep-documents', icon: '📄', text: navLabel('documents', 'المستندات'), perm: 'documents.view' },
     ],
   },
   {
-    id: 'g-comm', icon: '💬', title: 'التواصل',
+    id: 'g-comm', icon: '💬', title: portalLabel('g-comm', 'التواصل'),
     links: [
-      { id: 'ep-meetings', icon: '📹', text: 'الاجتماعات', perm: 'appointments.view' },
-      { id: 'ep-chat', icon: '💬', text: 'المحادثات', badge: '3', perm: 'self.view' },
-      { id: 'ep-forum', icon: '🗨️', text: 'المنتدى', perm: 'forum.view' },
-      { id: 'ep-notifications', icon: '🔔', text: 'الإشعارات', badge: '2', badgeRed: true, perm: 'self.view' },
+      { id: 'ep-meetings', icon: '📹', text: navLabel('meetings', 'الاجتماعات'), perm: 'appointments.view' },
+      { id: 'ep-chat', icon: '💬', text: portalLabel('ep-chat', 'المحادثات'), badge: '3', perm: 'self.view' },
+      { id: 'ep-forum', icon: '🗨️', text: navLabel('forum', 'المنتدى'), perm: 'forum.view' },
+      { id: 'ep-notifications', icon: '🔔', text: portalLabel('ep-notifications', 'الإشعارات'), badge: '2', badgeRed: true, perm: 'self.view' },
     ],
   },
 ];
 // حسابي — بيانات المستخدم الشخصية؛ محكومة بصلاحية self.view (لا تظهر لدور بلا خدمة ذاتية).
 export const ACCOUNT: SbLink[] = [
-  { id: 'ep-profile', icon: '👤', text: 'ملفي الشخصي', perm: 'self.view' },
-  { id: 'ep-referral', icon: '🎁', text: 'كود الإحالة', perm: 'self.view' },
+  { id: 'ep-profile', icon: '👤', text: portalLabel('ep-profile', 'ملفي الشخصي'), perm: 'self.view' },
+  { id: 'ep-referral', icon: '🎁', text: portalLabel('ep-referral', 'كود الإحالة'), perm: 'self.view' },
 ];
 
 /** كل معرّفات الأقسام الصالحة — للتحقّق من قيمة ?tab في الرابط. */
 const ALL_TAB_IDS = new Set<string>([TOP.id, ...GROUPS.flatMap((g) => g.links.map((l) => l.id)), ...ACCOUNT.map((l) => l.id)]);
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  'ep-appointments': { title: '📅 المواعيد', subtitle: 'تقويم مواعيدك واجتماعاتك' },
-  'ep-tasks': { title: '✅ المهام والمتابعة', subtitle: 'إدارة ومتابعة المهام المسندة إليك' },
-  'ep-crm': { title: '🎯 العملاء المحتملون', subtitle: 'متابعة الفرص والعملاء' },
-  'ep-projects': { title: '📁 مشاريعي', subtitle: 'المشاريع المُسنَدة إليك' },
-  'ep-attendance': { title: '⏰ الحضور والانصراف', subtitle: 'سجلّ حضورك اليومي' },
-  'ep-leaves': { title: '🏖️ الإجازات', subtitle: 'طلبات ورصيد إجازاتك' },
-  'ep-salary': { title: '💰 كشف الراتب', subtitle: 'تفاصيل راتبك الشهري' },
+  'ep-appointments': { title: `📅 ${navLabel('appointments', 'المواعيد')}`, subtitle: 'تقويم مواعيدك واجتماعاتك' },
+  'ep-tasks': { title: `✅ ${navLabel('tasks', 'المهام والمتابعة')}`, subtitle: 'إدارة ومتابعة المهام المسندة إليك' },
+  'ep-crm': { title: `🎯 ${navLabel('crm', 'عميل جديد')}`, subtitle: 'متابعة الفرص والعملاء' },
+  'ep-projects': { title: `📁 ${navLabel('my_projects', 'مشاريعي')}`, subtitle: 'المشاريع المُسنَدة إليك' },
+  'ep-attendance': { title: `⏰ ${navLabel('attendance', 'الحضور')}`, subtitle: 'سجلّ حضورك اليومي' },
+  'ep-leaves': { title: `🏖️ ${portalLabel('ep-leaves', 'الإجازات')}`, subtitle: 'طلبات ورصيد إجازاتك' },
+  'ep-salary': { title: `💰 ${portalLabel('ep-salary', 'كشف الراتب')}`, subtitle: 'تفاصيل راتبك الشهري' },
   'ep-reports': { title: '📝 التقارير اليومية', subtitle: 'ارفع تقريرك اليومي' },
-  'ep-documents': { title: '📄 المستندات', subtitle: 'مستنداتك ووثائقك' },
-  'ep-meetings': { title: '📹 الاجتماعات', subtitle: 'اجتماعاتك ومواعيدك' },
+  'ep-documents': { title: `📄 ${navLabel('documents', 'المستندات')}`, subtitle: 'مستنداتك ووثائقك' },
+  'ep-meetings': { title: `📹 ${navLabel('meetings', 'الاجتماعات')}`, subtitle: 'اجتماعاتك ومواعيدك' },
   'ep-chat': { title: '💬 المحادثات', subtitle: 'تواصل مع الفريق' },
-  'ep-forum': { title: '🗨️ المنتدى', subtitle: 'نقاشات الفريق الداخلية' },
+  'ep-forum': { title: `🗨️ ${navLabel('forum', 'المنتدى')}`, subtitle: 'نقاشات الفريق الداخلية' },
   'ep-notifications': { title: '🔔 الإشعارات', subtitle: 'كل إشعاراتك' },
   'ep-profile': { title: '👤 ملفي الشخصي', subtitle: 'بياناتك الشخصية' },
   'ep-referral': { title: '🎁 كود الإحالة', subtitle: 'ادعُ زملاءك واكسب نقاطًا' },

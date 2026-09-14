@@ -5,12 +5,16 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { projectsApi } from '../api/projectsApi';
 import { ProjectFormModal } from '../components/ProjectFormModal';
 import { ProjectsTable } from '../components/ProjectsTable';
+import { StagePipelineCard } from '../components/StagePipelineCard';
 import { useDeleteProject, useProjects } from '../hooks/useProjects';
-import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus } from '../types';
+import { PROJECT_STATUS_LABELS, type Project, type ProjectStatus, PROJECT_TYPES } from '../types';
 
 export function ProjectsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'' | ProjectStatus>('');
+  // فلترا النوع والمسؤول — يعملان على الصفحة المعروضة (طلب أيمن 2026-09-09).
+  const [type, setType] = useState('');
+  const [manager, setManager] = useState('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
@@ -34,6 +38,8 @@ export function ProjectsPage() {
   const handleDelete = (p: Project) => { if (confirm(`حذف مشروع "${p.name}"؟`)) del.mutate(p.id); };
 
   const meta = data?.meta;
+  const rows = (data?.data ?? []).filter((p) => (!type || p.type === type) && (!manager || p.manager?.name === manager));
+  const managers = [...new Set((data?.data ?? []).map((p) => p.manager?.name).filter((n): n is string => !!n))];
 
   /** يجلب كل المشاريع المطابقة للفلاتر الحالية لتصديرها. */
   const fetchAllProjects = async () => {
@@ -96,11 +102,31 @@ export function ProjectsPage() {
               <option key={s} value={s}>{PROJECT_STATUS_LABELS[s]}</option>
             ))}
           </select>
+          <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="">جميع الأنواع</option>
+            {PROJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select className="input" value={manager} onChange={(e) => setManager(e.target.value)}>
+            <option value="">جميع المهندسين</option>
+            {managers.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        {/* ترويسة الجدول: ما يُعرض الآن وكم عدده (طلب أيمن 2026-09-09). */}
+        <div style={tableHead}>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F2A4A' }}>
+              {status ? PROJECT_STATUS_LABELS[status] : 'المشاريع'}{type ? ` · ${type}` : ''}
+            </div>
+            <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px' }}>
+              {rows.length} مشروع{meta && meta.total !== rows.length ? ` من ${meta.total}` : ''}
+            </div>
+          </div>
         </div>
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المشاريع.</p>}
-        {data && <ProjectsTable projects={data.data} onEdit={openEdit} onDelete={handleDelete} showBudget={canFinance} canManage={canManage} canDelete={canDelete} />}
+        {data && <ProjectsTable projects={rows} onEdit={openEdit} onDelete={handleDelete} showBudget={canFinance} canManage={canManage} canDelete={canDelete} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>
@@ -110,6 +136,9 @@ export function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {/* مراحل المشاريع — بطاقة مستقلّة تحت الجدول (طلب أيمن 2026-09-09). */}
+      <StagePipelineCard />
 
       {modalOpen && <ProjectFormModal project={editing} onClose={() => setModalOpen(false)} />}
     </div>
@@ -125,6 +154,7 @@ function Kpi({ label, value, accent = '#fff' }: { label: string; value: string; 
   );
 }
 
+const tableHead: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', paddingBottom: '12px', marginBottom: '10px', borderBottom: '1px solid #EEF2F7' };
 const banner: CSSProperties = { background: 'linear-gradient(135deg,#274A78,#1B6CA8)', borderRadius: '14px', padding: '22px', marginBottom: '16px', boxShadow: '0 4px 16px rgba(39,74,120,.25)' };
 const kpiRow: CSSProperties = { display: 'flex', gap: '10px', marginTop: '18px', flexWrap: 'wrap' };
 const kpiTile: CSSProperties = { flex: '1 1 auto', minWidth: '110px', background: 'rgba(255,255,255,.1)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,.14)' };

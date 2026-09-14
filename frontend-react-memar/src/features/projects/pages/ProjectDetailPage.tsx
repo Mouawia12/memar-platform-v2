@@ -1,6 +1,7 @@
 import { type CSSProperties } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
+import { usePermission } from '../../auth/hooks/usePermission';
 import { ProjectAssessmentPanel } from '../components/ProjectAssessmentPanel';
 import { ProjectContractTab, ProjectDocumentsTab } from '../components/ProjectDocumentsPanel';
 import { ProjectPaymentsPanel } from '../components/ProjectPaymentsPanel';
@@ -30,6 +31,8 @@ const EVENT_COLORS: Record<string, string> = {
 /** تفاصيل المشروع — مؤشراته وسجل أحداثه (تايم‌لاين) من سجل التدقيق. */
 export function ProjectDetailPage() {
   const { id } = useParams();
+  // اسم العميل رابط لملفّه — لمن يملك عرض العملاء (طلب أيمن 2026-08-31).
+  const canViewClients = usePermission('clients.view');
   const projectId = Number(id);
   // التبويب مشتقّ من الرابط (?tab=) ليبقى بعد تحديث المتصفّح (خلل الرفرش — أيمن 2026-08-15).
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,7 +62,13 @@ export function ProjectDetailPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: '22px' }}>{project.name}</h1>
             <div style={{ fontSize: '13px', color: '#5A6478', marginTop: '4px' }}>
-              {project.code} · العميل: {project.client?.name ?? '—'} · مدير المشروع: {project.manager?.name ?? '—'}
+              {project.code} · العميل:{' '}
+              {project.client
+                ? (canViewClients
+                  ? <Link to={`/clients/${project.client.id}/profile`} style={{ color: '#1B6CA8', fontWeight: 700 }}>{project.client.name}</Link>
+                  : project.client.name)
+                : '—'}
+              {' '}· مدير المشروع: {project.manager?.name ?? '—'}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>

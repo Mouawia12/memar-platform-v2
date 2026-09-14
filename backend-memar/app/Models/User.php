@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
@@ -72,6 +73,21 @@ class User extends Authenticatable
             ->using(ProjectMember::class)
             ->withPivot(['role_on_project', 'assigned_by', 'assigned_at', 'last_seen_at'])
             ->withTimestamps();
+    }
+
+    /**
+     * معرّفات المشاريع التي يمسّها هذا المستخدم — مديرًا لها أو عضوًا فيها.
+     * مصدر واحد لقصر الملفات والمستندات على ما يخصّ الموظف.
+     *
+     * @return Collection<int, int>
+     */
+    public function projectIds(): Collection
+    {
+        return Project::query()
+            ->where(fn ($q) => $q
+                ->where('manager_id', $this->id)
+                ->orWhereHas('members', fn ($m) => $m->where('users.id', $this->id)))
+            ->pluck('id');
     }
 
     /**
@@ -209,7 +225,10 @@ class User extends Authenticatable
         $slug = '';
         foreach (Str::of($this->name)->trim()->explode(' ') as $part) {
             $candidate = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', Str::ascii((string) $part)));
-            if (strlen($candidate) >= 2) { $slug = $candidate; break; }
+            if (strlen($candidate) >= 2) {
+                $slug = $candidate;
+                break;
+            }
         }
         $base = $slug !== '' ? "MEMAR-{$slug}{$year}" : 'MEMAR-'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT)."-{$year}";
 

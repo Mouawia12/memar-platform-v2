@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/crm/tags', [CrmTagController::class, 'index'])->middleware('permission:crm.view');
     Route::post('/crm/tags', [CrmTagController::class, 'store'])->middleware('permission:crm.view');
+    Route::match(['put', 'patch'], '/crm/tags/{crmTag}', [CrmTagController::class, 'update'])->middleware('permission:crm.delete');
     Route::post('/crm/tags/{crmTag}/approve', [CrmTagController::class, 'approve'])->middleware('permission:crm.delete');
     Route::post('/crm/tags/{crmTag}/reject', [CrmTagController::class, 'reject'])->middleware('permission:crm.delete');
     Route::delete('/crm/tags/{crmTag}', [CrmTagController::class, 'destroy'])->middleware('permission:crm.delete');

@@ -27,6 +27,8 @@ class ServiceResource extends JsonResource
             'description' => $this->description,
             'is_active' => $this->is_active,
             'created_at' => $this->created_at?->toIso8601String(),
+            // عمود «آخر تحديث» في قائمة الخدمات (طلب أيمن 2026-09-14)
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

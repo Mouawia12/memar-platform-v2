@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
 import { PlaceholderPage } from './components/PlaceholderPage';
@@ -5,59 +6,84 @@ import { NAV_SECTIONS } from './config/nav';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage';
 import { HomePage } from './features/public/HomePage';
-import { DashboardPage } from './features/dashboard/DashboardPage';
-import { ClientsPage } from './features/clients/pages/ClientsPage';
-import { StaffClientProfilePage } from './features/clients/pages/StaffClientProfilePage';
-import { ChatbotPage } from './features/chatbot/pages/ChatbotPage';
-import { CompaniesPage } from './features/companies/pages/CompaniesPage';
-import { ContractsPage } from './features/contracts/pages/ContractsPage';
-import { AppointmentsPage } from './features/appointments/pages/AppointmentsPage';
-import { AuditPage } from './features/audit/pages/AuditPage';
-import { CareersPage } from './features/careers/pages/CareersPage';
 import { PublicCareersPage } from './features/careers/pages/PublicCareersPage';
-import { CommunicationsPage } from './features/communications/pages/CommunicationsPage';
-import { CrmPage } from './features/crm/pages/CrmPage';
-import { LoyaltyDashboardPage } from './features/loyalty/pages/LoyaltyDashboardPage';
-import { ClientPortalV2Page } from './features/clientPortal/pages/ClientPortalV2Page';
-import { ClientProjectDetailPage } from './features/clientPortal/pages/ClientProjectDetailPage';
-import { TeamMemberPage } from './features/dashboard/pages/TeamMemberPage';
-import { EngineerPortalPage } from './features/engineerPortal/pages/EngineerPortalPage';
-import { FieldVisitsPage } from './features/fieldVisits/pages/FieldVisitsPage';
-import { FilesPage } from './features/files/pages/FilesPage';
-import { FinancePage } from './features/finance/pages/FinancePage';
-import { HeroAdsPage } from './features/hero/pages/HeroAdsPage';
-import { RequestsPage } from './features/requests/pages/RequestsPage';
-import { RolesPage } from './features/roles/pages/RolesPage';
-import { WebBuilderPage } from './features/site/pages/WebBuilderPage';
-import { MeetingsPage } from './features/appointments/pages/MeetingsPage';
-import { AttendancePage } from './features/attendance/pages/AttendancePage';
-import { DocumentsPage } from './features/documents/pages/DocumentsPage';
-import { ForumPage } from './features/forum/pages/ForumPage';
-import { EmployeesPage } from './features/hr/pages/EmployeesPage';
-import { InvoicesPage } from './features/invoices/pages/InvoicesPage';
-import { PayrollPage } from './features/payroll/pages/PayrollPage';
-import { ReportsPage } from './features/reports/pages/ReportsPage';
-import { ProjectDetailPage } from './features/projects/pages/ProjectDetailPage';
-import { ProjectsPage } from './features/projects/pages/ProjectsPage';
-import { MyProjectsPage } from './features/myProjects/pages/MyProjectsPage';
-import { TeamProjectsPage } from './features/myProjects/pages/TeamProjectsPage';
-import { EmployeePortalPage } from './features/employeePortal/EmployeePortalPage';
-import { QuotationsPage } from './features/quotations/pages/QuotationsPage';
-import { ServicesPage } from './features/services/pages/ServicesPage';
-import { TasksPage } from './features/tasks/pages/TasksPage';
+import { UrgentAlertWatcher } from './features/crm/components/UrgentAlertWatcher';
+import { NotificationsWatcher } from './features/workspace/components/NotificationsWatcher';
+import { FloatingToasts } from './components/FloatingToasts';
 import { ImpersonationShell } from './features/users/components/ImpersonationBanner';
-import { UsersPage } from './features/users/pages/UsersPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './router/ProtectedRoute';
+import { useSessionRefresh } from './features/auth/hooks/useSessionRefresh';
 import { LandingRedirect, RequireDashboardHome, RequirePermission, RequireStaff } from './router/RequirePermission';
+import { lazyPage } from './router/lazyPage';
+
+/*
+ * صفحات اللوحة والبوّابات تُحمَّل عند أول زيارة لمسارها.
+ * قبل ذلك كانت 39 وحدة في حزمة واحدة (1.6MB) — يحمّلها زائر الصفحة العامة كاملةً.
+ */
+const AppointmentsPage = lazyPage(() => import('./features/appointments/pages/AppointmentsPage'), 'AppointmentsPage');
+const AttendancePage = lazyPage(() => import('./features/attendance/pages/AttendancePage'), 'AttendancePage');
+const AuditPage = lazyPage(() => import('./features/audit/pages/AuditPage'), 'AuditPage');
+const CareersPage = lazyPage(() => import('./features/careers/pages/CareersPage'), 'CareersPage');
+const ChatbotPage = lazyPage(() => import('./features/chatbot/pages/ChatbotPage'), 'ChatbotPage');
+const ClientPortalV2Page = lazyPage(() => import('./features/clientPortal/pages/ClientPortalV2Page'), 'ClientPortalV2Page');
+const ClientProjectDetailPage = lazyPage(() => import('./features/clientPortal/pages/ClientProjectDetailPage'), 'ClientProjectDetailPage');
+const ClientsPage = lazyPage(() => import('./features/clients/pages/ClientsPage'), 'ClientsPage');
+const CommunicationsPage = lazyPage(() => import('./features/communications/pages/CommunicationsPage'), 'CommunicationsPage');
+const CompaniesPage = lazyPage(() => import('./features/companies/pages/CompaniesPage'), 'CompaniesPage');
+const ContractsPage = lazyPage(() => import('./features/contracts/pages/ContractsPage'), 'ContractsPage');
+const CrmPage = lazyPage(() => import('./features/crm/pages/CrmPage'), 'CrmPage');
+const DashboardPage = lazyPage(() => import('./features/dashboard/DashboardPage'), 'DashboardPage');
+const DocumentsPage = lazyPage(() => import('./features/documents/pages/DocumentsPage'), 'DocumentsPage');
+const EmployeePortalPage = lazyPage(() => import('./features/employeePortal/EmployeePortalPage'), 'EmployeePortalPage');
+const EmployeesPage = lazyPage(() => import('./features/hr/pages/EmployeesPage'), 'EmployeesPage');
+const EngineerPortalPage = lazyPage(() => import('./features/engineerPortal/pages/EngineerPortalPage'), 'EngineerPortalPage');
+const FieldVisitsPage = lazyPage(() => import('./features/fieldVisits/pages/FieldVisitsPage'), 'FieldVisitsPage');
+const FilesPage = lazyPage(() => import('./features/files/pages/FilesPage'), 'FilesPage');
+const FinancePage = lazyPage(() => import('./features/finance/pages/FinancePage'), 'FinancePage');
+const ForumPage = lazyPage(() => import('./features/forum/pages/ForumPage'), 'ForumPage');
+const HeroAdsPage = lazyPage(() => import('./features/hero/pages/HeroAdsPage'), 'HeroAdsPage');
+const InvoicesPage = lazyPage(() => import('./features/invoices/pages/InvoicesPage'), 'InvoicesPage');
+const LoyaltyDashboardPage = lazyPage(() => import('./features/loyalty/pages/LoyaltyDashboardPage'), 'LoyaltyDashboardPage');
+const MeetingsPage = lazyPage(() => import('./features/appointments/pages/MeetingsPage'), 'MeetingsPage');
+const MyProjectsPage = lazyPage(() => import('./features/myProjects/pages/MyProjectsPage'), 'MyProjectsPage');
+const PayrollPage = lazyPage(() => import('./features/payroll/pages/PayrollPage'), 'PayrollPage');
+const ProjectDetailPage = lazyPage(() => import('./features/projects/pages/ProjectDetailPage'), 'ProjectDetailPage');
+const ProjectsPage = lazyPage(() => import('./features/projects/pages/ProjectsPage'), 'ProjectsPage');
+const PricingEnginePage = lazyPage(() => import('./features/pricing/pages/PricingEnginePage'), 'PricingEnginePage');
+const ReportsPage = lazyPage(() => import('./features/reports/pages/ReportsPage'), 'ReportsPage');
+const RequestsPage = lazyPage(() => import('./features/requests/pages/RequestsPage'), 'RequestsPage');
+const RolesPage = lazyPage(() => import('./features/roles/pages/RolesPage'), 'RolesPage');
+const ServicesPage = lazyPage(() => import('./features/services/pages/ServicesPage'), 'ServicesPage');
+const StaffClientProfilePage = lazyPage(() => import('./features/clients/pages/StaffClientProfilePage'), 'StaffClientProfilePage');
+const TasksPage = lazyPage(() => import('./features/tasks/pages/TasksPage'), 'TasksPage');
+const TeamMemberPage = lazyPage(() => import('./features/dashboard/pages/TeamMemberPage'), 'TeamMemberPage');
+const TeamProjectsPage = lazyPage(() => import('./features/myProjects/pages/TeamProjectsPage'), 'TeamProjectsPage');
+const UsersPage = lazyPage(() => import('./features/users/pages/UsersPage'), 'UsersPage');
+const WebBuilderPage = lazyPage(() => import('./features/site/pages/WebBuilderPage'), 'WebBuilderPage');
 
 // الوحدات المنجزة لها مسارات صريحة؛ الباقي صفحة مؤقتة.
 const DONE_KEYS = ['dashboard', 'user_logs', 'clients', 'companies', 'projects', 'my_projects', 'team_projects', 'tasks', 'appointments', 'invoices', 'services', 'pricing', 'documents', 'attendance', 'hr', 'payroll', 'contracts', 'reports', 'forum', 'chatbot', 'meetings', 'crm', 'careers', 'roles', 'finance', 'requests', 'whatsapp', 'web_builder', 'hero_ads', 'audit', 'file_manager', 'field_visits', 'engineer_portal', 'client_portal'];
 const placeholderItems = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => !DONE_KEYS.includes(i.key));
 
+/** شاشة انتظار خفيفة أثناء جلب حزمة الصفحة. */
+const pageFallback: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  minHeight: '60vh', color: '#64748b', fontSize: 15,
+};
+
 export default function App() {
+  // صلاحيات الجلسة تُحدَّث من الخادم — وإلا بقيت مجمّدة منذ الدخول
+  // فلا يصل المستخدمَ ما مُنح له من صلاحيات (طلب أيمن 2026-09-09).
+  useSessionRefresh();
+
   return (
     <ImpersonationShell>
+    {/* تنبيهات عائمة في كل صفحات النظام: الفرص العاجلة + بقيّة إشعارات المنصة. */}
+    <UrgentAlertWatcher />
+    <NotificationsWatcher />
+    <FloatingToasts />
+    <Suspense fallback={<div style={pageFallback}>جارٍ التحميل…</div>}>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/jobs" element={<PublicCareersPage />} />
@@ -94,7 +120,7 @@ export default function App() {
           <Route path="/chatbot" element={<RequireStaff><ChatbotPage /></RequireStaff>} />
           <Route path="/meetings" element={<RequirePermission perm="appointments.view"><MeetingsPage /></RequirePermission>} />
           <Route path="/services" element={<RequirePermission perm="pricing.view"><ServicesPage /></RequirePermission>} />
-          <Route path="/pricing" element={<RequirePermission perm="pricing.view"><QuotationsPage /></RequirePermission>} />
+          <Route path="/pricing" element={<RequirePermission perm="pricing.view"><PricingEnginePage /></RequirePermission>} />
           <Route path="/documents" element={<RequirePermission perm="documents.view"><DocumentsPage /></RequirePermission>} />
           <Route path="/files" element={<RequirePermission perm="documents.view"><FilesPage /></RequirePermission>} />
           <Route path="/field-visits" element={<RequirePermission perm="projects.view"><FieldVisitsPage /></RequirePermission>} />
@@ -128,6 +154,7 @@ export default function App() {
 
       <Route path="*" element={<LandingRedirect />} />
     </Routes>
+    </Suspense>
     </ImpersonationShell>
   );
 }

@@ -8,15 +8,20 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Contacts\StoreContactRequest;
 use App\Http\Requests\Contacts\UpdateContactRequest;
 use App\Http\Resources\ContactResource;
+use App\Http\Resources\FollowUpResource;
 use App\Models\Contact;
 use App\Models\LeadReminder;
+use App\Services\CardActivityService;
 use App\Services\ContactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ContactController extends ApiController
 {
-    public function __construct(private readonly ContactService $contacts) {}
+    public function __construct(
+        private readonly ContactService $contacts,
+        private readonly CardActivityService $activity,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -32,7 +37,10 @@ class ContactController extends ApiController
     public function store(StoreContactRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['owner_id'] = $request->user()?->id;
+        // المكلّف بالفرصة يختاره المستخدم؛ وإن لم يُرسل فهو المستخدم الحالي.
+        $data['owner_id'] ??= $request->user()?->id;
+        // المنشئ يُسجَّل تلقائيًا ولا يُقبل من الطلب.
+        $data['created_by'] = $request->user()?->id;
 
         $contact = $this->contacts->create($data);
 
@@ -41,7 +49,7 @@ class ContactController extends ApiController
 
     public function show(Contact $contact): JsonResponse
     {
-        return $this->ok(new ContactResource($contact->load('owner', 'convertedProject')));
+        return $this->ok(new ContactResource($contact->load('owner', 'createdBy', 'movedBy', 'convertedProject')));
     }
 
     public function update(UpdateContactRequest $request, Contact $contact): JsonResponse
@@ -74,6 +82,78 @@ class ContactController extends ApiController
         return $this->ok(null, 'تم تحديث الترتيب');
     }
 
+    /**
+     * إزالة الفرصة من لوحة CRM مع بقاء صاحبها في سجلّ العملاء وشركتِه في
+     * سجلّ الشركات (طلب أيمن 2026-08-25).
+     */
+    public function removeFromCrm(Contact $contact): JsonResponse
+    {
+        $this->contacts->removeFromPipeline($contact);
+
+        return $this->ok(null, 'أُزيلت الفرصة من اللوحة — وبياناتها محفوظة في السجلات');
+    }
+
+    /**
+     * عدّاد خفيف للفرص العاجلة/المستحقّة — يستدعيه تنبيه الجرس في كل صفحات النظام
+     * (طلب أيمن 2026-08-22) بدل جلب قائمة الفرص كاملة لمجرّد معرفة العدد.
+     */
+    public function urgentCount(): JsonResponse
+    {
+        $urgentLeads = Contact::query()->where('type', 'lead')->where('is_urgent', true)
+            ->orderByDesc('updated_at')
+            ->pluck('id');
+        $urgent = $urgentLeads->count();
+
+        $due = LeadReminder::query()
+            ->where('done', false)
+            ->where('remind_at', '<=', now())
+            ->whereHas('contact', fn ($q) => $q->where('type', 'lead'))
+            ->count();
+
+        // معرّف أحدث فرصة عاجلة — ليفتحها الإشعار العائم مباشرة بدل فتح اللوحة كلّها.
+        return $this->ok([
+            'urgent' => $urgent,
+            'due' => $due,
+            'first_urgent_id' => $urgentLeads->first(),
+        ]);
+    }
+
+    /**
+     * كل متابعات العملاء في لوحة واحدة (طلب أيمن 2026-08-24) — تُغذّي «لوحة
+     * المتابعة (كانبان)» أسفل صفحة المهام: مجدولة · اليوم · متأخرة · منجزة.
+     */
+    public function followUps(Request $request): JsonResponse
+    {
+        $me = $request->user()?->id;
+
+        $items = $this->activity->withCardActivity(
+            LeadReminder::query()->with(['contact:id,full_name,owner_id', 'contact.owner:id,name', 'creator:id,name', 'assignee:id,name', 'project:id,name,code']),
+            $me,
+            LeadReminder::class,
+        )
+            ->whereHas('contact')
+            /*
+             * «متابعاتي» = المكلَّف بها أنا؛ ومتابعة بلا مكلَّف تبقى لمنشئها
+             * (متابعات سُجّلت قبل حقل المكلَّف). وهو نفسه صاحب البطاقة في شارات
+             * التوجيه، فلا يختلف معنى «لي» بين الفلتر والتمييز.
+             */
+            ->when($request->boolean('mine'), fn ($q) => $q->where(
+                fn ($w) => $w->where('assignee_id', $me)
+                    ->orWhere(fn ($n) => $n->whereNull('assignee_id')->where('created_by', $me)),
+            ))
+            ->orderBy('remind_at')
+            ->limit(300)
+            ->get()
+            ->map(function (LeadReminder $r) {
+                $res = new FollowUpResource($r);
+                $res->lateCycles = $this->lateCycles($r);
+
+                return $res;
+            });
+
+        return $this->ok(FollowUpResource::collection($items));
+    }
+
     // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───
 
     /** تذكيرات الفرصة (الأحدث أولًا). */
@@ -88,11 +168,23 @@ class ContactController extends ApiController
         $data = $request->validate([
             'remind_at' => ['required', 'date'],
             'note' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:5000'],
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'repeat_every' => ['nullable', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! LeadReminder::isValidRepeat(is_string($value) ? $value : null)) {
+                    $fail('دورية التكرار غير صالحة — اختر عددًا ووحدة (يوم/أسبوع/شهر) ضمن الحدّ المسموح.');
+                }
+            }],
         ]);
 
         $reminder = $contact->reminders()->create([
             'remind_at' => $data['remind_at'],
             'note' => $data['note'] ?? null,
+            'description' => $data['description'] ?? null,
+            'repeat_every' => $data['repeat_every'] ?? null,
+            'project_id' => $data['project_id'] ?? null,
+            'assignee_id' => $data['assignee_id'] ?? null,
             'created_by' => $request->user()?->id,
         ]);
 
@@ -100,11 +192,55 @@ class ContactController extends ApiController
     }
 
     /** إنجاز/إلغاء إنجاز التذكير (يخفي التنبيه من الكرت). */
-    public function toggleReminder(LeadReminder $reminder): JsonResponse
+    /**
+     * تحديث تذكير: تبديل حالته (بلا حمولة) أو ضبط موعده/ملاحظته صراحةً —
+     * تستعمله نافذة تفاصيل المتابعة لنقلها بين أعمدة اللوحة (طلب أيمن 2026-08-25).
+     */
+    public function toggleReminder(Request $request, LeadReminder $reminder): JsonResponse
     {
-        $reminder->update(['done' => ! $reminder->done]);
+        $data = $request->validate([
+            'done' => ['sometimes', 'boolean'],
+            'remind_at' => ['sometimes', 'date'],
+            'note' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'project_id' => ['sometimes', 'nullable', 'integer', 'exists:projects,id'],
+            'assignee_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'repeat_every' => ['sometimes', 'nullable', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! LeadReminder::isValidRepeat(is_string($value) ? $value : null)) {
+                    $fail('دورية التكرار غير صالحة — اختر عددًا ووحدة (يوم/أسبوع/شهر) ضمن الحدّ المسموح.');
+                }
+            }],
+        ]);
 
-        return $this->ok($this->presentReminder($reminder), $reminder->done ? 'تم الإنجاز' : 'أُعيد فتح التذكير');
+        // بلا حمولة = تبديل الحالة (السلوك القديم الذي تعتمده قائمة التذكيرات).
+        $reminder->update($data === [] ? ['done' => ! $reminder->done] : $data);
+        $reminder->refresh();
+
+        // متابعة دوريّة أُنجزت → تُجدول تلقائيًا لدورتها التالية بدل أن تُغلق،
+        // فتبقى المتابعة مستمرّة كما هي طبيعتها (طلب أيمن 2026-08-25).
+        $rescheduled = false;
+        if ($reminder->done && $reminder->repeat_every !== null) {
+            // من اليوم لا من الموعد الفائت، كي لا تُولد متأخّرة.
+            $next = LeadReminder::nextOccurrence($reminder->repeat_every, now());
+            if ($next !== null) {
+                /*
+                 * التوقيت الذي اختاره المستخدم يُحفظ كما هو (طلب أيمن 2026-08-30):
+                 * كان الموعد التالي يُثبَّت على 10:00 فتضيع ساعة المتابعة المختارة.
+                 */
+                $at = $reminder->remind_at;
+                $reminder->update([
+                    'done' => false,
+                    'remind_at' => $at !== null ? $next->copy()->setTime($at->hour, $at->minute) : $next,
+                ]);
+                $reminder->refresh();
+                $rescheduled = true;
+            }
+        }
+
+        return $this->ok(
+            $this->presentReminder($reminder),
+            $rescheduled ? 'أُنجزت وجُدولت المتابعة التالية' : 'تم تحديث المتابعة',
+        );
     }
 
     public function deleteReminder(LeadReminder $reminder): JsonResponse
@@ -115,14 +251,38 @@ class ContactController extends ApiController
     }
 
     /** @return array<string, mixed> */
+    /**
+     * عدد دورات المتابعة الفائتة (طلب أيمن 2026-08-25): متابعة متأخّرة مكرّرة
+     * كل أسبوع مضى على موعدها 15 يومًا = دورتان فائتتان، فيظهر «2» على البطاقة.
+     * وبلا تكرار: مرّة واحدة ما دامت متأخّرة.
+     */
+    private function lateCycles(LeadReminder $r): int
+    {
+        if ($r->done || $r->remind_at === null || ! $r->remind_at->isPast()) {
+            return 0;
+        }
+
+        $days = LeadReminder::repeatDays($r->repeat_every);
+        if ($days === null) {
+            return 1;
+        }
+
+        return (int) floor($r->remind_at->diffInDays(now()) / $days) + 1;
+    }
+
     private function presentReminder(LeadReminder $r): array
     {
         return [
             'id' => $r->id,
             'remind_at' => $r->remind_at?->toIso8601String(),
             'note' => $r->note,
+            'description' => $r->description,
             'done' => $r->done,
             'due' => ! $r->done && $r->remind_at !== null && $r->remind_at->isPast(),
+            'repeat_every' => $r->repeat_every,
+            'project_id' => $r->project_id,
+            'assignee_id' => $r->assignee_id,
+            'late_cycles' => $this->lateCycles($r),
             'creator' => $r->creator?->name,
         ];
     }

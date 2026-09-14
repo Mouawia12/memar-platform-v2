@@ -7,10 +7,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
+use App\Http\Resources\CommentResource;
+use App\Http\Resources\DirectiveResource;
 use App\Http\Resources\TaskDetailResource;
 use App\Http\Resources\TaskResource;
+use App\Models\Directive;
 use App\Models\StoredFile;
 use App\Models\Task;
+use App\Services\CardActivityService;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +23,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TaskController extends ApiController
 {
-    public function __construct(private readonly TaskService $tasks) {}
+    public function __construct(
+        private readonly TaskService $tasks,
+        private readonly CardActivityService $activity,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -59,16 +66,83 @@ class TaskController extends ApiController
         return $this->ok(new TaskDetailResource($this->tasks->detail($task)));
     }
 
+    /** تعليقات المهمة — تُقرأ بإذن العرض (نافذة التعليقات على البطاقة). */
+    public function comments(Request $request, Task $task): JsonResponse
+    {
+        $thread = CommentResource::collection($this->activity->comments($task));
+        // فتح النافذة قراءةٌ — يُطفئ شارة «تعليق جديد» عن بطاقة هذا المستخدم وحده
+        if ($userId = $request->user()?->id) {
+            $this->tasks->markRead($task, (int) $userId);
+        }
+
+        return $this->ok($thread);
+    }
+
     /** إضافة رسالة لمحادثة المهمة. */
     public function addComment(Request $request, Task $task): JsonResponse
     {
         $data = $request->validate(['body' => ['required', 'string', 'max:2000']]);
-        $this->tasks->addComment($task, $data['body'], $request->user()?->id);
+        $this->activity->addComment($task, $data['body'], $request->user()?->id);
 
         return $this->ok(new TaskDetailResource($this->tasks->detail($task)), 'تمت الإضافة');
     }
 
-    /** مزامنة مشاركي المهمة (المجموعة). */
+    /**
+     * سجلّ التوجيهات الإدارية على المهمة (الأحدث أولًا) — خيط التوجيه والردّ.
+     */
+    public function directives(Request $request, Task $task): JsonResponse
+    {
+        $thread = $this->activity->directives($task)->map(function ($d) use ($task) {
+            $res = new DirectiveResource($d);
+            $res->ownerId = $task->activityOwnerId();
+
+            return $res;
+        });
+        // فتح الخيط اطّلاعٌ — بعد قراءته كي تظهر الحالة السابقة في هذه الاستجابة
+        $userId = $request->user()?->id;
+        $this->activity->markDirectivesSeen($task, $userId);
+
+        return $this->ok(DirectiveResource::collection($thread));
+    }
+
+    /** توجيه جديد من الإدارة على المهمة («أنجزها بسرعة»…). */
+    public function sendDirective(Request $request, Task $task): JsonResponse
+    {
+        $data = $request->validate(['body' => ['required', 'string', 'max:1000']]);
+        $directive = $this->activity->sendDirective($task, $data['body'], $request->user()?->id);
+
+        return $this->created(new DirectiveResource($directive), 'تم إرسال التوجيه');
+    }
+
+    /**
+     * رسالة في خيط التوجيه: ردّ المكلَّف، أو ردّ المُرسِل على ردّه، أو تعقيب من
+     * الإدارة. الخيط مفتوح، وأطرافه: صاحب البطاقة ومشاركوها ومَن يوجّه إليها.
+     */
+    public function addDirectiveMessage(Request $request, Task $task, Directive $directive): JsonResponse
+    {
+        if ($directive->subject_type !== Task::class || $directive->subject_id !== $task->id) {
+            return $this->fail('التوجيه لا يخصّ هذه المهمة', 404);
+        }
+
+        $userId = (int) $request->user()?->id;
+        $allowed = $task->assignee_id === $userId
+            || $directive->sender_id === $userId
+            || $request->user()?->can('tasks.delete')
+            || $task->participants()->where('users.id', $userId)->exists();
+
+        if (! $allowed) {
+            return $this->fail('المشاركة في خيط التوجيه لأطرافه', 403);
+        }
+
+        $data = $request->validate(['body' => ['required', 'string', 'max:1000']]);
+
+        return $this->created(
+            new CommentResource($this->activity->addDirectiveMessage($directive, $data['body'], $userId)),
+            'تم إرسال الردّ',
+        );
+    }
+
+    /** مزامنة مشاركي المهمة (المجموعة). */ /** مزامنة مشاركي المهمة (المجموعة). */
     public function syncParticipants(Request $request, Task $task): JsonResponse
     {
         $data = $request->validate([
@@ -110,7 +184,7 @@ class TaskController extends ApiController
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse
     {
-        $task = $this->tasks->update($task, $request->validated());
+        $task = $this->tasks->update($task, $request->validated(), $request->user()?->id);
 
         return $this->ok(new TaskResource($task), 'تم تحديث المهمة');
     }

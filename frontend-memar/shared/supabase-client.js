@@ -6,8 +6,8 @@
    template or build tool to avoid exposing keys in source.
 ═══════════════════════════════════════════════════════ */
 
-const MEMAR_SUPABASE_URL  = (window.MEMAR_ENV?.SUPABASE_URL)  || 'https://lnhbmwercpvgegsecjhh.supabase.co';
-const MEMAR_SUPABASE_KEY  = (window.MEMAR_ENV?.SUPABASE_KEY)  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuaGJtd2VyY3B2Z2Vnc2VjamhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTg1OTcsImV4cCI6MjA5MjQ3NDU5N30.18G25sd0QVTijMOzfo-HH-mWOZNLgf8tmuRGHeeDDmM';
+const MEMAR_SUPABASE_URL  = window.MEMAR_ENV?.SUPABASE_URL;
+const MEMAR_SUPABASE_KEY  = window.MEMAR_ENV?.SUPABASE_KEY;
 
 /* ── Init client (lazy — waits for SDK to load) ── */
 let _sb = null;

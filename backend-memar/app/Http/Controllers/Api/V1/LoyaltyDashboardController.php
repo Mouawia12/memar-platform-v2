@@ -8,8 +8,8 @@ use App\Http\Controllers\Api\ApiController;
 use App\Models\Contact;
 use App\Models\LeadReminder;
 use App\Models\LoyaltyTransaction;
-use App\Models\PointRedemptionRequest;
 use App\Models\PipelineStage;
+use App\Models\PointRedemptionRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 

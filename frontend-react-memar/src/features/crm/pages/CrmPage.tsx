@@ -1,21 +1,24 @@
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useCrmSettings } from '../../settings/hooks/useSettings';
+import { useStaffAvatars } from '../../users/hooks/useUsers';
+import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { useAuthStore } from '../../../store/auth';
 import { useExportDisabled } from '../../../components/ExportGuard';
 import { downloadCsv } from '../../../lib/csv';
-import { TEMPERATURE_META } from '../types';
+import { LEAD_SOURCE_META, LEAD_SOURCE_ORDER, TEMPERATURE_META, sourceLabel } from '../types';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
+import { DirectiveModal } from '../../tasks/components/DirectiveModal';
 import { CrmBoard } from '../components/CrmBoard';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
+import { PointsSettingsModal } from '../components/PointsSettingsModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
-import { TagRequestsPanel } from '../components/TagRequestsPanel';
-import { SoundToggle } from '../components/SoundToggle';
 import { celebrate, playSound } from '../opsNotify';
-import { useCrmTags, useDeleteLead, useLeads, useMoveLead, useReorderLeads } from '../hooks/useCrm';
+import { useCrmTags, useDeleteLead, useLeads, useLogLeadUpdate, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
 import '../crm.css';
@@ -28,13 +31,30 @@ import '../crm.css';
  */
 export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ?search= يصل من سجل العملاء (شارة «الفرص») — يفتح اللوحة مفلترةً باسم
+  // العميل بدل أن يبحث المستخدم عنه بنفسه (طلب أيمن 2026-09-09).
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
   const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
-  // فلاتر طبق الأصل: نوع العميل + المسؤول (المصدر عرضي لعدم تتبّعه).
+  // فلاتر طبق الأصل: نوع العميل + المصدر + المسؤول. المصدر صار حقلًا حقيقيًا
+  // على الفرصة (طلب أيمن 2026-08-22) بعد أن كان قائمة عرضية في المرجع.
   const [clientFilter, setClientFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
-  // مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
-  const [scope, setScope] = useState<'all' | 'mine'>('all');
+  /*
+   * مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
+   * المندوب يفتح الصفحة على «فرصي فقط»، وإدارة النظام على «جميع الفرص» لأن عملها
+   * الإشراف لا البيع (طلب أيمن 2026-09-11 — كما في لوحة المهام). والبحث القادم من
+   * الرابط يفتح على «الكل» دائمًا وإلا اختفت نتيجة بحثٍ عن فرصة غير مملوكة للباحث.
+   *
+   * null = لم يختر المستخدم بعد فيسري افتراض دوره. تركُه null بدل حسابه مرّة في
+   * مُهيّئ useState يجعله يصحّ حتى لو وصلت بيانات المستخدم بعد أول رسم.
+   */
+  const isAdmin = useIsAdmin();
+  const [scope, setScope] = useState<'all' | 'mine' | null>(null);
+  const effScope: 'all' | 'mine' = scope ?? (searchParams.get('search') || isAdmin ? 'all' : 'mine');
+  // التمييز خيار لا سلوك تلقائي: «جميع الفرص» تعرضها كلّها واضحة، والزرّ يُخفت فرص غيري.
+  const [highlight, setHighlight] = useState(false);
   const userId = useAuthStore((s) => s.user?.id);
   const exportDisabled = useExportDisabled();
   // توستر يظهر عند نقل/إعادة ترتيب كرت الفرصة (طبق أصل opsToast).
@@ -48,20 +68,39 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
+  // الكرت الذي أُغلقت نافذته للتوّ — يُبرَز ~3 ثوانٍ ليعرف المستخدم أين كان
+  // في العمود (طلب أيمن 2026-08-22).
+  const [justSeenId, setJustSeenId] = useState<number | null>(null);
+  // خيط توجيه الإدارة على فرصة — نفس نافذة المهام والمتابعات (طلب أيمن 2026-09-13)
+  const [directiveFor, setDirectiveFor] = useState<Lead | null>(null);
+  const closeDetail = () => {
+    setJustSeenId(detailId);
+    setDetailId(null);
+    window.setTimeout(() => setJustSeenId((v) => (v === detailId ? null : v)), 3000);
+  };
   const [stagesOpen, setStagesOpen] = useState(false);
-  const [tagsPanelOpen, setTagsPanelOpen] = useState(false);
+  const [pointsSettingsOpen, setPointsSettingsOpen] = useState(false);
 
   const { data, isLoading, isError } = useLeads({ search: search || undefined, type: 'lead', per_page: 200 });
   const { data: stages } = usePipelineStages();
   const move = useMoveLead();
   const reorder = useReorderLeads();
   const del = useDeleteLead();
+  const logMove = useLogLeadUpdate();
+  const meName = useAuthStore((s) => s.user?.name);
   // إنشاء/تعديل/نقل الفرص متاح للموظف (crm.view)؛ وتخصيص المراحل/اعتماد الاختصارات للمدير (crm.delete) — طلب العميل.
   const canCreate = usePermission('crm.view');
   const canDelete = usePermission('crm.delete');
   const canLoyalty = usePermission('loyalty.view');
+  // إعدادات النقاط والاختصارات للإدارة فقط (نفس صلاحية مسار /settings).
+  const canManagePoints = usePermission('loyalty.manage');
+  // عدّاد طلبات الاختصارات المعلّقة على زر الإعدادات — الاستعلام نفسه الذي
+  // تستعمله الكروت، فلا طلب إضافي (نقطة الاطّلاع العامة للإدارة).
   const { data: crmTags } = useCrmTags();
   const pendingTagCount = (crmTags ?? []).filter((t) => t.status === 'pending').length;
+  // خصوصية الأرقام المالية (إعدادات النقاط): الإجماليات تُخفى عن غير الإدارة إن فُعّلت.
+  const { settings: crmSettings } = useCrmSettings();
+  const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
 
   const stageList = useMemo(() => [...(stages ?? [])].sort((a, b) => a.position - b.position), [stages]);
   const wonKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won).map((s) => s.key)), [stageList]);
@@ -70,7 +109,12 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (l: Lead) => { setDetailId(null); setEditing(l); setModalOpen(true); };
-  const handleDelete = (l: Lead) => { if (confirm(`حذف "${l.full_name}"؟`)) del.mutate(l.id); };
+  const handleDelete = (l: Lead) => {
+    // الإزالة من اللوحة لا تحذف العميل من السجلات — نوضّح ذلك في التأكيد.
+    const msg = `إزالة فرصة «${l.full_name}» من اللوحة؟\n\nتبقى بياناته في سجلّ العملاء`
+      + `${l.company ? ' وبيانات شركته في سجلّ الشركات' : ''}، ويُحذف نهائيًا من هناك فقط.`;
+    if (confirm(msg)) del.mutate(l.id, { onSuccess: () => showToast('🗂️ أُزيلت الفرصة — بياناتها محفوظة في السجلات', 'info') });
+  };
 
   const handleMove = (l: Lead, stage: Stage) => {
     if (wonKeys.has(stage) && !l.converted_project_id) {
@@ -80,11 +124,18 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     const stageName = stageList.find((s) => s.key === stage)?.label ?? stage;
     move.mutate({ id: l.id, stage }, { onSuccess: () => {
       showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
-      // صوت عند نقل الفرصة لعمود آخر (طلب العميل): احتفال للرابحة، نغمة خسارة للمغلقة،
-      // ونغمة نقل عادية لبقية الأعمدة — كلها تحترم مفتاح الصوت (SoundToggle).
-      if (wonKeys.has(stage)) celebrate('فرصة رابحة! 🎉', `مبروك — ${l.full_name}`);
+      // صوت عند نقل الفرصة لعمود آخر: احتفال ببالونات للرابحة، نغمة خسارة للمغلقة،
+      // ونغمة «move» الخاصة بالنقل لبقية الأعمدة — الصوت مفعّل دائمًا بلا مفتاح إيقاف.
+      if (wonKeys.has(stage)) {
+        // مَن يملك الفرصة ومَن نقلها للفوز — يظهران في الاحتفال، ويُوثَّق الناقل
+        // في تايملاين الفرصة فيبقى ظاهرًا على الكرت وفي سجلّها (طلب أيمن 2026-08-22).
+        const ownerName = l.owner?.name ?? 'غير مُسنَدة';
+        const moverName = meName ?? 'مستخدم';
+        celebrate('مبروك الصفقة! 🎉', `${l.full_name} — المكلّف: ${ownerName} · نقلها: ${moverName}`);
+        logMove.mutate({ id: l.id, note: `🏆 نقل الفرصة إلى «${stageName}» — المكلّف: ${ownerName}` });
+      }
       else if (terminalKeys.has(stage)) playSound('late');
-      else playSound('notification');
+      else playSound('move');
     } });
   };
 
@@ -110,14 +161,24 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     const cutoff = period === 'all' ? 0 : Date.now() - Number(period) * 86_400_000;
     return leads.filter((l) => {
       if (period !== 'all' && !(l.created_at && new Date(l.created_at).getTime() >= cutoff)) return false;
-      if (scope === 'mine' && l.owner?.id !== userId) return false;
+      if (effScope === 'mine' && l.owner?.id !== userId) return false;
       if (ownerFilter !== 'all' && String(l.owner?.id ?? '') !== ownerFilter) return false;
+      // «بلا مصدر» يلتقط الفرص القديمة التي لم يُسجَّل مصدرها
+      if (sourceFilter === 'none' && l.source) return false;
+      if (sourceFilter !== 'all' && sourceFilter !== 'none' && l.source !== sourceFilter) return false;
       if (clientFilter === 'vip' && !l.is_vip) return false;
       if (clientFilter === 'new' && l.stage !== 'new') return false;
       if ((clientFilter === 'hot' || clientFilter === 'warm' || clientFilter === 'cold') && l.temperature !== clientFilter) return false;
       return true;
     });
-  }, [leads, period, scope, userId, ownerFilter, clientFilter]);
+  }, [leads, period, effScope, userId, ownerFilter, clientFilter, sourceFilter]);
+
+  // نفس مجموعة المعرّفات التي تطلبها اللوحة → نفس مفتاح الاستعلام → بلا طلب إضافي.
+  const ownerIds = useMemo(
+    () => [...new Set(visibleLeads.flatMap((l) => [l.owner?.id, l.mover?.id]).filter((v): v is number => !!v))],
+    [visibleLeads],
+  );
+  const { data: staffAvatars } = useStaffAvatars(ownerIds);
 
   const stageLabel = (key: string) => stageList.find((s) => s.key === key)?.label ?? key;
   /** تصدير الفرص المعروضة إلى CSV — مُخفى في بوابة الموظف (ExportGuard). */
@@ -131,11 +192,24 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       { header: 'الحرارة', value: (l) => TEMPERATURE_META[l.temperature]?.label ?? '' },
       { header: 'الأهمية', value: (l) => l.priority },
       { header: 'القيمة (د.ك)', value: (l) => l.deal_value_kwd },
+      { header: 'المصدر', value: (l) => sourceLabel(l.source) },
       { header: 'المسؤول', value: (l) => l.owner?.name ?? '' },
     ]);
   };
   const hiddenByPeriod = leads.length - visibleLeads.length;
   const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
+
+  // الإشعار العائم يفتح الفرصة العاجلة مباشرة عبر /crm?lead=<id> — نفتح نافذتها
+  // بمجرد وصول بياناتها ثم ننظّف الرابط (طلب أيمن 2026-08-24).
+  const leadParam = searchParams.get('lead');
+  useEffect(() => {
+    if (!leadParam) return;
+    const id = Number(leadParam);
+    if (!Number.isFinite(id) || leads.length === 0) return;
+    if (leads.some((l) => l.id === id)) setDetailId(id);
+    searchParams.delete('lead');
+    setSearchParams(searchParams, { replace: true });
+  }, [leadParam, leads, searchParams, setSearchParams]);
 
   // ── المؤشّرات الستة (محسوبة من الفرص الحيّة) ──
   const kpi = useMemo(() => {
@@ -164,17 +238,13 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const dueLeads = leads.filter((l) => l.reminder?.due);
   const urgentCount = leads.filter((l) => l.is_urgent).length;
 
-  // صوت تنبيه عند وجود فرص عاجلة/مستحقّة (throttle دقيقة) — طبق أصل V42 playSound.
-  useEffect(() => {
-    if (dueLeads.length > 0 || urgentCount > 0) {
-      playSound(urgentCount > 0 ? 'urgent' : 'reminder', { throttleMs: 60_000 });
-    }
-  }, [dueLeads.length, urgentCount]);
+  // تنبيه الجرس الصوتي انتقل إلى UrgentAlertWatcher ليعمل في كل صفحات النظام
+  // لا هذه اللوحة وحدها (طلب أيمن 2026-08-22) — ولا يُكرَّر هنا كي لا يُسمع مرّتين.
 
   const KPIS: { icon: string; color: keyof typeof ICON_BG; label: string; value: number; sub: ReactNode }[] = [
     { icon: '👥', color: 'blue', label: 'إجمالي العملاء المحتملين', value: kpi.total, sub: <><span style={up}>↑ {kpi.monthPct}%</span> هذا الشهر</> },
     { icon: '🆕', color: 'green', label: 'جدد هذا الأسبوع', value: kpi.newWeek, sub: 'فرص جديدة' },
-    { icon: '🤝', color: 'orange', label: 'قيد التفاوض', value: kpi.negCount, sub: `بقيمة ${money(kpi.negValue)}` },
+    { icon: '🤝', color: 'orange', label: 'قيد التفاوض', value: kpi.negCount, sub: showTotals ? `بقيمة ${money(kpi.negValue)}` : 'فرص مفتوحة' },
     { icon: '📋', color: 'purple', label: 'عروض مرسلة', value: kpi.proposals, sub: 'بانتظار الرد' },
     { icon: '✅', color: 'green', label: 'عقود موقعة', value: kpi.won, sub: <><span style={up}>↑ {kpi.conversion}%</span> معدل التحويل</> },
     { icon: '📊', color: 'red', label: 'متوسط إغلاق الصفقة', value: kpi.avgClose, sub: 'يوم عمل' },
@@ -185,27 +255,27 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       {/* ── رأس CRM ── */}
       <div style={headerRow}>
         <div>
-          <div style={sectionTitle}>إدارة علاقات العملاء (CRM)</div>
+          <div style={sectionTitle}>عميل جديد</div>
           <div style={sectionSubtitle}>مركز العمليات التجارية — من أول تواصل حتى إغلاق المشروع</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {canCreate && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
+          {canManagePoints && (
+            <button className="crm-btn crm-btn-outline" onClick={() => setPointsSettingsOpen(true)} type="button">
+              ⚙️ إعدادات النقاط{pendingTagCount > 0 ? <span style={pendingDot}>📨 {pendingTagCount}</span> : null}
+            </button>
+          )}
           {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
           {/* «المدير» = من يملك crm.delete (الموظف يملك crm.manage لكن ليس crm.delete) — طلب العميل:
               تخصيص المراحل واعتماد الاختصارات للمدير فقط، ولا تظهر للموظف. */}
           {canDelete && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
-          {canDelete && (
-            <button className="crm-btn crm-btn-outline" onClick={() => setTagsPanelOpen(true)} type="button">
-              📨 طلبات الاختصارات{pendingTagCount > 0 ? ` (${pendingTagCount})` : ''}
-            </button>
-          )}
           {canDelete && !exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
-          <SoundToggle />
         </div>
       </div>
 
-      {/* ── المؤشّرات الستة ── (مخفيّة في بوابة الموظف — طلب أيمن 2026-08-18) */}
-      {!hideKpis && (
+      {/* ── المؤشّرات الستة ── للإدارة فقط: مخفيّة في بوابة الموظف (2026-08-18)
+          وعن الموظف في لوحة CRM نفسها أيضًا (طلب أيمن 2026-08-22). */}
+      {!hideKpis && canDelete && (
         <div style={kpiGrid}>
           {KPIS.map((k) => (
             <div key={k.label} className="crm-kpi-card" style={kpiCard}>
@@ -242,6 +312,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
           <option value="warm">دافئ</option>
           <option value="cold">بارد</option>
         </select>
+        <select className="crm-filter-select" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+          <option value="all">جميع المصادر</option>
+          {LEAD_SOURCE_ORDER.map((k) => <option key={k} value={k}>{LEAD_SOURCE_META[k].label}</option>)}
+          <option value="none">بلا مصدر</option>
+        </select>
         <select className="crm-filter-select" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
           <option value="all">جميع الموظفين</option>
           {owners.map(([id, name]) => <option key={id} value={String(id)}>{name}</option>)}
@@ -259,19 +334,43 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 
       {/* ── مبدّل النطاق طبق الأصل ── */}
       <div style={scopeRow}>
-        <button type="button" onClick={() => setScope('all')} style={{ ...scopeBtn, ...(scope === 'all' ? scopeOn : null) }}>جميع الفرص</button>
-        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(scope === 'mine' ? scopeOn : null) }}>الفرص المسؤول عنها</button>
+        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(effScope === 'mine' ? scopeOn : null) }}>فرصي فقط</button>
+        <button type="button" onClick={() => { setScope('all'); setHighlight(false); }} style={{ ...scopeBtn, ...(effScope === 'all' && !highlight ? scopeOn : null) }}>جميع الفرص</button>
+        <button
+          type="button"
+          onClick={() => { setScope('all'); setHighlight(true); }}
+          style={{ ...scopeBtn, ...(effScope === 'all' && highlight ? scopeOn : null) }}
+          title="تظهر كل الفرص، وفرص غيري تخفت ليبرز ما يخصّني"
+        >🔷 فرصي مميّزة</button>
       </div>
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} />}
+      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} meId={userId} highlightMine={effScope === 'all' && highlight} onDirective={setDirectiveFor} />}
+
+      {directiveFor && (
+        <DirectiveModal
+          card={{
+            kind: 'opportunity',
+            id: directiveFor.id,
+            code: `#${directiveFor.id}`,
+            title: directiveFor.full_name,
+            owner: directiveFor.owner?.name ?? null,
+            ownerLabel: 'صاحب الفرصة',
+          }}
+          canSend={canDelete}
+          canReply={canDelete || directiveFor.owner?.id === userId}
+          onClose={() => setDirectiveFor(null)}
+        />
+      )}
 
       {detailLead && (
         <LeadDetailModal
           lead={detailLead}
+          ownerAvatarUrl={detailLead.owner ? staffAvatars?.[String(detailLead.owner.id)] ?? null : null}
+          moverAvatarUrl={detailLead.mover ? staffAvatars?.[String(detailLead.mover.id)] ?? null : null}
           stages={stageList}
-          onClose={() => setDetailId(null)}
+          onClose={closeDetail}
           onEdit={openEdit}
           onDelete={handleDelete}
           onMove={handleMove}
@@ -282,7 +381,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       )}
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
       {stagesOpen && <StagesManagerModal stages={stageList} onClose={() => setStagesOpen(false)} />}
-      {tagsPanelOpen && <TagRequestsPanel onClose={() => setTagsPanelOpen(false)} />}
+      {pointsSettingsOpen && <PointsSettingsModal onClose={() => setPointsSettingsOpen(false)} />}
       {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
 
       {/* التوستر — يظهر عند نقل/ترتيب الفرص */}
@@ -299,9 +398,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
 const headerRow: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' };
 const sectionTitle: CSSProperties = { fontSize: '16px', fontWeight: 800, color: '#1E293B' };
 const sectionSubtitle: CSSProperties = { fontSize: '12px', color: '#64748B', marginTop: '3px' };
-const kpiGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '14px', marginBottom: '16px' };
-const kpiCard: CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 2px 8px rgba(27,108,168,.06)', display: 'flex', alignItems: 'flex-start', gap: '14px' };
-const kpiIcon: CSSProperties = { width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 };
+// بطاقات مضغوطة (طلب أيمن 2026-08-22): ستّها تدخل في صفّ واحد على الشاشات العريضة
+// بدل صفّين، فتقصر المسافة قبل لوحة الفرص.
+const kpiGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(178px, 1fr))', gap: '10px', marginBottom: '12px' };
+const kpiCard: CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '11px 13px', boxShadow: '0 2px 8px rgba(27,108,168,.06)', display: 'flex', alignItems: 'center', gap: '10px' };
+const kpiIcon: CSSProperties = { width: '36px', height: '36px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 };
 const ICON_BG: Record<'blue' | 'green' | 'orange' | 'purple' | 'red', CSSProperties> = {
   blue: { background: '#EBF5FF', color: '#1B6CA8' },
   green: { background: '#ECFDF5', color: '#2D9B6F' },
@@ -309,9 +410,9 @@ const ICON_BG: Record<'blue' | 'green' | 'orange' | 'purple' | 'red', CSSPropert
   purple: { background: '#F5F3FF', color: '#7C3AED' },
   red: { background: '#FEF2F2', color: '#DC4A3D' },
 };
-const kpiLabel: CSSProperties = { fontSize: '12px', color: '#64748B', marginBottom: '6px', fontWeight: 600 };
-const kpiValue: CSSProperties = { fontSize: '26px', fontWeight: 800, color: '#1E293B', lineHeight: 1.1 };
-const kpiSub: CSSProperties = { fontSize: '11.5px', color: '#64748B', marginTop: '5px' };
+const kpiLabel: CSSProperties = { fontSize: '11px', color: '#64748B', marginBottom: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+const kpiValue: CSSProperties = { fontSize: '20px', fontWeight: 800, color: '#1E293B', lineHeight: 1.15 };
+const kpiSub: CSSProperties = { fontSize: '10.5px', color: '#64748B', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 const up: CSSProperties = { color: '#2D9B6F', fontWeight: 700 };
 // صندوق تنبيه مُختصر الارتفاع (طلب العميل: أقل ارتفاعًا، غير مبالغ) — صفّ واحد.
 const alertStrong: CSSProperties = { border: '1.5px solid #DC4A3D', borderRadius: '10px', padding: '7px 12px', background: 'linear-gradient(180deg,rgba(220,74,61,.10),#fff)', boxShadow: '0 3px 10px rgba(220,74,61,.12)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' };
@@ -320,6 +421,8 @@ const alertTitle: CSSProperties = { fontSize: '12.5px', fontWeight: 900, color: 
 const alertBody: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' };
 const alertChip: CSSProperties = { background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: '20px', padding: '3px 10px', fontSize: '10.5px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
 const alertSub: CSSProperties = { fontSize: '10.5px', color: '#8A5A08', marginTop: '6px', fontWeight: 700 };
+// عدّاد طلبات الاختصارات المعلّقة على زر الإعدادات.
+const pendingDot: CSSProperties = { marginInlineStart: '6px', background: '#FFFBEB', color: '#B45309', border: '1px solid #F59E0B', borderRadius: '999px', padding: '1px 7px', fontSize: '10.5px', fontWeight: 900 };
 const filtersRow: CSSProperties = { display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' };
 const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: 'center', flexWrap: 'wrap' };
 const scopeBtn: CSSProperties = { padding: '8px 18px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer' };

@@ -53,7 +53,7 @@ export function Sidebar({ open, onNavigate }: Props) {
   // تفضيلات القائمة تُحفظ في قاعدة البيانات لكل مستخدم فتبقى ثابتة عبر الأجهزة
   // وتحديثات السيرفر؛ والتخزين المحلي يُستخدم كذاكرة سريعة للعرض الفوري (DASH-3).
   const serverPrefs = useAuthStore((s) => s.user?.ui_prefs);
-  // المحلي أولًا إن سبق التخصيص على هذا الجهاز؛ وإلا نبدأ من تفضيلات الخادم (تهيئة جهاز جديد).
+  // الطيّ: المحلي أولًا إن سبق التخصيص على هذا الجهاز؛ وإلا من تفضيلات الخادم (تهيئة جهاز جديد).
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => (hasLocal(COLLAPSE_KEY) ? loadMap(COLLAPSE_KEY) : serverPrefs?.nav_collapsed ?? {}));
   // لا إخفاء شخصي إطلاقًا: نتجاهل كل التخزين المحلي والخادم فتظهر كل الروابط ناصعة دائمًا
   // لأي مستخدم مهما كان محفوظًا في متصفّحه. الإخفاء الحقيقي يكون على مستوى الدور فقط
@@ -200,12 +200,14 @@ export function Sidebar({ open, onNavigate }: Props) {
   );
 }
 
-const customizeBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '4px 12px 8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F0F4F8', color: '#274A78', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, textAlign: 'center' };
+// أزرار السايدبار بأنماط inline، والأنماط inline تغلب قواعد الـCSS —
+// فيُقلب لونها هنا لتُقرأ فوق السايدبار الأزرق (طلب أيمن 2026-08-26).
+const customizeBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: '4px 12px 8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,.22)', background: 'rgba(255,255,255,.12)', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, textAlign: 'center' };
 const customizeOn: CSSProperties = { background: '#2D9B6F', borderColor: '#2D9B6F', color: '#fff' };
 // margin-top:auto يدفعه لأسفل السايدبار (حاوية flex عمودية)، مع فاصل علوي وحد أدنى للمسافة.
-const managerBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: 'auto 12px 10px', marginTop: 'auto', padding: '7px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center', flexShrink: 0 };
+const managerBtn: CSSProperties = { display: 'block', width: 'calc(100% - 24px)', margin: 'auto 12px 10px', marginTop: 'auto', padding: '7px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,.22)', background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.85)', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center', flexShrink: 0 };
 const managerOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
-const editHint: CSSProperties = { margin: '0 12px 8px', fontSize: '10.5px', color: '#64748B', lineHeight: 1.6, textAlign: 'center' };
-const editRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer', color: '#334155', fontSize: '13px' };
+const editHint: CSSProperties = { margin: '0 12px 8px', fontSize: '10.5px', color: 'rgba(255,255,255,.6)', lineHeight: 1.6, textAlign: 'center' };
+const editRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer', color: 'rgba(255,255,255,.85)', fontSize: '13px' };
 // رابط معطّل: باهت وبمؤشّر "ممنوع" مع إبقاء النص مقروءًا.
 const disabledRow: CSSProperties = { opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' };

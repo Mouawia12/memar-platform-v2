@@ -57,13 +57,16 @@ class DocumentService
     /**
      * توليد مستند بتعبئة قالب من البيانات ({{key}} → value).
      *
+     * القيم تُهرَّب قبل الحقن: المستند الناتج يُعرض كـHTML في بوابة العميل، فقيمة
+     * مثل `<img onerror=…>` في حقل «اسم العميل» كانت ستُنفَّذ في متصفحه.
+     *
      * @param  array<string, mixed>  $data
      */
     public function generate(DocumentTemplate $template, ?int $projectId, string $title, array $data, ?int $userId): GeneratedDocument
     {
         $body = $template->body_html;
         foreach ($data as $key => $value) {
-            $body = str_replace('{{'.$key.'}}', (string) $value, $body);
+            $body = str_replace('{{'.$key.'}}', e((string) $value), $body);
         }
 
         return GeneratedDocument::create([

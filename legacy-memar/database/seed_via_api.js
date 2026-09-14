@@ -5,8 +5,14 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = 'https://lnhbmwercpvgegsecjhh.supabase.co';
-const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuaGJtd2VyY3B2Z2Vnc2VjamhoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njg5ODU5NywiZXhwIjoyMDkyNDc0NTk3fQ.PmwCgUnWJH2VSdNaaCkOmCLIZbLrPcnCx5luSFhzC_M';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error('✗ اضبط SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في متغيّرات البيئة قبل التشغيل.');
+  process.exit(1);
+}
+
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false }
@@ -95,7 +101,7 @@ async function verifyData() {
 async function main() {
   console.log('═══════════════════════════════════════════');
   console.log('  Memar Supabase Seeder');
-  console.log('  Project: lnhbmwercpvgegsecjhh.supabase.co');
+  console.log(`  Project: ${new URL(SUPABASE_URL).hostname}`);
   console.log('═══════════════════════════════════════════');
 
   try {

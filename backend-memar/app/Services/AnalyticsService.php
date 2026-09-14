@@ -101,6 +101,20 @@ class AnalyticsService
     }
 
     /**
+     * تعبير SQL يستخرج «سنة-شهر» من عمود تاريخ، بصيغة تفهمها قاعدة الاتصال الحالية.
+     *
+     * MySQL/MariaDB تستعمل DATE_FORMAT و SQLite تستعمل strftime. توحيدها هنا يجعل
+     * هذه التقارير قابلة للاختبار على قاعدة الاختبارات (SQLite) بدل أن تبقى مسارًا
+     * لا تلمسه أي سويت وينكسر أول ما يفتحه مستخدم حقيقي.
+     */
+    private function monthExpression(string $dateColumn): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', {$dateColumn})"
+            : "DATE_FORMAT({$dateColumn}, '%Y-%m')";
+    }
+
+    /**
      * مجموع عمود مبلغ مجمّعًا بالشهر (Y-m).
      *
      * @param  Builder<covariant \Illuminate\Database\Eloquent\Model>  $query
@@ -110,7 +124,7 @@ class AnalyticsService
     {
         return $query
             ->whereDate($dateColumn, '>=', $from->toDateString())
-            ->selectRaw("DATE_FORMAT({$dateColumn}, '%Y-%m') as ym, SUM({$amountColumn}) as total")
+            ->selectRaw($this->monthExpression($dateColumn)." as ym, SUM({$amountColumn}) as total")
             ->groupBy('ym')
             ->pluck('total', 'ym')
             ->map(fn ($v) => (float) $v)
@@ -124,9 +138,13 @@ class AnalyticsService
      */
     private function attendanceByMonth(CarbonImmutable $from): array
     {
+        // CASE WHEN بدل SUM(status IN (…)) — الأخيرة MySQL فقط.
         return Attendance::query()
             ->whereDate('date', '>=', $from->toDateString())
-            ->selectRaw("DATE_FORMAT(date, '%Y-%m') as ym, COUNT(*) as total, SUM(status IN ('present','late')) as attended")
+            ->selectRaw(
+                $this->monthExpression('date').' as ym, COUNT(*) as total,'
+                ." SUM(CASE WHEN status IN ('present','late') THEN 1 ELSE 0 END) as attended"
+            )
             ->groupBy('ym')
             ->get()
             ->mapWithKeys(fn ($r) => [

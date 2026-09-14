@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
-import { useActivateStage, useAddStage, useAddStageComment, useAdvanceStage, useRemoveStage, useSeedStages, useStageDetail } from '../hooks/useProjectStages';
-import { STAGE_STATUS_LABELS, type ProjectStage, type StageStatus } from '../types';
+import { useActivateStage, useAddStage, useAddStageComment, useAdvanceStage, useRemoveStage, useSeedStages, useStageDetail, useStageTemplates, useUpdateStage } from '../hooks/useProjectStages';
+import { StageTemplatesManager } from './StageTemplatesManager';
+import { STAGE_PHASES, STAGE_STATUS_LABELS, type ProjectStage, type StageStatus, type StageTemplate } from '../types';
 
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('ar', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' }) : '');
@@ -23,8 +24,13 @@ const markerGlyph = (s: StageStatus, order: number) => (s === 'done' ? '✓' : s
 export function ProjectStages({ projectId, stages }: { projectId: number; stages: ProjectStage[] }) {
   const canManage = usePermission('projects.manage');
   const [adding, setAdding] = useState(false);
+  // نافذة القوالب — للتوليد الأول أو لضمّ قالب إلى مراحل قائمة (طلب أيمن 2026-08-31).
+  const [picker, setPicker] = useState<null | 'seed' | 'append'>(null);
+  const [managing, setManaging] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDays, setNewDays] = useState('');
+  // تصنيف اختياري: الاسم يبقى اسمَك، والتصنيف يُدخل المشروع بطاقةَ «مراحل المشاريع».
+  const [newPhase, setNewPhase] = useState('');
 
   const seed = useSeedStages(projectId);
   const advance = useAdvanceStage(projectId);
@@ -51,8 +57,8 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
     if (name.length < 2) return;
     // تُدرَج بعد المرحلة المختارة (التي يقف عليها المستخدم)؛ وإن لا تحديد تُلحَق في النهاية.
     addStage.mutate(
-      { name, expected_days: newDays ? Number(newDays) : null, after_stage_id: selectedId ?? null },
-      { onSuccess: (created) => { setNewName(''); setNewDays(''); setAdding(false); setSelectedId(created.id); } },
+      { name, expected_days: newDays ? Number(newDays) : null, after_stage_id: selectedId ?? null, phase: newPhase || null },
+      { onSuccess: (created) => { setNewName(''); setNewDays(''); setNewPhase(''); setAdding(false); setSelectedId(created.id); } },
     );
   };
 
@@ -75,8 +81,8 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
         <div style={{ textAlign: 'center', padding: '26px 10px' }}>
           <p style={{ color: '#5A6478', fontSize: '13.5px', marginBottom: '14px' }}>لا توجد مراحل لهذا المشروع بعد.</p>
           {canManage && (
-            <button className="btn btn-primary" type="button" disabled={seed.isPending} onClick={() => seed.mutate()}>
-              {seed.isPending ? 'جارٍ الإنشاء…' : '✨ توليد المراحل الافتراضية'}
+            <button className="btn btn-primary" type="button" onClick={() => setPicker('seed')}>
+              ✨ توليد المراحل من قالب
             </button>
           )}
         </div>
@@ -163,18 +169,47 @@ export function ProjectStages({ projectId, stages }: { projectId: number; stages
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <input className="input" placeholder="اسم المرحلة" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '160px' }} autoFocus />
                     <input className="input" placeholder="أيام متوقعة" type="number" min={0} value={newDays} onChange={(e) => setNewDays(e.target.value)} style={{ width: '120px' }} />
+                    <select className="input" value={newPhase} onChange={(e) => setNewPhase(e.target.value)} style={{ width: '150px' }} title="اختياري — لتُحسب في بطاقة «مراحل المشاريع» أعلى السجل">
+                      <option value="">التصنيف (اختياري)</option>
+                      {STAGE_PHASES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                    </select>
                     <button className="btn btn-primary btn-sm" type="button" disabled={addStage.isPending || newName.trim().length < 2} onClick={submitNewStage}>حفظ</button>
-                    <button className="btn btn-sm" type="button" onClick={() => { setAdding(false); setNewName(''); setNewDays(''); }}>إلغاء</button>
+                    <button className="btn btn-sm" type="button" onClick={() => { setAdding(false); setNewName(''); setNewDays(''); setNewPhase(''); }}>إلغاء</button>
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: '#8A93A6', marginTop: '8px' }}>
+                    الاسم حرٌّ تمامًا — سمِّ المرحلة كما تشاء. والتصنيف اختياري: به تُحسب في بطاقة «مراحل المشاريع»، وبدونه تُحسب في «مراحل خاصة».
                   </div>
                 </div>
               ) : (
-                <button className="btn btn-sm" type="button" onClick={() => setAdding(true)}>
-                  {selected ? `+ إضافة مرحلة بعد «${selected.name}»` : '+ إضافة مرحلة'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button className="btn btn-sm" type="button" onClick={() => setAdding(true)}>
+                    {selected ? `+ إضافة مرحلة بعد «${selected.name}»` : '+ إضافة مرحلة'}
+                  </button>
+                  {/* ضمّ قالب إلى المسار القائم — لا يُحذف شيء (طلب أيمن 2026-08-31). */}
+                  <button className="btn btn-sm" type="button" onClick={() => setPicker('append')} style={{ color: '#1B6CA8' }}>
+                    ＋ إضافة قالب مراحل
+                  </button>
+                  {/* القوالب مِلك المكتب: إنشاء وتعديل وحذف (طلب أيمن 2026-09-09). */}
+                  <button className="btn btn-sm" type="button" onClick={() => setManaging(true)} style={{ color: '#5A6478' }}>
+                    ⚙️ إدارة القوالب
+                  </button>
+                </div>
               )}
             </div>
           )}
         </>
+      )}
+
+      {managing && <StageTemplatesManager onClose={() => setManaging(false)} />}
+
+      {picker && (
+        <TemplatePicker
+          mode={picker}
+          stagesCount={ordered.length}
+          pending={seed.isPending}
+          onClose={() => setPicker(null)}
+          onPick={(key) => seed.mutate({ template: key }, { onSuccess: () => setPicker(null) })}
+        />
       )}
     </div>
   );
@@ -196,6 +231,27 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, canSt
   onRemove: () => void;
 }) {
   const pal = PALETTE[stage.status];
+  const update = useUpdateStage(projectId);
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(stage.name);
+  const [draftDays, setDraftDays] = useState(stage.expected_days?.toString() ?? '');
+  const [draftPhase, setDraftPhase] = useState(stage.phase ?? '');
+
+  const startEdit = () => {
+    setDraftName(stage.name);
+    setDraftDays(stage.expected_days?.toString() ?? '');
+    setDraftPhase(stage.phase ?? '');
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    const name = draftName.trim();
+    if (name.length < 2) return;
+    update.mutate(
+      { stageId: stage.id, name, expected_days: draftDays ? Number(draftDays) : null, phase: draftPhase || null },
+      { onSuccess: () => setEditing(false) },
+    );
+  };
 
   return (
     <div style={{ ...panel, background: pal.soft, borderColor: pal.border }}>
@@ -207,7 +263,21 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, canSt
             </span>
             <span style={{ fontSize: '11.5px', color: '#8A93A3' }}>المرحلة {index + 1} من {total}</span>
           </div>
-          <h4 style={{ margin: '8px 0 0', fontSize: '17px', fontWeight: 800, color: '#0F2E4D' }}>{stage.name}</h4>
+          {editing ? (
+            /* تحرير المرحلة في مكانها: الاسم والأيام والتصنيف (طلب أيمن 2026-09-09). */
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '8px' }}>
+              <input className="input" value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="اسم المرحلة" style={{ minWidth: '180px', flex: 1 }} autoFocus />
+              <input className="input" type="number" min={0} value={draftDays} onChange={(e) => setDraftDays(e.target.value)} placeholder="أيام" style={{ width: '90px' }} />
+              <select className="input" value={draftPhase} onChange={(e) => setDraftPhase(e.target.value)} style={{ width: '130px' }} title="التصنيف — به تُحسب في بطاقة «مراحل المشاريع»">
+                <option value="">بلا تصنيف</option>
+                {STAGE_PHASES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+              <button className="btn btn-primary btn-sm" type="button" disabled={update.isPending || draftName.trim().length < 2} onClick={saveEdit}>حفظ</button>
+              <button className="btn btn-sm" type="button" onClick={() => setEditing(false)}>إلغاء</button>
+            </div>
+          ) : (
+            <h4 style={{ margin: '8px 0 0', fontSize: '17px', fontWeight: 800, color: '#0F2E4D' }}>{stage.name}</h4>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
             {stage.started_at && <span style={metaChip}>📅 بدأت {fmtDate(stage.started_at)}</span>}
             {stage.completed_at && <span style={metaChip}>🏁 انتهت {fmtDate(stage.completed_at)}</span>}
@@ -227,6 +297,7 @@ function StagePanel({ projectId, stage, index, total, nextName, canManage, canSt
                 {starting ? '…' : '▶ بدء المرحلة'}
               </button>
             )}
+            {!editing && <button className="btn btn-sm" type="button" onClick={startEdit}>✏️ تعديل</button>}
             {stage.status === 'pending' && (
               <button className="btn btn-sm" type="button" onClick={onRemove} style={{ color: '#DC2626' }}>🗑 حذف</button>
             )}
@@ -320,3 +391,91 @@ const panel: CSSProperties = { marginTop: '18px', padding: '16px 18px', border: 
 const advanceHint: CSSProperties = { marginTop: '12px', padding: '9px 12px', border: '1px solid', borderRadius: '10px', fontSize: '12px', color: '#475569', lineHeight: 1.7 };
 const metaChip: CSSProperties = { fontSize: '11.5px', color: '#475569', background: '#fff', border: '1px solid #E4E8EF', borderRadius: '999px', padding: '3px 10px' };
 const msgCard: CSSProperties = { background: '#fff', border: '1px solid #EEF2F7', borderRadius: '8px', padding: '8px 10px' };
+
+/**
+ * منتقي قالب المراحل (طلب أيمن 2026-08-31): لا كل مشروع يمرّ بالمسار نفسه —
+ * رخصة التعديل غير المشروع المتكامل غير الإشراف وحده. وفي وضع «إعادة التوليد»
+ * يُنبَّه المستخدم صراحةً أن المراحل القائمة ونقاشها ستُحذف، ويكتب «حذف» للتأكيد.
+ */
+function TemplatePicker({ mode, stagesCount, pending, onPick, onClose }: {
+  mode: 'seed' | 'append';
+  stagesCount: number;
+  pending: boolean;
+  onPick: (key: string) => void;
+  onClose: () => void;
+}) {
+  const { data: templates, isLoading } = useStageTemplates();
+  const [chosen, setChosen] = useState<string | null>(null);
+  const appending = mode === 'append';
+  const picked = templates?.find((t: StageTemplate) => t.key === chosen) ?? null;
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div className="card" style={modal} onClick={(e) => e.stopPropagation()}>
+        <div style={modalHead}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '16px' }}>{appending ? '＋ إضافة قالب مراحل' : '✨ توليد مراحل المشروع'}</h3>
+            <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#8A93A3' }}>
+              اختر القالب الذي يناسب طبيعة هذا المشروع.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="إغلاق" style={closeBtn}>×</button>
+        </div>
+
+        {appending && (
+          <div style={noteBox}>
+            ✅ مراحلك الحالية ({stagesCount}) تبقى كما هي بنقاشها وتواريخها —
+            مراحل القالب تُضاف بعدها بحالة «منتظرة». لا يُحذف شيء.
+          </div>
+        )}
+
+        <div style={list}>
+          {isLoading && <p style={{ color: '#64748B', fontSize: '13px' }}>جارٍ التحميل…</p>}
+          {templates?.map((t: StageTemplate) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setChosen(t.key)}
+              style={{ ...card, ...(chosen === t.key ? cardOn : null) }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <b style={{ fontSize: '14px', color: '#0F2A4A' }}>{t.label}</b>
+                <span style={countChip}>{t.stages_count} مراحل · {t.total_days} يوم</span>
+              </span>
+              <span style={{ fontSize: '12px', color: '#64748B', display: 'block', marginTop: '3px' }}>{t.hint}</span>
+              <span style={stageNames}>{t.stages.join(' ← ')}</span>
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px', alignItems: 'center' }}>
+          {picked && appending && (
+            <span style={{ marginInlineEnd: 'auto', fontSize: '12px', color: '#5A6478' }}>
+              ستصير مراحل المشروع <b>{stagesCount + picked.stages_count}</b> مرحلة.
+            </span>
+          )}
+          <button type="button" className="btn" onClick={onClose}>إلغاء</button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={chosen === null || pending}
+            onClick={() => chosen && onPick(chosen)}
+          >
+            {pending ? 'جارٍ…' : appending ? 'أضِف المراحل' : 'توليد المراحل'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,25,45,0.45)', display: 'grid', placeItems: 'center', zIndex: 11000, padding: '20px' };
+const modal: CSSProperties = { width: '100%', maxWidth: '560px', maxHeight: '88vh', overflow: 'auto', padding: '20px 22px' };
+const modalHead: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '14px' };
+const closeBtn: CSSProperties = { background: 'none', border: 'none', fontSize: '24px', lineHeight: 1, cursor: 'pointer', color: '#94A3B8', fontFamily: 'inherit' };
+const noteBox: CSSProperties = { background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#166534', borderRadius: '9px', padding: '10px 13px', fontSize: '12.5px', lineHeight: 1.8, marginBottom: '14px' };
+const list: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '46vh', overflowY: 'auto' };
+const card: CSSProperties = { textAlign: 'start', background: '#fff', border: '1.5px solid #E4E8EF', borderRadius: '11px', padding: '11px 13px', cursor: 'pointer', fontFamily: 'inherit', display: 'block', width: '100%' };
+const cardOn: CSSProperties = { borderColor: '#1B6CA8', background: '#F7FBFF', boxShadow: '0 0 0 2px rgba(27,108,168,.18)' };
+const countChip: CSSProperties = { fontSize: '10.5px', fontWeight: 800, color: '#1B6CA8', background: '#E4F0FA', borderRadius: '999px', padding: '1px 8px' };
+const stageNames: CSSProperties = { display: 'block', marginTop: '6px', fontSize: '11px', color: '#94A3B8', lineHeight: 1.7 };

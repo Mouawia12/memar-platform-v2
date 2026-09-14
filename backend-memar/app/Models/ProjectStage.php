@@ -17,8 +17,24 @@ class ProjectStage extends Model
 {
     use LogsActivity;
 
+    /**
+     * المراحل العامّة (طلب أيمن 2026-09-09): لكل مشروع مراحله بأسمائها الخاصّة
+     * حسب قالبه، لكن كل مرحلة تنتمي إلى واحدة من هذه الستّ — فتُجمَع المشاريع
+     * بها في بطاقة «مراحل المشاريع» مهما اختلفت أسماء المراحل بين القوالب.
+     *
+     * @var array<string, array{label: string, color: string}>
+     */
+    public const PHASES = [
+        'collect' => ['label' => 'جمع بيانات', 'color' => '#1B6CA8'],
+        'design' => ['label' => 'تصميم', 'color' => '#7C3AED'],
+        'permit' => ['label' => 'البلدية', 'color' => '#E8A838'],
+        'shop' => ['label' => 'تنفيذية', 'color' => '#2D9B6F'],
+        'supervise' => ['label' => 'إشراف', 'color' => '#DC4A3D'],
+        'handover' => ['label' => 'تسليم', 'color' => '#059669'],
+    ];
+
     protected $fillable = [
-        'project_id', 'name', 'status', 'position',
+        'project_id', 'name', 'phase', 'status', 'position',
         'expected_days', 'actual_days', 'started_at', 'completed_at',
     ];
 

@@ -104,12 +104,15 @@ class DemoDataSeeder extends Seeder
 
         // ── المواعيد والاجتماعات (منها اليوم) ────
         $appointments = [
-            ['title' => 'اجتماع مراجعة تصميم – فيلا حولي', 'type' => 'meeting', 'is_video' => true, 'video_room' => 'memar-demo-review', 'start_at' => now()->setTime(11, 0), 'end_at' => now()->setTime(12, 0), 'project_id' => $prj1?->id, 'location' => 'أونلاين'],
-            ['title' => 'موعد استلام مستندات العميل', 'type' => 'appointment', 'is_video' => false, 'start_at' => now()->setTime(15, 30), 'end_at' => now()->setTime(16, 0), 'project_id' => $prj2?->id, 'location' => 'المكتب – حولي'],
-            ['title' => 'اجتماع متابعة التنفيذ الأسبوعي', 'type' => 'meeting', 'is_video' => true, 'video_room' => 'memar-demo-weekly', 'start_at' => now()->addDays(2)->setTime(10, 0), 'end_at' => now()->addDays(2)->setTime(11, 0), 'project_id' => $prj2?->id, 'location' => 'أونلاين'],
-            ['title' => 'استشارة أولى مجانية – عميل محتمل', 'type' => 'meeting', 'is_video' => true, 'video_room' => 'memar-demo-intro', 'start_at' => now()->addDays(4)->setTime(13, 0), 'end_at' => now()->addDays(4)->setTime(13, 30), 'location' => 'أونلاين'],
+            ['title' => 'اجتماع مراجعة تصميم – فيلا حولي', 'type' => 'meeting', 'is_video' => true, 'video_room' => 'memar-demo-review', 'start_at' => now()->setTime(11, 0), 'end_at' => now()->setTime(12, 0), 'project_id' => $prj1?->id, 'location' => 'أونلاين', 'assignee_email' => 'eng.khaled@memar.kw'],
+            ['title' => 'موعد استلام مستندات العميل', 'type' => 'appointment', 'is_video' => false, 'start_at' => now()->setTime(15, 30), 'end_at' => now()->setTime(16, 0), 'project_id' => $prj2?->id, 'location' => 'المكتب – حولي', 'assignee_email' => 'sec@memar.kw'],
+            ['title' => 'اجتماع متابعة التنفيذ الأسبوعي', 'type' => 'meeting', 'is_video' => true, 'video_room' => 'memar-demo-weekly', 'start_at' => now()->addDays(2)->setTime(10, 0), 'end_at' => now()->addDays(2)->setTime(11, 0), 'project_id' => $prj2?->id, 'location' => 'أونلاين', 'assignee_email' => 'eng.sara@memar.kw'],
+            ['title' => 'استشارة أولى مجانية – عميل محتمل', 'type' => 'meeting', 'is_video' => true, 'video_room' => 'memar-demo-intro', 'start_at' => now()->addDays(4)->setTime(13, 0), 'end_at' => now()->addDays(4)->setTime(13, 30), 'location' => 'أونلاين', 'assignee_email' => 'arch1@memar.kw'],
         ];
         foreach ($appointments as $a) {
+            // المكلَّف بالموعد — يظهر اسمه في القوائم و«مواعيدي» (طلب أيمن 2026-08-31)
+            $a['assignee_id'] = User::where('email', $a['assignee_email'])->value('id');
+            unset($a['assignee_email']);
             Appointment::firstOrCreate(['title' => $a['title']], $a + ['status' => 'scheduled', 'created_by' => $adminId]);
         }
 

@@ -31,6 +31,23 @@ class SettingController extends ApiController
         ]);
     }
 
+    /**
+     * إعدادات CRM للعرض — يقرأها كل من يملك crm.view لأن الواجهة تحتاج معرفة
+     * تفعيل النقاط وخصوصية الأرقام. قيمة النقطة بالدينار تُحجب عن غير الإدارة
+     * التزامًا بقاعدة «الموظف يرى عدد النقاط لا قيمتها».
+     */
+    public function crm(Request $request): JsonResponse
+    {
+        $this->settings->apply();
+        $effective = $this->settings->forGroup('crm');
+
+        if (! $request->user()?->can('loyalty.manage')) {
+            unset($effective['points']['unit_kwd']);
+        }
+
+        return $this->ok(['group' => 'crm', 'effective' => $effective, 'overrides' => []]);
+    }
+
     /** حفظ دفعة تجاوزات (settings: {"salary.points_per_kwd": 60, …}). */
     public function update(string $group, Request $request): JsonResponse
     {

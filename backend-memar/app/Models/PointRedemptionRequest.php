@@ -13,7 +13,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PointRedemptionRequest extends Model
 {
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [

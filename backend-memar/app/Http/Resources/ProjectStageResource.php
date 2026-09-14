@@ -22,6 +22,9 @@ class ProjectStageResource extends JsonResource
             'id' => $this->id,
             'project_id' => $this->project_id,
             'name' => $this->name,
+            // التصنيف العامّ للمرحلة — به تُجمَع المشاريع في بطاقة «مراحل المشاريع»
+            'phase' => $this->phase,
+            'phase_label' => $this->phase !== null ? (ProjectStage::PHASES[$this->phase]['label'] ?? null) : null,
             'status' => $this->status,
             'position' => $this->position,
             'expected_days' => $this->expected_days,

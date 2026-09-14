@@ -137,15 +137,15 @@ class AtomsDemoSeeder extends Seeder
             $staff = $flagship->manager_id;
             Appointment::updateOrCreate(
                 ['title' => 'مراجعة التصميم المعماري', 'project_id' => $flagship->id],
-                ['type' => 'meeting', 'start_at' => Carbon::now()->setTime(10, 0), 'end_at' => Carbon::now()->setTime(11, 30), 'is_video' => true, 'video_room' => 'memar-villa-review', 'status' => 'scheduled', 'created_by' => $staff],
+                ['type' => 'meeting', 'start_at' => Carbon::now()->setTime(10, 0), 'end_at' => Carbon::now()->setTime(11, 30), 'is_video' => true, 'video_room' => 'memar-villa-review', 'assignee_id' => $staff, 'status' => 'scheduled', 'created_by' => $staff],
             );
             Appointment::updateOrCreate(
                 ['title' => 'عرض المخططات النهائية', 'project_id' => $flagship->id],
-                ['type' => 'meeting', 'start_at' => Carbon::now()->addDays(7)->setTime(14, 0), 'end_at' => Carbon::now()->addDays(7)->setTime(15, 0), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'status' => 'scheduled', 'created_by' => $staff],
+                ['type' => 'meeting', 'start_at' => Carbon::now()->addDays(7)->setTime(14, 0), 'end_at' => Carbon::now()->addDays(7)->setTime(15, 0), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'assignee_id' => $staff, 'status' => 'scheduled', 'created_by' => $staff],
             );
             Appointment::updateOrCreate(
                 ['title' => 'مناقشة متطلبات التصميم الداخلي', 'project_id' => $flagship->id],
-                ['type' => 'meeting', 'start_at' => Carbon::now()->subDays(5)->setTime(11, 0), 'end_at' => Carbon::now()->subDays(5)->setTime(11, 45), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'status' => 'done', 'notes' => 'اتُّفق على الطراز العصري مع لمسات كلاسيكية في المداخل، وتحديث ألوان الواجهة الداخلية.', 'created_by' => $staff],
+                ['type' => 'meeting', 'start_at' => Carbon::now()->subDays(5)->setTime(11, 0), 'end_at' => Carbon::now()->subDays(5)->setTime(11, 45), 'is_video' => false, 'location' => 'مكتب معمار - الرياض', 'assignee_id' => $staff, 'status' => 'done', 'notes' => 'اتُّفق على الطراز العصري مع لمسات كلاسيكية في المداخل، وتحديث ألوان الواجهة الداخلية.', 'created_by' => $staff],
             );
 
             // ── مستندات المشروع (قسم «آخر المستندات») — طبق الأصل من Atoms ──
@@ -239,7 +239,9 @@ class AtomsDemoSeeder extends Seeder
             ['email' => $email],
             ['name' => $name, 'password' => Hash::make('manager123'), 'is_active' => true],
         );
-        $user->syncRoles(['staff']);
+        // الدور «staff» لا وجود له في نظام الأدوار (admin/employee/client) — كانت
+        // البذرة تفشل عنده فتُفرَّغ بوابة العميل من محتواها كلّه (2026-08-31).
+        $user->syncRoles(['employee']);
 
         return $user;
     }

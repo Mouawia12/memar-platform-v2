@@ -1,11 +1,23 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 
+import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useAuthStore } from '../../../store/auth';
 import { useProjects } from '../../projects/hooks/useProjects';
-import { FollowUpBoard } from '../components/FollowUpBoard';
+import { ClientFollowUpsBoard } from '../components/ClientFollowUpsBoard';
+import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from '../components/DateRangeFilter';
+import { FollowUpFormModal } from '../components/FollowUpFormModal';
+import { StaffFilter } from '../components/StaffFilter';
+import { TaskStatusBoard } from '../components/TaskStatusBoard';
+import { useFollowUps } from '../hooks/useFollowUps';
+import { isFollowUpOf, isTaskOf } from '../ownership';
+import { useTaskAlertAcks } from '../taskAlerts';
 import { TaskDetailModal } from '../components/TaskDetailModal';
+import type { CardRef } from '../hooks/useCardActivity';
+import type { FollowUp } from '../api/followUpsApi';
+import { DirectiveModal } from '../components/DirectiveModal';
 import { TaskFormModal } from '../components/TaskFormModal';
-import { useDeleteTask, useMoveTask, useTasks, useToggleTask } from '../hooks/useTasks';
+import { useDeleteTask, useMoveTask, useTasks, useToggleTask, useUpdateProgress, useWorkload } from '../hooks/useTasks';
 import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
 
 /**
@@ -15,6 +27,10 @@ import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
 export function TasksPage() {
   const canManage = usePermission('tasks.manage'); // إضافة/تعديل المهام (بوّابة الصلاحيات — طلب أيمن 2026-08-12)
   const canDelete = usePermission('tasks.delete'); // الحذف للإدارة فقط (طلب العميل — اجتماع 3)
+  // المتابعة تذكيرٌ على عميل، فإضافتها تتبع صلاحية CRM لا صلاحية المهام.
+  const canAddFollowUp = usePermission('crm.manage');
+  // إرسال توجيه على متابعة للإدارة وحدها — نظير tasks.delete في المهام.
+  const canSendFupDirective = usePermission('crm.delete');
 
   const [search, setSearch] = useState('');
   const [projectId, setProjectId] = useState<number | ''>('');
@@ -22,21 +38,105 @@ export function TasksPage() {
   const [editing, setEditing] = useState<Task | null>(null);
   const [detail, setDetail] = useState<Task | null>(null);
   const [confirming, setConfirming] = useState<Task | null>(null); // تأكيد الإكمال قبل النقل لـ«مكتملة»
+  const [directiveOf, setDirectiveOf] = useState<Task | null>(null); // نافذة توجيهات الإدارة (طلب أيمن 2026-08-29)
+  const [fupFormOpen, setFupFormOpen] = useState(false); // نافذة «متابعة جديدة» (طلب أيمن 2026-08-29)
+  /*
+   * ثلاثة أوضاع بثلاثة أزرار دائمة الظهور (طلب أيمن 2026-08-31): ما يخصّني
+   * وحده · الكلّ واضحًا · الكلّ مع تخفيت بطاقات غيري ليبرز ما يخصّني.
+   */
+  const [taskHighlight, setTaskHighlight] = useState(false);
+  const [fupHighlight, setFupHighlight] = useState(false);
+  const [fupDirectiveOf, setFupDirectiveOf] = useState<FollowUp | null>(null); // توجيهات متابعة
+  // نطاق كل لوحة على حدة: الكل أو ما يخصّني (طلب أيمن 2026-08-24).
+  // null = لم يختر المستخدم بعد، فيسري افتراض دوره أدناه. حفظُه كـ null لا كقيمة
+  // محسوبة عند أول رسم يجعله يصحّ حتى لو وصلت الصلاحيات بعد الرسم الأول.
+  const [taskScope, setTaskScope] = useState<'all' | 'mine' | null>(null);
+  const [fupScope, setFupScope] = useState<'all' | 'mine' | null>(null);
+  // فلتر التاريخ لكل لوحة على حدة (طلب أيمن 2026-08-26): المهام بتاريخ الاستحقاق، المتابعات بموعد التذكير.
+  const [taskRange, setTaskRange] = useState<DateRange>(EMPTY_RANGE);
+  const [fupRange, setFupRange] = useState<DateRange>(EMPTY_RANGE);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const meId = useAuthStore((st) => st.user?.id);
+  // الموظف يفتح الصفحة على «مهامي فقط» فيبدأ بشغله هو، وإدارة النظام تفتحها على
+  // «جميع المهام» لأن عملها الإشراف لا التنفيذ (طلب أيمن 2026-09-11، يعيد التمييز
+  // حسب الدور الذي أُلغي في 2026-08-29 — هذه المرة للأدمن والمدير العام وحدهما،
+  // لا لكل من يهبط على لوحة الإدارة). الزرّان يبقيان بترتيب ثابت لكل الأدوار
+  // فلا يتبدّل مكانهما على المستخدم، والمختار منهما هو المُظلَّل.
+  const isAdmin = useIsAdmin();
+  const defaultScope: 'all' | 'mine' = isAdmin ? 'all' : 'mine';
+  /*
+   * فلتر الموظف (طلب أيمن 2026-09-11): حالة واحدة تسري على اللوحتين — تختار موظفًا
+   * فترى مهامه ومتابعاته معًا. يظهر المُبدِّل في شريطَي اللوحتين وكلاهما يقرأ ويكتب
+   * الحالة نفسها، فلا يتفاجأ أحد بلوحة مفلترة خارج شاشته.
+   *
+   * هو وأزرار النطاق سؤال واحد: «شغل مَن أرى؟» — فما دام موظف مختارًا لا يسري النطاق،
+   * وضغط أيّ زرّ نطاق يُلغي الاختيار (مخرج بضغطة بدل أزرار معطّلة تُحيّر).
+   */
+  const [staffId, setStaffId] = useState<number | ''>('');
+  const byStaff = staffId !== ''; // فلتر الموظف فعّال — يتقدّم على النطاق والتمييز
+  const pickScope = (set: (v: 'all' | 'mine') => void, v: 'all' | 'mine') => { setStaffId(''); set(v); };
+  const effTaskScope = taskScope ?? defaultScope;
+  const effFupScope = fupScope ?? defaultScope;
+  // إطفاء وميض التأخّر بطريقتين (طلب أيمن 2026-08-25): زرّ 🔕 على البطاقة،
+  // أو فتح المهمة نفسها — فكلاهما يعني أن الموظف اطّلع على تأخّرها.
+  const { isAcked, ack } = useTaskAlertAcks();
+  const openTask = (t: Task) => { ack(t); setDetail(t); };
 
   const { data: tasks, isLoading, isError } = useTasks({ search: search || undefined, project_id: projectId === '' ? undefined : projectId });
   const { data: projectsData } = useProjects({ per_page: 100 });
+  // عند اختيار موظف نطلب القائمة كاملة ثم نرشّحها عليه — «mine» الخادمية تخصّني أنا.
+  const { data: followUps } = useFollowUps(staffId === '' && effFupScope === 'mine');
+  // «توزيع المهام على الفريق» بيانات إدارية — للإدارة وحدها (طلب أيمن 2026-08-25).
+  const { data: workload } = useWorkload(canDelete);
   const move = useMoveTask();
   const toggle = useToggleTask();
   const del = useDeleteTask();
+  const progress = useUpdateProgress();
 
   const kpis = useMemo(() => {
-    const c = { overdue: 0, today: 0, upcoming: 0, done: 0 };
-    for (const t of tasks ?? []) c[taskColumn(t)]++;
+    const list = tasks ?? [];
+    const overdue = list.filter((t) => taskColumn(t) === 'overdue').length;
+    const done = list.filter((t) => isDone(t)).length;
 
-    return c;
+    return {
+      total: list.length,
+      inProgress: list.filter((t) => t.status === 'in_progress').length,
+      overdue,
+      done,
+      donePct: list.length ? Math.round((done / list.length) * 100) : 0,
+    };
   }, [tasks]);
 
+  // اللوحة العليا تعرض المهام حسب النطاق المختار.
+  const scopedTasks = useMemo(() => {
+    const list = tasks ?? [];
+    if (staffId !== '') return list.filter((t) => isTaskOf(t, staffId));
+
+    return effTaskScope === 'mine' ? list.filter((t) => isTaskOf(t, meId)) : list;
+  }, [tasks, effTaskScope, meId, staffId]);
+  const boardTasks = useMemo(() => scopedTasks.filter((t) => inRange(t.due_date, taskRange)), [scopedTasks, taskRange]);
+
+  const scopedFollowUps = useMemo(() => {
+    const list = followUps ?? [];
+
+    return staffId === '' ? list : list.filter((f) => isFollowUpOf(f, staffId));
+  }, [followUps, staffId]);
+  const boardFollowUps = useMemo(() => scopedFollowUps.filter((f) => inRange(f.remind_at, fupRange)), [scopedFollowUps, fupRange]);
+
+  // إشارة البطاقة التي تفتحها النوافذ المشتركة (مهمة أو متابعة).
+  const taskCard = (t: Task): CardRef => ({
+    kind: 'task', id: t.id, code: `#TSK-${String(t.id).padStart(3, '0')}`, title: t.title,
+    owner: t.assignee?.name ?? null, ownerLabel: 'المكلَّف',
+  });
+  const fupCard = (f: FollowUp): CardRef => ({
+    kind: 'follow-up', id: f.id, code: `#FUP-${String(f.id).padStart(3, '0')}`, title: f.contact ?? 'عميل',
+    owner: f.creator?.name ?? null, ownerLabel: 'صاحب المتابعة',
+  });
+
   const openCreate = () => { setEditing(null); setFormOpen(true); };
+  // نغلق التفاصيل قبل فتح التعديل: نافذة التفاصيل أعلى منه طبقةً، فكانت تحجبه
+  // ولا يظهر إلا بإغلاقها يدويًّا (طلب أيمن 2026-08-29).
+  const openEdit = (t: Task) => { setDetail(null); setEditing(t); setFormOpen(true); };
   const handleDelete = (t: Task) => { if (confirm(`حذف مهمة "${t.title}"؟`)) del.mutate(t.id); };
   const handleMove = (t: Task, payload: { due_date?: string; status?: TaskStatus }) => move.mutate({ id: t.id, payload });
   // إكمال المهمة يتطلّب تأكيدًا (طلب العميل) — لا يُنقل مباشرة لـ«مكتملة». إعادة الفتح فورية.
@@ -51,55 +151,186 @@ export function TasksPage() {
 
   return (
     <div>
+      {/* ══ القسم الأعلى: المهام ══ */}
       <div style={pageHeader}>
         <div>
-          <h1 style={{ margin: 0 }}>✅ المهام والمتابعة</h1>
-          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '2px' }}>اسحب للتغيير · اضغط للتفاصيل</div>
+          <h1 style={{ margin: 0, fontSize: '17px' }}>📋 إدارة المهام والمتابعة</h1>
+          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '3px' }}>لوحة كانبان لتتبع المهام وإدارة سير العمل</div>
         </div>
-        {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ مهمة جديدة</button>}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ مهمة جديدة</button>}
+          <button className="btn" type="button" onClick={() => setFiltersOpen((v) => !v)}>🔍 تصفية</button>
+        </div>
       </div>
 
-      {/* مؤشرات */}
-      <div className="kpi-grid" style={{ marginBottom: '14px' }}>
-        <Kpi icon="🔴" color="#DC2626" label="متأخرة" value={kpis.overdue} />
-        <Kpi icon="⏰" color="#D97706" label="اليوم" value={kpis.today} />
-        <Kpi icon="📅" color="#2563EB" label="قادمة" value={kpis.upcoming} />
-        <Kpi icon="✅" color="#059669" label="مكتملة" value={kpis.done} />
+      {/* مؤشّرات المهام الأربعة */}
+      <div style={kpiGrid}>
+        <Kpi icon="📋" bg="#EBF5FF" label="إجمالي المهام" value={kpis.total} sub="هذا الشهر" />
+        <Kpi icon="⏳" bg="#FFFBEB" label="قيد التنفيذ" value={kpis.inProgress} sub="نشطة حاليًا" />
+        <Kpi icon="⚠️" bg="#FEF2F2" label="متأخرة" value={kpis.overdue} sub="تحتاج متابعة" />
+        <Kpi icon="✅" bg="#ECFDF5" label="مكتملة" value={kpis.done} sub={<span style={{ color: '#2D9B6F', fontWeight: 800 }}>↑ {kpis.donePct}%</span>} />
       </div>
 
-      {/* فلاتر */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <input className="input" placeholder="بحث بعنوان المهمة…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '220px' }} />
-        <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : '')}>
-          <option value="">كل المشاريع</option>
-          {projectsData?.data.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+      {filtersOpen && (
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <input className="input" placeholder="بحث بعنوان المهمة…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '220px' }} />
+          <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: '180px' }}>
+            <option value="">كل المشاريع</option>
+            {projectsData?.data.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+      )}
+
+      <div style={hintLine}>💡 اسحب أي بطاقة وأفلتها في عمود آخر لتغيير مرحلتها، أو اضغط عليها لعرض التفاصيل الكاملة.</div>
+
+      {/* شريط واحد: النطاق + الموظف + التاريخ — بدل ثلاثة صفوف تهدر عرض الشاشة. */}
+      <div style={toolbar}>
+        <span style={group}>
+          <button type="button" onClick={() => pickScope(setTaskScope, 'mine')} style={{ ...scopeBtn, ...(byStaff ? null : effTaskScope === 'mine' ? scopeOn : null) }}>مهامي فقط</button>
+          <button type="button" onClick={() => { pickScope(setTaskScope, 'all'); setTaskHighlight(false); }} style={{ ...scopeBtn, ...(byStaff ? null : effTaskScope === 'all' && !taskHighlight ? scopeOn : null) }}>جميع المهام</button>
+          <button
+            type="button"
+            onClick={() => { pickScope(setTaskScope, 'all'); setTaskHighlight(true); }}
+            style={{ ...scopeBtn, ...(byStaff ? null : effTaskScope === 'all' && taskHighlight ? scopeOn : null) }}
+            title="تظهر كل المهام، ومهام غيري تخفت ليبرز ما يخصّني"
+          >🔷 مهامي مميّزة</button>
+        </span>
+
+        <span style={divider} />
+        <StaffFilter value={staffId} onChange={setStaffId} shown={scopedTasks.length} />
+        <span style={divider} />
+
+        <DateRangeFilter inline value={taskRange} onChange={setTaskRange} shown={boardTasks.length} total={scopedTasks.length} />
       </div>
 
       {isLoading && <p>جارٍ التحميل…</p>}
       {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المهام.</p>}
       {tasks && (
-        <FollowUpBoard
-          tasks={tasks}
-          canDelete={canDelete}
-          onOpen={setDetail}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onMove={handleMove}
+        <TaskStatusBoard
+          tasks={boardTasks}
+          onOpen={openTask}
+          isAcked={isAcked}
+          onAck={ack}
+          onMove={(t, status) => handleMove(t, { status })}
+          meId={meId}
+          highlightMine={!byStaff && effTaskScope === 'all' && taskHighlight}
+          onProgress={canManage ? (t, pct) => progress.mutate({ id: t.id, progress: pct }) : undefined}
+          onDirective={setDirectiveOf}
+          canSendDirective={canDelete}
         />
       )}
 
+      {/* ══ القسم الأسفل: المتابعة ══ */}
+      <div style={sectionDivider} />
+
+      <div style={pageHeader}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '16px' }}>🔄 لوحة المتابعة (كانبان)</h2>
+          <div style={{ fontSize: '12px', color: '#8A93A3', marginTop: '3px' }}>متابعات العملاء — تُضاف من هنا أو من نافذة الفرصة، وتظهر حسب موعدها</div>
+        </div>
+        {canAddFollowUp && (
+          <button className="btn btn-primary" type="button" onClick={() => setFupFormOpen(true)}>+ متابعة جديدة</button>
+        )}
+      </div>
+
+      <div style={toolbar}>
+        <span style={group}>
+          <button type="button" onClick={() => pickScope(setFupScope, 'mine')} style={{ ...scopeBtn, ...(byStaff ? null : effFupScope === 'mine' ? scopeOn : null) }}>متابعاتي فقط</button>
+          <button type="button" onClick={() => { pickScope(setFupScope, 'all'); setFupHighlight(false); }} style={{ ...scopeBtn, ...(byStaff ? null : effFupScope === 'all' && !fupHighlight ? scopeOn : null) }}>جميع المتابعات</button>
+          <button
+            type="button"
+            onClick={() => { pickScope(setFupScope, 'all'); setFupHighlight(true); }}
+            style={{ ...scopeBtn, ...(byStaff ? null : effFupScope === 'all' && fupHighlight ? scopeOn : null) }}
+            title="تظهر كل المتابعات، ومتابعات غيري تخفت ليبرز ما يخصّني"
+          >🔷 متابعاتي مميّزة</button>
+        </span>
+
+        <span style={divider} />
+        <StaffFilter value={staffId} onChange={setStaffId} shown={scopedFollowUps.length} />
+        <span style={divider} />
+
+        <DateRangeFilter inline value={fupRange} onChange={setFupRange} shown={boardFollowUps.length} total={scopedFollowUps.length} />
+      </div>
+
+      <ClientFollowUpsBoard
+        items={boardFollowUps}
+        meId={meId}
+        highlightMine={!byStaff && effFupScope === 'all' && fupHighlight}
+        onDirective={setFupDirectiveOf}
+        canSendDirective={canSendFupDirective}
+      />
+
+      {/* ══ توزيع المهام على الفريق ══ */}
+      {canDelete && (workload?.length ?? 0) > 0 && (
+        <div style={workCard}>
+          <h3 style={{ margin: 0, fontSize: '15px' }}>📊 توزيع المهام على الفريق</h3>
+          <div style={{ fontSize: '12px', color: '#8A93A3', margin: '3px 0 12px' }}>حمل العمل الحالي لكل مهندس</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={table}>
+              <thead>
+                <tr>
+                  <th style={th}>المهندس</th>
+                  <th style={th}>مهام نشطة</th>
+                  <th style={th}>مكتملة</th>
+                  <th style={th}>متأخرة</th>
+                  <th style={th}>حمل العمل</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(workload ?? []).map((w) => {
+                  const max = Math.max(...(workload ?? []).map((x) => x.open), 1);
+                  const pct = Math.round((w.open / max) * 100);
+                  const tone = w.overdue > 1 ? '#DC4A3D' : w.open > max * 0.6 ? '#E8A838' : '#2D9B6F';
+                  return (
+                    <tr key={w.user.id}>
+                      <td style={{ ...td, fontWeight: 800 }}>{w.user.name}</td>
+                      <td style={td}>{w.open}</td>
+                      <td style={td}>{w.done}</td>
+                      <td style={{ ...td, color: w.overdue > 0 ? '#DC4A3D' : '#64748B', fontWeight: w.overdue > 0 ? 800 : 400 }}>{w.overdue}</td>
+                      <td style={td}>
+                        <span style={barTrack}><span style={{ ...barFill, width: `${pct}%`, background: tone }} /></span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {formOpen && <TaskFormModal task={editing} onClose={() => setFormOpen(false)} />}
+      {fupFormOpen && <FollowUpFormModal onClose={() => setFupFormOpen(false)} />}
       {detail && (
         <TaskDetailModal
           task={detail}
           canManage={canManage}
           canDelete={canDelete}
           onClose={() => setDetail(null)}
-          onEdit={(t) => { setEditing(t); setFormOpen(true); }}
+          onEdit={openEdit}
           onToggle={handleToggle}
           onDelete={handleDelete}
           onSetNotExecuted={(t) => { move.mutate({ id: t.id, payload: { status: 'cancelled' } }); setDetail(null); }}
+          onMove={(t, status) => handleMove(t, { status })}
+        />
+      )}
+
+      {fupDirectiveOf && (
+        <DirectiveModal
+          card={fupCard(fupDirectiveOf)}
+          canSend={canSendFupDirective}
+          canReply={fupDirectiveOf.creator?.id === meId || fupDirectiveOf.directive?.sender?.id === meId || canSendFupDirective}
+          onClose={() => setFupDirectiveOf(null)}
+        />
+      )}
+
+      {/* توجيهات الإدارة على المهمة: الإدارة تُرسل، والمكلَّف يردّ (طلب أيمن 2026-08-29) */}
+      {directiveOf && (
+        <DirectiveModal
+          card={taskCard(directiveOf)}
+          canSend={canDelete}
+          canReply={directiveOf.assignee?.id === meId || directiveOf.directive?.sender?.id === meId || canDelete}
+          onClose={() => setDirectiveOf(null)}
         />
       )}
 
@@ -125,15 +356,44 @@ export function TasksPage() {
   );
 }
 
-function Kpi({ icon, color, label, value }: { icon: string; color: string; label: string; value: number }) {
+/** بطاقة مؤشّر بشكل مؤشّرات لوحة CRM (أيقونة ملوّنة + رقم + سطر فرعي). */
+function Kpi({ icon, bg, label, value, sub }: { icon: string; bg: string; label: string; value: number; sub: ReactNode }) {
   return (
-    <div className="kpi-card">
-      <div style={{ fontSize: '22px', fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '2px' }}>{icon} {label}</div>
+    <div style={kpiCard}>
+      <div style={{ ...kpiIcon, background: bg }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={kpiLabel}>{label}</div>
+        <div style={kpiValue}>{value.toLocaleString('ar')}</div>
+        <div style={kpiSub}>{sub}</div>
+      </div>
     </div>
   );
 }
 
+const kpiGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', marginBottom: '14px' };
+const kpiCard: CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '13px 15px', boxShadow: '0 2px 8px rgba(27,108,168,.06)', display: 'flex', alignItems: 'center', gap: '12px' };
+const kpiIcon: CSSProperties = { width: '42px', height: '42px', borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 };
+const kpiLabel: CSSProperties = { fontSize: '11.5px', color: '#64748B', fontWeight: 600, marginBottom: '2px' };
+const kpiValue: CSSProperties = { fontSize: '23px', fontWeight: 800, color: '#1E293B', lineHeight: 1.1 };
+const kpiSub: CSSProperties = { fontSize: '11px', color: '#64748B', marginTop: '2px' };
+const hintLine: CSSProperties = { fontSize: '12px', color: '#5A6478', background: '#F1F5F9', borderRadius: '9px', padding: '8px 12px', marginBottom: '12px' };
+// شريط أدوات اللوحة: النطاق ثم الموظف ثم التاريخ في سطر واحد، ويلتفّ عند ضيق الشاشة.
+const toolbar: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px', flexWrap: 'wrap',
+  background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '8px 10px',
+};
+const group: CSSProperties = { display: 'inline-flex', gap: '6px', flexWrap: 'wrap' };
+const divider: CSSProperties = { width: '1px', alignSelf: 'stretch', minHeight: '22px', background: '#E2E8F0' };
+const scopeBtn: CSSProperties = { padding: '6px 10px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
+const scopeOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };
+// فاصل بين قسم المهام وقسم المتابعة — كل قسم قائم بذاته (طلب أيمن 2026-08-24).
+const sectionDivider: CSSProperties = { height: '3px', background: '#E2E8F0', borderRadius: '3px', margin: '26px 0 20px' };
+const workCard: CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px 18px', marginTop: '20px', boxShadow: '0 2px 8px rgba(27,108,168,.06)' };
+const table: CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' };
+const th: CSSProperties = { textAlign: 'right', padding: '9px 10px', background: '#F8FAFC', color: '#475569', fontWeight: 800, borderBottom: '1px solid #E2E8F0', whiteSpace: 'nowrap' };
+const td: CSSProperties = { padding: '9px 10px', borderBottom: '1px solid #F1F5F9', color: '#334155' };
+const barTrack: CSSProperties = { display: 'block', width: '100%', minWidth: '110px', height: '7px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden' };
+const barFill: CSSProperties = { display: 'block', height: '100%', borderRadius: '4px' };
 const pageHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' };
 const confirmOverlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,25,45,0.45)', backdropFilter: 'blur(2px)', display: 'grid', placeItems: 'center', zIndex: 11000, padding: '20px' };
 const confirmDialog: CSSProperties = { background: '#fff', borderRadius: '16px', padding: '26px 24px 22px', width: '380px', maxWidth: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.28)' };

@@ -38,7 +38,7 @@ class EmployeeLoyaltyController extends ApiController
 
         // كود إحالة ثابت للموظف — يُولَّد مرة واحدة إن لم يوجد.
         if (empty($user->referral_code)) {
-            $user->forceFill(['referral_code' => 'EMP-' . $user->id . '-' . strtoupper(Str::random(4))])->save();
+            $user->forceFill(['referral_code' => 'EMP-'.$user->id.'-'.strtoupper(Str::random(4))])->save();
         }
 
         $dealsWon = LoyaltyTransaction::where('user_id', $user->id)->where('source', 'referral_contracted')->count();
@@ -96,7 +96,7 @@ class EmployeeLoyaltyController extends ApiController
 
         return $this->created(
             ['id' => $req->id, 'points' => $req->points, 'amount_kwd' => $req->amount_kwd, 'status' => $req->status],
-            'تم إرسال طلب استبدال ' . $req->points . ' نقطة (' . number_format((float) $req->amount_kwd, 3) . ' د.ك) — بانتظار اعتماد الإدارة.',
+            'تم إرسال طلب استبدال '.$req->points.' نقطة ('.number_format((float) $req->amount_kwd, 3).' د.ك) — بانتظار اعتماد الإدارة.',
         );
     }
 }

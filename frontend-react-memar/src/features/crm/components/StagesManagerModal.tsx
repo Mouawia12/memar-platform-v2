@@ -112,7 +112,8 @@ export function StagesManagerModal({ stages, onClose }: Props) {
   );
 }
 
-const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', zIndex: 70, padding: '20px' };
+// فوق الشريط العلوي الموروث (z-index: 999999) كي لا يغطّي رأس النافذة.
+const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', zIndex: 1000000, padding: '20px' };
 const modal: CSSProperties = { padding: '22px', width: '100%', maxWidth: '540px', maxHeight: '90vh', overflow: 'auto' };
 const row: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', background: '#F7F9FC', borderRadius: '8px', padding: '6px 8px' };
 const arrow: CSSProperties = { background: '#fff', border: '1px solid #E4E8EF', borderRadius: '4px', width: '22px', height: '16px', lineHeight: '12px', fontSize: '10px', cursor: 'pointer', padding: 0, color: '#5A6478' };

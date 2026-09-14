@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useAuthStore } from '../../../store/auth';
 import { AppointmentFormModal } from '../components/AppointmentFormModal';
 import { AppointmentsCalendar } from '../components/AppointmentsCalendar';
 import { AppointmentsTable } from '../components/AppointmentsTable';
@@ -23,9 +24,15 @@ export function AppointmentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [initialStart, setInitialStart] = useState<string | undefined>(undefined);
+  // «مواعيدي فقط» هو الوضع الدائم للجميع — الإدارة والموظف سواء (طلب أيمن
+  // 2026-08-31)، و«جميع المواعيد» خيار إضافي بضغطة. null = لم يُختر بعد.
+  const meId = useAuthStore((st) => st.user?.id);
+  const [scope, setScope] = useState<'all' | 'mine' | null>(null);
+  const effScope = scope ?? 'mine';
+  const mine = effScope === 'mine' || undefined;
 
-  const listQuery = useAppointments({ search: search || undefined, type: type || undefined, status: status || undefined, page });
-  const calQuery = useAppointments({ per_page: 500 });
+  const listQuery = useAppointments({ search: search || undefined, type: type || undefined, status: status || undefined, page, mine });
+  const calQuery = useAppointments({ per_page: 500, mine });
   const del = useDeleteAppointment();
   const confirm_ = useConfirmAppointment();
 
@@ -50,6 +57,12 @@ export function AppointmentsPage() {
         </div>
       </div>
 
+      <div style={scopeRow}>
+        <button type="button" onClick={() => { setScope('mine'); setPage(1); }} style={{ ...scopeBtn, ...(effScope === 'mine' ? scopeOn : null) }}>مواعيدي فقط</button>
+        <button type="button" onClick={() => { setScope('all'); setPage(1); }} style={{ ...scopeBtn, ...(effScope === 'all' ? scopeOn : null) }}>جميع المواعيد</button>
+        {effScope === 'all' && meId && <span style={legend}>🔷 مواعيدي مميّزة باسم المكلَّف</span>}
+      </div>
+
       {mode === 'calendar' ? (
         <>
           {calQuery.isLoading && <p>جارٍ التحميل…</p>}
@@ -60,10 +73,10 @@ export function AppointmentsPage() {
                   <AppointmentsCalendar appointments={appts} onDayClick={openDay} onEventClick={openEdit} />
                 </div>
                 <div style={{ flex: '1 1 300px', minWidth: '280px', maxWidth: '340px' }}>
-                  <AppointmentSidebar appointments={appts} onEdit={openEdit} onConfirm={(a) => confirm_.mutate(a.id)} canManage={canManage} />
+                  <AppointmentSidebar appointments={appts} onEdit={openEdit} onConfirm={(a) => confirm_.mutate(a.id)} canManage={canManage} meId={effScope === 'all' ? meId : null} />
                 </div>
               </div>
-              <AppointmentHistory appointments={appts} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} />
+              <AppointmentHistory appointments={appts} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} meId={effScope === 'all' ? meId : null} />
             </>
           )}
         </>
@@ -83,7 +96,7 @@ export function AppointmentsPage() {
 
           {listQuery.isLoading && <p>جارٍ التحميل…</p>}
           {listQuery.isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المواعيد.</p>}
-          {listQuery.data && <AppointmentsTable appointments={listQuery.data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} />}
+          {listQuery.data && <AppointmentsTable appointments={listQuery.data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} meId={effScope === 'all' ? meId : null} />}
 
           {meta && meta.last_page > 1 && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>
@@ -102,6 +115,10 @@ export function AppointmentsPage() {
 
 const pageHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' };
 const layout: CSSProperties = { display: 'flex', gap: '18px', alignItems: 'flex-start', flexWrap: 'wrap' };
+const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '14px', justifyContent: 'center', flexWrap: 'wrap' };
+const scopeBtn: CSSProperties = { padding: '8px 18px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer' };
+const scopeOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };
+const legend: CSSProperties = { display: 'inline-flex', alignItems: 'center', fontSize: '11.5px', fontWeight: 700, color: '#1B6CA8', background: '#E4F0FA', border: '1px solid #BFDBF0', borderRadius: '999px', padding: '6px 12px' };
 const toggle: CSSProperties = { display: 'flex', background: '#F0F4F8', padding: '3px', borderRadius: '8px', gap: '3px' };
 const toggleBtn: CSSProperties = { border: 'none', background: 'transparent', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', color: '#5A6478' };
 const toggleOn: CSSProperties = { background: '#fff', color: '#274A78', fontWeight: 700, boxShadow: '0 1px 3px rgba(0,0,0,.1)' };

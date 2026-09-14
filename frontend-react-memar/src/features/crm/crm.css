@@ -97,7 +97,9 @@
 .crm-scope .crm-pipe-col.crm-col-hot:not(.crm-col-full) { border-color: #0F766E; box-shadow: 0 10px 26px rgba(15,118,110,.12); }
 /* تكبير العمود بكامل الصفحة (ops-col-full) — شبكة كروت */
 .crm-scope .crm-col-full { width: 100% !important; min-width: 100% !important; flex: 1 1 100% !important; max-height: none !important; }
-.crm-scope .crm-col-full .crm-col-body { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; align-content: start; }
+/* العمود المكبَّر: فجوة أوسع بين البطاقات كي لا تبدو ملتصقة، خصوصًا مع
+   الشريط الجانبي الملوّن وهالة الكرت العاجل (طلب أيمن 2026-08-24). */
+.crm-scope .crm-col-full .crm-col-body { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px 30px !important; align-content: start; padding: 4px 2px; }
 .crm-scope .crm-col-full .crm-range-bar { grid-column: 1 / -1; }
 .crm-scope .crm-col-off { display: none !important; }
 /* زر التكبير ⛶ في رأس العمود */
@@ -126,3 +128,36 @@
 .crm-toast.danger { border-inline-start: 4px solid #DC4A3D; }
 .crm-toast.info { border-inline-start: 4px solid #1B6CA8; }
 .crm-toast.leaving { opacity: 0; transform: translateY(8px); transition: all .3s ease; }
+
+/* ── وميض الفرصة العاجلة / المتأخّرة (طلب أيمن 2026-08-22) ──
+   نبضة هادئة على إطار الكرت وظلّه، تتوقّف احترامًا لتفضيل تقليل الحركة. */
+/* الأحمر للفرصة العاجلة وحدها. */
+@keyframes crmCardPulse {
+  0%, 100% { box-shadow: 0 0 0 2px #DC4A3D, 0 6px 16px rgba(220,74,61,.16); }
+  50%      { box-shadow: 0 0 0 4px #DC4A3D, 0 10px 26px rgba(220,74,61,.40); }
+}
+/* الكهرماني لتأخّر موعد التواصل — كي لا يختلط بالعاجلة (طلب أيمن 2026-08-24):
+   كان الاثنان يومضان أحمر فيبدو الكرت الأزرق وكأن خلفه ظلًّا أحمر بلا سبب. */
+@keyframes crmCardPulseLate {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(232,168,56,.75), 0 6px 14px rgba(232,168,56,.14); }
+  50%      { box-shadow: 0 0 0 3px rgba(232,168,56,.95), 0 9px 22px rgba(232,168,56,.30); }
+}
+.crm-scope .crm-card-blink { animation: crmCardPulse 1.25s ease-in-out infinite; }
+.crm-scope .crm-card-blink-late { animation: crmCardPulseLate 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .crm-scope .crm-card-blink,
+  .crm-scope .crm-card-blink-late { animation: none; }
+}
+
+/* ── هاي لايت الكرت الذي فُتح للتوّ بعد إغلاق نافذته ── */
+@keyframes crmCardSeen {
+  0%   { box-shadow: 0 0 0 3px rgba(27,108,168,.55), 0 8px 22px rgba(27,108,168,.30); }
+  100% { box-shadow: 0 0 0 3px rgba(27,108,168,0), 0 1px 2px rgba(0,0,0,.05); }
+}
+.crm-scope .crm-card-seen { animation: crmCardSeen 2.6s ease-out 1; border-color: #93C5FD !important; }
+
+/* ── العمود المكبَّر: شبكة منتظمة بلا تداخل ──
+   الكروت متساوية الارتفاع ومصطفّة من الأعلى، وهامشها السفلي يُلغى لأن
+   فجوة الشبكة تتكفّل بالتباعد (كان يتراكم فيبدو التداخل). */
+.crm-scope .crm-col-full .crm-col-body > * { align-self: start; min-width: 0; }
+.crm-scope .crm-col-full .crm-col-body .crm-lead-card { margin-bottom: 0 !important; height: 100%; }

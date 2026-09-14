@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ServiceRequestsSeeder::class, // الطلبات الواردة الثابتة (/requests) + إسناد لمهندسين
             LoyaltyRulesSeeder::class,    // قواعد نقاط الموظفين الافتراضية (المرحلة 2)
             QuickActionsSeeder::class,    // اختصارات متابعة الفرص الافتراضية (المرحلة 4)
+            CrmTagsSeeder::class,        // الاختصارات المهمة المعتمدة في نموذج الفرصة (2026-08-22)
         ]);
     }
 }

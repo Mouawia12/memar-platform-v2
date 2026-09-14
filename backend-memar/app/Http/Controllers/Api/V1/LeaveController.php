@@ -17,6 +17,7 @@ use Illuminate\Validation\Rule;
 class LeaveController extends ApiController
 {
     private const TYPE_LABEL = ['annual' => 'سنوية', 'sick' => 'مرضية', 'unpaid' => 'بدون راتب'];
+
     private const STATUS_LABEL = ['pending' => 'بانتظار الموافقة', 'approved' => 'موافق عليها', 'rejected' => 'مرفوضة'];
 
     /** طلبات إجازة الموظف الحالي. */

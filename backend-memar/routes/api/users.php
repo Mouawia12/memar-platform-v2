@@ -22,10 +22,19 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view');
     // قائمة الطاقم للإسناد (اسم فقط) — لأي عضو طاقم بلا users.view. تُسجَّل قبل /users/{user}.
     Route::get('/users/assignable', [UserController::class, 'assignable']);
+    // صور الطاقم لكروت الفرص (دفعة واحدة) — تُسجَّل قبل /users/{user}.
+    Route::get('/users/avatars', [UserController::class, 'avatars']);
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('permission:users.view');
     Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update'])->middleware('permission:users.manage');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.manage');
+
+    /*
+     * استثناءات الموظف (طلب أيمن 2026-08-31): صلاحيات مباشرة فوق دوره —
+     * «كل المهندسين كذا، إلا فلانًا فله التسعير أيضًا».
+     */
+    Route::get('/users/{user}/permissions', [UserController::class, 'permissions'])->middleware('permission:users.view');
+    Route::put('/users/{user}/permissions', [UserController::class, 'syncPermissions'])->middleware('permission:users.manage');
     // دخول المالك بحساب موظف (impersonation) — التحقّق من دور super_admin داخل المتحكّم.
     Route::post('/users/{user}/impersonate', [UserController::class, 'impersonate'])->middleware('permission:users.manage');
 });

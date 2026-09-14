@@ -1,5 +1,5 @@
 import { api, apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
-import type { Task, TaskDetail } from '../types';
+import type { Task, TaskComment, TaskDetail, TaskDirective } from '../types';
 
 export interface TasksQuery {
   search?: string;
@@ -27,6 +27,16 @@ export const tasksApi = {
   remove: (id: number) => apiDelete<null>(`/tasks/${id}`),
   /** يعلّم إشعار المهمة كمقروء للمستخدم الحالي (يُخفي الجرس عنده وحده). */
   markRead: (id: number) => apiPost<null>(`/tasks/${id}/read`),
+
+  /** تعليقات المهمة — لنافذة التعليقات المستقلّة على البطاقة. */
+  comments: (id: number) => apiGet<TaskComment[]>(`/tasks/${id}/comments`),
+
+  // ── التوجيهات الإدارية (طلب أيمن 2026-08-29) ──
+  /** سجلّ توجيهات المهمة (الأحدث أولًا). */
+  directives: (id: number) => apiGet<TaskDirective[]>(`/tasks/${id}/directives`),
+  sendDirective: (id: number, body: string) => apiPost<TaskDirective>(`/tasks/${id}/directives`, { body }),
+  replyDirective: (taskId: number, directiveId: number, body: string) =>
+    apiPost<TaskDirective>(`/tasks/${taskId}/directives/${directiveId}/reply`, { body }),
 
   // ── صفحة التفاصيل (TASK-4) ──
   detail: (id: number) => apiGet<TaskDetail>(`/tasks/${id}`),

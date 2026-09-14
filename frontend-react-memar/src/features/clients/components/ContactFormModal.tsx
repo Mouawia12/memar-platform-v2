@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
 }
 
-const empty: ContactFormData = { full_name: '', email: '', phone: '', company: '', position: '', type: 'client', notes: '' };
+const empty: ContactFormData = { full_name: '', email: '', phone: '', company: '', position: '', type: 'client', notes: '', internal_rating: 0 };
 
 export function ContactFormModal({ contact, onClose }: Props) {
   const save = useSaveContact();
@@ -25,6 +25,7 @@ export function ContactFormModal({ contact, onClose }: Props) {
         position: contact.position ?? '',
         type: contact.type,
         notes: contact.notes ?? '',
+        internal_rating: contact.internal_rating ?? 0,
       });
     } else {
       setForm(empty);
@@ -67,8 +68,28 @@ export function ContactFormModal({ contact, onClose }: Props) {
             ))}
           </select>
         </label>
+        {/* التقييم الداخلي — نجومٌ تظهر تحت اسم العميل في السجل (طلب أيمن 2026-09-09). */}
+        <div style={label}>
+          التقييم الداخلي
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => set('internal_rating', form.internal_rating === n ? 0 : n)}
+                title={form.internal_rating === n ? 'إلغاء التقييم' : `${n} من 5`}
+                style={{ ...starBtn, color: n <= form.internal_rating ? '#E8A838' : '#D8DEE8' }}
+              >
+                ★
+              </button>
+            ))}
+            <span style={{ fontSize: '12px', color: '#8A93A6', marginInlineStart: '4px' }}>
+              {form.internal_rating ? `${form.internal_rating} من 5` : 'بلا تقييم'}
+            </span>
+          </div>
+        </div>
         <label style={label}>ملاحظات
-          <textarea className="input" style={{ ...input, minHeight: '60px' }} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+          <textarea className="input" style={{ ...input, minHeight: '60px' }} placeholder="تظهر تحت اسم العميل في السجل — مثال: عميل ممتاز وسريع في اتخاذ القرار" value={form.notes} onChange={(e) => set('notes', e.target.value)} />
         </label>
 
         {save.isError && <p style={{ color: '#ef4444' }}>{apiErrorMessage(save.error, 'تعذّر الحفظ')}</p>}
@@ -86,5 +107,6 @@ export function ContactFormModal({ contact, onClose }: Props) {
 
 const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', zIndex: 50, padding: '20px' };
 const modal: CSSProperties = { padding: '24px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflow: 'auto' };
+const starBtn: CSSProperties = { background: 'none', border: 'none', padding: 0, fontSize: '22px', lineHeight: 1, cursor: 'pointer' };
 const label: CSSProperties = { display: 'block', marginTop: '10px', fontSize: '14px' };
 const input: CSSProperties = { width: '100%', marginTop: '4px' };

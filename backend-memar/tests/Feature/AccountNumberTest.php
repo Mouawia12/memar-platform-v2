@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Contact;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AccountNumberTest extends TestCase
@@ -49,8 +51,8 @@ class AccountNumberTest extends TestCase
     public function test_exposed_in_client_portal(): void
     {
         $contact = Contact::factory()->create();
-        $user = \App\Models\User::factory()->create(['contact_id' => $contact->id]);
-        \Laravel\Sanctum\Sanctum::actingAs($user);
+        $user = User::factory()->create(['contact_id' => $contact->id]);
+        Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/client-portal')
             ->assertOk()

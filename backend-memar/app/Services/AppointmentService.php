@@ -13,13 +13,19 @@ use Illuminate\Support\Str;
  */
 class AppointmentService
 {
-    public function list(?string $search, ?string $type, ?string $status, int $perPage = 15): LengthAwarePaginator
+    /**
+     * قائمة المواعيد. `$mineFor` غير فارغ → ما كُلّف به هذا الموظف وحده.
+     * لا يشمل ما سجّله لغيره: المدير يُنشئ مواعيد الفريق كلّها، فلو حُسبت له
+     * لظهرت «مواعيدي» وكأنها الكلّ (طلب أيمن 2026-08-31).
+     */
+    public function list(?string $search, ?string $type, ?string $status, int $perPage = 15, ?int $mineFor = null): LengthAwarePaginator
     {
         return Appointment::query()
             ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
             ->when($type, fn ($q, string $t) => $q->where('type', $t))
             ->when($status, fn ($q, string $st) => $q->where('status', $st))
-            ->with('project')
+            ->when($mineFor, fn ($q, int $id) => $q->where('assignee_id', $id))
+            ->with(['project', 'assignee'])
             ->orderByDesc('start_at')
             ->paginate($perPage);
     }
@@ -34,7 +40,7 @@ class AppointmentService
             $data['video_room'] = 'memar-'.Str::lower(Str::random(10));
         }
 
-        return Appointment::create($data)->load('project');
+        return Appointment::create($data)->load(['project', 'assignee']);
     }
 
     /**
@@ -48,7 +54,7 @@ class AppointmentService
 
         $appointment->update($data);
 
-        return $appointment->load('project');
+        return $appointment->load(['project', 'assignee']);
     }
 
     public function delete(Appointment $appointment): void

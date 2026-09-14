@@ -17,8 +17,9 @@ export function ClientsPage() {
   const canDelete = usePermission('crm.delete');
   const [search, setSearch] = useState('');
   // سجل العملاء لا يعرض الفرص (leads) — تلك في لوحة CRM. فحذف فرصة لا يفرّغ السجل.
-  // الأنواع المتاحة هنا: العملاء وجهات الاتصال فقط (طلب أيمن 2026-08-14).
-  const [type, setType] = useState<'client' | 'contact'>('client');
+  // كل مَن يُسجَّل في CRM يظهر هنا تلقائيًا (طلب أيمن 2026-08-25): الافتراضي
+  // «الكل» فيشمل العملاء المحتملين، مع إبقاء الفلترة بنوع بعينه.
+  const [type, setType] = useState<'' | 'client' | 'contact' | 'lead'>('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
@@ -70,8 +71,9 @@ export function ClientsPage() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             style={{ flex: 1, minWidth: '220px' }}
           />
-          <select className="input" value={type} onChange={(e) => { setType(e.target.value as 'client' | 'contact'); setPage(1); }}>
-            {(['client', 'contact'] as const).map((t) => (
+          <select className="input" value={type} onChange={(e) => { setType(e.target.value as '' | 'client' | 'contact' | 'lead'); setPage(1); }}>
+            <option value="">الكل</option>
+            {(['client', 'lead', 'contact'] as const).map((t) => (
               <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>
             ))}
           </select>

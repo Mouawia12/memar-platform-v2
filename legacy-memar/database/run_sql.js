@@ -10,11 +10,17 @@ const path = require('path');
 
 // Supabase connection string format:
 // postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
-// Project ref: lnhbmwercpvgegsecjhh
+// Project ref: يُشتق من SUPABASE_URL
 // We use the service_role key as password won't work — need to use the Management API instead
 
-const SUPABASE_URL = 'https://lnhbmwercpvgegsecjhh.supabase.co';
-const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuaGJtd2VyY3B2Z2Vnc2VjamhoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njg5ODU5NywiZXhwIjoyMDkyNDc0NTk3fQ.PmwCgUnWJH2VSdNaaCkOmCLIZbLrPcnCx5luSFhzC_M';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error('✗ اضبط SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في متغيّرات البيئة قبل التشغيل.');
+  process.exit(1);
+}
+
 
 const BASE_DIR = 'c:/Users/ayman/Desktop/memar-platform/memar-platform-v2/database';
 const SQL_FILES = [
@@ -32,7 +38,7 @@ async function runSqlViaRestApi(sql, label) {
 
   // Split SQL into individual statements and run each via rpc or direct
   // Use the pg REST endpoint - the Management API endpoint for running SQL
-  const projectRef = 'lnhbmwercpvgegsecjhh';
+  const projectRef = new URL(SUPABASE_URL).hostname.split('.')[0];
   const endpoint = `https://api.supabase.com/v1/projects/${projectRef}/database/query`;
 
   try {
@@ -62,7 +68,7 @@ async function runSqlViaPostgres(sql, label) {
   // Supabase connection string (direct mode port 5432)
   // Host: db.[project-ref].supabase.co
   const client = new Client({
-    host: 'db.lnhbmwercpvgegsecjhh.supabase.co',
+    host: `db.${new URL(SUPABASE_URL).hostname}`,
     port: 5432,
     database: 'postgres',
     user: 'postgres',
@@ -89,7 +95,7 @@ async function main() {
   console.log('═══════════════════════════════════════════');
   console.log('  Memar Supabase SQL Runner');
   console.log('═══════════════════════════════════════════');
-  console.log('Project: lnhbmwercpvgegsecjhh.supabase.co\n');
+  console.log(`Project: ${new URL(SUPABASE_URL).hostname}\n`);
 
   // Check if DB_PASSWORD is set
   if (!process.env.DB_PASSWORD) {

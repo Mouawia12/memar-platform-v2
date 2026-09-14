@@ -22,7 +22,10 @@ class ProjectResource extends JsonResource
             'id' => $this->id,
             'code' => $this->code,
             'name' => $this->name,
+            'type' => $this->type,
             'status' => $this->status,
+            // المرحلة الجارية — عمود «المرحلة» في سجل المشاريع (طلب أيمن 2026-09-09)
+            'current_stage' => $this->whenLoaded('activeStage', fn () => $this->activeStage?->name),
             'progress' => $this->progress,
             // قيمة المشروع/العقد مالية سرّية — تظهر فقط لمن يملك finance.view (محاسب/مدير/أدمن)،
             // وتُخفى عن المهندسين في سجل المشاريع. القيمة الكاملة في سجل العقود. طلب أيمن 2026-08-09.
@@ -51,6 +54,8 @@ class ProjectResource extends JsonResource
                 'name' => $this->manager->name,
             ] : null),
             'created_at' => $this->created_at?->toIso8601String(),
+            // آخر تحديث للمشروع — عمود في سجل المشاريع (طلب أيمن 2026-09-09)
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

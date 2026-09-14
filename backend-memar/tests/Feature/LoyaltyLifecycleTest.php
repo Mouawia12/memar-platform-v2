@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\LoyaltyTransaction;
 use App\Models\User;
 use App\Services\LoyaltyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -55,7 +56,7 @@ class LoyaltyLifecycleTest extends TestCase
         $this->assertSame(70, $loyalty->userAvailableBalance($emp));
 
         // إلغاء منحة معلّقة لا يؤثّر على المتاح
-        $pending = $loyalty->awardUser($emp, 40, 'adjust', null, 'معلّقة', \App\Models\LoyaltyTransaction::STATUS_PENDING);
+        $pending = $loyalty->awardUser($emp, 40, 'adjust', null, 'معلّقة', LoyaltyTransaction::STATUS_PENDING);
         $this->assertSame(40, $loyalty->userPointsByStatus($emp)['pending']);
 
         $this->postJson("/api/v1/loyalty/transactions/{$pending->id}/cancel")->assertOk();
@@ -69,7 +70,7 @@ class LoyaltyLifecycleTest extends TestCase
         $loyalty = app(LoyaltyService::class);
 
         // نقاط مستحقة فقط (لم تُعتمد)
-        $loyalty->awardUser($emp, 500, 'adjust', null, 'مستحقة', \App\Models\LoyaltyTransaction::STATUS_EARNED);
+        $loyalty->awardUser($emp, 500, 'adjust', null, 'مستحقة', LoyaltyTransaction::STATUS_EARNED);
 
         // المتاح 0 → التحويل يفشل رغم وجود 500 مستحقة
         $this->postJson('/api/v1/auth/me/points/convert', ['points' => 50])

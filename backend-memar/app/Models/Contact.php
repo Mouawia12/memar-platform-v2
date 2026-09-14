@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCardActivity;
 use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -17,17 +19,23 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class Contact extends Model
 {
     /** @use HasFactory<ContactFactory> */
-    use HasFactory;
+    use HasCardActivity; // توجيهات الإدارة على بطاقة الفرصة وردود الموظف
 
+    use HasFactory;
     use LogsActivity;
     use SoftDeletes;
 
     // أولوية الفرصة (منفصلة عن «الحرارة») — طلب أيمن 2026-08-15.
     public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
+    // مصادر الفرص (من أين جاء العميل المحتمل) — طلب أيمن 2026-08-22.
+    // المفاتيح ثابتة في القاعدة، والتسميات العربية في الواجهة (LEAD_SOURCE_META).
+    public const SOURCES = ['website', 'referral', 'ads', 'exhibition', 'direct'];
+
     protected $fillable = [
         'full_name', 'kunya', 'email', 'phone', 'company', 'head_office', 'company_about', 'position',
         'type', 'client_kind', 'status', 'stage', 'board_position', 'temperature', 'deal_value_kwd', 'owner_id', 'notes',
+        'created_by',
         'project_name', 'project_details', 'converted_project_id', 'notification_prefs',
         'referral_code', 'referral_shares', 'account_number', 'avatar_file_id', 'referred_by_user_id',
         'referred_by_contact_id', 'loyalty_points', 'loyalty_points_lifetime',
@@ -35,7 +43,7 @@ class Contact extends Model
         // حقول الفرصة (المرحلة 3)
         'price_1_kwd', 'price_2_kwd', 'price_3_kwd', 'expected_price_kwd', 'expected_points',
         'points_1', 'points_2', 'points_3',
-        'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'project_type', 'tags', 'address', 'parent_contact_id',
+        'priority', 'is_vip', 'is_urgent', 'area_sqm', 'region', 'block_no', 'plot_no', 'project_type', 'source', 'tags', 'address', 'parent_contact_id',
         // خصم الترحيب لأول مشروع (المرحلة 5)
         'welcome_discount_used', 'welcome_discount_kwd',
     ];
@@ -91,6 +99,7 @@ class Contact extends Model
     {
         return [
             'deal_value_kwd' => 'decimal:3',
+            'moved_at' => 'datetime',
             'notification_prefs' => 'array',
             'tags' => 'array',
             'loyalty_points' => 'integer',
@@ -111,6 +120,12 @@ class Contact extends Model
         ];
     }
 
+    /** صاحب بطاقة الفرصة — الموظف المسؤول عنها، وهو مَن يُنتظر ردّه. */
+    public function activityOwnerId(): ?int
+    {
+        return $this->owner_id;
+    }
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
@@ -120,6 +135,18 @@ class Contact extends Model
     public function parentContact(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'parent_contact_id');
+    }
+
+    /** مشاريع هذا العميل — عمود «المشاريع» في السجل. @return HasMany<Project, $this> */
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'client_id');
+    }
+
+    /** عقود هذا العميل — منها «إجمالي العقود». @return HasMany<Contract, $this> */
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class, 'client_id');
     }
 
     /** الفرص المرتبطة بهذا العميل (فرص جديدة له). @return HasMany<Contact, $this> */
@@ -163,10 +190,53 @@ class Contact extends Model
         return $this->belongsTo(Contact::class, 'referred_by_contact_id');
     }
 
+    /**
+     * بطاقة الشركة في سجلّ الشركات — تُنشأ تلقائيًا حين يكون العميل شركة.
+     *
+     * @return BelongsTo<Company, $this>
+     */
+    public function companyRecord(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    /**
+     * منشئ الفرصة — يُضبط مرّة عند الإنشاء من جلسة المستخدم، خارج $fillable
+     * فلا يُنتحل ولا يتبدّل لاحقًا (طلب أيمن 2026-08-24).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * مَن نقل الفرصة إلى مرحلتها الحالية — يضبطه الخادم عند تغيّر المرحلة،
+     * وليس ضمن $fillable كي لا يُنتحل من العميل (طلب أيمن 2026-08-23).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function movedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'moved_by');
+    }
+
     /** تذكيرات المتابعة على الفرصة/العميل. @return HasMany<LeadReminder, $this> */
     public function reminders(): HasMany
     {
         return $this->hasMany(LeadReminder::class);
+    }
+
+    /**
+     * آخر تحديث سجّله الموظف على الفرصة — يظهر أسفل كرت الفرصة في لوحة CRM
+     * («لا يوجد تحديث من الموظف بعد» إن لم يوجد). طلب أيمن 2026-08-22.
+     *
+     * @return HasOne<OpportunityUpdate, $this>
+     */
+    public function latestUpdate(): HasOne
+    {
+        return $this->hasOne(OpportunityUpdate::class)->latestOfMany();
     }
 
     /**

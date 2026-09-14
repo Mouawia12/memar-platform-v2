@@ -27,6 +27,20 @@ export function useAssignableUsers() {
   });
 }
 
+/**
+ * صور أصحاب الفرص المعروضين — طلب واحد لكل لوحة بدل صورة داخل كل فرصة.
+ * من لا صورة له لا يظهر في النتيجة فتعرض الواجهة أحرف اسمه.
+ */
+export function useStaffAvatars(ids: number[]) {
+  const key = [...ids].sort((a, b) => a - b);
+  return useQuery({
+    queryKey: ['staff-avatars', key.join(',')],
+    queryFn: () => usersApi.avatars(key),
+    enabled: key.length > 0,
+    staleTime: 10 * 60_000,
+  });
+}
+
 export function useRoles() {
   return useQuery({
     queryKey: ['roles'],
@@ -49,5 +63,27 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: (id: number) => usersApi.remove(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_KEY }),
+  });
+}
+
+/** صلاحيات موظف بعينه — للوحة الاستثناءات. */
+export function useUserPermissions(userId: number | null) {
+  return useQuery({
+    queryKey: ['user-permissions', userId],
+    queryFn: () => usersApi.permissions(userId as number),
+    enabled: userId !== null,
+  });
+}
+
+/** يضبط استثناءات الموظف (صلاحيات مباشرة فوق دوره). */
+export function useSyncUserPermissions(userId: number) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (permissions: string[]) => usersApi.syncPermissions(userId, permissions),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-permissions', userId] });
+      qc.invalidateQueries({ queryKey: ['roles-catalog'] }); // عمود «استثناء» في شاشة الأدوار
+    },
   });
 }

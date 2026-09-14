@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCardActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -14,12 +15,13 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Task extends Model
 {
+    use HasCardActivity; // توجيهات + تعليقات + قراءات (مشتركة مع المتابعات)
     use LogsActivity;
     use SoftDeletes;
 
     protected $fillable = [
         'title', 'description', 'project_id', 'assignee_id', 'created_by',
-        'status', 'priority', 'due_date', 'position', 'video_room', 'rating',
+        'status', 'priority', 'due_date', 'position', 'video_room', 'rating', 'progress',
     ];
 
     /**
@@ -29,6 +31,7 @@ class Task extends Model
     {
         return [
             'due_date' => 'date',
+            'progress_at' => 'datetime',
         ];
     }
 
@@ -47,16 +50,16 @@ class Task extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** صاحب آخر تعديل لنسبة الإنجاز (يضبطه الخادم، ليس في $fillable). */
+    public function progressBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'progress_by');
+    }
+
     /** المشاركون (مجموعة العمل على المهمة). */
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'task_user')->withTimestamps();
-    }
-
-    /** محادثة/تايم‌لاين المهمة. */
-    public function comments(): HasMany
-    {
-        return $this->hasMany(TaskComment::class)->oldest();
     }
 
     /** الملفات المرفقة بالمهمة. */
@@ -65,10 +68,10 @@ class Task extends Model
         return $this->hasMany(StoredFile::class, 'task_id')->latest();
     }
 
-    /** حالات قراءة الإشعار (سجل لكل مستخدم علّم نشاط المهمة كمقروء). */
-    public function reads(): HasMany
+    /** المكلَّف بالمهمة هو صاحب بطاقتها (يُنتظر ردّه، وتُميَّز له بـ«لي»). */
+    public function activityOwnerId(): ?int
     {
-        return $this->hasMany(TaskRead::class);
+        return $this->assignee_id;
     }
 
     public function getActivitylogOptions(): LogOptions

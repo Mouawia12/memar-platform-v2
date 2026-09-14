@@ -18,6 +18,7 @@ function toPayload(data: AppointmentFormData): Record<string, unknown> {
   return {
     ...data,
     project_id: data.project_id === '' ? null : data.project_id,
+    assignee_id: data.assignee_id === '' ? null : data.assignee_id,
     end_at: data.end_at || null,
   };
 }
@@ -35,6 +36,19 @@ export function useDeleteAppointment() {
   return useMutation({
     mutationFn: (id: number) => appointmentsApi.remove(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/**
+ * تعليم الاجتماع كمنتهٍ بضغطة (طلب أيمن 2026-08-30) — فيُشطب في التقويم.
+ * النظام لا يعرف أن اجتماعًا انعقد إلّا أن يُخبَره أحد، ومضيُّ وقته لا يكفي.
+ */
+export function useCloseAppointment() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => appointmentsApi.update(id, { status: 'done' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
 

@@ -4,15 +4,20 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { InternalRating } from '../../../components/InternalRating';
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { ProjectNameInline } from '../../projects/components/ProjectNameInline';
 import { crmApi } from '../api/crmApi';
 import { LeadReminders } from './LeadReminders';
 import { OpportunityTimeline } from './OpportunityTimeline';
 import { useLeadHistory, useSetTemperature } from '../hooks/useCrm';
-import { STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Priority, type Stage, type Temperature } from '../types';
+import { LEAD_SOURCE_META, personColor, personInitials, STAGE_COLOR_FALLBACK, STAGE_LABELS_FALLBACK, TEMPERATURE_META, TEMPERATURE_ORDER, type Lead, type PipelineStage, type Priority, type Stage, type Temperature } from '../types';
 
 interface Props {
   lead: Lead;
+  /** صورة صاحب الفرصة (data URI) — إن غابت تُعرض أحرف اسمه. */
+  ownerAvatarUrl?: string | null;
+  /** صورة مَن نقل الفرصة إلى مرحلتها الحالية. */
+  moverAvatarUrl?: string | null;
   stages: PipelineStage[];
   onClose: () => void;
   onEdit: (l: Lead) => void;
@@ -33,9 +38,8 @@ const FIELD_LABELS: Record<string, string> = { stage: 'المرحلة', temperat
 const EVENT_COLOR: Record<string, string> = { created: '#2D9B6F', updated: '#1B6CA8', deleted: '#DC4A3D' };
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const money = (v: string | number) => `${Number(v).toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`;
-// قيمة النقطة بالدينار للإدارة (طبق أصل V42: 10 د.ك لكل 100 نقطة) — الموظف يرى العدد فقط.
-const KD_PER_POINT = 0.1;
-const pointsKd = (pts: number) => `${Math.round(pts * KD_PER_POINT * 100) / 100} د.ك`;
+// قيمة النقطة بالدينار — تُشتقّ من إعدادات النقاط (عدد النقاط ↔ د.ك) لا من رقم ثابت.
+const pointsKd = (pts: number, kdPerPoint: number) => `${Math.round(pts * kdPerPoint * 100) / 100} د.ك`;
 // مفاتيح خيارات السعر الثلاثة ونقاطها المقابلة.
 const PRICE_KEYS = [
   { price: 'price_1_kwd', pts: 'points_1', name: 'السعر 1' },
@@ -44,10 +48,13 @@ const PRICE_KEYS = [
 ] as const;
 
 /** تفاصيل الفرصة — طبق أصل نافذة «🎯 تفاصيل الفرصة» من معمار customer portal (أقسام مرقّمة). */
-export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
+export function LeadDetailModal({ lead, ownerAvatarUrl, moverAvatarUrl, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
   // النقاط تُخفى عن غير مدير الولاء (طبق أصل V42) — المهندس يرى «رينج السعر» فقط.
   const showPoints = usePermission('loyalty.manage');
+  const { settings } = useCrmSettings();
+  const pointsOn = settings.points.enabled;
+  const kdPerPoint = settings.points.unit_points > 0 ? (settings.points.unit_kwd ?? 0) / settings.points.unit_points : 0;
   const setTemp = useSetTemperature();
   const qc = useQueryClient();
   const saveRating = useMutation({
@@ -112,8 +119,11 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
           <div style={dgrid}>
             <DRow label="اسم المشروع" value={lead.project ? <ProjectNameInline projectId={lead.project.id} name={lead.project.name} code={lead.project.code} prefix="🏗️" /> : projectName} />
             <DRow label="نوع المشروع" value={lead.project_type} />
+            <DRow label="مصدر الفرصة" value={lead.source ? `${LEAD_SOURCE_META[lead.source].icon} ${LEAD_SOURCE_META[lead.source].label}` : ''} />
             <DRow label="العنوان / الموقع" value={lead.address} />
             <DRow label="المنطقة" value={lead.region} />
+            <DRow label="قطعة" value={lead.block_no} />
+            <DRow label="قسيمة" value={lead.plot_no} />
             <DRow label="المساحة" value={lead.area_sqm && Number(lead.area_sqm) > 0 ? `${Number(lead.area_sqm).toLocaleString('ar')} م²` : ''} />
           </div>
           {lead.notes && <div style={noteBox}><div style={dlabel}>ملاحظات وتفاصيل المشروع</div><div style={{ fontSize: '13px', lineHeight: 1.7 }}>{lead.notes}</div></div>}
@@ -138,7 +148,7 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
                       <td style={ptTd}>
                         {/* الموظف يرى عدد النقاط فقط؛ الإدارة (loyalty.manage) ترى قيمتها بالدينار أيضًا. */}
                         {r.points > 0
-                          ? <span style={ptsPill}>● {r.points} نقطة{showPoints ? ` — ${pointsKd(r.points)}` : ''}</span>
+                          ? <span style={ptsPill}>● {r.points} نقطة{showPoints && kdPerPoint > 0 ? ` — ${pointsKd(r.points, kdPerPoint)}` : ''}</span>
                           : <span style={waitPill}>بانتظار المدير</span>}
                       </td>
                     </tr>
@@ -150,11 +160,11 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
 
           {/* الملاحظة تظهر للجميع؛ زر تحديد النقاط للإدارة (loyalty.manage) فقط. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-            {showPoints && <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" onClick={openPtsEditor}>🏆 تحديد نقاط الأسعار (الإدارة)</button>}
+            {showPoints && pointsOn && <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" onClick={openPtsEditor}>🏆 تحديد نقاط الأسعار (الإدارة)</button>}
             <span style={{ flex: 1 }} />
             <span style={{ ...badge, background: '#FFFBEB', color: '#E8A838' }}>تُمنح النقاط عند نقل الفرصة إلى «صفقة رابحة»</span>
           </div>
-          {showPoints && ptsOpen && (
+          {showPoints && pointsOn && ptsOpen && (
             <div style={{ ...noteBox, display: 'grid', gap: '10px', marginTop: '10px' }}>
               <div style={{ fontSize: '12px', color: '#64748B' }}>حدِّد نقاط كل سعر — الموظف يرى العدد فقط، والإدارة ترى قيمتها بالدينار.</div>
               {(priceRows.length ? priceRows : PRICE_KEYS.map((r) => ({ ...r, value: lead[r.price], points: 0 }))).map((r) => (
@@ -166,6 +176,13 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
                 </label>
               ))}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                {/* تعبئة سريعة بالنقاط المقترحة من «إعدادات النقاط» */}
+                <button className="crm-btn crm-btn-outline crm-btn-sm" type="button"
+                  onClick={() => setPtsForm({
+                    points_1: String(settings.points.suggested.price_1),
+                    points_2: String(settings.points.suggested.price_2),
+                    points_3: String(settings.points.suggested.price_3),
+                  })}>⚡ النقاط المقترحة</button>
                 <button className="crm-btn crm-btn-outline crm-btn-sm" type="button" onClick={() => setPtsOpen(false)}>إلغاء</button>
                 <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" disabled={savePoints.isPending} onClick={() => savePoints.mutate({ points_1: Number(ptsForm.points_1) || 0, points_2: Number(ptsForm.points_2) || 0, points_3: Number(ptsForm.points_3) || 0 })}>{savePoints.isPending ? 'جارٍ الحفظ…' : 'حفظ النقاط'}</button>
               </div>
@@ -185,7 +202,26 @@ export function LeadDetailModal({ lead, stages, onClose, onEdit, onDelete, onMov
 
           <div style={secTitle}>⑤ بيانات الفرصة</div>
           <div style={dgrid}>
-            <DRow label="منشئ الفرصة" value={lead.owner?.name} />
+            <DRow label="المكلّف بالفرصة" value={lead.owner ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                {/* صورته الشخصية إن رفعها، وإلا أحرف اسمه بلونه الثابت — كما على الكرت. */}
+                {ownerAvatarUrl
+                  ? <img src={ownerAvatarUrl} alt={lead.owner.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${personColor(lead.owner.id)}` }} />
+                  : <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: personColor(lead.owner.id), color: '#fff', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.owner.name)}</span>}
+                {lead.owner.name}
+              </span>
+            ) : ''} />
+            <DRow label="نقلها إلى هذه المرحلة" value={lead.mover ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                {moverAvatarUrl
+                  ? <img src={moverAvatarUrl} alt={lead.mover.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${personColor(lead.mover.id)}` }} />
+                  : <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: personColor(lead.mover.id), color: '#fff', fontSize: '8.5px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{personInitials(lead.mover.name)}</span>}
+                {lead.mover.name}
+                {lead.mover.from ? ` — من «${labelOf(lead.mover.from)}»` : ''}
+                {lead.mover.at ? ` · ${lead.mover.at}` : ''}
+              </span>
+            ) : ''} />
+            <DRow label="منشئ الفرصة" value={lead.creator?.name ?? ''} />
             <DRow label="تاريخ الفرصة" value={lead.created_at ? lead.created_at.slice(0, 10) : ''} />
             <DRow label="المرحلة الحالية" value={<span style={{ color: colorOf(lead.stage), fontWeight: 800 }}>{labelOf(lead.stage)}</span>} />
             <DRow label="مستوى الأهمية" value={<span style={{ color: imp.color, fontWeight: 800 }}>{imp.label}</span>} />
@@ -251,7 +287,9 @@ function DRow({ label, value, ltr }: { label: string; value: ReactNode; ltr?: bo
   );
 }
 
-const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,20,40,.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '48px', zIndex: 500, overflowY: 'auto' };
+// الشريط العلوي الموروث عليه z-index: 999999 !important، فنعلو فوقه كي لا يغطّي
+// رأس النافذة (طلب أيمن 2026-08-23). طبقات النظام: نوافذ < احتفال < إشعارات عائمة.
+const overlay: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(10,20,40,.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '48px', zIndex: 1000000, overflowY: 'auto' };
 const modal: CSSProperties = { background: '#fff', borderRadius: '16px', boxShadow: '0 24px 60px rgba(10,20,40,.3)', width: '560px', maxWidth: '95vw', maxHeight: '88vh', overflowY: 'auto', marginBottom: '48px' };
 const modalHeader: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #EEF2F7', background: 'linear-gradient(135deg,#fff 0%,#EBF5FF 100%)', borderRadius: '16px 16px 0 0', position: 'sticky', top: 0, zIndex: 1 };
 const modalTitle: CSSProperties = { fontSize: '16px', fontWeight: 800, color: '#1E293B' };

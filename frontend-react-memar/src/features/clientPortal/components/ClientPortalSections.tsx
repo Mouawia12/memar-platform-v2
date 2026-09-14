@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { sanitizeHtml } from '../../../lib/sanitizeHtml';
 import type { Appointment } from '../../appointments/types';
+import type { Contract } from '../../contracts/types';
+import type { GeneratedDocument } from '../../documents/types';
 import { ForumBoard } from '../../forum/components/ForumBoard';
 import type { Project, ProjectStatus } from '../../projects/types';
 import { clientAccountCode, type ClientInfo, type LoyaltyData, type NotificationPrefs } from '../api/clientPortalApi';
@@ -830,3 +833,152 @@ export function CompanySection({ client, projects, onProject, onRequest, onBack 
     </>
   );
 }
+
+/* ═══════════════ أوراقي: العقود والمستندات ═══════════════ */
+
+/** حالات العقد بلغة العميل — «مسودة» شأن مكتبي فلا نعرضها له باسمها. */
+const CONTRACT_STATUS: Record<string, { label: string; cls: string; icon: string }> = {
+  draft: { label: 'قيد الإعداد', cls: 'pending', icon: 'fa-pen-ruler' },
+  signed: { label: 'موقّع', cls: 'approved', icon: 'fa-file-signature' },
+  active: { label: 'ساري', cls: 'approved', icon: 'fa-circle-check' },
+  closed: { label: 'منتهٍ', cls: 'completed', icon: 'fa-flag-checkered' },
+  cancelled: { label: 'ملغى', cls: 'pending', icon: 'fa-ban' },
+};
+
+/**
+ * «أوراقي» — العقود والمستندات المولَّدة (طلب أيمن 2026-08-31). كانت تصل في
+ * حمولة البوابة ولا تُعرض في أي شاشة، فيبحث العميل عن عقده ولا يجده.
+ */
+export function PapersSection({ contracts, documents }: { contracts: Contract[]; documents: GeneratedDocument[] }) {
+  const [open, setOpen] = useState<GeneratedDocument | null>(null);
+
+  return (
+    <>
+      <div className="section-header">
+        <div>
+          <h2 className="section-title">أوراقي</h2>
+          <p className="section-subtitle">عقودك ومستنداتك الرسمية مع معمار في مكان واحد</p>
+        </div>
+      </div>
+
+      <h3 style={subHead}><i className="fas fa-file-contract" /> العقود ({contracts.length})</h3>
+      <div className="requests-list">
+        {contracts.length === 0 && <p style={emptyNote}>لا عقود بعد. يظهر عقدك هنا فور توقيعه.</p>}
+        {contracts.map((c) => {
+          const st = CONTRACT_STATUS[c.status] ?? CONTRACT_STATUS.draft;
+
+          return (
+            <div key={c.id} className="request-item">
+              <div className="request-item-header">
+                <span className="request-item-id">{c.number ?? `#CNT-${String(c.id).padStart(3, '0')}`}</span>
+                <span className={`request-status-badge ${st.cls}`}><i className={`fas ${st.icon}`} /> {st.label}</span>
+              </div>
+              <h4 className="request-item-title">{c.project?.name ?? 'عقد خدمات هندسية'}</h4>
+              <div className="request-item-meta">
+                <span><i className="fas fa-sack-dollar" /> {Number(c.value_kwd).toLocaleString('ar')} د.ك</span>
+                {c.start_date && <span><i className="fas fa-calendar-day" /> من {fmtDate(c.start_date)}</span>}
+                {c.end_date && <span><i className="fas fa-calendar-check" /> حتى {fmtDate(c.end_date)}</span>}
+                {c.quotation?.number && <span><i className="fas fa-file-invoice" /> عن عرض {c.quotation.number}</span>}
+              </div>
+              {c.notes && <p className="request-item-desc" style={{ whiteSpace: 'pre-line' }}>{c.notes}</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      <h3 style={{ ...subHead, marginTop: 26 }}><i className="fas fa-folder-open" /> المستندات ({documents.length})</h3>
+      <div className="requests-list">
+        {documents.length === 0 && <p style={emptyNote}>لا مستندات بعد. ما نُصدره لك من خطابات وتقارير يظهر هنا.</p>}
+        {documents.map((d) => (
+          <div key={d.id} className="request-item" style={{ cursor: 'pointer' }} onClick={() => setOpen(d)}>
+            <div className="request-item-header">
+              <span className="request-item-id"><i className="fas fa-file-lines" /> {d.template ?? 'مستند'}</span>
+              <span className="request-status-badge completed"><i className="fas fa-eye" /> عرض</span>
+            </div>
+            <h4 className="request-item-title">{d.title}</h4>
+            <div className="request-item-meta">
+              {d.project && <span><i className="fas fa-building" /> {d.project.name}</span>}
+              <span><i className="fas fa-calendar" /> {fmtDate(d.created_at)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* قارئ المستند — نصّه محفوظ في النظام، فيُقرأ ويُطبع بلا تنزيل ملف. */}
+      {open && (
+        <div style={docOverlay} onClick={() => setOpen(null)}>
+          <div className="card" style={docModal} onClick={(e) => e.stopPropagation()}>
+            <div style={docHead}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>{open.title}</h3>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-sm" type="button" onClick={() => window.print()}><i className="fas fa-print" /> طباعة</button>
+                <button className="btn btn-sm" type="button" onClick={() => setOpen(null)}>إغلاق</button>
+              </div>
+            </div>
+            {/* المستند يكتبه موظف ويُعرض هنا للعميل — يُنقّى قبل الحقن (منع XSS مخزَّن). */}
+            <div style={docBody} dangerouslySetInnerHTML={{ __html: sanitizeHtml(open.body_html) }} />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ═══════════════ الأسئلة الشائعة ═══════════════ */
+
+/** أسئلة العملاء المتكرّرة — تُغني عن نصف مكالمات الواتساب (طلب أيمن 2026-08-31). */
+const FAQ: { q: string; a: string }[] = [
+  { q: 'كم تستغرق الرخصة؟', a: 'من ٣٠ إلى ٤٥ يومًا بعد اكتمال الملف. المدّة بيد البلدية، ونعرض لك حالة الملف في البوابة أوّلًا بأوّل.' },
+  { q: 'ماذا لو أردتُ تعديلًا بعد اعتماد المخطط؟', a: 'التعديل بعد الاعتماد يعيد المشروع مرحلةً للخلف وله رسوم تُحتسب حسب حجمه. لذلك ندعوك ألّا تعتمد قبل أن ترضى تمامًا — ولك تعديلان مجانيان قبل الاعتماد.' },
+  { q: 'هل الأسعار شاملة الرسوم الحكومية؟', a: 'لا. أسعارنا أتعاب هندسية فقط، ورسوم البلدية والجهات الأخرى تُدفع مباشرةً لها ونوضّحها لك قبل التقديم.' },
+  { q: 'كيف أتابع مشروعي؟', a: 'من صفحة المشروع في البوابة: المرحلة الحالية، نسبة الإنجاز، آخر المستندات، ومدفوعات المشروع. ويصلك إشعار عند كل مرحلة جديدة.' },
+  { q: 'من هو المهندس المسؤول عنّي؟', a: 'تجد اسمه في صفحة المشروع تحت بيانات المشروع، وتستطيع مراسلته من «المحادثات» في البوابة مباشرةً.' },
+  { q: 'كيف أدفع؟', a: 'تحويل بنكي على حساب المكتب، أو نقدًا في المكتب. أرسل صورة الإيصال في «المحادثات» ليُسجَّل الدفع خلال يوم عمل.' },
+  { q: 'هل أحصل على ملفات المخططات؟', a: 'نعم. بعد التسليم والسداد الكامل تحصل على ملف المشروع كاملًا (PDF وDWG).' },
+  { q: 'ماذا تعني نسبة الإنجاز؟', a: 'نسبة المراحل المكتملة من مراحل مشروعك الثماني — لا نسبة البناء في الموقع.' },
+  { q: 'هل يمكنني إضافة أحد أفراد عائلتي لمتابعة المشروع؟', a: 'نعم. من «صفحة الشركة» أضِف عضوًا بالاسم والدور، فيصله كود عضوية خاص به.' },
+  { q: 'ماذا أستفيد من دعوة صديق؟', a: 'يحصل صديقك على خصم ترحيبي، وتحصل أنت على نقاط تتحوّل إلى خصم على فواتيرك. التفاصيل في «اقترحنا لصديق».' },
+];
+
+export function FaqSection({ onChat }: { onChat?: () => void }) {
+  const [open, setOpen] = useState<number | null>(0);
+
+  return (
+    <>
+      <div className="section-header">
+        <div>
+          <h2 className="section-title">الأسئلة الشائعة</h2>
+          <p className="section-subtitle">أكثر ما يسألنا عنه عملاؤنا — وإجاباتنا الصريحة</p>
+        </div>
+      </div>
+
+      <div className="requests-list">
+        {FAQ.map((f, i) => (
+          <div key={f.q} className="request-item" style={{ cursor: 'pointer' }} onClick={() => setOpen(open === i ? null : i)}>
+            <div style={faqHead}>
+              <h4 className="request-item-title" style={{ margin: 0 }}>{f.q}</h4>
+              <i className={`fas ${open === i ? 'fa-chevron-up' : 'fa-chevron-down'}`} style={{ color: '#94A3B8', fontSize: 12 }} />
+            </div>
+            {open === i && <p className="request-item-desc" style={{ marginTop: 8 }}>{f.a}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="request-item" style={{ marginTop: 14, textAlign: 'center' }}>
+        <h4 className="request-item-title">لم تجد سؤالك؟</h4>
+        <p className="request-item-desc">فريق معمار يردّ عليك من البوابة مباشرةً خلال ساعات العمل.</p>
+        <button className="btn btn-primary" type="button" style={{ marginTop: 10 }} onClick={() => onChat?.()}>
+          <i className="fas fa-comments" /> اسألنا مباشرةً
+        </button>
+      </div>
+    </>
+  );
+}
+
+const subHead = { fontSize: 15, fontWeight: 800, color: '#0F2A4A', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 } as const;
+const emptyNote = { color: '#64748B', padding: 8, fontSize: 13 } as const;
+const faqHead = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 } as const;
+const docOverlay = { position: 'fixed', inset: 0, background: 'rgba(10,25,45,.45)', display: 'grid', placeItems: 'center', zIndex: 11000, padding: 20 } as const;
+const docModal = { width: '100%', maxWidth: 720, maxHeight: '88vh', overflow: 'auto', padding: '18px 20px' } as const;
+const docHead = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, borderBottom: '1px solid #EEF2F7', paddingBottom: 12, marginBottom: 14, flexWrap: 'wrap' } as const;
+const docBody = { fontSize: 14, lineHeight: 1.9, color: '#1E293B' } as const;

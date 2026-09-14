@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\Appointment;
 use App\Models\FieldVisit;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -57,7 +58,7 @@ class EngineerPortalTest extends TestCase
     public function test_today_agenda_ignores_other_users_and_cancelled(): void
     {
         $user = $this->actingAsUserWith([]);
-        $other = \App\Models\User::factory()->create();
+        $other = User::factory()->create();
 
         FieldVisit::create(['title' => 'زيارة ملغاة', 'engineer_id' => $user->id, 'type' => 'inspection', 'status' => 'cancelled', 'visit_date' => today(), 'created_by' => $user->id]);
         Appointment::create(['title' => 'موعد شخص آخر', 'type' => 'meeting', 'status' => 'scheduled', 'start_at' => today()->setTime(10, 0), 'created_by' => $other->id]);

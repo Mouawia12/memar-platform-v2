@@ -21,6 +21,7 @@ class PointRedemptionTest extends TestCase
         $user = $this->actingAsUserWith(['self.view']);
         Employee::create(['user_id' => $user->id, 'full_name' => $user->name, 'base_salary_kwd' => 500, 'status' => 'active']);
         app(LoyaltyService::class)->awardUser($user, $points, 'adjust', null, 'رصيد اختبار'); // available
+
         return $user;
     }
 

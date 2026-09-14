@@ -8,12 +8,41 @@ export interface TaskRef {
   code?: string | null;
 }
 
+/** رسالة في خيط التوجيه (ردّ، أو ردّ على ردّ). */
+export interface DirectiveMessage {
+  id: number;
+  body: string;
+  user: TaskRef | null;
+  created_at: string | null;
+}
+
+/**
+ * خيط توجيه: رأسه توجيه الإدارة، وتحته ردوده وردود ردوده
+ * (خيط مفتوح — طلب أيمن 2026-08-29).
+ */
+export interface TaskDirective {
+  id: number;
+  body: string;
+  sender: TaskRef | null;
+  created_at: string | null;
+  messages: DirectiveMessage[];
+  /** آخر رسالة في الخيط — هي ما تعرضه البطاقة. */
+  last_message: DirectiveMessage | null;
+  /** ردّ صاحب البطاقة مرّة واحدة على الأقل. */
+  replied: boolean;
+}
+
 export interface Task {
   id: number;
   title: string;
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  /** نسبة الإنجاز 0–100 — تظهر كشريط تقدّم على البطاقة. */
+  progress: number;
+  /** صاحب آخر تعديل لنسبة الإنجاز ووقته — يضبطهما الخادم. */
+  progress_by?: TaskRef | null;
+  progress_at?: string | null;
   due_date: string | null;
   project: TaskRef | null;
   assignee: TaskRef | null;
@@ -22,6 +51,14 @@ export interface Task {
   created_at: string | null;
   /** جرس «نشاط جديد» خاص بالمستخدم الحالي — يختفي عند التعليم كمقروء. */
   has_unread?: boolean;
+  /** آخر خيط توجيه — منه تُقرأ شارة البطاقة وآخر رسالة عليها. */
+  directive?: TaskDirective | null;
+  /** مجموع رسائل الخيوط (الرؤوس + الردود) — الرقم داخل الشارة. */
+  directive_messages_count?: number;
+  /** رسائل لم أرَها أنا — النقطة الحمراء ووميض البطاقة. */
+  directive_unread?: number;
+  /** أنا صاحب البطاقة وآخر رسالة ليست منّي → الدور دوري. */
+  directive_awaits_me?: boolean;
 }
 
 /** حركة في سجل تعديلات المهمة (اجتماع 2026-08-05). */
@@ -68,6 +105,7 @@ export interface TaskFormData {
   assignee_id: number | '';
   status: TaskStatus;
   priority: TaskPriority;
+  progress: number;
   due_date: string;
 }
 

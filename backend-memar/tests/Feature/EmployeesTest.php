@@ -145,10 +145,10 @@ class EmployeesTest extends TestCase
 
     public function test_seeder_creates_full_roster_and_is_idempotent(): void
     {
-        (new EmployeesSeeder())->run();
+        (new EmployeesSeeder)->run();
         $countAfterFirst = Employee::count();
 
-        (new EmployeesSeeder())->run(); // إعادة التشغيل يجب ألا تكرّر
+        (new EmployeesSeeder)->run(); // إعادة التشغيل يجب ألا تكرّر
 
         $this->assertSame($countAfterFirst, Employee::count());
         $this->assertSame(10, $countAfterFirst);
@@ -159,7 +159,7 @@ class EmployeesTest extends TestCase
     {
         $user = User::factory()->create(['email' => 'acc@memar.kw']);
 
-        (new EmployeesSeeder())->run();
+        (new EmployeesSeeder)->run();
 
         $this->assertDatabaseHas('employees', [
             'full_name' => 'أ. وليد ناصر',

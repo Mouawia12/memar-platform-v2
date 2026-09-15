@@ -1,6 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { ROW_NO_CELL, rowOffset } from '../../../lib/rowNumber';
 import { useAuthStore } from '../../../store/auth';
 import { useUsers } from '../../users/hooks/useUsers';
 import { attendanceApi } from '../api/attendanceApi';
@@ -42,6 +43,7 @@ export function AttendancePage() {
   const checkedIn = Boolean(rec?.check_in_at);
   const checkedOut = Boolean(rec?.check_out_at);
   const meta = list.data?.meta;
+  const offset = rowOffset(meta);
 
   const doCheckIn = () => {
     if (!navigator.geolocation) {
@@ -131,13 +133,14 @@ export function AttendancePage() {
               <table className="table" style={table}>
                 <thead>
                   <tr>
-                    <th style={th}>الموظف</th><th style={th}>حاضر</th><th style={th}>متأخر</th>
+                    <th style={{ ...th, ...ROW_NO_CELL }}>#</th><th style={th}>الموظف</th><th style={th}>حاضر</th><th style={th}>متأخر</th>
                     <th style={th}>غائب</th><th style={th}>إجازة</th><th style={th}>ساعات العمل</th><th style={th}>الالتزام</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(summary.data ?? []).map((s: AttendanceSummary) => (
+                  {(summary.data ?? []).map((s: AttendanceSummary, i) => (
                     <tr key={s.user_id}>
+                      <td style={{ ...td, ...ROW_NO_CELL }}>{i + 1}</td>
                       <td style={td}><b>{s.name}</b></td>
                       <td style={td}>{s.present}</td>
                       <td style={td}>{s.late}</td>
@@ -151,7 +154,7 @@ export function AttendancePage() {
                       </td>
                     </tr>
                   ))}
-                  {(summary.data?.length ?? 0) === 0 && <tr><td style={td} colSpan={7}><span style={{ opacity: 0.6 }}>لا توجد سجلات ضمن المدة.</span></td></tr>}
+                  {(summary.data?.length ?? 0) === 0 && <tr><td style={td} colSpan={8}><span style={{ opacity: 0.6 }}>لا توجد سجلات ضمن المدة.</span></td></tr>}
                 </tbody>
               </table>
             </div>
@@ -168,13 +171,14 @@ export function AttendancePage() {
             <table className="table" style={table}>
               <thead>
                 <tr>
-                  <th style={th}>الموظف</th><th style={th}>التاريخ</th><th style={th}>الدخول</th>
+                  <th style={{ ...th, ...ROW_NO_CELL }}>#</th><th style={th}>الموظف</th><th style={th}>التاريخ</th><th style={th}>الدخول</th>
                   <th style={th}>الانصراف</th><th style={th}>الساعات</th><th style={th}>الحالة</th>
                 </tr>
               </thead>
               <tbody>
-                {(list.data?.data ?? []).map((a: Attendance) => (
+                {(list.data?.data ?? []).map((a: Attendance, i) => (
                   <tr key={a.id}>
+                    <td style={{ ...td, ...ROW_NO_CELL }}>{offset + i + 1}</td>
                     <td style={td}><b>{a.user?.name ?? '—'}</b></td>
                     <td style={td}>{a.date}</td>
                     <td style={td}>{time(a.check_in_at)}</td>
@@ -183,7 +187,7 @@ export function AttendancePage() {
                     <td style={td}><StatusBadge status={a.status} /></td>
                   </tr>
                 ))}
-                {(list.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={6}><span style={{ opacity: 0.6 }}>لا توجد سجلات.</span></td></tr>}
+                {(list.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={7}><span style={{ opacity: 0.6 }}>لا توجد سجلات.</span></td></tr>}
               </tbody>
             </table>
           </div>

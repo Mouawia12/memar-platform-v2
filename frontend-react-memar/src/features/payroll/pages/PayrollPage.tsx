@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { rowOffset } from '../../../lib/rowNumber';
 import { SalariesTable } from '../components/SalariesTable';
 import { SalaryFormModal } from '../components/SalaryFormModal';
 import { useDeleteSalary, usePaySalary, useSalaries } from '../hooks/usePayroll';
@@ -38,7 +39,7 @@ export function PayrollPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الرواتب.</p>}
-        {data && <SalariesTable salaries={data.data} onEdit={openEdit} onPay={handlePay} onDelete={handleDelete} />}
+        {data && <SalariesTable salaries={data.data} onEdit={openEdit} onPay={handlePay} onDelete={handleDelete} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

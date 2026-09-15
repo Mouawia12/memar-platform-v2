@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { CompaniesTable } from '../components/CompaniesTable';
 import { CompanyFormModal } from '../components/CompanyFormModal';
@@ -58,7 +59,7 @@ export function CompaniesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الشركات.</p>}
-        {data && <CompaniesTable companies={data.data} onEdit={openEdit} onDelete={handleDelete} onOpen={(c) => setSelectedId(c.id)} canManage={canManage} canDelete={canDelete} />}
+        {data && <CompaniesTable companies={data.data} onEdit={openEdit} onDelete={handleDelete} onOpen={(c) => setSelectedId(c.id)} canManage={canManage} canDelete={canDelete} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

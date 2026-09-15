@@ -7,6 +7,7 @@ import { useImpersonation } from '../hooks/useImpersonation';
 import { useDeleteUser, useRoles, useUsers } from '../hooks/useUsers';
 import type { User } from '../types';
 import { usePermission } from '../../auth/hooks/usePermission';
+import { rowOffset } from '../../../lib/rowNumber';
 import { useAuthStore } from '../../../store/auth';
 
 export function UsersPage() {
@@ -60,7 +61,7 @@ export function UsersPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المستخدمين.</p>}
-        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onPermissions={setPermsOf} onDelete={handleDelete} onImpersonate={isOwner ? handleImpersonate : undefined} currentUserId={currentUser?.id} canManage={canManage} canDelete={canDelete} />}
+        {data && <UsersTable users={data.data} roles={roles} onEdit={openEdit} onPermissions={setPermsOf} onDelete={handleDelete} onImpersonate={isOwner ? handleImpersonate : undefined} currentUserId={currentUser?.id} canManage={canManage} canDelete={canDelete} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

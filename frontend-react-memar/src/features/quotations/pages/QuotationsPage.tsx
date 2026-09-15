@@ -4,6 +4,7 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { quotationsApi } from '../api/quotationsApi';
 import { QuotationFormModal } from '../components/QuotationFormModal';
 import { apiErrorMessage } from '../../../lib/api';
+import { rowOffset } from '../../../lib/rowNumber';
 import { QuotationsTable } from '../components/QuotationsTable';
 import { useConvertQuotation, useDeleteQuotation, useQuotations } from '../hooks/useQuotations';
 import { printQuotation } from '../print';
@@ -65,7 +66,7 @@ export function QuotationsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العروض.</p>}
-        {data && <QuotationsTable quotations={data.data} onEdit={openEdit} onDelete={handleDelete} onPrint={handlePrint} onConvert={handleConvert} canManage={canManage} canDelete={canManage} />}
+        {data && <QuotationsTable quotations={data.data} onEdit={openEdit} onDelete={handleDelete} onPrint={handlePrint} onConvert={handleConvert} canManage={canManage} canDelete={canManage} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

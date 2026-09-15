@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { COMPANY_TYPE_LABELS, type Company } from '../types';
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
   onOpen: (c: Company) => void;
   canManage?: boolean; // إظهار زر التعديل (crm.manage)
   canDelete?: boolean; // إظهار زر الحذف (crm.delete)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const typeColor: Record<string, string> = {
@@ -18,7 +21,7 @@ const typeColor: Record<string, string> = {
   partner: '#274A78',
 };
 
-export function CompaniesTable({ companies, onEdit, onDelete, onOpen, canManage = true, canDelete = true }: Props) {
+export function CompaniesTable({ companies, onEdit, onDelete, onOpen, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   // عمود الإجراءات يظهر لمن يملك تعديلًا أو حذفًا (الفتح متاح دائمًا بالنقر على الصف)
   const showActions = canManage || canDelete;
   if (companies.length === 0) {
@@ -30,6 +33,7 @@ export function CompaniesTable({ companies, onEdit, onDelete, onOpen, canManage 
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>الاسم</th>
             <th style={th}>النوع</th>
             <th style={th}>القطاع</th>
@@ -39,8 +43,9 @@ export function CompaniesTable({ companies, onEdit, onDelete, onOpen, canManage 
           </tr>
         </thead>
         <tbody>
-          {companies.map((c) => (
+          {companies.map((c, i) => (
             <tr key={c.id} onClick={() => onOpen(c)} style={{ cursor: 'pointer' }} title="فتح صفحة الشركة">
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}><b style={{ color: '#274A78' }}>{c.name}</b></td>
               <td style={td}>
                 <span style={{ ...badge, background: `${typeColor[c.type]}1a`, color: typeColor[c.type] }}>

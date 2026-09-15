@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 
+import { rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
 import { AppointmentFormModal } from '../components/AppointmentFormModal';
@@ -96,7 +97,7 @@ export function AppointmentsPage() {
 
           {listQuery.isLoading && <p>جارٍ التحميل…</p>}
           {listQuery.isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المواعيد.</p>}
-          {listQuery.data && <AppointmentsTable appointments={listQuery.data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} meId={effScope === 'all' ? meId : null} />}
+          {listQuery.data && <AppointmentsTable appointments={listQuery.data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canDelete} meId={effScope === 'all' ? meId : null} rowOffset={rowOffset(meta)} />}
 
           {meta && meta.last_page > 1 && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

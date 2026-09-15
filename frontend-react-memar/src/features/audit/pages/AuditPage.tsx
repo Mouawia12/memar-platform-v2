@@ -1,5 +1,6 @@
 import { type CSSProperties, Fragment, useState } from 'react';
 
+import { ROW_NO_CELL, rowOffset } from '../../../lib/rowNumber';
 import { useActivityLog, useAuditFilters } from '../hooks/useAudit';
 import { EVENT_COLORS, FIELD_LABELS, type Activity } from '../types';
 
@@ -36,6 +37,7 @@ export function AuditPage() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
+  const offset = rowOffset(meta);
 
   return (
     <div>
@@ -75,6 +77,7 @@ export function AuditPage() {
             <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
+                  <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                   <th style={th}>الوقت</th>
                   <th style={th}>المستخدم</th>
                   <th style={th}>الإجراء</th>
@@ -84,9 +87,10 @@ export function AuditPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((a: Activity) => (
+                {rows.map((a: Activity, i) => (
                   <Fragment key={a.id}>
                     <tr>
+                      <td style={{ ...td, ...ROW_NO_CELL }}>{offset + i + 1}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmt(a.created_at)}</td>
                       <td style={td}>{a.causer?.name ?? <span style={{ opacity: 0.5 }}>النظام</span>}</td>
                       <td style={td}>
@@ -104,7 +108,7 @@ export function AuditPage() {
                     </tr>
                     {openId === a.id && (
                       <tr>
-                        <td colSpan={6} style={{ ...td, background: '#F7F9FC' }}>
+                        <td colSpan={7} style={{ ...td, background: '#F7F9FC' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
                             <thead>
                               <tr>
@@ -128,7 +132,7 @@ export function AuditPage() {
                     )}
                   </Fragment>
                 ))}
-                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6, textAlign: 'center', padding: '28px' }} colSpan={6}>لا توجد عمليات مطابقة.</td></tr>}
+                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6, textAlign: 'center', padding: '28px' }} colSpan={7}>لا توجد عمليات مطابقة.</td></tr>}
               </tbody>
             </table>
           </div>

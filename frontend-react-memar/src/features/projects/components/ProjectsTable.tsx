@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS, type Project } from '../types';
 
@@ -11,6 +12,8 @@ interface Props {
   showBudget?: boolean; // قيمة المشروع تُعرض فقط لمن يملك finance.view (طلب أيمن 2026-08-09)
   canManage?: boolean;  // إظهار زر التعديل (projects.manage)
   canDelete?: boolean;  // إظهار زر الحذف (projects.delete)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const fmtMoney = (v: string | null | undefined) =>
@@ -41,7 +44,7 @@ const barColor = (pct: number): string => (pct >= 80 ? '#2D9B6F' : pct >= 40 ? '
  * رقمه واسمه وعميله ونوعه، ومرحلته الجارية، ونسبة إنجازه شريطًا، وحالته،
  * ومسؤوله. كان يعرض الكود والاسم والعميل والحالة فقط.
  */
-export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true, canManage = true, canDelete = true }: Props) {
+export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   // اسم العميل يقود إلى ملفّه — لمن يملك عرض العملاء فقط، وإلا بقي نصًّا.
   const canViewClients = usePermission('clients.view');
@@ -55,6 +58,7 @@ export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true, c
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>رقم المشروع</th>
             <th style={th}>اسم المشروع</th>
             <th style={th}>العميل</th>
@@ -69,7 +73,7 @@ export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true, c
           </tr>
         </thead>
         <tbody>
-          {projects.map((p) => {
+          {projects.map((p, i) => {
             const pct = progressOf(p);
             // المشروع المنجَز خرج من العمل الجاري، فيهدأ صفّه كلّه (طلب أيمن 2026-09-09).
             const done = p.status === 'done';
@@ -77,6 +81,7 @@ export function ProjectsTable({ projects, onEdit, onDelete, showBudget = true, c
 
             return (
               <tr key={p.id} style={done ? doneRow : undefined}>
+                <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
                 <td style={td}><code style={codeCell}>{p.code ?? '—'}</code></td>
                 <td style={td}>
                   <Link to={`/projects/${p.id}`} style={linkStyle}>{p.name}</Link>

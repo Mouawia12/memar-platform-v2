@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { invoicesApi } from '../api/invoicesApi';
 import { InvoiceFormModal } from '../components/InvoiceFormModal';
@@ -78,7 +79,7 @@ export function InvoicesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الفواتير.</p>}
-        {data && <InvoicesTable invoices={data.data} onEdit={openEdit} onDelete={handleDelete} onPay={setPayFor} canManage={canManage} canDelete={canDelete} />}
+        {data && <InvoicesTable invoices={data.data} onEdit={openEdit} onDelete={handleDelete} onPay={setPayFor} canManage={canManage} canDelete={canDelete} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

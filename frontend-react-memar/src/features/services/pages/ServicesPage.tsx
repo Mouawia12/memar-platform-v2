@@ -1,5 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 
+import { rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { QuotationFormModal } from '../../quotations/components/QuotationFormModal';
 import { ServiceFormModal } from '../components/ServiceFormModal';
@@ -97,7 +98,7 @@ export function ServicesPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل الخدمات.</p>}
-        {data && <ServicesTable services={data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canManage} />}
+        {data && <ServicesTable services={data.data} onEdit={openEdit} onDelete={handleDelete} canManage={canManage} canDelete={canManage} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

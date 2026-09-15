@@ -4,6 +4,7 @@ import { usePermission } from '../../auth/hooks/usePermission';
 import { ContractFormModal } from '../components/ContractFormModal';
 import { ContractsTable } from '../components/ContractsTable';
 import { apiErrorMessage } from '../../../lib/api';
+import { rowOffset } from '../../../lib/rowNumber';
 import { useContracts, useDeleteContract, useGenerateInvoices } from '../hooks/useContracts';
 import { STATUS_LABELS, type Contract, type ContractStatus } from '../types';
 
@@ -60,7 +61,7 @@ export function ContractsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العقود.</p>}
-        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} onGenerateInvoices={handleGenerate} canManage={canManage} canDelete={canDelete} />}
+        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} onGenerateInvoices={handleGenerate} canManage={canManage} canDelete={canDelete} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

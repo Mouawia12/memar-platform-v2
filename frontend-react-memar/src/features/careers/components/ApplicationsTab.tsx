@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { ROW_NO_CELL, rowOffset } from '../../../lib/rowNumber';
 import { applicationsApi } from '../api/careersApi';
 import { useApplications, useDeleteApplication, useUpdateApplication } from '../hooks/useCareers';
 import {
@@ -21,6 +22,7 @@ export function ApplicationsTab() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
+  const offset = rowOffset(meta);
 
   const downloadCv = (a: JobApplication) => { void applicationsApi.downloadCv(a.id, a.cv_name ?? `cv-${a.id}.pdf`); };
   const remove = (a: JobApplication) => { if (confirm(`حذف طلب "${a.applicant_name}"؟`)) del.mutate(a.id); };
@@ -50,6 +52,7 @@ export function ApplicationsTab() {
           <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
+                <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                 <th style={th}>المتقدّم</th>
                 <th style={th}>الوظيفة</th>
                 <th style={th}>الخبرة</th>
@@ -60,8 +63,9 @@ export function ApplicationsTab() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((a) => (
+              {rows.map((a, i) => (
                 <tr key={a.id}>
+                  <td style={{ ...td, ...ROW_NO_CELL }}>{offset + i + 1}</td>
                   <td style={td}>
                     <b>{a.applicant_name}</b>
                     <div style={{ fontSize: '12px', opacity: 0.6, direction: 'ltr', textAlign: 'right' }}>{a.phone}</div>

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { STATUS_LABELS, type Salary } from '../types';
 
 interface Props {
@@ -7,11 +8,13 @@ interface Props {
   onEdit: (s: Salary) => void;
   onPay: (s: Salary) => void;
   onDelete: (s: Salary) => void;
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const money = (v: string) => Number(v).toLocaleString('ar', { minimumFractionDigits: 3 });
 
-export function SalariesTable({ salaries, onEdit, onPay, onDelete }: Props) {
+export function SalariesTable({ salaries, onEdit, onPay, onDelete, rowOffset = 0 }: Props) {
   if (salaries.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد كشوف رواتب.</p>;
   }
@@ -21,6 +24,7 @@ export function SalariesTable({ salaries, onEdit, onPay, onDelete }: Props) {
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>الموظف</th>
             <th style={th}>الشهر</th>
             <th style={th}>الأساسي</th>
@@ -32,8 +36,9 @@ export function SalariesTable({ salaries, onEdit, onPay, onDelete }: Props) {
           </tr>
         </thead>
         <tbody>
-          {salaries.map((s) => (
+          {salaries.map((s, i) => (
             <tr key={s.id}>
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}><b>{s.employee?.name ?? '—'}</b></td>
               <td style={td}>{s.month}</td>
               <td style={td}>{money(s.base_kwd)}</td>

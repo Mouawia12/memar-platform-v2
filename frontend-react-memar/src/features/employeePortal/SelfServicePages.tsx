@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiErrorMessage } from '../../lib/api';
+import { rowOffset, ROW_NO_CELL } from '../../lib/rowNumber';
 import { useAuthStore } from '../../store/auth';
 import { authApi } from '../auth/api/authApi';
 import { useToday, useCheckIn, useCheckOut } from '../attendance/hooks/useAttendance';
@@ -99,11 +100,12 @@ export function AttendanceEp() {
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>اليوم</th><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th></tr></thead>
+              <thead><tr><th style={ROW_NO_CELL}>#</th><th>اليوم</th><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th></tr></thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا سجلّات حضور بعد.</td></tr>}
-                {rows.map((r) => (
+                {rows.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا سجلّات حضور بعد.</td></tr>}
+                {rows.map((r, i) => (
                   <tr key={r.id}>
+                    <td style={ROW_NO_CELL}>{rowOffset(log?.meta) + i + 1}</td>
                     <td>{dayName(r.date)}</td>
                     <td>{dayDate(r.date)}</td>
                     <td className="ep-td-bold">{hm(r.check_in_at)}</td>
@@ -187,11 +189,12 @@ export function LeavesEp() {
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>النوع</th><th>من</th><th>إلى</th><th>المدة</th><th>السبب</th><th>الحالة</th></tr></thead>
+              <thead><tr><th style={ROW_NO_CELL}>#</th><th>النوع</th><th>من</th><th>إلى</th><th>المدة</th><th>السبب</th><th>الحالة</th></tr></thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا طلبات إجازة بعد.</td></tr>}
-                {rows.map((l) => (
+                {rows.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا طلبات إجازة بعد.</td></tr>}
+                {rows.map((l, i) => (
                   <tr key={l.id}>
+                    <td style={ROW_NO_CELL}>{i + 1}</td>
                     <td><span className="ep-badge ep-badge-blue">{l.type_label}</span></td>
                     <td>{fmt(l.from_date)}</td>
                     <td>{fmt(l.to_date)}</td>
@@ -249,11 +252,12 @@ export function SalaryEp() {
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>الشهر</th><th>الأساسي</th><th>البدلات</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead>
+              <thead><tr><th style={ROW_NO_CELL}>#</th><th>الشهر</th><th>الأساسي</th><th>البدلات</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead>
               <tbody>
-                {list.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا سجلّات.</td></tr>}
-                {list.map((s) => (
+                {list.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا سجلّات.</td></tr>}
+                {list.map((s, i) => (
                   <tr key={s.id}>
+                    <td style={ROW_NO_CELL}>{i + 1}</td>
                     <td className="ep-td-bold">{monthAr(s.month)}</td>
                     <td>{num(s.base_kwd)}</td>
                     <td>{num(s.allowances_kwd)}</td>
@@ -328,11 +332,12 @@ export function ReportsEp() {
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>التاريخ</th><th>المشروع</th><th>ملخص</th><th>الحالة</th></tr></thead>
+              <thead><tr><th style={ROW_NO_CELL}>#</th><th>التاريخ</th><th>المشروع</th><th>ملخص</th><th>الحالة</th></tr></thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا تقارير بعد — اكتب أول تقرير أعلاه.</td></tr>}
-                {rows.map((r) => (
+                {rows.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا تقارير بعد — اكتب أول تقرير أعلاه.</td></tr>}
+                {rows.map((r, i) => (
                   <tr key={r.id}>
+                    <td style={ROW_NO_CELL}>{i + 1}</td>
                     <td className="ep-td-bold">{fmt(r.report_date)}</td>
                     <td>{r.project ?? '—'}</td>
                     <td>{r.accomplished.length > 60 ? `${r.accomplished.slice(0, 60)}…` : r.accomplished}</td>
@@ -380,12 +385,13 @@ export function DocumentsEp() {
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>المستند</th><th>المشروع</th><th>النوع</th><th>آخر تحديث</th><th>إجراء</th></tr></thead>
+              <thead><tr><th style={ROW_NO_CELL}>#</th><th>المستند</th><th>المشروع</th><th>النوع</th><th>آخر تحديث</th><th>إجراء</th></tr></thead>
               <tbody>
-                {isLoading && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>جارٍ التحميل…</td></tr>}
-                {!isLoading && rows.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا مستندات في مشاريعك بعد.</td></tr>}
-                {rows.map((f) => (
+                {isLoading && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>جارٍ التحميل…</td></tr>}
+                {!isLoading && rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا مستندات في مشاريعك بعد.</td></tr>}
+                {rows.map((f, i) => (
                   <tr key={f.id}>
+                    <td style={ROW_NO_CELL}>{i + 1}</td>
                     <td className="ep-td-bold">📄 {f.name}{f.folder ? ` — ${f.folder}` : ''}</td>
                     <td>{f.project ?? '—'}</td>
                     <td>{f.extension || '—'}</td>
@@ -628,12 +634,13 @@ export function ReferralEp() {
         <div className="ep-card-body">
           <div className="ep-table-wrap">
             <table>
-              <thead><tr><th>التاريخ</th><th>الحركة</th><th>النقاط</th><th>الرصيد</th></tr></thead>
+              <thead><tr><th style={ROW_NO_CELL}>#</th><th>التاريخ</th><th>الحركة</th><th>النقاط</th><th>الرصيد</th></tr></thead>
               <tbody>
-                {isLoading && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94A3B8' }}>جارٍ التحميل…</td></tr>}
-                {data && data.transactions.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا حركات بعد — شارك كودك وابدأ بكسب النقاط.</td></tr>}
-                {data?.transactions.map((t) => (
+                {isLoading && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94A3B8' }}>جارٍ التحميل…</td></tr>}
+                {data && data.transactions.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94A3B8', padding: '20px' }}>لا حركات بعد — شارك كودك وابدأ بكسب النقاط.</td></tr>}
+                {data?.transactions.map((t, i) => (
                   <tr key={t.id}>
+                    <td style={ROW_NO_CELL}>{i + 1}</td>
                     <td>{fmtDate(t.created_at)}</td>
                     <td className="ep-td-bold">{t.description ?? t.source}</td>
                     <td><span className={`ep-badge ${t.points >= 0 ? 'ep-badge-green' : 'ep-badge-orange'}`}>{t.points >= 0 ? '+' : ''}{t.points}</span></td>

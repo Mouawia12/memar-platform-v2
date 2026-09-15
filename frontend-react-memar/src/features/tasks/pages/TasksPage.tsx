@@ -3,6 +3,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { ClientFollowUpsBoard } from '../components/ClientFollowUpsBoard';
 import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from '../components/DateRangeFilter';
@@ -269,6 +270,7 @@ export function TasksPage() {
             <table style={table}>
               <thead>
                 <tr>
+                  <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                   <th style={th}>المهندس</th>
                   <th style={th}>مهام نشطة</th>
                   <th style={th}>مكتملة</th>
@@ -277,12 +279,13 @@ export function TasksPage() {
                 </tr>
               </thead>
               <tbody>
-                {(workload ?? []).map((w) => {
+                {(workload ?? []).map((w, i) => {
                   const max = Math.max(...(workload ?? []).map((x) => x.open), 1);
                   const pct = Math.round((w.open / max) * 100);
                   const tone = w.overdue > 1 ? '#DC4A3D' : w.open > max * 0.6 ? '#E8A838' : '#2D9B6F';
                   return (
                     <tr key={w.user.id}>
+                      <td style={{ ...td, ...ROW_NO_CELL }}>{i + 1}</td>
                       <td style={{ ...td, fontWeight: 800 }}>{w.user.name}</td>
                       <td style={td}>{w.open}</td>
                       <td style={td}>{w.done}</td>

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { STATUS_COLORS, STATUS_LABELS, type Quotation } from '../types';
 
 interface Props {
@@ -10,11 +11,13 @@ interface Props {
   onConvert: (q: Quotation) => void;
   canManage?: boolean;  // إظهار التعديل + التحويل لعقد (pricing.manage)
   canDelete?: boolean;  // إظهار زر الحذف (لا توجد pricing.delete → يُمرَّر canManage)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
 
-export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConvert, canManage = true, canDelete = true }: Props) {
+export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConvert, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   if (quotations.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد عروض أسعار.</p>;
   }
@@ -24,6 +27,7 @@ export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConve
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>الرقم</th>
             <th style={th}>العميل</th>
             <th style={th}>المشروع</th>
@@ -34,8 +38,9 @@ export function QuotationsTable({ quotations, onEdit, onDelete, onPrint, onConve
           </tr>
         </thead>
         <tbody>
-          {quotations.map((q) => (
+          {quotations.map((q, i) => (
             <tr key={q.id}>
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}><code>{q.number ?? '—'}</code></td>
               <td style={td}>{q.client?.name ?? '—'}</td>
               <td style={td}>{q.project?.name ?? '—'}</td>

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { STATUS_COLORS, STATUS_LABELS, type Contract } from '../types';
 
 interface Props {
@@ -9,11 +10,13 @@ interface Props {
   onGenerateInvoices: (c: Contract) => void;
   canManage?: boolean;  // إظهار توليد الفواتير + التعديل (contracts.manage)
   canDelete?: boolean;  // إظهار زر الحذف (contracts.delete)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
 
-export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices, canManage = true, canDelete = true }: Props) {
+export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (contracts.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد عقود.</p>;
@@ -24,6 +27,7 @@ export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>الرقم</th>
             <th style={th}>المشروع</th>
             <th style={th}>العميل</th>
@@ -34,8 +38,9 @@ export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices
           </tr>
         </thead>
         <tbody>
-          {contracts.map((c) => (
+          {contracts.map((c, i) => (
             <tr key={c.id}>
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}><code>{c.number ?? '—'}</code></td>
               <td style={td}>{c.project?.name ?? '—'}</td>
               <td style={td}>{c.client?.name ?? '—'}</td>

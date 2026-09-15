@@ -21,12 +21,16 @@ const COLUMNS: { key: Col; label: string; icon: string; color: string }[] = [
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
-/** عمود المتابعة حسب موعدها وحالتها. */
+/**
+ * عمود المتابعة حسب موعدها وحالتها. المتكرّرة لا تتأخّر (طلب 2026-09-15): الخادم
+ * يرسل موعد دورتها الحالية، فتكون في «اليوم» يوم دورتها و«مجدولة» ما عداه —
+ * والحارس هنا يقيها «متأخرة» إن سبقت ساعةُ الجهاز الخادمَ إلى يوم جديد.
+ */
 function columnOf(f: FollowUp): Col {
   if (f.done) return 'done';
   const day = f.remind_at?.slice(0, 10);
   if (!day) return 'scheduled';
-  if (day < todayStr()) return 'overdue';
+  if (day < todayStr()) return f.repeat_every ? 'today' : 'overdue';
   if (day === todayStr()) return 'today';
 
   return 'scheduled';

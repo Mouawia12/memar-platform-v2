@@ -17,7 +17,8 @@ function currentStage(f: FollowUp): string {
   if (f.done) return 'منجزة';
   const day = f.remind_at?.slice(0, 10);
   if (!day) return 'مجدولة';
-  if (day < todayStr()) return 'متأخرة';
+  // المتكرّرة لا تتأخّر — تتقدّم لدورتها التالية (كعمودها في اللوحة).
+  if (day < todayStr()) return f.repeat_every ? 'اليوم' : 'متأخرة';
   if (day === todayStr()) return 'اليوم';
 
   return 'مجدولة';

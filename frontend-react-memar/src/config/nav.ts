@@ -157,7 +157,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: 'documents', label: 'المستندات', icon: '📄', path: '/documents', perm: 'documents.view' },
       { key: 'file_manager', label: 'مدير الملفات', icon: '🗂️', path: '/files', perm: 'documents.view' },
       { key: 'appointments', label: 'المواعيد', icon: '📅', path: '/appointments', perm: 'appointments.view' },
-      { key: 'whatsapp', label: 'واتساب', icon: '💬', path: '/whatsapp', perm: 'crm.view' },
+      { key: 'whatsapp', label: 'التواصل', icon: '💬', path: '/whatsapp', perm: 'crm.view' },
     ],
   },
   {

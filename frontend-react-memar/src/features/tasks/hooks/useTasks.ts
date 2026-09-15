@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryClient } from '../../../lib/queryClient';
 import { tasksApi, type TasksQuery } from '../api/tasksApi';
+import { applyOrder } from '../boardDnd';
 import type { Task, TaskFormData, TaskStatus } from '../types';
 
 const KEY = ['tasks'];
@@ -47,6 +48,28 @@ export function useMoveTask() {
     mutationFn: ({ id, payload }: { id: number; payload: { due_date?: string; status?: TaskStatus } }) =>
       tasksApi.update(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/**
+ * ترتيب بطاقات عمود بالسحب والإفلات (طلب 2026-09-15) — تحديث متفائل فوري
+ * ثم مزامنة، ويُستعاد الترتيب السابق إن فشل الحفظ.
+ */
+export function useReorderTasks() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: number[]) => tasksApi.reorder(ids),
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: KEY });
+      const prev = qc.getQueriesData<Task[]>({ queryKey: KEY });
+      // تحت المفتاح نفسه استعلام «توزيع المهام» — ليس قائمة مهام فلا يُمسّ.
+      qc.setQueriesData<Task[]>({ queryKey: KEY }, (old) => (Array.isArray(old) ? applyOrder(old, ids) : old));
+
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => ctx?.prev?.forEach(([key, data]) => qc.setQueryData(key, data)),
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
 

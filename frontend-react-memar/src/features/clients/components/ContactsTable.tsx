@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { CLIENT_KIND_LABELS, CONTACT_TYPE_LABELS, type Contact } from '../types';
 
@@ -11,6 +12,8 @@ interface Props {
   onViewProfile?: (c: Contact) => void;
   canManage?: boolean; // إظهار زر التعديل (crm.manage)
   canDelete?: boolean; // إظهار زر الحذف (crm.delete)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const typeColor: Record<string, string> = {
@@ -50,7 +53,7 @@ function Stars({ value }: { value: number }) {
  * «إجمالي العقود» بيانات مالية: يرسلها الخادم لمن يملك clients.finance.view
  * وحده (الإدارة، أو موظف بعينه تمنحه الإدارة استثناءً)، والعمود يغيب عن غيره.
  */
-export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canManage = true, canDelete = true }: Props) {
+export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   // عمود الإجراءات يظهر لمن يملك عرض البروفيل أو التعديل أو الحذف
   const showActions = !!onViewProfile || canManage || canDelete;
   const canSeeFinance = usePermission('clients.finance.view');
@@ -64,6 +67,7 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canMa
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '920px' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>العميل</th>
             <th style={th}>النوع</th>
             <th style={th}>الهاتف</th>
@@ -77,8 +81,9 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canMa
           </tr>
         </thead>
         <tbody>
-          {contacts.map((c) => (
+          {contacts.map((c, i) => (
             <tr key={c.id} style={c.is_vip ? vipRow : undefined}>
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}>
                 {/* الاسم يفتح ملف العميل — نفس ما يفعله زرّ 👁 (طلب أيمن 2026-09-09). */}
                 <Link to={`/clients/${c.id}/profile`} style={nameLink} title={`ملف العميل: ${c.full_name}`}>{c.full_name}</Link>

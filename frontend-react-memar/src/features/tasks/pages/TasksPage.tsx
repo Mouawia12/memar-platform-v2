@@ -3,13 +3,14 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { useAuthStore } from '../../../store/auth';
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { ClientFollowUpsBoard } from '../components/ClientFollowUpsBoard';
 import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from '../components/DateRangeFilter';
 import { FollowUpFormModal } from '../components/FollowUpFormModal';
 import { StaffFilter } from '../components/StaffFilter';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
-import { useFollowUps } from '../hooks/useFollowUps';
+import { useFollowUps, useMoveFollowUp, useReorderFollowUps } from '../hooks/useFollowUps';
 import { isFollowUpOf, isTaskOf } from '../ownership';
 import { useTaskAlertAcks } from '../taskAlerts';
 import { TaskDetailModal } from '../components/TaskDetailModal';
@@ -17,7 +18,7 @@ import type { CardRef } from '../hooks/useCardActivity';
 import type { FollowUp } from '../api/followUpsApi';
 import { DirectiveModal } from '../components/DirectiveModal';
 import { TaskFormModal } from '../components/TaskFormModal';
-import { useDeleteTask, useMoveTask, useTasks, useToggleTask, useUpdateProgress, useWorkload } from '../hooks/useTasks';
+import { useDeleteTask, useMoveTask, useReorderTasks, useTasks, useToggleTask, useUpdateProgress, useWorkload } from '../hooks/useTasks';
 import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
 
 /**
@@ -92,6 +93,10 @@ export function TasksPage() {
   const toggle = useToggleTask();
   const del = useDeleteTask();
   const progress = useUpdateProgress();
+  // السحب والإفلات: ترتيب بطاقات العمود في اللوحتين، ونقل المتابعة بين أعمدتها.
+  const reorderTasks = useReorderTasks();
+  const moveFollowUp = useMoveFollowUp();
+  const reorderFollowUps = useReorderFollowUps();
 
   const kpis = useMemo(() => {
     const list = tasks ?? [];
@@ -212,6 +217,7 @@ export function TasksPage() {
           isAcked={isAcked}
           onAck={ack}
           onMove={(t, status) => handleMove(t, { status })}
+          onReorder={(ids) => reorderTasks.mutate(ids)}
           meId={meId}
           highlightMine={!byStaff && effTaskScope === 'all' && taskHighlight}
           onProgress={canManage ? (t, pct) => progress.mutate({ id: t.id, progress: pct }) : undefined}
@@ -258,6 +264,9 @@ export function TasksPage() {
         highlightMine={!byStaff && effFupScope === 'all' && fupHighlight}
         onDirective={setFupDirectiveOf}
         canSendDirective={canSendFupDirective}
+        // النقل تعديل على المتابعة (crm.manage كإضافتها)؛ والترتيب لكل من يرى اللوحة.
+        onMove={canAddFollowUp ? (f, payload) => moveFollowUp.mutate({ id: f.id, ...payload }) : undefined}
+        onReorder={(ids) => reorderFollowUps.mutate(ids)}
       />
 
       {/* ══ توزيع المهام على الفريق ══ */}
@@ -269,6 +278,7 @@ export function TasksPage() {
             <table style={table}>
               <thead>
                 <tr>
+                  <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                   <th style={th}>المهندس</th>
                   <th style={th}>مهام نشطة</th>
                   <th style={th}>مكتملة</th>
@@ -277,12 +287,13 @@ export function TasksPage() {
                 </tr>
               </thead>
               <tbody>
-                {(workload ?? []).map((w) => {
+                {(workload ?? []).map((w, i) => {
                   const max = Math.max(...(workload ?? []).map((x) => x.open), 1);
                   const pct = Math.round((w.open / max) * 100);
                   const tone = w.overdue > 1 ? '#DC4A3D' : w.open > max * 0.6 ? '#E8A838' : '#2D9B6F';
                   return (
                     <tr key={w.user.id}>
+                      <td style={{ ...td, ...ROW_NO_CELL }}>{i + 1}</td>
                       <td style={{ ...td, fontWeight: 800 }}>{w.user.name}</td>
                       <td style={td}>{w.open}</td>
                       <td style={td}>{w.done}</td>

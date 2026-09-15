@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { ROW_NO_CELL, rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { ServiceRequestFormModal } from '../components/ServiceRequestFormModal';
 import { useDeleteRequest, useServiceRequests } from '../hooks/useRequests';
@@ -31,6 +32,7 @@ export function RequestsPage() {
 
   const meta = data?.meta;
   const rows = data?.data ?? [];
+  const offset = rowOffset(meta);
   const openCount = rows.filter((r) => r.status === 'open' || r.status === 'in_progress').length;
 
   return (
@@ -62,6 +64,7 @@ export function RequestsPage() {
             <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
+                  <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                   <th style={th}>الطلب</th>
                   <th style={th}>النوع</th>
                   <th style={th}>العميل</th>
@@ -72,8 +75,9 @@ export function RequestsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {rows.map((r, i) => (
                   <tr key={r.id}>
+                    <td style={{ ...td, ...ROW_NO_CELL }}>{offset + i + 1}</td>
                     <td style={td}><b>{r.title}</b></td>
                     <td style={td}>{TYPE_LABELS[r.type]}</td>
                     <td style={td}>
@@ -91,7 +95,7 @@ export function RequestsPage() {
                     )}
                   </tr>
                 ))}
-                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={showActions ? 7 : 6}>لا توجد طلبات.</td></tr>}
+                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={showActions ? 8 : 7}>لا توجد طلبات.</td></tr>}
               </tbody>
             </table>
           </div>

@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { ROW_NO_CELL, rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { ExpenseFormModal } from '../components/ExpenseFormModal';
 import { useDeleteExpense, useExpenses, useFinanceOverview } from '../hooks/useFinance';
@@ -24,6 +25,7 @@ export function FinancePage() {
   const handleDelete = (x: Expense) => { if (confirm(`حذف مصروف "${x.title}"؟`)) del.mutate(x.id); };
 
   const meta = data?.meta;
+  const offset = rowOffset(meta);
   const net = overview?.net_profit ?? 0;
 
   return (
@@ -54,6 +56,7 @@ export function FinancePage() {
               <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
+                    <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                     <th style={th}>البيان</th>
                     <th style={th}>التصنيف</th>
                     <th style={th}>التاريخ</th>
@@ -62,8 +65,9 @@ export function FinancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.data.map((x) => (
+                  {data.data.map((x, i) => (
                     <tr key={x.id}>
+                      <td style={{ ...td, ...ROW_NO_CELL }}>{offset + i + 1}</td>
                       <td style={td}><b>{x.title}</b>{x.vendor && <div style={{ fontSize: '12px', opacity: 0.6 }}>{x.vendor}</div>}</td>
                       <td style={td}>{x.category ?? '—'}</td>
                       <td style={td}>{x.spent_at ?? '—'}</td>
@@ -76,7 +80,7 @@ export function FinancePage() {
                       )}
                     </tr>
                   ))}
-                  {data.data.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={(canManage || canDelete) ? 5 : 4}>لا توجد مصروفات مسجّلة.</td></tr>}
+                  {data.data.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={(canManage || canDelete) ? 6 : 5}>لا توجد مصروفات مسجّلة.</td></tr>}
                 </tbody>
               </table>
             </div>

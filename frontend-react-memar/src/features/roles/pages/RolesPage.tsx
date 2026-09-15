@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useState } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { useDeleteRole, usePermissionGroups, useRolesCatalog, useSaveRole } from '../hooks/useRoles';
 import { type PermissionsTarget } from '../../users/components/UserPermissionsModal';
 import { UserPermissionsPanel } from '../../users/components/UserPermissionsModal';
@@ -330,6 +331,7 @@ export function RolesPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E4E8EF' }}>
+                            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                             <th style={{ ...th, textAlign: 'right' }}>الاسم</th>
                             <th style={{ ...th, textAlign: 'right' }}>البريد</th>
                             <th style={{ ...th, textAlign: 'center' }}>الحالة</th>
@@ -337,13 +339,14 @@ export function RolesPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {selected.users.map((u) => (
+                          {selected.users.map((u, i) => (
                             <tr
                               key={u.id}
                               style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
                               onClick={() => setPermsOf({ id: u.id, name: u.name, roles: [selected.label] })}
                               title={`صلاحيات ${u.name} الخاصّة`}
                             >
+                              <td style={{ ...td, ...ROW_NO_CELL }}>{i + 1}</td>
                               <td style={{ ...td, fontWeight: 700, color: '#1B6CA8' }}>🔐 {u.name}</td>
                               <td style={{ ...td, color: '#8A93A3', direction: 'ltr', textAlign: 'right' }}>{u.email || '—'}</td>
                               <td style={{ ...td, textAlign: 'center' }}>

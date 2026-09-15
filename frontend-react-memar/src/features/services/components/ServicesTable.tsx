@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { categoryColor, type Service } from '../types';
 
 interface Props {
@@ -8,6 +9,8 @@ interface Props {
   onDelete: (s: Service) => void;
   canManage?: boolean;  // إظهار زر التعديل (pricing.manage)
   canDelete?: boolean;  // إظهار زر الحذف (لا توجد pricing.delete → يُمرَّر canManage)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 /**
@@ -24,7 +27,7 @@ const money = (v: string, unit: string | null) => {
 const fmtDate = (iso: string | null | undefined) =>
   (iso ? new Date(iso).toLocaleDateString('ar', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—');
 
-export function ServicesTable({ services, onEdit, onDelete, canManage = true, canDelete = true }: Props) {
+export function ServicesTable({ services, onEdit, onDelete, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (services.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px', textAlign: 'center' }}>لا توجد خدمات ضمن هذا التصنيف.</p>;
@@ -35,6 +38,7 @@ export function ServicesTable({ services, onEdit, onDelete, canManage = true, ca
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>الخدمة</th>
             <th style={thMid}>التصنيف</th>
             <th style={thMid}>الوحدة</th>
@@ -45,11 +49,12 @@ export function ServicesTable({ services, onEdit, onDelete, canManage = true, ca
           </tr>
         </thead>
         <tbody>
-          {services.map((s) => {
+          {services.map((s, i) => {
             const c = categoryColor(s.category);
 
             return (
               <tr key={s.id} style={s.is_active ? undefined : inactiveRow}>
+                <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
                 <td style={td}>
                   <b style={{ color: '#0F2A4A' }}>{s.name}</b>
                   {s.description && <div style={desc} title={s.description}>{s.description}</div>}

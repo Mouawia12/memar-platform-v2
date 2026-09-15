@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { STATUS_COLORS, STATUS_LABELS, type Invoice } from '../types';
 
 interface Props {
@@ -9,11 +10,13 @@ interface Props {
   onPay: (i: Invoice) => void;
   canManage?: boolean;  // إظهار التحصيل + التعديل (finance.manage)
   canDelete?: boolean;  // إظهار زر الحذف (finance.delete)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })}`;
 
-export function InvoicesTable({ invoices, onEdit, onDelete, onPay, canManage = true, canDelete = true }: Props) {
+export function InvoicesTable({ invoices, onEdit, onDelete, onPay, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (invoices.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد فواتير.</p>;
@@ -24,6 +27,7 @@ export function InvoicesTable({ invoices, onEdit, onDelete, onPay, canManage = t
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>الرقم</th>
             <th style={th}>العميل</th>
             <th style={th}>الإجمالي</th>
@@ -35,8 +39,9 @@ export function InvoicesTable({ invoices, onEdit, onDelete, onPay, canManage = t
           </tr>
         </thead>
         <tbody>
-          {invoices.map((i) => (
+          {invoices.map((i, idx) => (
             <tr key={i.id}>
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + idx + 1}</td>
               <td style={td}><code>{i.number ?? '—'}</code></td>
               <td style={td}>{i.client?.name ?? '—'}</td>
               <td style={td}>{money(i.total_kwd)}</td>

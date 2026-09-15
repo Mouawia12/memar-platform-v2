@@ -1,6 +1,7 @@
 import { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
+import { ROW_NO_CELL } from '../../lib/rowNumber';
 import { useAuthStore } from '../../store/auth';
 import { usePermission } from '../auth/hooks/usePermission';
 import { useAppointments } from '../appointments/hooks/useAppointments';
@@ -141,6 +142,7 @@ export function DashboardPage() {
           <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
+                <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
                 <th style={th}>الوقت</th>
                 <th style={th}>الموضوع / الموعد</th>
                 <th style={th}>العميل / الجهة</th>
@@ -150,8 +152,9 @@ export function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {todayAppts.map((a) => (
+              {todayAppts.map((a, i) => (
                 <tr key={a.id}>
+                  <td style={{ ...td, ...ROW_NO_CELL }}>{i + 1}</td>
                   <td style={td}><b>{fmtTime(a.start_at)}</b></td>
                   <td style={td}>{a.title}</td>
                   <td style={td}>{a.project?.name ?? '—'}</td>
@@ -160,7 +163,7 @@ export function DashboardPage() {
                   <td style={td}>{APPT_STATUS_LABELS[a.status]}</td>
                 </tr>
               ))}
-              {todayAppts.length === 0 && <tr><td style={{ ...td, textAlign: 'center', padding: '28px', opacity: 0.6 }} colSpan={6}>لا توجد مواعيد مبرمجة لليوم</td></tr>}
+              {todayAppts.length === 0 && <tr><td style={{ ...td, textAlign: 'center', padding: '28px', opacity: 0.6 }} colSpan={7}>لا توجد مواعيد مبرمجة لليوم</td></tr>}
             </tbody>
           </table>
         </div>

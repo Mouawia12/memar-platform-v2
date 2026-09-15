@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { contactsApi } from '../api/contactsApi';
 import { ContactFormModal } from '../components/ContactFormModal';
@@ -89,6 +90,7 @@ export function ClientsPage() {
             onViewProfile={canViewProfile ? (c) => navigate(`/clients/${c.id}/profile`) : undefined}
             canManage={canManage}
             canDelete={canDelete}
+            rowOffset={rowOffset(meta)}
           />
         )}
 

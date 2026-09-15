@@ -1,6 +1,7 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { useContacts } from '../../clients/hooks/useContacts';
 import { useProjects } from '../../projects/hooks/useProjects';
 import { useServices } from '../../services/hooks/useServices';
@@ -101,6 +102,7 @@ export function QuotationFormModal({ quotationId, onClose }: Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr>
+                  <th style={{ ...ith, ...ROW_NO_CELL }}>#</th>
                   <th style={ith}>الخدمة</th>
                   <th style={ith}>الوصف</th>
                   <th style={{ ...ith, width: '70px' }}>الكمية</th>
@@ -112,6 +114,7 @@ export function QuotationFormModal({ quotationId, onClose }: Props) {
               <tbody>
                 {form.items.map((it, idx) => (
                   <tr key={idx}>
+                    <td style={{ ...itd, ...ROW_NO_CELL }}>{idx + 1}</td>
                     <td style={itd}>
                       <select className="input" style={{ width: '120px' }} value={it.service_id} onChange={(e) => onServiceChange(idx, e.target.value)}>
                         <option value="">— يدوي —</option>

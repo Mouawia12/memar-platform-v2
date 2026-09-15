@@ -2,10 +2,14 @@ import { api, apiDelete, apiGet, apiGetPaginated, apiPatch, apiPost } from '../.
 import type { AuthUser } from '../../../types/api';
 import type { Role, User } from '../types';
 
+/** نوع الحساب: الطاقم · عميل فعلي · من سجّل من الصفحة العامة ولم يصر عميلًا بعد. */
+export type UserType = 'staff' | 'client' | 'public';
+
 export interface UsersQuery {
   search?: string;
   page?: number;
   per_page?: number;
+  type?: UserType;
 }
 
 /** عنصر مبسّط من قائمة الإسناد (اسم فقط). */
@@ -16,6 +20,8 @@ export interface AssignableUser {
 
 export const usersApi = {
   list: (params: UsersQuery) => apiGetPaginated<User>('/users', { params }),
+  /** عدد الحسابات في كل نوع — لأزرار فلتر السجل. */
+  typeCounts: () => apiGet<Record<'all' | UserType, number>>('/users/type-counts'),
   /** قائمة الطاقم للإسناد (المكلّف/المدير) — بلا صلاحية users.view. */
   assignable: () => apiGet<AssignableUser[]>('/users/assignable'),
   /** صور الطاقم دفعة واحدة: { "3": "data:image/…" } — من له صورة فقط. */

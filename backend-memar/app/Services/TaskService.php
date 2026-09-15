@@ -105,6 +105,20 @@ class TaskService
     }
 
     /**
+     * ترتيب عمود: position = موضع المعرّف في القائمة المرسلة. يبدأ من 1 كي تبقى
+     * المهمة الجديدة (0) أعلى عمودها، و toBase() كي لا يُحسب الترتيب تعديلًا
+     * على المهمة — فلا يتغيّر «آخر تحديث» ولا يرنّ جرس النشاط الجديد.
+     *
+     * @param  array<int, int>  $ids
+     */
+    public function reorder(array $ids): void
+    {
+        foreach (array_values($ids) as $i => $id) {
+            Task::whereKey($id)->toBase()->update(['position' => $i + 1]);
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function create(array $data, ?int $creatorId = null): Task

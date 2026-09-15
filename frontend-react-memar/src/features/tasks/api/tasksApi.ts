@@ -25,6 +25,8 @@ export const tasksApi = {
   create: (payload: Record<string, unknown>) => apiPost<Task>('/tasks', payload),
   update: (id: number, payload: Record<string, unknown>) => apiPatch<Task>(`/tasks/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/tasks/${id}`),
+  /** ترتيب بطاقات عمود بالسحب والإفلات — معرّفات العمود بترتيبها الجديد. */
+  reorder: (ids: number[]) => apiPost<null>('/tasks/reorder', { ids }),
   /** يعلّم إشعار المهمة كمقروء للمستخدم الحالي (يُخفي الجرس عنده وحده). */
   markRead: (id: number) => apiPost<null>(`/tasks/${id}/read`),
 

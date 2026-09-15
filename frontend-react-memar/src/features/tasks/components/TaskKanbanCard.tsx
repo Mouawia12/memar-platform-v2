@@ -68,6 +68,12 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, mu
     }
     : null;
 
+  // آخر تحديث للبطاقة (طلب 2026-09-15): الأحدث بين تعديل المهمة ونسبة الإنجاز
+  // ورسائل خيط التوجيه — فالردّ على البطاقة يُعدّ تحديثًا لها وإن لم تُعدَّل المهمة.
+  const lastUpdate = [task.updated_at, task.progress_at, directive?.created_at, lastMessage?.created_at]
+    .filter((s): s is string => !!s)
+    .reduce<string | null>((latest, s) => (latest === null || new Date(s) > new Date(latest) ? s : latest), null);
+
   return (
     <div
       className={`crm-lead-card${overdue ? ' task-card-late' : ''}${unread > 0 && !overdue ? ' task-card-directive' : ''}`}
@@ -104,6 +110,8 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, mu
       </div>
 
       {task.project && <div style={projectLine} title={task.project.name}>🏗️ {task.project.name}</div>}
+
+      {lastUpdate && <div style={updatedLine} title={`آخر تحديث: ${fullStamp(lastUpdate)}`}>🕒 آخر تحديث: {shortStamp(lastUpdate)}</div>}
 
       {/* نصّ التوجيه نفسه ثم آخر ردّ عليه (طلب أيمن 2026-08-29) — كان يظهر
           الردّ وحده، فالتوجيه الجديد يصل بلا نصّ حتى يردّ أحد. كلا السطرين
@@ -218,4 +226,5 @@ const title: CSSProperties = { fontSize: '12px', fontWeight: 800, color: '#1A1F2
 const metaRow: CSSProperties = { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '5px' };
 const meta: CSSProperties = { fontSize: '9.5px', whiteSpace: 'nowrap' };
 const projectLine: CSSProperties = { fontSize: '9.5px', color: '#64748B', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const updatedLine: CSSProperties = { fontSize: '9.5px', color: '#94A3B8', marginTop: '3px', whiteSpace: 'nowrap' };
 const ackBtn: CSSProperties = { fontSize: '11px', lineHeight: 1, padding: '3px 7px', borderRadius: '20px', border: '1px solid #FCA5A5', background: '#FEF2F2', cursor: 'pointer', fontFamily: 'inherit' };

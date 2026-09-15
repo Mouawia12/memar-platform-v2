@@ -15,6 +15,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     // (طلب أيمن 2026-08-25). الموظف يملك tasks.view لكن لا يملك tasks.delete.
     Route::get('/tasks/workload', [TaskController::class, 'workload'])->middleware('permission:tasks.delete');
     Route::post('/tasks', [TaskController::class, 'store'])->middleware('permission:tasks.manage');
+    // ترتيب بطاقات عمود بالسحب والإفلات — لمن يرى اللوحة. يُسجَّل قبل /tasks/{task}.
+    Route::post('/tasks/reorder', [TaskController::class, 'reorder'])->middleware('permission:tasks.view');
     Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('permission:tasks.view');
     Route::match(['put', 'patch'], '/tasks/{task}', [TaskController::class, 'update'])->middleware('permission:tasks.manage');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->middleware('permission:tasks.delete');

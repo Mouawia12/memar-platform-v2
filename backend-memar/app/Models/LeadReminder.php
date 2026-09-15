@@ -97,6 +97,35 @@ class LeadReminder extends Model
         };
     }
 
+    /**
+     * موعد الدورة الحالية وعدد الدورات التي فاتت (طلب 2026-09-15).
+     *
+     * المتابعة المتكرّرة لا تتأخّر: إن فات يوم دورتها ولم تُنجز تتقدّم بدوريتها
+     * حتى أوّل موعد اليومَ أو بعده — فتظهر في «اليوم» يوم دورتها وفي «مجدولة»
+     * بقيّة الأيام، وما فاتها يُعدّ في شارة الدورات الفائتة. غير المتكرّرة
+     * والمنجزة يبقى موعدها كما حُفظ. لا يُكتب شيء: الموعد المحفوظ يتقدّم
+     * فعلًا عند إنجازها (من اليوم) أو تعديلها.
+     *
+     * @return array{0: ?CarbonInterface, 1: int}
+     */
+    public function currentOccurrence(?CarbonInterface $now = null): array
+    {
+        $at = $this->remind_at;
+        if ($at === null || $this->done || self::repeatParts($this->repeat_every) === null) {
+            return [$at, 0];
+        }
+
+        $today = ($now ?? now())->copy()->startOfDay();
+        $missed = 0;
+        // الحدّ يقي من حلقة طويلة لبيانات شاذّة (دورية يومية منذ سنوات كثيرة).
+        while ($at->lt($today) && $missed < 5000) {
+            $at = self::nextOccurrence($this->repeat_every, $at);
+            $missed++;
+        }
+
+        return [$at, $missed];
+    }
+
     protected function casts(): array
     {
         return [

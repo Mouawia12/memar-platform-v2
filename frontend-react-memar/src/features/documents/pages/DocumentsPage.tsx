@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { DocumentEditModal } from '../components/DocumentEditModal';
 import { GenerateModal } from '../components/GenerateModal';
@@ -45,10 +46,11 @@ export function DocumentsPage() {
           generated.isLoading ? <p>جارٍ التحميل…</p> : (
             <div style={{ overflowX: 'auto' }}>
               <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>العنوان</th><th style={th}>القالب</th><th style={th}>المشروع</th><th style={th}>التاريخ</th><th style={th}>إجراءات</th></tr></thead>
+                <thead><tr><th style={{ ...th, ...ROW_NO_CELL }}>#</th><th style={th}>العنوان</th><th style={th}>القالب</th><th style={th}>المشروع</th><th style={th}>التاريخ</th><th style={th}>إجراءات</th></tr></thead>
                 <tbody>
-                  {(generated.data?.data ?? []).map((d) => (
+                  {(generated.data?.data ?? []).map((d, i) => (
                     <tr key={d.id}>
+                      <td style={{ ...td, ...ROW_NO_CELL }}>{i + 1}</td>
                       <td style={td}><b>{d.title}</b></td>
                       <td style={td}>{d.template ?? '—'}</td>
                       <td style={td}>{d.project?.name ?? '—'}</td>
@@ -60,7 +62,7 @@ export function DocumentsPage() {
                       </td>
                     </tr>
                   ))}
-                  {(generated.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={5}><span style={{ opacity: 0.6 }}>لا توجد مستندات مولّدة.</span></td></tr>}
+                  {(generated.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={6}><span style={{ opacity: 0.6 }}>لا توجد مستندات مولّدة.</span></td></tr>}
                 </tbody>
               </table>
             </div>
@@ -69,10 +71,11 @@ export function DocumentsPage() {
           templates.isLoading ? <p>جارٍ التحميل…</p> : (
             <div style={{ overflowX: 'auto' }}>
               <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>القالب</th><th style={th}>النوع</th><th style={th}>الحالة</th>{showTplActions && <th style={th}>إجراءات</th>}</tr></thead>
+                <thead><tr><th style={{ ...th, ...ROW_NO_CELL }}>#</th><th style={th}>القالب</th><th style={th}>النوع</th><th style={th}>الحالة</th>{showTplActions && <th style={th}>إجراءات</th>}</tr></thead>
                 <tbody>
-                  {(templates.data?.data ?? []).map((t) => (
+                  {(templates.data?.data ?? []).map((t, i) => (
                     <tr key={t.id}>
+                      <td style={{ ...td, ...ROW_NO_CELL }}>{i + 1}</td>
                       <td style={td}><b>{t.name}</b></td>
                       <td style={td}>{TEMPLATE_TYPE_LABELS[t.type]}</td>
                       <td style={td}><span style={{ color: t.is_active ? '#059669' : '#9ca3af' }}>{t.is_active ? '● مفعّل' : '○ موقوف'}</span></td>
@@ -84,7 +87,7 @@ export function DocumentsPage() {
                       )}
                     </tr>
                   ))}
-                  {(templates.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={showTplActions ? 4 : 3}><span style={{ opacity: 0.6 }}>لا توجد قوالب — أنشئ قالبًا أولاً.</span></td></tr>}
+                  {(templates.data?.data.length ?? 0) === 0 && <tr><td style={td} colSpan={showTplActions ? 5 : 4}><span style={{ opacity: 0.6 }}>لا توجد قوالب — أنشئ قالبًا أولاً.</span></td></tr>}
                 </tbody>
               </table>
             </div>

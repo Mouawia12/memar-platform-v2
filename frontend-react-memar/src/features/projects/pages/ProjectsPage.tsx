@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
+import { rowOffset } from '../../../lib/rowNumber';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { projectsApi } from '../api/projectsApi';
 import { ProjectFormModal } from '../components/ProjectFormModal';
@@ -126,7 +127,7 @@ export function ProjectsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل المشاريع.</p>}
-        {data && <ProjectsTable projects={rows} onEdit={openEdit} onDelete={handleDelete} showBudget={canFinance} canManage={canManage} canDelete={canDelete} />}
+        {data && <ProjectsTable projects={rows} onEdit={openEdit} onDelete={handleDelete} showBudget={canFinance} canManage={canManage} canDelete={canDelete} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

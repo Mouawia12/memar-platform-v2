@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\LeadReminder;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,6 +20,9 @@ class FollowUpResource extends JsonResource
     /** عدد الدورات الفائتة للمتابعة المتكرّرة — يُحقن من الكونترولر (حسابه هناك). */
     public int $lateCycles = 0;
 
+    /** موعد الدورة الحالية للمتكرّرة (LeadReminder::currentOccurrence) — يُحقن من الكونترولر. */
+    public ?CarbonInterface $occurrenceAt = null;
+
     /**
      * @return array<string, mixed>
      */
@@ -32,7 +36,8 @@ class FollowUpResource extends JsonResource
             'contact' => $this->contact?->full_name,
             'note' => $this->note,
             'description' => $this->description,
-            'remind_at' => $this->remind_at?->toIso8601String(),
+            // المتكرّرة بموعد دورتها الحالية: عمودها وتاريخها يتقدّمان مع دوريتها.
+            'remind_at' => ($this->occurrenceAt ?? $this->remind_at)?->toIso8601String(),
             'repeat_every' => $this->repeat_every,
             'late_cycles' => $this->lateCycles,
             'done' => (bool) $this->done,

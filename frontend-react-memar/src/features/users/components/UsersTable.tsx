@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import type { Role, User } from '../types';
 
 interface Props {
@@ -14,9 +15,11 @@ interface Props {
   currentUserId?: number;
   canManage?: boolean;  // إظهار زر التعديل (users.manage)
   canDelete?: boolean;  // إظهار زر الحذف (users.delete)
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
-export function UsersTable({ users, roles, onEdit, onPermissions, onDelete, onImpersonate, currentUserId, canManage = true, canDelete = true }: Props) {
+export function UsersTable({ users, roles, onEdit, onPermissions, onDelete, onImpersonate, currentUserId, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
   const roleLabel = (name: string) => roles.find((r) => r.name === name)?.label ?? name;
   // يمكن الدخول بحساب أي مستخدم عدا النفس ومديري النظام الآخرين.
   const canImpersonate = (u: User) => !!onImpersonate && u.id !== currentUserId && !u.roles.includes('super_admin');
@@ -31,6 +34,7 @@ export function UsersTable({ users, roles, onEdit, onPermissions, onDelete, onIm
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>الاسم</th>
             <th style={th}>البريد</th>
             <th style={th}>الهاتف</th>
@@ -40,8 +44,9 @@ export function UsersTable({ users, roles, onEdit, onPermissions, onDelete, onIm
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
+          {users.map((user, i) => (
             <tr key={user.id}>
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}><b>{user.name}</b></td>
               <td style={td}>{user.email}</td>
               <td style={td}>{user.phone ?? '—'}</td>

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { personColor, shortName } from '../../crm/types';
 import { useCloseAppointment } from '../hooks/useAppointments';
 import { LOCATION_KIND_LABELS, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, type Appointment } from '../types';
@@ -13,6 +14,8 @@ interface Props {
   canDelete?: boolean; // إظهار زر الحذف (appointments.delete)
   /** معرّف المستخدم — لتمييز مواعيده عن مواعيد الفريق. */
   meId?: number | null;
+  /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
+  rowOffset?: number;
 }
 
 const fmt = (iso: string | null) =>
@@ -26,7 +29,7 @@ function needsClosing(a: Appointment): boolean {
   return !!ends && new Date(ends).getTime() < Date.now();
 }
 
-export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = true, canDelete = true, meId }: Props) {
+export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = true, canDelete = true, meId, rowOffset = 0 }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   const close = useCloseAppointment();
   // بلا موعدٍ لي في الصفحة لا نُخفت شيئًا — وإلا بدا الجدول كلّه باهتًا.
@@ -40,6 +43,7 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
       <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ ...th, ...ROW_NO_CELL }}>#</th>
             <th style={th}>العنوان</th>
             <th style={th}>النوع</th>
             <th style={th}>المكلَّف</th>
@@ -51,12 +55,13 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
           </tr>
         </thead>
         <tbody>
-          {appointments.map((a) => {
+          {appointments.map((a, i) => {
             const mine = !!meId && a.assignee?.id === meId;
 
             return (
             // صفّي بخلفية زرقاء خفيفة، وصفوف غيري تخفت (طلب أيمن 2026-08-31)
             <tr key={a.id} style={mine ? mineRow : (hasMine ? OTHERS_MUTED : undefined)}>
+              <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}>
                 <b>{a.title}</b>
                 {a.project && <div style={{ fontSize: '12px', opacity: 0.6 }}>🏗️ {a.project.name}</div>}

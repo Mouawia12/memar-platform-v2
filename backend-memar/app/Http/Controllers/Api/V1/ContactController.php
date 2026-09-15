@@ -141,17 +141,40 @@ class ContactController extends ApiController
                 fn ($w) => $w->where('assignee_id', $me)
                     ->orWhere(fn ($n) => $n->whereNull('assignee_id')->where('created_by', $me)),
             ))
+            // الترتيب اليدوي أولًا (سحب البطاقة فوق أخرى)، ثم الموعد لما لم يُرتَّب.
+            ->orderBy('board_position')
             ->orderBy('remind_at')
             ->limit(300)
             ->get()
             ->map(function (LeadReminder $r) {
                 $res = new FollowUpResource($r);
                 $res->lateCycles = $this->lateCycles($r);
+                // المتكرّرة تُعرض بموعد دورتها الحالية فلا تسقط في «متأخرة».
+                $res->occurrenceAt = $r->currentOccurrence()[0];
 
                 return $res;
             });
 
         return $this->ok(FollowUpResource::collection($items));
+    }
+
+    /**
+     * ترتيب متابعات عمود في لوحة المتابعة بالسحب والإفلات (طلب 2026-09-15).
+     * يبدأ العدّ من 1 كي تبقى المتابعة الجديدة (0) أعلى عمودها، و toBase() كي
+     * لا يُحسب الترتيب تعديلًا على المتابعة (لا يمسّ updated_at).
+     */
+    public function reorderFollowUps(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        foreach (array_values($data['ids']) as $i => $id) {
+            LeadReminder::whereKey((int) $id)->toBase()->update(['board_position' => $i + 1]);
+        }
+
+        return $this->ok(null, 'تم تحديث الترتيب');
     }
 
     // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───
@@ -252,22 +275,21 @@ class ContactController extends ApiController
 
     /** @return array<string, mixed> */
     /**
-     * عدد دورات المتابعة الفائتة (طلب أيمن 2026-08-25): متابعة متأخّرة مكرّرة
-     * كل أسبوع مضى على موعدها 15 يومًا = دورتان فائتتان، فيظهر «2» على البطاقة.
-     * وبلا تكرار: مرّة واحدة ما دامت متأخّرة.
+     * عدد دورات المتابعة الفائتة (طلب أيمن 2026-08-25) — يظهر «↩ N» على البطاقة.
+     * المتكرّرة: الدورات التي انقضى يومها دون إنجاز (يوم دورتها الحالية لم يفُت
+     * بعد — طلب 2026-09-15). وبلا تكرار: مرّة واحدة ما دامت متأخّرة.
      */
     private function lateCycles(LeadReminder $r): int
     {
-        if ($r->done || $r->remind_at === null || ! $r->remind_at->isPast()) {
+        if ($r->done || $r->remind_at === null) {
             return 0;
         }
 
-        $days = LeadReminder::repeatDays($r->repeat_every);
-        if ($days === null) {
-            return 1;
+        if (LeadReminder::repeatParts($r->repeat_every) !== null) {
+            return $r->currentOccurrence()[1];
         }
 
-        return (int) floor($r->remind_at->diffInDays(now()) / $days) + 1;
+        return $r->remind_at->isPast() ? 1 : 0;
     }
 
     private function presentReminder(LeadReminder $r): array

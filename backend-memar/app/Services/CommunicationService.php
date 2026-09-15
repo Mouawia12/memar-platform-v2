@@ -8,6 +8,7 @@ use App\Models\Communication;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\User;
+use App\Support\ArabicSearch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -25,10 +26,8 @@ class CommunicationService
     public function list(array $filters, int $perPage = 20): LengthAwarePaginator
     {
         return Communication::query()
-            ->when($filters['search'] ?? null, fn (Builder $q, string $s) => $q->where(
-                // مجمَّعة حتى لا يتجاوز «أو» فلاتر القناة والنوع.
-                fn (Builder $w) => $w->where('contact_name', 'like', "%{$s}%")->orWhere('subject', 'like', "%{$s}%"),
-            ))
+            // مجمَّعة داخل where واحدة حتى لا يتجاوز «أو» فلاتر القناة والنوع.
+            ->when($filters['search'] ?? null, fn (Builder $q, string $s) => ArabicSearch::where($q, $s, ['contact_name', 'subject'], ['phone']))
             ->when($filters['channel'] ?? null, fn (Builder $q, string $c) => $q->where('channel', $c))
             ->when($filters['contact_type'] ?? null, fn (Builder $q, string $t) => $q->where('contact_type', $t))
             ->when($filters['contact_id'] ?? null, fn (Builder $q, int $id) => $q->where('contact_id', $id))
@@ -110,24 +109,32 @@ class CommunicationService
     }
 
     /**
-     * يُبقي ربطًا واحدًا فقط يطابق نوع الجهة، ويملأ الاسم والهاتف من الجهة المربوطة
+     * يُبقي ربطًا واحدًا فقط يناسب نوع الجهة، ويملأ الاسم والهاتف من الجهة المربوطة
      * إن تُركا فارغين — فالاسم يبقى محفوظًا حتى لو حُذفت الجهة لاحقًا.
+     * «شركة» تُربط بسجل الشركات أو بعميل من نوع شركة (كثير منها لا سجل شركة له).
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function fillFromLinked(array $data, ?Communication $existing = null): array
     {
-        $type = $data['contact_type'] ?? $existing?->contact_type ?? 'client';
-        $keep = ['client' => 'contact_id', 'company' => 'company_id', 'staff' => 'user_id'][$type] ?? 'contact_id';
-
-        foreach (['contact_id', 'company_id', 'user_id'] as $key) {
-            if ($key !== $keep && (array_key_exists($key, $data) || array_key_exists('contact_type', $data))) {
-                $data[$key] = null;
-            }
+        $touched = array_key_exists('contact_type', $data)
+            || array_intersect_key($data, array_flip(['contact_id', 'company_id', 'user_id'])) !== [];
+        if (! $touched) {
+            return $data;
         }
 
-        $id = $data[$keep] ?? null;
+        $type = $data['contact_type'] ?? $existing?->contact_type ?? 'client';
+        $allowed = ['client' => ['contact_id'], 'company' => ['company_id', 'contact_id'], 'staff' => ['user_id']][$type] ?? ['contact_id'];
+        // قيمة مُرسلة (ولو null لفكّ الربط) تتقدّم على القيمة المحفوظة.
+        $value = fn (string $key): mixed => array_key_exists($key, $data) ? $data[$key] : $existing?->{$key};
+        $keep = collect($allowed)->first(fn (string $key): bool => ! empty($value($key)));
+
+        foreach (['contact_id', 'company_id', 'user_id'] as $key) {
+            $data[$key] = $key === $keep ? $value($key) : null;
+        }
+
+        $id = $keep ? $data[$keep] : null;
         if (! $id) {
             return $data;
         }

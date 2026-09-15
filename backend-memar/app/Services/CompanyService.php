@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Company;
+use App\Support\ArabicSearch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -15,13 +16,7 @@ class CompanyService
     public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
     {
         return Company::query()
-            ->when($search, function ($query, string $s): void {
-                $query->where(function ($q) use ($s): void {
-                    $q->where('name', 'like', "%{$s}%")
-                        ->orWhere('industry', 'like', "%{$s}%")
-                        ->orWhere('phone', 'like', "%{$s}%");
-                });
-            })
+            ->when($search, fn ($query, string $s) => ArabicSearch::where($query, $s, ['name', 'industry'], ['phone']))
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
             ->latest()
             ->paginate($perPage);

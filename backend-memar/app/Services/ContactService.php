@@ -9,6 +9,7 @@ use App\Models\Contact;
 use App\Models\LoyaltyTransaction;
 use App\Models\PipelineStage;
 use App\Models\User;
+use App\Support\ArabicSearch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -26,14 +27,7 @@ class ContactService
     public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
     {
         return Contact::query()
-            ->when($search, function ($query, string $s): void {
-                $query->where(function ($q) use ($s): void {
-                    $q->where('full_name', 'like', "%{$s}%")
-                        ->orWhere('email', 'like', "%{$s}%")
-                        ->orWhere('phone', 'like', "%{$s}%")
-                        ->orWhere('company', 'like', "%{$s}%");
-                });
-            })
+            ->when($search, fn ($query, string $s) => ArabicSearch::where($query, $s, ['full_name', 'company', 'kunya'], ['email', 'phone']))
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
             ->with(['owner', 'createdBy:id,name', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
             // أعمدة سجل العملاء: مشاريعه وفرصه وإجمالي عقوده (طلب أيمن 2026-09-09)

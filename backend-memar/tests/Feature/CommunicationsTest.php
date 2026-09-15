@@ -60,7 +60,7 @@ class CommunicationsTest extends TestCase
         Communication::create(['contact_name' => 'سالم', 'channel' => 'phone', 'direction' => 'outbound', 'subject' => 'عرض']);
         Communication::create(['contact_name' => 'سالم', 'channel' => 'email', 'direction' => 'outbound', 'subject' => 'عرض']);
 
-        $this->getJson('/api/v1/communications?search=عرض&channel=email')
+        $this->getJson('/api/v1/communications?'.http_build_query(['search' => 'عرض', 'channel' => 'email']))
             ->assertOk()
             ->assertJsonCount(1, 'data');
     }
@@ -118,5 +118,36 @@ class CommunicationsTest extends TestCase
         $this->patchJson("/api/v1/communications/{$c->id}", ['follow_up_at' => now()->addDay()->toIso8601String()])
             ->assertOk()
             ->assertJsonPath('data.follow_up_done_at', null);
+    }
+
+    public function test_company_can_link_to_a_company_kind_client_and_be_unlinked(): void
+    {
+        $this->actingAsUserWith(['crm.view', 'crm.manage']);
+        $contact = Contact::factory()->create(['full_name' => 'شركة مدار الإنشاء', 'client_kind' => 'company']);
+
+        $id = $this->postJson('/api/v1/communications', [
+            'contact_type' => 'company', 'contact_id' => $contact->id, 'channel' => 'phone', 'direction' => 'outbound',
+        ])->assertCreated()
+            ->assertJsonPath('data.contact_id', $contact->id)
+            ->assertJsonPath('data.contact_name', 'شركة مدار الإنشاء')
+            ->json('data.id');
+
+        $this->patchJson("/api/v1/communications/{$id}", ['contact_type' => 'company', 'contact_id' => null])
+            ->assertOk()
+            ->assertJsonPath('data.contact_id', null)
+            ->assertJsonPath('data.linked', null)
+            ->assertJsonPath('data.contact_name', 'شركة مدار الإنشاء');
+    }
+
+    public function test_search_ignores_hamza_and_taa_marbuta_differences(): void
+    {
+        $this->actingAsUserWith(['crm.view']);
+        Contact::factory()->create(['full_name' => 'أحمد العلي', 'company' => null]);
+        Contact::factory()->create(['full_name' => 'د. آمنة الرشيدي', 'company' => null]);
+        Communication::create(['contact_name' => 'فاطمة العجمي', 'channel' => 'phone', 'direction' => 'outbound']);
+
+        $this->getJson('/api/v1/contacts?'.http_build_query(['search' => 'احمد']))->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.full_name', 'أحمد العلي');
+        $this->getJson('/api/v1/contacts?'.http_build_query(['search' => 'امنه']))->assertOk()->assertJsonCount(1, 'data');
+        $this->getJson('/api/v1/communications?'.http_build_query(['search' => 'فاطمه']))->assertOk()->assertJsonCount(1, 'data');
     }
 }

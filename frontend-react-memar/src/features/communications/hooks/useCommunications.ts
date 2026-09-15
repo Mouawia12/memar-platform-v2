@@ -22,8 +22,10 @@ function useInvalidate() {
   };
 }
 
-function toPayload({ linked_id, follow_up_at, ...data }: CommunicationFormData, includeFollowUp: boolean): Record<string, unknown> {
-  return { ...data, [LINK_KEYS[data.contact_type]]: linked_id, ...(includeFollowUp ? { follow_up_at } : {}) };
+function toPayload({ linked_key, linked_id, follow_up_at, ...data }: CommunicationFormData, includeFollowUp: boolean): Record<string, unknown> {
+  // يُرسل كل مفاتيح الربط صراحةً: المختار بقيمته والباقي null، فيُفكّ أي ربط سابق.
+  const links = { contact_id: null, company_id: null, user_id: null, [linked_key ?? LINK_KEYS[data.contact_type]]: linked_id };
+  return { ...data, ...links, ...(includeFollowUp ? { follow_up_at } : {}) };
 }
 
 export function useSaveCommunication() {

@@ -18,6 +18,13 @@ export function initial(name: string): string {
   return word.charAt(0) || '؟';
 }
 
+const ARABIC_MAP: Record<string, string> = { 'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ٱ': 'ا', 'ة': 'ه', 'ى': 'ي', 'ؤ': 'و', 'ئ': 'ي' };
+
+/** نفس تطبيع البحث في الباك إند (App\Support\ArabicSearch): «احمد» = «أحمد». */
+export function normalizeArabic(text: string): string {
+  return text.trim().replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[أإآٱةىؤئ]/g, (ch) => ARABIC_MAP[ch]).toLowerCase();
+}
+
 export const digits = (phone: string) => phone.replace(/[^0-9]/g, '');
 
 export const fmtDateTime = (iso: string | null) =>

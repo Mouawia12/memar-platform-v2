@@ -38,6 +38,7 @@ export interface Communication {
 export interface CommunicationFormData {
   contact_name: string;
   contact_type: ContactType;
+  linked_key: LinkKey | null;
   linked_id: number | null;
   phone: string;
   channel: Channel;
@@ -57,8 +58,10 @@ export interface CommunicationStats {
   by_type: Partial<Record<ContactType, number>>;
 }
 
-/** مفتاح الربط في الـ API لكل نوع جهة. */
-export const LINK_KEYS: Record<ContactType, 'contact_id' | 'company_id' | 'user_id'> = {
+export type LinkKey = 'contact_id' | 'company_id' | 'user_id';
+
+/** مفتاح الربط الافتراضي لكل نوع جهة (الشركة قد تُربط أيضًا بعميل نوعه شركة عبر contact_id). */
+export const LINK_KEYS: Record<ContactType, LinkKey> = {
   client: 'contact_id',
   company: 'company_id',
   staff: 'user_id',

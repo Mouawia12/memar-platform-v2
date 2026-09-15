@@ -2,7 +2,7 @@ import { type CSSProperties, type FormEvent, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
 import { useSaveCommunication } from '../hooks/useCommunications';
-import { CHANNEL_LABELS, CHANNEL_META, CONTACT_TYPE_LABELS, DIRECTION_LABELS, type Channel, type Communication, type CommunicationFormData, type ContactType, type Direction } from '../types';
+import { CHANNEL_LABELS, CHANNEL_META, CONTACT_TYPE_LABELS, DIRECTION_LABELS, LINK_KEYS, type Channel, type Communication, type CommunicationFormData, type ContactType, type Direction } from '../types';
 import { inDays, toLocalInput } from '../utils';
 import { LinkedEntityPicker, type PickedEntity } from './LinkedEntityPicker';
 
@@ -15,12 +15,13 @@ const FOLLOW_UP_PRESETS: Array<[number, string]> = [[1, 'غدًا'], [3, 'بعد
 
 function initialForm(c: Communication | null): CommunicationFormData {
   if (!c) {
-    return { contact_name: '', contact_type: 'client', linked_id: null, phone: '', channel: 'whatsapp', direction: 'outbound', subject: '', body: '', follow_up_at: null };
+    return { contact_name: '', contact_type: 'client', linked_key: null, linked_id: null, phone: '', channel: 'whatsapp', direction: 'outbound', subject: '', body: '', follow_up_at: null };
   }
   return {
     contact_name: c.contact_name,
     contact_type: c.contact_type ?? 'client',
-    linked_id: c.linked?.id ?? null,
+    linked_key: c.contact_id ? 'contact_id' : c.company_id ? 'company_id' : c.user_id ? 'user_id' : null,
+    linked_id: c.contact_id ?? c.company_id ?? c.user_id ?? null,
     phone: c.phone ?? '',
     channel: c.channel,
     direction: c.direction,
@@ -34,7 +35,7 @@ export function CommunicationFormModal({ communication, onClose }: Props) {
   const save = useSaveCommunication();
   const [form, setForm] = useState<CommunicationFormData>(() => initialForm(communication));
   const [picked, setPicked] = useState<PickedEntity | null>(() =>
-    communication?.linked ? { id: communication.linked.id, name: communication.linked.name, phone: communication.phone } : null);
+    communication?.linked ? { key: LINK_KEYS[communication.linked.type], id: communication.linked.id, name: communication.linked.name, phone: communication.phone } : null);
 
   // في التعديل لا يُرسل موعد المتابعة إلا إن غيّره المستخدم، فلا تُمسح متابعة منجزة.
   const [followUpTouched, setFollowUpTouched] = useState(!communication);
@@ -42,12 +43,13 @@ export function CommunicationFormModal({ communication, onClose }: Props) {
 
   const set = <K extends keyof CommunicationFormData>(key: K, value: CommunicationFormData[K]) => setForm((f) => ({ ...f, [key]: value }));
 
-  const setType = (type: ContactType) => { setForm((f) => ({ ...f, contact_type: type, linked_id: null })); setPicked(null); };
+  const setType = (type: ContactType) => { setForm((f) => ({ ...f, contact_type: type, linked_key: null, linked_id: null })); setPicked(null); };
 
   const pick = (entity: PickedEntity | null) => {
     setPicked(entity);
     setForm((f) => ({
       ...f,
+      linked_key: entity?.key ?? null,
       linked_id: entity?.id ?? null,
       contact_name: entity?.name ?? f.contact_name,
       phone: entity?.phone ?? f.phone,

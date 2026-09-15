@@ -1,7 +1,9 @@
-import { type CSSProperties, useRef, useState } from 'react';
+import { closestCenter, DndContext, type DragEndEvent, DragOverlay, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
+import { type CSSProperties, type ReactNode, useRef, useState } from 'react';
 
 import { useEdgeAutoScroll } from '../../../hooks/useEdgeAutoScroll';
 import { personColor, personInitials, shortName } from '../../crm/types';
+import { reorderedIds, SortableCard } from '../boardDnd';
 import { CARD_ACTIVITY_STYLES, fullStamp, shortStamp, OTHERS_MUTED } from './cardActivityStyles';
 import type { FollowUp } from '../api/followUpsApi';
 import { FollowUpDetailModal } from './FollowUpDetailModal';
@@ -28,6 +30,31 @@ function columnOf(f: FollowUp): Col {
   if (day === todayStr()) return 'today';
 
   return 'scheduled';
+}
+
+export type FollowUpMove = { done?: boolean; remind_at?: string };
+
+/**
+ * ما يعنيه إفلات المتابعة في عمود (طلب 2026-09-15): «منجزة» تُنجزها، «اليوم»
+ * تنقل موعدها لليوم، «مجدولة» للغد — أو تفتحها فقط إن كان موعدها قادمًا أصلًا.
+ * لا يُفلَت في «متأخرة»: التأخّر نتيجة موعد فات لا خيار يُختار. الساعة تبقى كما هي.
+ */
+function movePayload(f: FollowUp, to: Col): FollowUpMove | null {
+  if (to === columnOf(f) || to === 'overdue') return null;
+  if (to === 'done') return { done: true };
+  const day = f.remind_at?.slice(0, 10);
+  if (to === 'scheduled' && day && day > todayStr()) return { done: false };
+  const time = f.remind_at?.slice(11, 19) || '10:00:00';
+  const target = to === 'today' ? todayStr() : new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+
+  return { done: false, remind_at: `${target} ${time}` };
+}
+
+/** عمود يستقبل الإفلات — «متأخرة» معطّل لأنه لا يُنقل إليه يدويًّا. */
+function DropColumn({ col, children }: { col: typeof COLUMNS[number]; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: col.key, disabled: col.key === 'overdue' });
+
+  return <div ref={setNodeRef} style={{ ...column, ...(isOver ? columnOver : null) }}>{children}</div>;
 }
 
 /**
@@ -65,13 +92,20 @@ interface BoardProps {
   onDirective?: (f: FollowUp) => void;
   /** يملك إرسال التوجيهات (الإدارة) — يرى الزرّ على كل البطاقات. */
   canSendDirective?: boolean;
+  /** نقل المتابعة لعمود آخر بالسحب — إن غاب (لا يملك التعديل) لا يُنقل شيء. */
+  onMove?: (f: FollowUp, payload: FollowUpMove) => void;
+  /** ترتيب عمود بعد إفلات بطاقة فوق أخرى — معرّفات العمود بترتيبها الجديد. */
+  onReorder?: (ids: number[]) => void;
 }
 
-export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, canSendDirective }: BoardProps) {
+export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, canSendDirective, onMove, onReorder }: BoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   useEdgeAutoScroll(boardRef);
   // النقر على بطاقة المتابعة يفتح تفاصيلها (طلب أيمن 2026-08-25).
   const [detail, setDetail] = useState<FollowUp | null>(null);
+  const [active, setActive] = useState<FollowUp | null>(null);
+  // سحب بالضغط المطوّل كلوحة المهام: النقرة السريعة تفتح التفاصيل ولا تسحب.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
   // «متابعتي» = المكلَّف بها أنا؛ وبلا مكلَّف تبقى لمنشئها — نفس قاعدة الخادم
   // في فلتر «متابعاتي فقط»، فلا يختلف معنى «لي» بين الفلتر والتمييز.
   const isMine = (f: FollowUp) => !!meId && (f.assignee ? f.assignee.id === meId : f.creator?.id === meId);
@@ -83,12 +117,137 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
   const directiveFor = (f: FollowUp) =>
     onDirective && (canSendDirective || f.directive) ? onDirective : undefined;
 
+  const handleEnd = (e: DragEndEvent) => {
+    setActive(null);
+    const over = e.over?.id;
+    const f = items.find((x) => x.id === e.active.id);
+    if (!f || over === undefined) return;
+    // على مساحة العمود → نقل إليه؛ فوق بطاقة → لعمودها، أو ترتيب إن كانت في عمودها.
+    const target = typeof over === 'number' ? items.find((x) => x.id === over) : undefined;
+    const to = (typeof over === 'string' ? over : target && columnOf(target)) as Col | undefined;
+    if (!to) return;
+    if (target && to === columnOf(f)) {
+      const ids = reorderedIds(items.filter((x) => columnOf(x) === to).map((x) => x.id), f.id, target.id);
+      if (ids) onReorder?.(ids);
+      return;
+    }
+    const payload = movePayload(f, to);
+    if (payload) onMove?.(f, payload);
+  };
+
+  const renderCard = (f: FollowUp, col: typeof COLUMNS[number]) => {
+    const c = f.owner ? personColor(f.owner.id) : '#94A3B8';
+    const mine = markMine && isMine(f);
+    const unread = f.directive_unread ?? 0;
+    const badge = cardBadge(f);
+    const directive = f.directive ?? null;
+    const lastMessage = directive?.last_message ?? null;
+    return (
+      <div
+        className={`crm-lead-card${unread > 0 ? ' task-card-directive' : ''}`}
+        style={{ ...card, borderRight: `5px solid ${col.color}`, ...(mine ? mineRing : null), ...(markMine && !mine ? OTHERS_MUTED : null) }}
+        onClick={() => setDetail(f)} title="فتح تفاصيل المتابعة">
+        <div style={topLine}>
+          <span style={code}>#FUP-{String(f.id).padStart(3, '0')}</span>
+          {mine && <span style={mineTag}>متابعتي</span>}
+          {/* عدد المتابعات الفائتة مع سهم تأخّر (طلب أيمن 2026-08-25). */}
+          {f.late_cycles > 0 && (
+            <span style={lateBadge} title={`فاتت ${f.late_cycles} متابعة`}>↩ {f.late_cycles}</span>
+          )}
+          {f.repeat_every && (
+            <span style={repeatBadge} title="متابعة دورية">🔁 {repeatLabel(f.repeat_every)}</span>
+          )}
+        </div>
+        <div style={title}>{f.contact ?? 'عميل'}</div>
+        <div style={metaRow}>
+          {f.owner && (
+            <span style={ownerRow} title={`المكلّف: ${f.owner.name}`}>
+              <span style={{ ...avatar, background: c }}>{personInitials(f.owner.name)}</span>
+              <span style={{ fontSize: '9.5px', fontWeight: 800, color: c }}>{shortName(f.owner.name)}</span>
+            </span>
+          )}
+          {f.remind_at && <span style={date}>📅 {f.remind_at.slice(0, 10)}</span>}
+        </div>
+        {f.note && <div style={note}>{f.note}</div>}
+        {f.project && <div style={projectLine} title={f.project.name}>🏗️ {f.project.name}</div>}
+
+        {/* نصّ التوجيه ثم آخر ردّ عليه — كان الردّ يظهر وحده فيصل
+            التوجيه الجديد بلا نصّ (طلب أيمن 2026-08-29). */}
+        {directive && (
+          <div
+            style={directiveLine}
+            title={`${directive.sender?.name ?? 'الإدارة'} · ${fullStamp(directive.created_at)}\n${directive.body}`}
+            onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
+          >
+            <span style={replyHead}>
+              <span style={{ fontSize: '10px', lineHeight: 1 }}>📣</span>
+              <b style={{ color: '#92400E' }}>{directive.sender ? shortName(directive.sender.name) : 'الإدارة'}</b>
+              <span style={replyDate}>{shortStamp(directive.created_at)}</span>
+              {!lastMessage && directiveFor(f) && <span style={replyMark} title="الردّ على هذا التوجيه">↩ ردّ</span>}
+            </span>
+            <span style={replyBody}>{directive.body}</span>
+          </div>
+        )}
+
+        {lastMessage && (
+          <div
+            style={{ ...replyLine, ...(unread > 0 ? replyLineNew : null) }}
+            title={`${lastMessage.user?.name ?? 'مستخدم'} · ${fullStamp(lastMessage.created_at)}\n${lastMessage.body}`}
+            onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
+          >
+            <span style={replyHead}>
+              <span style={{ fontSize: '10px', lineHeight: 1 }}>↩️</span>
+              <b style={{ color: '#475569' }}>{lastMessage.user ? shortName(lastMessage.user.name) : 'مستخدم'}</b>
+              <span style={replyDate}>{shortStamp(lastMessage.created_at)}</span>
+              {unread > 0 && <span style={replyNewTag}>جديد</span>}
+              {directiveFor(f) && <span style={replyMark} title="الردّ على هذه الرسالة">↩ ردّ</span>}
+            </span>
+            <span style={replyBody}>{lastMessage.body}</span>
+          </div>
+        )}
+
+        <div style={foot}>
+          {badge && (
+            <button
+              type="button"
+              className={unread > 0 ? 'directive-badge-new' : undefined}
+              title={`${badge.hint}\n${f.directive?.sender?.name ?? 'الإدارة'}: ${f.directive?.body ?? ''}`}
+              aria-label={badge.hint}
+              disabled={!directiveFor(f)}
+              onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
+              style={{ ...chip, ...badge.tone, ...badgeBtn, cursor: directiveFor(f) ? 'pointer' : 'default' }}
+            >
+              {badge.dot && <span style={dot}>●</span>}
+              {badge.icon}
+              {(f.directive_messages_count ?? 0) > 0 && <b>{f.directive_messages_count}</b>}
+            </button>
+          )}
+          {directiveFor(f) && !f.directive && (
+            <button
+              type="button"
+              title="إرسال توجيه لصاحب المتابعة"
+              onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
+              style={directiveBtn}
+            >📣 توجيه</button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={(e) => setActive(items.find((x) => x.id === e.active.id) ?? null)}
+      onDragCancel={() => setActive(null)}
+      onDragEnd={handleEnd}
+    >
     <div ref={boardRef} className="crm-hscroll" style={board}>
       {COLUMNS.map((col) => {
         const list = items.filter((f) => columnOf(f) === col.key);
         return (
-          <div key={col.key} style={column}>
+          <DropColumn key={col.key} col={col}>
             <div style={{ ...header, borderTop: `3px solid ${col.color}` }}>
               <span style={{ fontWeight: 800, fontSize: '13px', color: '#1A1F2E' }}>{col.icon} {col.label}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -101,118 +260,26 @@ export function ClientFollowUpsBoard({ items, meId, highlightMine, onDirective, 
             </div>
             <div style={body}>
               {list.length === 0 && <p style={{ opacity: 0.4, fontSize: '12.5px', textAlign: 'center', padding: '18px 0' }}>لا متابعات</p>}
-              {list.map((f) => {
-                const c = f.owner ? personColor(f.owner.id) : '#94A3B8';
-                const mine = markMine && isMine(f);
-                const unread = f.directive_unread ?? 0;
-                const badge = cardBadge(f);
-                const directive = f.directive ?? null;
-                const lastMessage = directive?.last_message ?? null;
-                return (
-                  <div
-                    key={f.id}
-                    className={`crm-lead-card${unread > 0 ? ' task-card-directive' : ''}`}
-                    style={{ ...card, borderRight: `5px solid ${col.color}`, ...(mine ? mineRing : null), ...(markMine && !mine ? OTHERS_MUTED : null) }}
-                    onClick={() => setDetail(f)} title="فتح تفاصيل المتابعة">
-                    <div style={topLine}>
-                      <span style={code}>#FUP-{String(f.id).padStart(3, '0')}</span>
-                      {mine && <span style={mineTag}>متابعتي</span>}
-                      {/* عدد المتابعات الفائتة مع سهم تأخّر (طلب أيمن 2026-08-25). */}
-                      {f.late_cycles > 0 && (
-                        <span style={lateBadge} title={`فاتت ${f.late_cycles} متابعة`}>↩ {f.late_cycles}</span>
-                      )}
-                      {f.repeat_every && (
-                        <span style={repeatBadge} title="متابعة دورية">🔁 {repeatLabel(f.repeat_every)}</span>
-                      )}
-                    </div>
-                    <div style={title}>{f.contact ?? 'عميل'}</div>
-                    <div style={metaRow}>
-                      {f.owner && (
-                        <span style={ownerRow} title={`المكلّف: ${f.owner.name}`}>
-                          <span style={{ ...avatar, background: c }}>{personInitials(f.owner.name)}</span>
-                          <span style={{ fontSize: '9.5px', fontWeight: 800, color: c }}>{shortName(f.owner.name)}</span>
-                        </span>
-                      )}
-                      {f.remind_at && <span style={date}>📅 {f.remind_at.slice(0, 10)}</span>}
-                    </div>
-                    {f.note && <div style={note}>{f.note}</div>}
-                    {f.project && <div style={projectLine} title={f.project.name}>🏗️ {f.project.name}</div>}
-
-                    {/* نصّ التوجيه ثم آخر ردّ عليه — كان الردّ يظهر وحده فيصل
-                        التوجيه الجديد بلا نصّ (طلب أيمن 2026-08-29). */}
-                    {directive && (
-                      <div
-                        style={directiveLine}
-                        title={`${directive.sender?.name ?? 'الإدارة'} · ${fullStamp(directive.created_at)}\n${directive.body}`}
-                        onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
-                      >
-                        <span style={replyHead}>
-                          <span style={{ fontSize: '10px', lineHeight: 1 }}>📣</span>
-                          <b style={{ color: '#92400E' }}>{directive.sender ? shortName(directive.sender.name) : 'الإدارة'}</b>
-                          <span style={replyDate}>{shortStamp(directive.created_at)}</span>
-                          {!lastMessage && directiveFor(f) && <span style={replyMark} title="الردّ على هذا التوجيه">↩ ردّ</span>}
-                        </span>
-                        <span style={replyBody}>{directive.body}</span>
-                      </div>
-                    )}
-
-                    {lastMessage && (
-                      <div
-                        style={{ ...replyLine, ...(unread > 0 ? replyLineNew : null) }}
-                        title={`${lastMessage.user?.name ?? 'مستخدم'} · ${fullStamp(lastMessage.created_at)}\n${lastMessage.body}`}
-                        onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
-                      >
-                        <span style={replyHead}>
-                          <span style={{ fontSize: '10px', lineHeight: 1 }}>↩️</span>
-                          <b style={{ color: '#475569' }}>{lastMessage.user ? shortName(lastMessage.user.name) : 'مستخدم'}</b>
-                          <span style={replyDate}>{shortStamp(lastMessage.created_at)}</span>
-                          {unread > 0 && <span style={replyNewTag}>جديد</span>}
-                          {directiveFor(f) && <span style={replyMark} title="الردّ على هذه الرسالة">↩ ردّ</span>}
-                        </span>
-                        <span style={replyBody}>{lastMessage.body}</span>
-                      </div>
-                    )}
-
-                    <div style={foot}>
-                      {badge && (
-                        <button
-                          type="button"
-                          className={unread > 0 ? 'directive-badge-new' : undefined}
-                          title={`${badge.hint}\n${f.directive?.sender?.name ?? 'الإدارة'}: ${f.directive?.body ?? ''}`}
-                          aria-label={badge.hint}
-                          disabled={!directiveFor(f)}
-                          onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
-                          style={{ ...chip, ...badge.tone, ...badgeBtn, cursor: directiveFor(f) ? 'pointer' : 'default' }}
-                        >
-                          {badge.dot && <span style={dot}>●</span>}
-                          {badge.icon}
-                          {(f.directive_messages_count ?? 0) > 0 && <b>{f.directive_messages_count}</b>}
-                        </button>
-                      )}
-                      {directiveFor(f) && !f.directive && (
-                        <button
-                          type="button"
-                          title="إرسال توجيه لصاحب المتابعة"
-                          onClick={(e) => { e.stopPropagation(); directiveFor(f)?.(f); }}
-                          style={directiveBtn}
-                        >📣 توجيه</button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {list.map((f) => (
+                <SortableCard key={f.id} id={f.id}>{renderCard(f, col)}</SortableCard>
+              ))}
             </div>
-          </div>
+          </DropColumn>
         );
       })}
       {detail && <FollowUpDetailModal item={detail} onClose={() => setDetail(null)} />}
     </div>
+    <DragOverlay>
+      {active ? <div style={{ transform: 'rotate(2deg)', width: '280px' }}>{renderCard(active, COLUMNS.find((c) => c.key === columnOf(active)) ?? COLUMNS[0])}</div> : null}
+    </DragOverlay>
+    </DndContext>
   );
 }
 
 // صفّ أفقي واحد بتمرير جانبي — لا التفاف للأعمدة (طلب أيمن 2026-08-24).
 const board: CSSProperties = { display: 'flex', gap: '12px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' };
 const column: CSSProperties = { display: 'flex', flexDirection: 'column', background: '#F0F4F8', borderRadius: '10px', padding: '9px', minHeight: '120px', flex: '0 0 300px', width: '300px', minWidth: '300px' };
+const columnOver: CSSProperties = { background: '#DCE7F3', outline: '2px dashed #274A78' };
 const header: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#fff', border: '1px solid #E9EEF4', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };
 const count: CSSProperties = { fontSize: '11px', fontWeight: 900, borderRadius: '999px', padding: '1px 9px' };
 const body: CSSProperties = { display: 'flex', flexDirection: 'column', maxHeight: '420px', overflowY: 'auto' };

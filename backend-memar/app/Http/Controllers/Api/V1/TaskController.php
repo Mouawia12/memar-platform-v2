@@ -60,6 +60,19 @@ class TaskController extends ApiController
         return $this->created(new TaskResource($task), 'تم إنشاء المهمة');
     }
 
+    /** ترتيب بطاقات عمود في لوحة المهام بالسحب والإفلات (طلب 2026-09-15). */
+    public function reorder(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $this->tasks->reorder(array_map('intval', $data['ids']));
+
+        return $this->ok(null, 'تم تحديث الترتيب');
+    }
+
     /** تفاصيل المهمة الكاملة (مشاركون، محادثة، ملفات، فيديو، تقييم). */
     public function show(Task $task): JsonResponse
     {

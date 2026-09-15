@@ -10,7 +10,7 @@ import { DateRangeFilter, EMPTY_RANGE, inRange, type DateRange } from '../compon
 import { FollowUpFormModal } from '../components/FollowUpFormModal';
 import { StaffFilter } from '../components/StaffFilter';
 import { TaskStatusBoard } from '../components/TaskStatusBoard';
-import { useFollowUps } from '../hooks/useFollowUps';
+import { useFollowUps, useMoveFollowUp, useReorderFollowUps } from '../hooks/useFollowUps';
 import { isFollowUpOf, isTaskOf } from '../ownership';
 import { useTaskAlertAcks } from '../taskAlerts';
 import { TaskDetailModal } from '../components/TaskDetailModal';
@@ -18,7 +18,7 @@ import type { CardRef } from '../hooks/useCardActivity';
 import type { FollowUp } from '../api/followUpsApi';
 import { DirectiveModal } from '../components/DirectiveModal';
 import { TaskFormModal } from '../components/TaskFormModal';
-import { useDeleteTask, useMoveTask, useTasks, useToggleTask, useUpdateProgress, useWorkload } from '../hooks/useTasks';
+import { useDeleteTask, useMoveTask, useReorderTasks, useTasks, useToggleTask, useUpdateProgress, useWorkload } from '../hooks/useTasks';
 import { isDone, taskColumn, type Task, type TaskStatus } from '../types';
 
 /**
@@ -93,6 +93,10 @@ export function TasksPage() {
   const toggle = useToggleTask();
   const del = useDeleteTask();
   const progress = useUpdateProgress();
+  // السحب والإفلات: ترتيب بطاقات العمود في اللوحتين، ونقل المتابعة بين أعمدتها.
+  const reorderTasks = useReorderTasks();
+  const moveFollowUp = useMoveFollowUp();
+  const reorderFollowUps = useReorderFollowUps();
 
   const kpis = useMemo(() => {
     const list = tasks ?? [];
@@ -213,6 +217,7 @@ export function TasksPage() {
           isAcked={isAcked}
           onAck={ack}
           onMove={(t, status) => handleMove(t, { status })}
+          onReorder={(ids) => reorderTasks.mutate(ids)}
           meId={meId}
           highlightMine={!byStaff && effTaskScope === 'all' && taskHighlight}
           onProgress={canManage ? (t, pct) => progress.mutate({ id: t.id, progress: pct }) : undefined}
@@ -259,6 +264,9 @@ export function TasksPage() {
         highlightMine={!byStaff && effFupScope === 'all' && fupHighlight}
         onDirective={setFupDirectiveOf}
         canSendDirective={canSendFupDirective}
+        // النقل تعديل على المتابعة (crm.manage كإضافتها)؛ والترتيب لكل من يرى اللوحة.
+        onMove={canAddFollowUp ? (f, payload) => moveFollowUp.mutate({ id: f.id, ...payload }) : undefined}
+        onReorder={(ids) => reorderFollowUps.mutate(ids)}
       />
 
       {/* ══ توزيع المهام على الفريق ══ */}

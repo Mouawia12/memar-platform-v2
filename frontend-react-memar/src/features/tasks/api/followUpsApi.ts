@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch } from '../../../lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import type { TaskDirective, TaskRef } from '../types';
 
 /** متابعة عميل واحدة في لوحة المتابعة (مصدرها تذكيرات الفرص). */
@@ -38,4 +38,6 @@ export const followUpsApi = {
   update: (id: number, payload: { done?: boolean; remind_at?: string; note?: string; description?: string | null; repeat_every?: string | null; project_id?: number | null; assignee_id?: number | null }) =>
     apiPatch<unknown>(`/reminders/${id}`, payload),
   remove: (id: number) => apiDelete<null>(`/reminders/${id}`),
+  /** ترتيب بطاقات عمود بالسحب والإفلات — معرّفات العمود بترتيبها الجديد. */
+  reorder: (ids: number[]) => apiPost<null>('/crm/follow-ups/reorder', { ids }),
 };

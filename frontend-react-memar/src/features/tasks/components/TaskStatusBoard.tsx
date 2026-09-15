@@ -1,8 +1,9 @@
-import { closestCenter, DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
-import { type CSSProperties, type ReactNode, useRef, useState } from 'react';
+import { closestCenter, DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
+import { type CSSProperties, useRef, useState } from 'react';
 
 import { useEdgeAutoScroll } from '../../../hooks/useEdgeAutoScroll';
 import { useStaffAvatars } from '../../users/hooks/useUsers';
+import { reorderedIds, SortableCard } from '../boardDnd';
 import { CARD_ACTIVITY_STYLES } from './cardActivityStyles';
 import { TaskKanbanCard } from './TaskKanbanCard';
 import type { Task, TaskStatus } from '../types';
@@ -11,6 +12,8 @@ interface Props {
   tasks: Task[];
   onOpen: (t: Task) => void;
   onMove: (t: Task, status: TaskStatus) => void;
+  /** ترتيب عمود بعد إفلات بطاقة فوق أخرى — معرّفات العمود بترتيبها الجديد. */
+  onReorder?: (ids: number[]) => void;
   /** هل أُطفئ تنبيه تأخّر هذه المهمة؟ */
   isAcked?: (t: Task) => boolean;
   /** إطفاء تنبيه التأخّر لهذه المهمة. */
@@ -34,16 +37,6 @@ const COLUMNS: { key: TaskStatus; label: string; icon: string; color: string }[]
   { key: 'review', label: 'مراجعة', icon: '🔍', color: '#7C3AED' },
   { key: 'done', label: 'مكتملة', icon: '✅', color: '#2D9B6F' },
 ];
-
-function DragCard({ id, children }: { id: number; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
-  return (
-    <div ref={setNodeRef} {...attributes} {...listeners}
-      style={{ cursor: 'grab', touchAction: 'pan-x pan-y', opacity: isDragging ? 0.45 : 1, borderRadius: '10px' }}>
-      {children}
-    </div>
-  );
-}
 
 interface ColumnProps {
   col: typeof COLUMNS[number];
@@ -75,7 +68,7 @@ function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlight
       <div ref={setNodeRef} style={body}>
         {tasks.length === 0 && <p style={{ opacity: 0.4, fontSize: '12.5px', textAlign: 'center', padding: '18px 0' }}>أفلت هنا</p>}
         {tasks.map((t) => (
-          <DragCard key={t.id} id={t.id}>
+          <SortableCard key={t.id} id={t.id}>
             <TaskKanbanCard
               task={t}
               onOpen={onOpen}
@@ -87,15 +80,18 @@ function Column({ col, tasks, onOpen, avatars, isAcked, onAck, isMine, highlight
               onDirective={directiveFor(t)}
               onProgress={onProgress}
             />
-          </DragCard>
+          </SortableCard>
         ))}
       </div>
     </div>
   );
 }
 
-/** لوحة المهام (كانبان) حسب مرحلة العمل — السحب بين الأعمدة يغيّر حالة المهمة. */
-export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck, meId, highlightMine, onDirective, canSendDirective, onProgress }: Props) {
+/**
+ * لوحة المهام (كانبان) حسب مرحلة العمل — السحب بين الأعمدة يغيّر حالة المهمة،
+ * والإفلات فوق بطاقة في العمود نفسه يرفع المهمة أو ينزلها.
+ */
+export function TaskStatusBoard({ tasks, onOpen, onMove, onReorder, isAcked, onAck, meId, highlightMine, onDirective, canSendDirective, onProgress }: Props) {
   const [active, setActive] = useState<Task | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
   const boardRef = useRef<HTMLDivElement>(null);
@@ -119,9 +115,22 @@ export function TaskStatusBoard({ tasks, onOpen, onMove, isAcked, onAck, meId, h
   const handleEnd = (e: DragEndEvent) => {
     setActive(null);
     const over = e.over?.id;
-    if (typeof over !== 'string') return;
     const t = tasks.find((x) => x.id === e.active.id);
-    if (t && t.status !== over) onMove(t, over as TaskStatus);
+    if (!t || over === undefined) return;
+    // على العمود نفسه (مساحته الفارغة) → نقل إليه.
+    if (typeof over === 'string') {
+      if (t.status !== over) onMove(t, over as TaskStatus);
+      return;
+    }
+    const target = tasks.find((x) => x.id === over);
+    if (!target || target.id === t.id) return;
+    // فوق بطاقة في عمود آخر → نقل لعمودها؛ وفي عمودها → ترتيب.
+    if (target.status !== t.status) {
+      onMove(t, target.status);
+      return;
+    }
+    const ids = reorderedIds(tasks.filter((x) => x.status === t.status).map((x) => x.id), t.id, target.id);
+    if (ids) onReorder?.(ids);
   };
 
   return (

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { crmApi } from '../../crm/api/crmApi';
-import { followUpsApi } from '../api/followUpsApi';
+import { followUpsApi, type FollowUp } from '../api/followUpsApi';
+import { applyOrder } from '../boardDnd';
 
 /** متابعات العملاء للوحة المتابعة أسفل صفحة المهام. */
 export function useFollowUps(mine: boolean) {
@@ -33,6 +34,42 @@ export function useUpdateFollowUp() {
     mutationFn: ({ id, ...payload }: { id: number; done?: boolean; remind_at?: string; note?: string; description?: string | null; repeat_every?: string | null; project_id?: number | null; assignee_id?: number | null }) => followUpsApi.update(id, payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['crm-follow-ups'] }); qc.invalidateQueries({ queryKey: ['crm-leads'] }); },
   });
+}
+
+const FUP_KEY = ['crm-follow-ups'];
+
+/**
+ * تحديث متفائل للوحة المتابعة ثم مزامنة: البطاقة تستقرّ فور الإفلات، وتعود
+ * لمكانها إن فشل الحفظ. `patch` يعدّل القائمة المخزّنة كما سيعدّلها الخادم.
+ */
+function useOptimisticFollowUps<V>(mutationFn: (v: V) => Promise<unknown>, patch: (list: FollowUp[], v: V) => FollowUp[]) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn,
+    onMutate: async (v: V) => {
+      await qc.cancelQueries({ queryKey: FUP_KEY });
+      const prev = qc.getQueriesData<FollowUp[]>({ queryKey: FUP_KEY });
+      qc.setQueriesData<FollowUp[]>({ queryKey: FUP_KEY }, (old) => (old ? patch(old, v) : old));
+
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => ctx?.prev?.forEach(([key, data]) => qc.setQueryData(key, data)),
+    onSettled: () => { qc.invalidateQueries({ queryKey: FUP_KEY }); qc.invalidateQueries({ queryKey: ['crm-leads'] }); },
+  });
+}
+
+/** نقل المتابعة بين أعمدة اللوحة بالسحب: إنجاز، أو إعادة فتح، أو موعد جديد. */
+export function useMoveFollowUp() {
+  return useOptimisticFollowUps(
+    ({ id, ...payload }: { id: number; done?: boolean; remind_at?: string }) => followUpsApi.update(id, payload),
+    (list, { id, ...payload }) => list.map((f) => (f.id === id ? { ...f, ...payload } : f)),
+  );
+}
+
+/** ترتيب بطاقات عمود بالسحب والإفلات فوق بطاقة أخرى (طلب 2026-09-15). */
+export function useReorderFollowUps() {
+  return useOptimisticFollowUps((ids: number[]) => followUpsApi.reorder(ids), applyOrder);
 }
 
 export function useDeleteFollowUp() {

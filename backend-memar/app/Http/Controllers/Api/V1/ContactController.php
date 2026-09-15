@@ -141,6 +141,8 @@ class ContactController extends ApiController
                 fn ($w) => $w->where('assignee_id', $me)
                     ->orWhere(fn ($n) => $n->whereNull('assignee_id')->where('created_by', $me)),
             ))
+            // الترتيب اليدوي أولًا (سحب البطاقة فوق أخرى)، ثم الموعد لما لم يُرتَّب.
+            ->orderBy('board_position')
             ->orderBy('remind_at')
             ->limit(300)
             ->get()
@@ -152,6 +154,25 @@ class ContactController extends ApiController
             });
 
         return $this->ok(FollowUpResource::collection($items));
+    }
+
+    /**
+     * ترتيب متابعات عمود في لوحة المتابعة بالسحب والإفلات (طلب 2026-09-15).
+     * يبدأ العدّ من 1 كي تبقى المتابعة الجديدة (0) أعلى عمودها، و toBase() كي
+     * لا يُحسب الترتيب تعديلًا على المتابعة (لا يمسّ updated_at).
+     */
+    public function reorderFollowUps(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        foreach (array_values($data['ids']) as $i => $id) {
+            LeadReminder::whereKey((int) $id)->toBase()->update(['board_position' => $i + 1]);
+        }
+
+        return $this->ok(null, 'تم تحديث الترتيب');
     }
 
     // ─── تذكيرات المتابعة (اجتماع 2026-08-05) ───

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/communications', [CommunicationController::class, 'index'])->middleware('permission:crm.view');
+    Route::get('/communications/stats', [CommunicationController::class, 'stats'])->middleware('permission:crm.view');
     Route::post('/communications', [CommunicationController::class, 'store'])->middleware('permission:crm.manage');
     Route::get('/communications/{communication}', [CommunicationController::class, 'show'])->middleware('permission:crm.view');
     Route::match(['put', 'patch'], '/communications/{communication}', [CommunicationController::class, 'update'])->middleware('permission:crm.manage');

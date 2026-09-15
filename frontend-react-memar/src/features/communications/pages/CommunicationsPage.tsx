@@ -1,139 +1,152 @@
-import { type CSSProperties, useState } from 'react';
+import '../communications.css';
 
+import { type CSSProperties, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+import { usePermission } from '../../auth/hooks/usePermission';
 import { LiveChatPanel } from '../../liveChat/LiveChatPanel';
 import { useChatUnread } from '../../liveChat/useLiveChat';
+import { CommunicationDrawer } from '../components/CommunicationDrawer';
 import { CommunicationFormModal } from '../components/CommunicationFormModal';
-import { useCommunications, useDeleteCommunication } from '../hooks/useCommunications';
-import { CHANNEL_ICONS, CHANNEL_LABELS, CONTACT_TYPE_LABELS, DIRECTION_LABELS, type Channel, type Communication, type ContactType } from '../types';
+import { CommunicationStatsStrip } from '../components/CommunicationStatsStrip';
+import { CommunicationTimeline, TimelineEmpty, TimelineSkeleton } from '../components/CommunicationTimeline';
+import { useCommunicationStats, useCommunications, useDeleteCommunication, useUpdateFollowUp } from '../hooks/useCommunications';
+import { CHANNEL_LABELS, CHANNEL_META, type Channel, type Communication, type ContactType } from '../types';
 
-type ChannelFilter = '' | Channel;
 type View = 'log' | 'chat';
 
-const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
-const waLink = (phone: string) => `https://wa.me/${phone.replace(/[^0-9]/g, '')}`;
+const TYPE_TABS: Array<['' | ContactType, string]> = [['', 'الكل'], ['client', 'عملاء'], ['company', 'شركات'], ['staff', 'موظفون']];
 
 export function CommunicationsPage() {
+  const [params, setParams] = useSearchParams();
   const [view, setView] = useState<View>('log');
   const [search, setSearch] = useState('');
-  const [channel, setChannel] = useState<ChannelFilter>('');
+  const [channel, setChannel] = useState<'' | Channel>('');
   const [contactType, setContactType] = useState<'' | ContactType>('');
   const [page, setPage] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Communication | null>(null);
+  const [modal, setModal] = useState<{ open: boolean; editing: Communication | null }>({ open: false, editing: null });
+  const [selected, setSelected] = useState<Communication | null>(null);
 
-  const { data, isLoading, isError } = useCommunications({ search: search || undefined, channel: channel || undefined, contact_type: contactType || undefined, page });
+  // ?follow_up=due يأتي من جرس الإشعارات.
+  const dueOnly = params.get('follow_up') === 'due';
+  const canManage = usePermission('crm.manage');
+
+  const { data, isLoading, isError, isPlaceholderData } = useCommunications({
+    search: search || undefined, channel: channel || undefined, contact_type: contactType || undefined,
+    follow_up: dueOnly ? 'due' : undefined, page,
+  });
+  const { data: stats } = useCommunicationStats();
   const del = useDeleteCommunication();
+  const followUp = useUpdateFollowUp();
   const { data: unread } = useChatUnread();
   const chatBadge = (unread?.internal ?? 0) + (unread?.client_awaiting ?? 0);
 
-  const openCreate = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (c: Communication) => { setEditing(c); setModalOpen(true); };
-  const handleDelete = (c: Communication) => { if (confirm(`حذف سجل التواصل مع "${c.contact_name}"؟`)) del.mutate(c.id); };
-
-  const meta = data?.meta;
   const rows = data?.data ?? [];
+  const meta = data?.meta;
+  const filtered = Boolean(search || channel || contactType || dueOnly);
+  const byType = stats?.by_type ?? {};
+  const totalAll = Object.values(byType).reduce((a, b) => a + (b ?? 0), 0);
+
+  const resetPage = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setPage(1); };
+  const setDueOnly = (on: boolean) => { setParams((p) => { if (on) p.set('follow_up', 'due'); else p.delete('follow_up'); return p; }, { replace: true }); setPage(1); };
+  const clearFilters = () => { setSearch(''); setChannel(''); setContactType(''); setDueOnly(false); };
+
+  const openCreate = () => setModal({ open: true, editing: null });
+  const openEdit = (c: Communication) => { setSelected(null); setModal({ open: true, editing: c }); };
+  const handleDelete = (c: Communication) => {
+    if (confirm(`حذف سجل التواصل مع "${c.contact_name}"؟`)) del.mutate(c.id, { onSuccess: () => setSelected(null) });
+  };
+  const markDone = (c: Communication) => followUp.mutate({ id: c.id, follow_up_done_at: new Date().toISOString() });
+
+  // اللوحة الجانبية تعرض أحدث نسخة من السجل بعد أي تعديل.
+  const selectedLive = selected ? rows.find((r) => r.id === selected.id) ?? selected : null;
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>التواصل</h1>
-        {view === 'log' && <button className="btn btn-primary" onClick={openCreate} type="button">+ تسجيل تواصل</button>}
+    <div className="comms-page">
+      <div className="comms-head">
+        <div>
+          <h1>التواصل</h1>
+          <p>كل اتصال ورسالة واجتماع مع العملاء والشركات والفريق في مكان واحد.</p>
+        </div>
+        {view === 'log' && canManage && <button className="btn btn-primary" onClick={openCreate} type="button"><i className="fa-solid fa-plus" /> تسجيل تواصل</button>}
       </div>
 
-      {/* مبدّل العرض: سجل التواصل / الشات المباشر */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setView('log')} style={{ ...viewTab, ...(view === 'log' ? viewTabOn : null) }}>📋 سجل التواصل</button>
-        <button type="button" onClick={() => setView('chat')} style={{ ...viewTab, ...(view === 'chat' ? viewTabOn : null) }}>
-          💬 الشات المباشر
-          {chatBadge > 0 && <span style={chatBadgeStyle}>{chatBadge}</span>}
+      <div className="comms-views" role="tablist">
+        <button type="button" role="tab" aria-selected={view === 'log'} className={`comms-view${view === 'log' ? ' on' : ''}`} onClick={() => setView('log')}>
+          <i className="fa-solid fa-timeline" /> سجل التواصل
+        </button>
+        <button type="button" role="tab" aria-selected={view === 'chat'} className={`comms-view${view === 'chat' ? ' on' : ''}`} onClick={() => setView('chat')}>
+          <i className="fa-regular fa-comments" /> الشات المباشر
+          {chatBadge > 0 && <span className="comms-chip-count comms-count-dot">{chatBadge}</span>}
         </button>
       </div>
 
       {view === 'chat' && <LiveChatPanel />}
 
       {view === 'log' && (
-      <div className="card" style={{ padding: '16px' }}>
-        {/* فلتر نوع الجهة (بند 36): موظفين / عملاء / شركات */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          {([['', 'الكل'], ['client', 'عملاء'], ['company', 'شركات'], ['staff', 'موظفون']] as const).map(([val, label]) => (
-            <button key={val} type="button" onClick={() => { setContactType(val); setPage(1); }}
-              style={{ ...typeTab, ...(contactType === val ? typeTabOn : null) }}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-          <input className="input" placeholder="بحث بالاسم أو الموضوع…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ flex: 1, minWidth: '220px' }} />
-          <select className="input" value={channel} onChange={(e) => { setChannel(e.target.value as ChannelFilter); setPage(1); }}>
-            <option value="">كل القنوات</option>
-            {(Object.keys(CHANNEL_LABELS) as Channel[]).map((k) => <option key={k} value={k}>{CHANNEL_LABELS[k]}</option>)}
-          </select>
-        </div>
+        <>
+          <CommunicationStatsStrip stats={stats} dueActive={dueOnly} onToggleDue={() => setDueOnly(!dueOnly)} />
 
-        {isLoading && <p>جارٍ التحميل…</p>}
-        {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل السجل.</p>}
-
-        {data && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={th}>العميل</th>
-                  <th style={th}>القناة</th>
-                  <th style={th}>الموضوع</th>
-                  <th style={th}>التاريخ</th>
-                  <th style={th}>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((c) => (
-                  <tr key={c.id}>
-                    <td style={td}>
-                      <b>{c.contact_name}</b> <span style={typeChip}>{CONTACT_TYPE_LABELS[c.contact_type] ?? c.contact_type}</span>
-                      {c.phone && <div style={{ fontSize: '12px', opacity: 0.6, direction: 'ltr', textAlign: 'right' }}>{c.phone}</div>}
-                    </td>
-                    <td style={td}>
-                      <span style={{ ...badge }}>{CHANNEL_ICONS[c.channel]} {CHANNEL_LABELS[c.channel]}</span>
-                      <div style={{ fontSize: '11px', opacity: 0.55, marginTop: '2px' }}>{DIRECTION_LABELS[c.direction]}</div>
-                    </td>
-                    <td style={td}>{c.subject ?? '—'}{c.body && <div style={{ fontSize: '12px', opacity: 0.6 }}>{c.body.slice(0, 60)}{c.body.length > 60 ? '…' : ''}</div>}</td>
-                    <td style={td}>{fmt(c.happened_at)}</td>
-                    <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                      {c.phone && (
-                        <a className="btn btn-sm" href={waLink(c.phone)} target="_blank" rel="noreferrer" style={{ color: '#059669', textDecoration: 'none' }}>واتساب</a>
-                      )}{' '}
-                      <button className="btn btn-sm" onClick={() => openEdit(c)} type="button">تعديل</button>{' '}
-                      <button className="btn btn-sm" onClick={() => handleDelete(c)} type="button" style={{ color: '#ef4444' }}>حذف</button>
-                    </td>
-                  </tr>
+          <div className="comms-panel">
+            <div className="comms-filters">
+              <div className="comms-search">
+                <i className="fa-solid fa-magnifying-glass" />
+                <input className="input" placeholder="بحث بالاسم أو الموضوع…" value={search} onChange={(e) => resetPage(setSearch)(e.target.value)} aria-label="بحث" />
+              </div>
+              <div className="comms-chips" role="group" aria-label="نوع الجهة">
+                {TYPE_TABS.map(([val, label]) => (
+                  <button key={val} type="button" className={`comms-chip${contactType === val ? ' on' : ''}`} aria-pressed={contactType === val} onClick={() => resetPage(setContactType)(val)}>
+                    {label}
+                    {stats && <span className="comms-chip-count">{val ? byType[val] ?? 0 : totalAll}</span>}
+                  </button>
                 ))}
-                {rows.length === 0 && <tr><td style={{ ...td, opacity: 0.6 }} colSpan={5}>لا توجد سجلات تواصل.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </div>
+            </div>
 
-        {meta && meta.last_page > 1 && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>
-            <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} type="button">السابق</button>
-            <span style={{ fontSize: '13px', opacity: 0.7 }}>صفحة {meta.current_page} من {meta.last_page} ({meta.total})</span>
-            <button className="btn btn-sm" disabled={page >= meta.last_page} onClick={() => setPage((p) => p + 1)} type="button">التالي</button>
+            <div className="comms-chips" role="group" aria-label="القناة" style={{ marginBottom: 6 }}>
+              <button type="button" className={`comms-chip${channel === '' ? ' on' : ''}`} aria-pressed={channel === ''} onClick={() => resetPage(setChannel)('')}>
+                كل القنوات
+              </button>
+              {(Object.keys(CHANNEL_LABELS) as Channel[]).map((k) => (
+                <button key={k} type="button" className={`comms-chip${channel === k ? ' on' : ''}`} aria-pressed={channel === k}
+                  style={{ '--chip': CHANNEL_META[k].color } as CSSProperties} onClick={() => resetPage(setChannel)(channel === k ? '' : k)}>
+                  <i className={CHANNEL_META[k].icon} /> {CHANNEL_LABELS[k]}
+                </button>
+              ))}
+            </div>
+
+            {dueOnly && (
+              <div className="comms-active-filter">
+                <i className="fa-solid fa-bell" /> تعرض المتابعات التي حان موعدها ولم تُنجز بعد.
+                <button type="button" onClick={() => setDueOnly(false)}>عرض الكل</button>
+              </div>
+            )}
+
+            {isLoading && <TimelineSkeleton />}
+            {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل السجل.</p>}
+
+            {data && rows.length === 0 && <TimelineEmpty filtered={filtered} canManage={canManage} onCreate={openCreate} onClear={clearFilters} />}
+            {data && rows.length > 0 && (
+              <div style={{ opacity: isPlaceholderData ? 0.6 : 1, transition: 'opacity .15s' }}>
+                <CommunicationTimeline rows={rows} canManage={canManage} onOpen={setSelected} onEdit={openEdit} onDelete={handleDelete} onFollowUpDone={markDone} />
+              </div>
+            )}
+
+            {meta && meta.last_page > 1 && (
+              <div className="comms-pager">
+                <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} type="button"><i className="fa-solid fa-chevron-right" /> الأحدث</button>
+                <span>صفحة {meta.current_page} من {meta.last_page} · {meta.total} سجل</span>
+                <button className="btn btn-sm" disabled={page >= meta.last_page} onClick={() => setPage((p) => p + 1)} type="button">الأقدم <i className="fa-solid fa-chevron-left" /></button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
       )}
 
-      {modalOpen && <CommunicationFormModal communication={editing} onClose={() => setModalOpen(false)} />}
+      {selectedLive && (
+        <CommunicationDrawer item={selectedLive} canManage={canManage} onClose={() => setSelected(null)} onEdit={() => openEdit(selectedLive)} onSelect={setSelected} />
+      )}
+      {modal.open && <CommunicationFormModal communication={modal.editing} onClose={() => setModal({ open: false, editing: null })} />}
     </div>
   );
 }
-
-const th: CSSProperties = { textAlign: 'right', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontSize: '13px', opacity: 0.7 };
-const td: CSSProperties = { padding: '10px 12px', borderBottom: '1px solid #f0f0f0' };
-const badge: CSSProperties = { display: 'inline-block', padding: '2px 10px', borderRadius: '6px', fontSize: '12px', background: '#274A781a', color: '#274A78', whiteSpace: 'nowrap' };
-const typeTab: CSSProperties = { padding: '6px 16px', borderRadius: '999px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700 };
-const typeTabOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
-const typeChip: CSSProperties = { fontSize: '10.5px', fontWeight: 700, color: '#7C3AED', background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.15)', borderRadius: '999px', padding: '1px 8px', marginInlineStart: '4px' };
-const viewTab: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 20px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#5A6478', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 700 };
-const viewTabOn: CSSProperties = { background: '#274A78', borderColor: '#274A78', color: '#fff' };
-const chatBadgeStyle: CSSProperties = { background: '#DC4A3D', color: '#fff', borderRadius: '999px', minWidth: '20px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, padding: '0 6px' };

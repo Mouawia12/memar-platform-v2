@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Appointment;
 use App\Models\Comment;
+use App\Models\Communication;
 use App\Models\Directive;
 use App\Models\FieldVisit;
 use App\Models\Invoice;
@@ -54,6 +55,14 @@ class NotificationController extends ApiController
                 ->count();
             if ($mine > 0) {
                 $items[] = $this->item('📋', 'مهام مسندة إليك', "{$mine} مهمة بانتظارك", '/tasks', 'info', $mine);
+            }
+        }
+
+        // متابعات تواصل سجّلتُها وحان موعدها (صفحة التواصل، 2026-09-15)
+        if ($user?->can('crm.view')) {
+            $followUps = Communication::followUpDue()->where('logged_by', $user->id)->count();
+            if ($followUps > 0) {
+                $items[] = $this->item('⏰', 'متابعات تواصل مستحقة', "{$followUps} تواصل حان موعد متابعته", '/whatsapp?follow_up=due', 'warning', $followUps);
             }
         }
 

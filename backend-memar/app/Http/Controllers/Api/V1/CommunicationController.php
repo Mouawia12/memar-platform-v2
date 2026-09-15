@@ -19,14 +19,22 @@ class CommunicationController extends ApiController
 
     public function index(Request $request): JsonResponse
     {
-        $paginator = $this->communications->list(
-            $request->string('search')->toString() ?: null,
-            $request->string('channel')->toString() ?: null,
-            $request->string('contact_type')->toString() ?: null,
-            $this->perPage($request, 20),
-        );
+        $paginator = $this->communications->list([
+            'search' => $request->string('search')->toString() ?: null,
+            'channel' => $request->string('channel')->toString() ?: null,
+            'contact_type' => $request->string('contact_type')->toString() ?: null,
+            'contact_id' => $request->integer('contact_id') ?: null,
+            'company_id' => $request->integer('company_id') ?: null,
+            'user_id' => $request->integer('user_id') ?: null,
+            'follow_up' => $request->string('follow_up')->toString() ?: null,
+        ], $this->perPage($request, 20));
 
         return $this->paginated($paginator, CommunicationResource::class);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        return $this->ok($this->communications->stats($request->user()?->id));
     }
 
     public function store(StoreCommunicationRequest $request): JsonResponse
@@ -41,7 +49,7 @@ class CommunicationController extends ApiController
 
     public function show(Communication $communication): JsonResponse
     {
-        return $this->ok(new CommunicationResource($communication->load('logger:id,name')));
+        return $this->ok(new CommunicationResource($communication->load('logger:id,name', 'contact:id,full_name', 'company:id,name', 'staffUser:id,name')));
     }
 
     public function update(UpdateCommunicationRequest $request, Communication $communication): JsonResponse

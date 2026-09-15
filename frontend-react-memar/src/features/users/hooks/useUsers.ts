@@ -15,6 +15,14 @@ export function useUsers(params: UsersQuery, enabled = true) {
   });
 }
 
+/** أعداد أنواع الحسابات — تحت مفتاح المستخدمين فتتحدّث مع أي إضافة أو حذف. */
+export function useUserTypeCounts() {
+  return useQuery({
+    queryKey: [...USERS_KEY, 'type-counts'],
+    queryFn: () => usersApi.typeCounts(),
+  });
+}
+
 /**
  * قائمة الطاقم للإسناد (المكلّف/المدير) في النماذج التشغيلية — لا تتطلّب users.view،
  * فيراها الموظف ويسند المهام. تُعيد نفس شكل useUsers (`{ data }`) لتسهيل الاستبدال.

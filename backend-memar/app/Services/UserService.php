@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 
@@ -14,9 +15,18 @@ use Spatie\Permission\Models\Permission;
  */
 class UserService
 {
-    public function list(?string $search, int $perPage = 15): LengthAwarePaginator
+    /**
+     * أنواع الحسابات في سجل المستخدمين (طلب 2026-09-15):
+     * staff = الطاقم (أي دور غير «عميل»، أو بلا دور بعد) ·
+     * client = حساب عميل سجلّه في CRM عميل فعلي ·
+     * public = من سجّل بنفسه من الصفحة العامة ولم يصر عميلًا بعد (سجلّه فرصة أو بلا سجل).
+     */
+    public const TYPES = ['staff', 'client', 'public'];
+
+    public function list(?string $search, int $perPage = 15, ?string $type = null): LengthAwarePaginator
     {
         return User::query()
+            ->when(in_array($type, self::TYPES, true), fn (Builder $query) => $this->whereType($query, (string) $type))
             ->when($search, function ($query, string $s): void {
                 $query->where(function ($q) use ($s): void {
                     $q->where('name', 'like', "%{$s}%")
@@ -26,6 +36,38 @@ class UserService
             ->with('roles')
             ->latest()
             ->paginate($perPage);
+    }
+
+    /**
+     * عدد الحسابات في كل نوع — لأزرار الفلتر.
+     *
+     * @return array<string, int>
+     */
+    public function typeCounts(): array
+    {
+        $counts = ['all' => User::count()];
+        foreach (self::TYPES as $type) {
+            $counts[$type] = $this->whereType(User::query(), $type)->count();
+        }
+
+        return $counts;
+    }
+
+    /** @param  Builder<User>  $query */
+    private function whereType(Builder $query, string $type): Builder
+    {
+        $otherRole = fn ($r) => $r->where('name', '!=', 'client');
+
+        if ($type === 'staff') {
+            return $query->where(fn ($q) => $q->whereHas('roles', $otherRole)->orWhereDoesntHave('roles'));
+        }
+
+        // العميل وزائر الصفحة العامة كلاهما حساب «عميل» خالص — والفرق في سجلّه بالـCRM.
+        $query->whereHas('roles', fn ($r) => $r->where('name', 'client'))->whereDoesntHave('roles', $otherRole);
+
+        return $type === 'client'
+            ? $query->whereHas('contact', fn ($c) => $c->where('type', 'client'))
+            : $query->whereDoesntHave('contact', fn ($c) => $c->where('type', 'client'));
     }
 
     /**

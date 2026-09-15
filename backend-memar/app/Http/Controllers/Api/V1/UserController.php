@@ -22,9 +22,16 @@ class UserController extends ApiController
         $paginator = $this->users->list(
             $request->string('search')->toString() ?: null,
             $this->perPage($request, 15),
+            $request->string('type')->toString() ?: null,
         );
 
         return $this->paginated($paginator, UserResource::class);
+    }
+
+    /** عدد الحسابات في كل نوع (الكل · الطاقم · العملاء · الصفحة العامة) لأزرار فلتر السجل. */
+    public function typeCounts(): JsonResponse
+    {
+        return $this->ok($this->users->typeCounts());
     }
 
     /**

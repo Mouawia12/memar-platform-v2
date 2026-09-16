@@ -19,6 +19,19 @@ export interface PaginationMeta {
 export interface UiPrefs {
   nav_hidden?: Record<string, boolean>;
   nav_collapsed?: Record<string, boolean>;
+  /** العروض المحفوظة في لوحة الفرص (فلاتر بأسماء). */
+  crm_views?: CrmSavedView[];
+}
+
+export interface CrmSavedView {
+  id: string;
+  name: string;
+  search: string;
+  status: string;
+  owner: string;
+  priority: string;
+  temperature: string;
+  tag: string;
 }
 
 export interface AuthUser {

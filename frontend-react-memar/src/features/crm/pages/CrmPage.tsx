@@ -1,143 +1,248 @@
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { useStaffAvatars } from '../../users/hooks/useUsers';
-import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { useAuthStore } from '../../../store/auth';
 import { useExportDisabled } from '../../../components/ExportGuard';
-import { downloadCsv } from '../../../lib/csv';
-import { LEAD_SOURCE_META, LEAD_SOURCE_ORDER, TEMPERATURE_META, sourceLabel } from '../types';
+import type { CrmSavedView } from '../../../types/api';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
 import { DirectiveModal } from '../../tasks/components/DirectiveModal';
-import { CrmBoard } from '../components/CrmBoard';
+import { crmApi } from '../api/crmApi';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
 import { PointsSettingsModal } from '../components/PointsSettingsModal';
 import { StagesManagerModal } from '../components/StagesManagerModal';
+import { useHiddenStages } from '../boardPrefs';
 import { celebrate, playSound } from '../opsNotify';
-import { useCrmTags, useDeleteLead, useLeads, useLogLeadUpdate, useMoveLead, useReorderLeads } from '../hooks/useCrm';
+import { useCrmTags, useDeleteLead, useLogLeadUpdate, useMoveLead, useReorderLeads } from '../hooks/useCrm';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { Lead, Stage } from '../types';
+import { BoardToolbar } from '../board/BoardToolbar';
+import { EMPTY_FILTERS, type BoardFilters, type BoardView } from '../board/filters';
+import { KanbanBoard } from '../board/KanbanBoard';
+import { ColorLegend, KpiStrip, ReportsModal } from '../board/Reports';
+import { TableView } from '../board/TableView';
+import { STATUS_ORDER, boardStatus, nextStageOf, promptOf, slaLabel, valueOf, type BoardStatus } from '../board/model';
+import { useAcknowledge, useArchiveLead, useBlinkPref, useIncomingAlerts, useReplyDirective, useRequestUpdate, useSavedViews, useSoundPref } from '../board/useBoard';
 import '../crm.css';
+import '../board/board.css';
 
 /**
- * صفحة CRM — طبق أصل «إدارة علاقات العملاء» من مرجع معمار customer portal:
- * رأس بعنوان وأزرار، ستة مؤشّرات محسوبة من البيانات الحيّة، تنبيه الفرص المتأخرة،
- * فلاتر، ثم لوحة الأعمدة (طلب أيمن 2026-08-17). ميزاتنا محفوظة: فتح/غلق الفرص،
- * السحب، الترتيب ▲▼، تخصيص المراحل، تحويل الفرصة الرابحة لمشروع.
+ * لوحة إدارة الفرص — CRM (2026-09-16): كانبان وجدول بنفس الإجراءات، طلب تحديث
+ * بمهلة وعدّاد تنازلي، ردّ الموظف من البطاقة، مؤشّرات وتقارير، عروض محفوظة،
+ * أرشيف، وصوت ووميض قابلان للإيقاف. مزاياها السابقة باقية: السحب والترتيب،
+ * تحويل الرابحة لمشروع، تخصيص المراحل، النقاط، وخصوصية الأرقام المالية.
  */
 export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  // ?search= يصل من سجل العملاء (شارة «الفرص») — يفتح اللوحة مفلترةً باسم
-  // العميل بدل أن يبحث المستخدم عنه بنفسه (طلب أيمن 2026-09-09).
-  const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
-  const [period, setPeriod] = useState<'all' | '7' | '30' | '90' | '365'>('all');
-  // فلاتر طبق الأصل: نوع العميل + المصدر + المسؤول. المصدر صار حقلًا حقيقيًا
-  // على الفرصة (طلب أيمن 2026-08-22) بعد أن كان قائمة عرضية في المرجع.
-  const [clientFilter, setClientFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [ownerFilter, setOwnerFilter] = useState('all');
-  /*
-   * مبدّل نطاق طبق الأصل: كل الفرص / الفرص التي أنا مسؤول عنها (المالك = المستخدم الحالي).
-   * المندوب يفتح الصفحة على «فرصي فقط»، وإدارة النظام على «جميع الفرص» لأن عملها
-   * الإشراف لا البيع (طلب أيمن 2026-09-11 — كما في لوحة المهام). والبحث القادم من
-   * الرابط يفتح على «الكل» دائمًا وإلا اختفت نتيجة بحثٍ عن فرصة غير مملوكة للباحث.
-   *
-   * null = لم يختر المستخدم بعد فيسري افتراض دوره. تركُه null بدل حسابه مرّة في
-   * مُهيّئ useState يجعله يصحّ حتى لو وصلت بيانات المستخدم بعد أول رسم.
-   */
-  const isAdmin = useIsAdmin();
-  const [scope, setScope] = useState<'all' | 'mine' | null>(null);
-  const effScope: 'all' | 'mine' = scope ?? (searchParams.get('search') || isAdmin ? 'all' : 'mine');
-  // التمييز خيار لا سلوك تلقائي: «جميع الفرص» تعرضها كلّها واضحة، والزرّ يُخفت فرص غيري.
-  const [highlight, setHighlight] = useState(false);
   const userId = useAuthStore((s) => s.user?.id);
+  const meName = useAuthStore((s) => s.user?.name);
+  const isAdmin = useIsAdmin();
+
+  const canCreate = usePermission('crm.view');
+  const isManager = usePermission('crm.delete');
+  const canLoyalty = usePermission('loyalty.view');
+  const canManagePoints = usePermission('loyalty.manage');
   const exportDisabled = useExportDisabled();
-  // توستر يظهر عند نقل/إعادة ترتيب كرت الفرصة (طبق أصل opsToast).
+  const { settings: crmSettings } = useCrmSettings();
+  const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
+
+  const [view, setView] = useState<BoardView>('kanban');
+  const [soundOn, setSoundOn] = useSoundPref();
+  const [blinkOn, setBlinkOn] = useBlinkPref();
+  const [showArchived, setShowArchived] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  /*
+   * المندوب يفتح اللوحة على فرصه هو، والإدارة على الكل (طلب أيمن 2026-09-11)،
+   * والبحث القادم من سجل العملاء (?search=) يفتح على الكل دائمًا.
+   */
+  const initialSearch = searchParams.get('search') ?? '';
+  const [filters, setFilters] = useState<BoardFilters | null>(null);
+  const defaultFilters = useMemo<BoardFilters>(
+    () => ({ ...EMPTY_FILTERS, search: initialSearch, owner: initialSearch || isAdmin || !userId ? 'all' : String(userId) }),
+    [initialSearch, isAdmin, userId],
+  );
+  const eff = filters ?? defaultFilters;
+
   const [toasts, setToasts] = useState<{ id: number; msg: string; type: 'success' | 'danger' | 'info' }[]>([]);
-  const showToast = (msg: string, type: 'success' | 'danger' | 'info' = 'success') => {
+  const showToast = useCallback((msg: string, type: 'success' | 'danger' | 'info' = 'success') => {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, msg, type }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800);
-  };
+    window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800);
+  }, []);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
-  // الكرت الذي أُغلقت نافذته للتوّ — يُبرَز ~3 ثوانٍ ليعرف المستخدم أين كان
-  // في العمود (طلب أيمن 2026-08-22).
-  const [justSeenId, setJustSeenId] = useState<number | null>(null);
-  // خيط توجيه الإدارة على فرصة — نفس نافذة المهام والمتابعات (طلب أيمن 2026-09-13)
   const [directiveFor, setDirectiveFor] = useState<Lead | null>(null);
-  const closeDetail = () => {
-    setJustSeenId(detailId);
-    setDetailId(null);
-    window.setTimeout(() => setJustSeenId((v) => (v === detailId ? null : v)), 3000);
-  };
   const [stagesOpen, setStagesOpen] = useState(false);
   const [pointsSettingsOpen, setPointsSettingsOpen] = useState(false);
 
-  const { data, isLoading, isError } = useLeads({ search: search || undefined, type: 'lead', per_page: 200 });
-  const { data: stages } = usePipelineStages();
+  // الفرص كلها مرّة واحدة — الفلترة والبحث في المتصفح فورية بلا طلب لكل حرف،
+  // وتُنعَش كل 30 ثانية ليصل سؤال الإدارة وردّ الموظف دون تحديث الصفحة.
+  const params = { type: 'lead', per_page: 500, archived: showArchived ? undefined : 'without' } as const;
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['crm-leads', params],
+    queryFn: () => crmApi.list(params),
+    refetchInterval: 30_000,
+  });
+  const { data: archivedCount = 0 } = useQuery({
+    queryKey: ['crm-archived-count'],
+    queryFn: () => crmApi.list({ type: 'lead', per_page: 1, archived: 'only' }).then((r) => r.meta.total),
+    enabled: isManager,
+  });
+  const { data: stagesData } = usePipelineStages();
+  const hiddenStages = useHiddenStages();
+  const { data: crmTags } = useCrmTags();
+  const pendingTagCount = (crmTags ?? []).filter((t) => t.status === 'pending').length;
+
   const move = useMoveLead();
   const reorder = useReorderLeads();
   const del = useDeleteLead();
-  const logMove = useLogLeadUpdate();
-  const meName = useAuthStore((s) => s.user?.name);
-  // إنشاء/تعديل/نقل الفرص متاح للموظف (crm.view)؛ وتخصيص المراحل/اعتماد الاختصارات للمدير (crm.delete) — طلب العميل.
-  const canCreate = usePermission('crm.view');
-  const canDelete = usePermission('crm.delete');
-  const canLoyalty = usePermission('loyalty.view');
-  // إعدادات النقاط والاختصارات للإدارة فقط (نفس صلاحية مسار /settings).
-  const canManagePoints = usePermission('loyalty.manage');
-  // عدّاد طلبات الاختصارات المعلّقة على زر الإعدادات — الاستعلام نفسه الذي
-  // تستعمله الكروت، فلا طلب إضافي (نقطة الاطّلاع العامة للإدارة).
-  const { data: crmTags } = useCrmTags();
-  const pendingTagCount = (crmTags ?? []).filter((t) => t.status === 'pending').length;
-  // خصوصية الأرقام المالية (إعدادات النقاط): الإجماليات تُخفى عن غير الإدارة إن فُعّلت.
-  const { settings: crmSettings } = useCrmSettings();
-  const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
+  const logUpdate = useLogLeadUpdate();
+  const requestUpdate = useRequestUpdate();
+  const reply = useReplyDirective();
+  const archive = useArchiveLead();
+  const acknowledge = useAcknowledge();
+  const savedViews = useSavedViews();
 
-  const stageList = useMemo(() => [...(stages ?? [])].sort((a, b) => a.position - b.position), [stages]);
-  const wonKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won).map((s) => s.key)), [stageList]);
-  const terminalKeys = useMemo(() => new Set(stageList.filter((s) => s.is_won || s.is_lost).map((s) => s.key)), [stageList]);
-  const proposalKeys = useMemo(() => new Set(stageList.filter((s) => /عرض|proposal/i.test(`${s.key} ${s.label}`)).map((s) => s.key)), [stageList]);
+  const leads = useMemo(() => data?.data ?? [], [data]);
+  const allStages = useMemo(() => [...(stagesData ?? [])].sort((a, b) => a.position - b.position), [stagesData]);
+  const stages = useMemo(() => allStages.filter((s) => !hiddenStages[s.key]), [allStages, hiddenStages]);
+  const wonKeys = useMemo(() => new Set(allStages.filter((s) => s.is_won).map((s) => s.key)), [allStages]);
+  const terminalKeys = useMemo(() => new Set(allStages.filter((s) => s.is_won || s.is_lost).map((s) => s.key)), [allStages]);
 
-  const openCreate = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (l: Lead) => { setDetailId(null); setEditing(l); setModalOpen(true); };
-  const handleDelete = (l: Lead) => {
-    // الإزالة من اللوحة لا تحذف العميل من السجلات — نوضّح ذلك في التأكيد.
-    const msg = `إزالة فرصة «${l.full_name}» من اللوحة؟\n\nتبقى بياناته في سجلّ العملاء`
-      + `${l.company ? ' وبيانات شركته في سجلّ الشركات' : ''}، ويُحذف نهائيًا من هناك فقط.`;
-    if (confirm(msg)) del.mutate(l.id, { onSuccess: () => showToast('🗂️ أُزيلت الفرصة — بياناتها محفوظة في السجلات', 'info') });
-  };
+  // تحديث التسميات النسبية («منذ 5 دقائق») والعدّادات دون انتظار البيانات.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const tagColors = useMemo(() => new Map((crmTags ?? []).filter((t) => t.color).map((t) => [t.name, t.color as string])), [crmTags]);
+  const tagLibrary = useMemo(() => {
+    const names = new Set<string>((crmTags ?? []).filter((t) => t.status === 'approved').map((t) => t.name));
+    leads.forEach((l) => (l.tags ?? []).forEach((t) => names.add(t)));
+    return [...names].sort((a, b) => a.localeCompare(b, 'ar'));
+  }, [crmTags, leads]);
+
+  const owners = useMemo(() => {
+    const map = new Map<number, string>();
+    leads.forEach((l) => { if (l.owner) map.set(l.owner.id, l.owner.name); });
+    if (userId && meName && !map.has(userId)) map.set(userId, meName);
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ar'));
+  }, [leads, userId, meName]);
+
+  const visibleLeads = useMemo(() => {
+    const term = eff.search.trim().toLowerCase().replace(/^#/, '');
+    return leads.filter((l) => {
+      if (eff.status !== 'all' && boardStatus(l) !== eff.status) return false;
+      if (eff.owner !== 'all' && String(l.owner?.id ?? '') !== eff.owner) return false;
+      if (eff.priority !== 'all' && l.priority !== eff.priority) return false;
+      if (eff.temperature !== 'all' && l.temperature !== eff.temperature) return false;
+      if (eff.tag !== 'all' && !(l.tags ?? []).includes(eff.tag) && !(eff.tag === 'VIP' && l.is_vip)) return false;
+      if (!term) return true;
+      const hay = [l.full_name, l.phone, String(l.id), l.company, l.project_name, l.project_type, l.region, ...(l.tags ?? []), promptOf(l)?.text]
+        .filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(term);
+    });
+  }, [leads, eff]);
+
+  const statusCounts = useMemo(() => {
+    const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<BoardStatus, number>;
+    visibleLeads.forEach((l) => { counts[boardStatus(l)] += 1; });
+    return counts;
+  }, [visibleLeads]);
+  const pipelineValue = visibleLeads.reduce((s, l) => s + valueOf(l), 0);
+
+  const ownerIds = useMemo(() => [...new Set(leads.flatMap((l) => [l.owner?.id, l.mover?.id]).filter((v): v is number => !!v))], [leads]);
+  const { data: staffAvatars } = useStaffAvatars(ownerIds);
+
+  const onAlert = useCallback((lead: Lead, kind: 'question' | 'answer' | 'nudge') => {
+    const title = kind === 'answer' ? '✅ وصل ردّ جديد' : kind === 'nudge' ? '🔔 طلب تحديث عاجل' : '❓ سؤال جديد من الإدارة';
+    showToast(`${title} — ${lead.full_name}`, kind === 'answer' ? 'success' : 'danger');
+  }, [showToast]);
+  const { flashing, clear: clearFlash } = useIncomingAlerts(data ? leads : null, userId, soundOn, onAlert);
+
+  // ── الإجراءات ──
 
   const handleMove = (l: Lead, stage: Stage) => {
     if (wonKeys.has(stage) && !l.converted_project_id) {
       const name = l.project_name || l.company || l.full_name;
       if (!confirm(`تحويل الفرصة «${l.full_name}» لصفقة رابحة؟\nسيُنشأ مشروع «${name}» تلقائيًا في سجل المشاريع.`)) return;
     }
-    const stageName = stageList.find((s) => s.key === stage)?.label ?? stage;
-    move.mutate({ id: l.id, stage }, { onSuccess: () => {
-      showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
-      // صوت عند نقل الفرصة لعمود آخر: احتفال ببالونات للرابحة، نغمة خسارة للمغلقة،
-      // ونغمة «move» الخاصة بالنقل لبقية الأعمدة — الصوت مفعّل دائمًا بلا مفتاح إيقاف.
-      if (wonKeys.has(stage)) {
-        // مَن يملك الفرصة ومَن نقلها للفوز — يظهران في الاحتفال، ويُوثَّق الناقل
-        // في تايملاين الفرصة فيبقى ظاهرًا على الكرت وفي سجلّها (طلب أيمن 2026-08-22).
-        const ownerName = l.owner?.name ?? 'غير مُسنَدة';
-        const moverName = meName ?? 'مستخدم';
-        celebrate('مبروك الصفقة! 🎉', `${l.full_name} — المكلّف: ${ownerName} · نقلها: ${moverName}`);
-        logMove.mutate({ id: l.id, note: `🏆 نقل الفرصة إلى «${stageName}» — المكلّف: ${ownerName}` });
-      }
-      else if (terminalKeys.has(stage)) playSound('late');
-      else playSound('move');
-    } });
+    const stageName = allStages.find((s) => s.key === stage)?.label ?? stage;
+    move.mutate({ id: l.id, stage }, {
+      onSuccess: () => {
+        showToast(`↔️ تم نقل الفرصة إلى: ${stageName}`);
+        if (wonKeys.has(stage)) {
+          const ownerName = l.owner?.name ?? 'غير مُسنَدة';
+          celebrate('مبروك الصفقة! 🎉', `${l.full_name} — المكلّف: ${ownerName} · نقلها: ${meName ?? 'مستخدم'}`);
+          logUpdate.mutate({ id: l.id, note: `🏆 نقل الفرصة إلى «${stageName}» — المكلّف: ${ownerName}` });
+        } else if (soundOn) {
+          playSound(terminalKeys.has(stage) ? 'late' : 'move');
+        }
+      },
+      onError: () => showToast('تعذّر نقل الفرصة', 'danger'),
+    });
   };
+
+  const handleAdvance = (l: Lead) => {
+    const next = nextStageOf(l.stage, allStages);
+    if (!next) { showToast('هذه آخر مرحلة في المسار', 'info'); return; }
+    handleMove(l, next.key);
+  };
+
+  const handleRequestUpdate = (l: Lead, body: string, hours: number | null) =>
+    requestUpdate.mutateAsync({ id: l.id, body, hours }).then(
+      () => showToast(`${body ? 'تم إرسال طلب التحديث مع السؤال' : 'تم إرسال طلب تحديث'} — ${l.full_name} — ${hours === null ? 'بدون مهلة' : `مهلة ${slaLabel(hours)}`}`),
+      (e) => { showToast('تعذّر إرسال الطلب', 'danger'); throw e; },
+    );
+
+  /** ردّ الموظف: يُغلق طلب الإدارة القائم، وإلا يُسجَّل تحديثًا على الفرصة. */
+  const handleWriteEntry = (l: Lead, text: string) => {
+    const pending = l.directive_state === 'awaiting' && l.directive;
+    const request = pending
+      ? reply.mutateAsync({ id: l.id, directiveId: l.directive!.id, body: text })
+      : logUpdate.mutateAsync({ id: l.id, note: text });
+    return request.then(
+      () => { clearFlash(l.id); showToast(pending ? `تم إرسال الرد — ${l.full_name}` : `تم تسجيل التحديث — ${l.full_name}`); },
+      (e) => { showToast('تعذّر الحفظ', 'danger'); throw e; },
+    );
+  };
+
+  const handleQuickFollowUp = (l: Lead, label: string) => {
+    logUpdate.mutate({ id: l.id, note: label }, {
+      onSuccess: () => showToast(`تم تسجيل التحديث — ${l.full_name} — ${label}`),
+      onError: () => showToast('تعذّر تسجيل التحديث', 'danger'),
+    });
+  };
+
+  const handleArchive = (l: Lead) => {
+    const toArchive = !l.archived_at;
+    archive.mutate({ id: l.id, archived: toArchive }, {
+      onSuccess: () => showToast(toArchive ? `🗂️ تمت أرشفة الفرصة — ${l.full_name}` : `تم إرجاع الفرصة من الأرشيف — ${l.full_name}`, 'info'),
+      onError: () => showToast('تعذّرت العملية', 'danger'),
+    });
+  };
+
+  const handleDelete = (l: Lead) => {
+    const msg = `إزالة فرصة «${l.full_name}» من اللوحة؟\n\nتبقى بياناته في سجلّ العملاء`
+      + `${l.company ? ' وبيانات شركته في سجلّ الشركات' : ''}، ويُحذف نهائيًا من هناك فقط.`;
+    if (confirm(msg)) del.mutate(l.id, { onSuccess: () => showToast('🗂️ أُزيلت الفرصة — بياناتها محفوظة في السجلات', 'info') });
+  };
+
+  const openDetail = (l: Lead) => { clearFlash(l.id); setDetailId(l.id); };
+  const openCreate = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (l: Lead) => { setDetailId(null); setEditing(l); setModalOpen(true); };
 
   const handleAddTask = (l: Lead) => {
     setDetailId(null);
@@ -148,218 +253,133 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     });
   };
 
-  const leads = data?.data ?? [];
-  const money = (v: number) => `${v.toLocaleString('ar', { maximumFractionDigits: 0 })} د.ك`;
-
-  const owners = useMemo(() => {
-    const map = new Map<number, string>();
-    leads.forEach((l) => { if (l.owner) map.set(l.owner.id, l.owner.name); });
-    return [...map.entries()];
-  }, [leads]);
-
-  const visibleLeads = useMemo(() => {
-    const cutoff = period === 'all' ? 0 : Date.now() - Number(period) * 86_400_000;
-    return leads.filter((l) => {
-      if (period !== 'all' && !(l.created_at && new Date(l.created_at).getTime() >= cutoff)) return false;
-      if (effScope === 'mine' && l.owner?.id !== userId) return false;
-      if (ownerFilter !== 'all' && String(l.owner?.id ?? '') !== ownerFilter) return false;
-      // «بلا مصدر» يلتقط الفرص القديمة التي لم يُسجَّل مصدرها
-      if (sourceFilter === 'none' && l.source) return false;
-      if (sourceFilter !== 'all' && sourceFilter !== 'none' && l.source !== sourceFilter) return false;
-      if (clientFilter === 'vip' && !l.is_vip) return false;
-      if (clientFilter === 'new' && l.stage !== 'new') return false;
-      if ((clientFilter === 'hot' || clientFilter === 'warm' || clientFilter === 'cold') && l.temperature !== clientFilter) return false;
-      return true;
+  const applyView = (v: CrmSavedView) => {
+    setFilters({
+      search: v.search ?? '', status: (v.status || 'all') as BoardFilters['status'], owner: v.owner || 'all',
+      priority: (v.priority || 'all') as BoardFilters['priority'], temperature: (v.temperature || 'all') as BoardFilters['temperature'], tag: v.tag || 'all',
     });
-  }, [leads, period, effScope, userId, ownerFilter, clientFilter, sourceFilter]);
-
-  // نفس مجموعة المعرّفات التي تطلبها اللوحة → نفس مفتاح الاستعلام → بلا طلب إضافي.
-  const ownerIds = useMemo(
-    () => [...new Set(visibleLeads.flatMap((l) => [l.owner?.id, l.mover?.id]).filter((v): v is number => !!v))],
-    [visibleLeads],
-  );
-  const { data: staffAvatars } = useStaffAvatars(ownerIds);
-
-  const stageLabel = (key: string) => stageList.find((s) => s.key === key)?.label ?? key;
-  /** تصدير الفرص المعروضة إلى CSV — مُخفى في بوابة الموظف (ExportGuard). */
-  const handleExport = () => {
-    if (visibleLeads.length === 0) { alert('لا توجد فرص للتصدير.'); return; }
-    downloadCsv('crm-opportunities', visibleLeads, [
-      { header: 'الاسم', value: (l) => l.full_name },
-      { header: 'الهاتف', value: (l) => l.phone ?? '' },
-      { header: 'الشركة', value: (l) => l.company ?? '' },
-      { header: 'المرحلة', value: (l) => stageLabel(l.stage) },
-      { header: 'الحرارة', value: (l) => TEMPERATURE_META[l.temperature]?.label ?? '' },
-      { header: 'الأهمية', value: (l) => l.priority },
-      { header: 'القيمة (د.ك)', value: (l) => l.deal_value_kwd },
-      { header: 'المصدر', value: (l) => sourceLabel(l.source) },
-      { header: 'المسؤول', value: (l) => l.owner?.name ?? '' },
-    ]);
+    showToast(`تم تطبيق العرض المحفوظ — ${v.name}`, 'info');
   };
-  const hiddenByPeriod = leads.length - visibleLeads.length;
-  const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
 
-  // الإشعار العائم يفتح الفرصة العاجلة مباشرة عبر /crm?lead=<id> — نفتح نافذتها
-  // بمجرد وصول بياناتها ثم ننظّف الرابط (طلب أيمن 2026-08-24).
+  const resetFilters = () => {
+    setFilters({ ...EMPTY_FILTERS });
+    setShowArchived(false);
+    if (searchParams.has('search')) { searchParams.delete('search'); setSearchParams(searchParams, { replace: true }); }
+    showToast('تمت إعادة تعيين الفلاتر', 'info');
+  };
+
+  // الإشعار العائم يفتح الفرصة مباشرة عبر /crm?lead=<id>.
   const leadParam = searchParams.get('lead');
   useEffect(() => {
-    if (!leadParam) return;
+    if (!leadParam || leads.length === 0) return;
     const id = Number(leadParam);
-    if (!Number.isFinite(id) || leads.length === 0) return;
-    if (leads.some((l) => l.id === id)) setDetailId(id);
+    if (Number.isFinite(id) && leads.some((l) => l.id === id)) setDetailId(id);
     searchParams.delete('lead');
     setSearchParams(searchParams, { replace: true });
   }, [leadParam, leads, searchParams, setSearchParams]);
 
-  // ── المؤشّرات الستة (محسوبة من الفرص الحيّة) ──
-  const kpi = useMemo(() => {
-    const now = Date.now();
-    const total = leads.length;
-    const newWeek = leads.filter((l) => l.created_at && now - new Date(l.created_at).getTime() <= 7 * 864e5).length;
-    const newMonth = leads.filter((l) => l.created_at && now - new Date(l.created_at).getTime() <= 30 * 864e5).length;
-    const won = leads.filter((l) => wonKeys.has(l.stage));
-    const negotiating = leads.filter((l) => !terminalKeys.has(l.stage) && l.stage !== 'new');
-    const proposals = leads.filter((l) => proposalKeys.has(l.stage));
-    const avgClose = won.length
-      ? Math.round(won.reduce((s, l) => s + (l.created_at ? (now - new Date(l.created_at).getTime()) / 864e5 : 0), 0) / won.length)
-      : 0;
-    return {
-      total, newWeek,
-      monthPct: total ? Math.round((newMonth / total) * 100) : 0,
-      negCount: negotiating.length,
-      negValue: negotiating.reduce((s, l) => s + Number(l.deal_value_kwd || 0), 0),
-      proposals: proposals.length,
-      won: won.length,
-      conversion: total ? Math.round((won.length / total) * 100) : 0,
-      avgClose,
-    };
-  }, [leads, wonKeys, terminalKeys, proposalKeys]);
+  const detailLead = detailId != null ? leads.find((l) => l.id === detailId) ?? null : null;
 
-  const dueLeads = leads.filter((l) => l.reminder?.due);
-  const urgentCount = leads.filter((l) => l.is_urgent).length;
+  const extraActions = (
+    <>
+      {canManagePoints && (
+        <button type="button" className="crmx-btn sm muted" onClick={() => setPointsSettingsOpen(true)}>
+          <i className="fa-solid fa-gear" /> إعدادات النقاط{pendingTagCount > 0 && <span className="num" style={{ color: '#B45309' }}> ({pendingTagCount})</span>}
+        </button>
+      )}
+      {canLoyalty && <button type="button" className="crmx-btn sm muted" onClick={() => navigate('/loyalty')}><i className="fa-solid fa-trophy" /> نقاط الموظفين</button>}
+      {isManager && <button type="button" className="crmx-btn sm muted" onClick={() => setStagesOpen(true)}><i className="fa-solid fa-sliders" /> تخصيص المراحل</button>}
+    </>
+  );
 
-  // تنبيه الجرس الصوتي انتقل إلى UrgentAlertWatcher ليعمل في كل صفحات النظام
-  // لا هذه اللوحة وحدها (طلب أيمن 2026-08-22) — ولا يُكرَّر هنا كي لا يُسمع مرّتين.
-
-  const KPIS: { icon: string; color: keyof typeof ICON_BG; label: string; value: number; sub: ReactNode }[] = [
-    { icon: '👥', color: 'blue', label: 'إجمالي العملاء المحتملين', value: kpi.total, sub: <><span style={up}>↑ {kpi.monthPct}%</span> هذا الشهر</> },
-    { icon: '🆕', color: 'green', label: 'جدد هذا الأسبوع', value: kpi.newWeek, sub: 'فرص جديدة' },
-    { icon: '🤝', color: 'orange', label: 'قيد التفاوض', value: kpi.negCount, sub: showTotals ? `بقيمة ${money(kpi.negValue)}` : 'فرص مفتوحة' },
-    { icon: '📋', color: 'purple', label: 'عروض مرسلة', value: kpi.proposals, sub: 'بانتظار الرد' },
-    { icon: '✅', color: 'green', label: 'عقود موقعة', value: kpi.won, sub: <><span style={up}>↑ {kpi.conversion}%</span> معدل التحويل</> },
-    { icon: '📊', color: 'red', label: 'متوسط إغلاق الصفقة', value: kpi.avgClose, sub: 'يوم عمل' },
-  ];
+  const cardHandlers = {
+    onOpen: openDetail,
+    onAcknowledge: (l: Lead) => acknowledge(l.id),
+    onRequestUpdate: handleRequestUpdate,
+    onWriteEntry: handleWriteEntry,
+    onQuickFollowUp: handleQuickFollowUp,
+    onAdvance: handleAdvance,
+    onPoints: openDetail,
+  };
 
   return (
-    <div className="crm-scope">
-      {/* ── رأس CRM ── */}
-      <div style={headerRow}>
-        <div>
-          <div style={sectionTitle}>عميل جديد</div>
-          <div style={sectionSubtitle}>مركز العمليات التجارية — من أول تواصل حتى إغلاق المشروع</div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {canCreate && <button className="crm-btn crm-btn-primary" onClick={openCreate} type="button">🎯 فرصة / عميل محتمل</button>}
-          {canManagePoints && (
-            <button className="crm-btn crm-btn-outline" onClick={() => setPointsSettingsOpen(true)} type="button">
-              ⚙️ إعدادات النقاط{pendingTagCount > 0 ? <span style={pendingDot}>📨 {pendingTagCount}</span> : null}
-            </button>
-          )}
-          {canLoyalty && <button className="crm-btn crm-btn-outline" onClick={() => navigate('/loyalty')} type="button">🏆 نقاط الموظفين</button>}
-          {/* «المدير» = من يملك crm.delete (الموظف يملك crm.manage لكن ليس crm.delete) — طلب العميل:
-              تخصيص المراحل واعتماد الاختصارات للمدير فقط، ولا تظهر للموظف. */}
-          {canDelete && <button className="crm-btn crm-btn-outline" onClick={() => setStagesOpen(true)} type="button">⚙️ تخصيص المراحل</button>}
-          {canDelete && !exportDisabled && <button className="crm-btn crm-btn-outline" onClick={handleExport} type="button">📤 تصدير</button>}
-        </div>
-      </div>
+    <div className={`crmx crm-scope${blinkOn ? '' : ' no-blink'}`} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <BoardToolbar
+        view={view}
+        onView={setView}
+        soundOn={soundOn}
+        onSound={() => setSoundOn(!soundOn)}
+        blinkOn={blinkOn}
+        onBlink={() => setBlinkOn(!blinkOn)}
+        pipelineValue={pipelineValue}
+        showTotals={showTotals}
+        canCreate={canCreate}
+        onAdd={openCreate}
+        filters={eff}
+        onFilters={setFilters}
+        statusCounts={statusCounts}
+        owners={owners}
+        tags={tagLibrary}
+        savedViews={savedViews.views}
+        onSaveView={(name) => { savedViews.save({ name, ...eff }); showToast(`تم حفظ العرض — ${name}`); }}
+        onApplyView={applyView}
+        onDeleteView={savedViews.remove}
+        canArchive={isManager}
+        showArchived={showArchived}
+        onToggleArchived={() => setShowArchived((v) => !v)}
+        archivedCount={archivedCount}
+        onReset={resetFilters}
+        extraActions={extraActions}
+      />
 
-      {/* ── المؤشّرات الستة ── للإدارة فقط: مخفيّة في بوابة الموظف (2026-08-18)
-          وعن الموظف في لوحة CRM نفسها أيضًا (طلب أيمن 2026-08-22). */}
-      {!hideKpis && canDelete && (
-        <div style={kpiGrid}>
-          {KPIS.map((k) => (
-            <div key={k.label} className="crm-kpi-card" style={kpiCard}>
-              <div style={{ ...kpiIcon, ...ICON_BG[k.color] }}>{k.icon}</div>
-              <div style={{ minWidth: 0 }}>
-                <div style={kpiLabel}>{k.label}</div>
-                <div style={kpiValue}>{k.value.toLocaleString('ar')}</div>
-                <div style={kpiSub}>{k.sub}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {!hideKpis && isManager && (
+        <KpiStrip leads={visibleLeads} stages={allStages} showTotals={showTotals} onOpenReport={() => setReportOpen(true)} />
+      )}
+      <ColorLegend />
+
+      {isLoading && <p style={{ padding: 20, textAlign: 'center', color: '#64748B' }}>جارٍ تحميل الفرص…</p>}
+      {isError && <p style={{ color: '#DC4A3D' }}>تعذّر تحميل الفرص.</p>}
+
+      {data && view === 'kanban' && (
+        <KanbanBoard
+          leads={visibleLeads}
+          stages={stages}
+          isManager={isManager}
+          meId={userId}
+          showTotals={showTotals}
+          flashing={flashing}
+          tagColors={tagColors}
+          onMove={handleMove}
+          onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })}
+          {...cardHandlers}
+        />
+      )}
+      {data && view === 'table' && (
+        <TableView
+          leads={visibleLeads}
+          stages={allStages}
+          isManager={isManager}
+          meId={userId}
+          showTotals={showTotals}
+          flashing={flashing}
+          onOpen={openDetail}
+          onEdit={openEdit}
+          onArchive={handleArchive}
+          onAdvance={handleAdvance}
+          onWriteEntry={handleWriteEntry}
+          onRequestUpdate={handleRequestUpdate}
+        />
       )}
 
-      {/* ── تنبيه الفرص المتأخرة ── */}
-      {dueLeads.length > 0 && (
-        <div style={alertStrong}>
-          <div style={alertHd}><span className="crm-bell" style={{ fontSize: '17px' }}>🔔</span><span style={alertTitle}>{dueLeads.length} فرصة تحتاج تواصل</span></div>
-          <div style={alertBody}>
-            {dueLeads.slice(0, 4).map((l) => <button key={l.id} type="button" style={alertChip} onClick={() => setDetailId(l.id)}>{l.full_name}</button>)}
-            {dueLeads.length > 4 && <span style={{ fontSize: '10.5px', color: '#64748B' }}>+{dueLeads.length - 4} أخرى</span>}
-          </div>
-          {urgentCount > 0 && <div style={alertSub}>{urgentCount} فرصة عاجلة بانتظار تحديث الموظف</div>}
-        </div>
+      {reportOpen && (
+        <ReportsModal leads={visibleLeads} stages={allStages} showTotals={showTotals} canExport={!exportDisabled} onClose={() => setReportOpen(false)} />
       )}
-
-      {/* ── الفلاتر طبق الأصل: نوع العميل · المصدر · المسؤول · الفترة · بحث ── */}
-      <div style={filtersRow}>
-        <select className="crm-filter-select" value={clientFilter} onChange={(e) => setClientFilter(e.target.value)}>
-          <option value="all">جميع العملاء</option>
-          <option value="new">جدد</option>
-          <option value="vip">VIP</option>
-          <option value="hot">ساخن</option>
-          <option value="warm">دافئ</option>
-          <option value="cold">بارد</option>
-        </select>
-        <select className="crm-filter-select" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
-          <option value="all">جميع المصادر</option>
-          {LEAD_SOURCE_ORDER.map((k) => <option key={k} value={k}>{LEAD_SOURCE_META[k].label}</option>)}
-          <option value="none">بلا مصدر</option>
-        </select>
-        <select className="crm-filter-select" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
-          <option value="all">جميع الموظفين</option>
-          {owners.map(([id, name]) => <option key={id} value={String(id)}>{name}</option>)}
-        </select>
-        <select className="crm-filter-select" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)}>
-          <option value="all">كل الفترات</option>
-          <option value="7">آخر أسبوع</option>
-          <option value="30">آخر شهر</option>
-          <option value="90">آخر 3 أشهر</option>
-          <option value="365">آخر سنة</option>
-        </select>
-        <input className="crm-search" placeholder="🔍 بحث بالاسم، الهاتف، البريد…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }} />
-        {period !== 'all' && hiddenByPeriod > 0 && <span style={{ fontSize: '12px', color: '#94A3B8' }}>عرض {visibleLeads.length} — أُخفي {hiddenByPeriod}</span>}
-      </div>
-
-      {/* ── مبدّل النطاق طبق الأصل ── */}
-      <div style={scopeRow}>
-        <button type="button" onClick={() => setScope('mine')} style={{ ...scopeBtn, ...(effScope === 'mine' ? scopeOn : null) }}>فرصي فقط</button>
-        <button type="button" onClick={() => { setScope('all'); setHighlight(false); }} style={{ ...scopeBtn, ...(effScope === 'all' && !highlight ? scopeOn : null) }}>جميع الفرص</button>
-        <button
-          type="button"
-          onClick={() => { setScope('all'); setHighlight(true); }}
-          style={{ ...scopeBtn, ...(effScope === 'all' && highlight ? scopeOn : null) }}
-          title="تظهر كل الفرص، وفرص غيري تخفت ليبرز ما يخصّني"
-        >🔷 فرصي مميّزة</button>
-      </div>
-
-      {isLoading && <p>جارٍ التحميل…</p>}
-      {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العملاء.</p>}
-      {data && <CrmBoard leads={visibleLeads} stages={stageList} showTotals={showTotals} onMove={handleMove} onOpen={(l) => setDetailId(l.id)} justSeenId={justSeenId} onReorder={(ids) => reorder.mutate(ids, { onSuccess: () => showToast('✅ تم تحديث ترتيب الفرص') })} onAdd={canCreate ? openCreate : undefined} meId={userId} highlightMine={effScope === 'all' && highlight} onDirective={setDirectiveFor} />}
 
       {directiveFor && (
         <DirectiveModal
-          card={{
-            kind: 'opportunity',
-            id: directiveFor.id,
-            code: `#${directiveFor.id}`,
-            title: directiveFor.full_name,
-            owner: directiveFor.owner?.name ?? null,
-            ownerLabel: 'صاحب الفرصة',
-          }}
-          canSend={canDelete}
-          canReply={canDelete || directiveFor.owner?.id === userId}
+          card={{ kind: 'opportunity', id: directiveFor.id, code: `#${directiveFor.id}`, title: directiveFor.full_name, owner: directiveFor.owner?.name ?? null, ownerLabel: 'صاحب الفرصة' }}
+          canSend={isManager}
+          canReply={isManager || directiveFor.owner?.id === userId}
           onClose={() => setDirectiveFor(null)}
         />
       )}
@@ -369,22 +389,23 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
           lead={detailLead}
           ownerAvatarUrl={detailLead.owner ? staffAvatars?.[String(detailLead.owner.id)] ?? null : null}
           moverAvatarUrl={detailLead.mover ? staffAvatars?.[String(detailLead.mover.id)] ?? null : null}
-          stages={stageList}
-          onClose={closeDetail}
+          stages={allStages}
+          onClose={() => setDetailId(null)}
           onEdit={openEdit}
           onDelete={handleDelete}
           onMove={handleMove}
           onAddTask={handleAddTask}
+          onDirective={(l) => { setDetailId(null); setDirectiveFor(l); }}
+          onArchive={isManager ? (l) => { setDetailId(null); handleArchive(l); } : undefined}
           canManage={canCreate}
-          canDelete={canDelete}
+          canDelete={isManager}
         />
       )}
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}
-      {stagesOpen && <StagesManagerModal stages={stageList} onClose={() => setStagesOpen(false)} />}
+      {stagesOpen && <StagesManagerModal stages={allStages} onClose={() => setStagesOpen(false)} />}
       {pointsSettingsOpen && <PointsSettingsModal onClose={() => setPointsSettingsOpen(false)} />}
       {taskInitial && <TaskFormModal task={null} initial={taskInitial} onClose={() => setTaskInitial(null)} />}
 
-      {/* التوستر — يظهر عند نقل/ترتيب الفرص */}
       {toasts.length > 0 && (
         <div className="crm-toast-wrap">
           {toasts.map((t) => <div key={t.id} className={`crm-toast ${t.type}`}>{t.msg}</div>)}
@@ -393,37 +414,3 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     </div>
   );
 }
-
-// ── أنماط طبق أصل CSS المرجع ──
-const headerRow: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' };
-const sectionTitle: CSSProperties = { fontSize: '16px', fontWeight: 800, color: '#1E293B' };
-const sectionSubtitle: CSSProperties = { fontSize: '12px', color: '#64748B', marginTop: '3px' };
-// بطاقات مضغوطة (طلب أيمن 2026-08-22): ستّها تدخل في صفّ واحد على الشاشات العريضة
-// بدل صفّين، فتقصر المسافة قبل لوحة الفرص.
-const kpiGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(178px, 1fr))', gap: '10px', marginBottom: '12px' };
-const kpiCard: CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '11px 13px', boxShadow: '0 2px 8px rgba(27,108,168,.06)', display: 'flex', alignItems: 'center', gap: '10px' };
-const kpiIcon: CSSProperties = { width: '36px', height: '36px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 };
-const ICON_BG: Record<'blue' | 'green' | 'orange' | 'purple' | 'red', CSSProperties> = {
-  blue: { background: '#EBF5FF', color: '#1B6CA8' },
-  green: { background: '#ECFDF5', color: '#2D9B6F' },
-  orange: { background: '#FFFBEB', color: '#E8A838' },
-  purple: { background: '#F5F3FF', color: '#7C3AED' },
-  red: { background: '#FEF2F2', color: '#DC4A3D' },
-};
-const kpiLabel: CSSProperties = { fontSize: '11px', color: '#64748B', marginBottom: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
-const kpiValue: CSSProperties = { fontSize: '20px', fontWeight: 800, color: '#1E293B', lineHeight: 1.15 };
-const kpiSub: CSSProperties = { fontSize: '10.5px', color: '#64748B', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
-const up: CSSProperties = { color: '#2D9B6F', fontWeight: 700 };
-// صندوق تنبيه مُختصر الارتفاع (طلب العميل: أقل ارتفاعًا، غير مبالغ) — صفّ واحد.
-const alertStrong: CSSProperties = { border: '1.5px solid #DC4A3D', borderRadius: '10px', padding: '7px 12px', background: 'linear-gradient(180deg,rgba(220,74,61,.10),#fff)', boxShadow: '0 3px 10px rgba(220,74,61,.12)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' };
-const alertHd: CSSProperties = { display: 'flex', alignItems: 'center', gap: '7px' };
-const alertTitle: CSSProperties = { fontSize: '12.5px', fontWeight: 900, color: '#B23B30' };
-const alertBody: CSSProperties = { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' };
-const alertChip: CSSProperties = { background: '#DC4A3D', color: '#fff', border: 'none', borderRadius: '20px', padding: '3px 10px', fontSize: '10.5px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
-const alertSub: CSSProperties = { fontSize: '10.5px', color: '#8A5A08', marginTop: '6px', fontWeight: 700 };
-// عدّاد طلبات الاختصارات المعلّقة على زر الإعدادات.
-const pendingDot: CSSProperties = { marginInlineStart: '6px', background: '#FFFBEB', color: '#B45309', border: '1px solid #F59E0B', borderRadius: '999px', padding: '1px 7px', fontSize: '10.5px', fontWeight: 900 };
-const filtersRow: CSSProperties = { display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' };
-const scopeRow: CSSProperties = { display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: 'center', flexWrap: 'wrap' };
-const scopeBtn: CSSProperties = { padding: '8px 18px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer' };
-const scopeOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };

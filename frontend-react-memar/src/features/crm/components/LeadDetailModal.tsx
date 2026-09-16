@@ -24,6 +24,10 @@ interface Props {
   onDelete: (l: Lead) => void;
   onMove: (l: Lead, stage: Stage) => void;
   onAddTask: (l: Lead) => void;
+  /** فتح خيط «اسأل / اطلب تحديث» كاملًا (لوحة الفرص 2026-09-16). */
+  onDirective?: (l: Lead) => void;
+  /** أرشفة الفرصة أو إرجاعها — للإدارة. */
+  onArchive?: (l: Lead) => void;
   canManage?: boolean;
   canDelete?: boolean;
 }
@@ -48,7 +52,7 @@ const PRICE_KEYS = [
 ] as const;
 
 /** تفاصيل الفرصة — طبق أصل نافذة «🎯 تفاصيل الفرصة» من معمار customer portal (أقسام مرقّمة). */
-export function LeadDetailModal({ lead, ownerAvatarUrl, moverAvatarUrl, stages, onClose, onEdit, onDelete, onMove, onAddTask, canManage = true, canDelete = true }: Props) {
+export function LeadDetailModal({ lead, ownerAvatarUrl, moverAvatarUrl, stages, onClose, onEdit, onDelete, onMove, onAddTask, onDirective, onArchive, canManage = true, canDelete = true }: Props) {
   const { data, isLoading } = useLeadHistory(lead.id);
   // النقاط تُخفى عن غير مدير الولاء (طبق أصل V42) — المهندس يرى «رينج السعر» فقط.
   const showPoints = usePermission('loyalty.manage');
@@ -266,7 +270,9 @@ export function LeadDetailModal({ lead, ownerAvatarUrl, moverAvatarUrl, stages, 
 
           <div style={actionsBar}>
             {canDelete && <button className="crm-btn crm-btn-danger crm-btn-sm" type="button" onClick={() => { onDelete(lead); onClose(); }}>🗑️ حذف الفرصة</button>}
+            {onArchive && <button className="crm-btn crm-btn-outline crm-btn-sm" type="button" onClick={() => onArchive(lead)}>{lead.archived_at ? '📤 إرجاع من الأرشيف' : '🗂️ أرشفة'}</button>}
             <span style={{ flex: 1 }} />
+            {onDirective && <button className="crm-btn crm-btn-outline crm-btn-sm" type="button" onClick={() => onDirective(lead)}>💬 المحادثة{(lead.directive_unread ?? 0) > 0 ? ` (${lead.directive_unread})` : ''}</button>}
             {canManage && <button className="crm-btn crm-btn-outline crm-btn-sm" type="button" onClick={() => onAddTask(lead)}>+ مهمة</button>}
             {canManage && <button className="crm-btn crm-btn-outline crm-btn-sm" type="button" onClick={() => onEdit(lead)}>✏️ تعديل</button>}
             <button className="crm-btn crm-btn-primary crm-btn-sm" type="button" onClick={onClose}>إغلاق</button>

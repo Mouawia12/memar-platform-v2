@@ -35,15 +35,24 @@ class OpportunityActivityController extends ApiController
         return $this->ok(DirectiveResource::collection($thread));
     }
 
-    /** توجيه جديد من الإدارة على الفرصة. */
+    /**
+     * «اسأل / اطلب تحديث» من الإدارة على الفرصة (لوحة الفرص 2026-09-16):
+     * السؤال اختياري — فارغًا يصير طلب تحديث — والمهلة بالساعات أو بدونها.
+     */
     public function sendDirective(Request $request, Contact $contact): JsonResponse
     {
-        $data = $request->validate(['body' => ['required', 'string', 'max:1000']]);
+        $data = $request->validate([
+            'body' => ['nullable', 'string', 'max:1000'],
+            'hours' => ['nullable', 'numeric', 'min:0.1', 'max:720'],
+        ]);
 
-        return $this->created(
-            new DirectiveResource($this->activity->sendDirective($contact, $data['body'], $request->user()?->id)),
-            'تم إرسال التوجيه',
-        );
+        $deadline = isset($data['hours']) ? now()->addMinutes((int) round((float) $data['hours'] * 60)) : null;
+        $directive = $this->activity->sendDirective($contact, trim((string) ($data['body'] ?? '')), $request->user()?->id, $deadline);
+
+        $res = new DirectiveResource($directive->load('messages'));
+        $res->ownerId = $contact->activityOwnerId();
+
+        return $this->created($res, 'تم إرسال التوجيه');
     }
 
     /** رسالة في خيط التوجيه — لصاحب الفرصة، أو للمُرسِل، أو للإدارة. */

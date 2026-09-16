@@ -32,6 +32,8 @@ class DirectiveResource extends JsonResource
             'body' => $this->body,
             'sender' => $this->sender ? ['id' => $this->sender->id, 'name' => $this->sender->name] : null,
             'created_at' => $this->created_at?->toIso8601String(),
+            // مهلة الرد — منها العدّاد التنازلي على بطاقة الفرصة (null = بدون مهلة)
+            'deadline_at' => $this->deadline_at?->toIso8601String(),
             'messages' => $this->messages->map(fn (Comment $m): array => [
                 'id' => $m->id,
                 'body' => $m->body,

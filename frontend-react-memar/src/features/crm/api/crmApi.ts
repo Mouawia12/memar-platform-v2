@@ -6,6 +6,8 @@ export interface CrmQuery {
   /** لوحة CRM تعرض الفرص فقط (type=lead) — منفصلة عن سجل العملاء. */
   type?: string;
   per_page?: number;
+  /** without = خارج الأرشيف · only = المؤرشفة وحدها. */
+  archived?: 'without' | 'only';
 }
 
 /** عنصر في سجل تعديلات الصفقة (من ActivityResource). */
@@ -66,6 +68,14 @@ export const crmApi = {
    * الشركات. الحذف النهائي من السجلات وحدها (طلب أيمن 2026-08-25).
    */
   remove: (id: number) => apiDelete<null>(`/crm/opportunities/${id}`),
+  /** أرشفة الفرصة أو إرجاعها (لوحة الفرص 2026-09-16). */
+  archive: (id: number) => apiPost<{ archived_at: string | null }>(`/crm/opportunities/${id}/archive`),
+  unarchive: (id: number) => apiPost<{ archived_at: string | null }>(`/crm/opportunities/${id}/unarchive`),
+  /** «اسأل / اطلب تحديث»: السؤال اختياري، والمهلة بالساعات أو null = بدون مهلة. */
+  requestUpdate: (id: number, body: string, hours: number | null) => apiPost<unknown>(`/contacts/${id}/directives`, { body, hours }),
+  replyDirective: (id: number, directiveId: number, body: string) => apiPost<unknown>(`/contacts/${id}/directives/${directiveId}/messages`, { body }),
+  /** فتح خيط التوجيه يعلّمه مقروءًا — مرور الإدارة على الرد يكفي اطّلاعًا. */
+  readDirectives: (id: number) => apiGet<unknown>(`/contacts/${id}/directives`),
   /** سجل تعديلات الصفقة (AUDIT-1). */
   history: (id: number) => apiGetPaginated<LeadActivity>('/activity-log', { params: { subject_type: 'Contact', subject_id: id, per_page: 40 } }),
 

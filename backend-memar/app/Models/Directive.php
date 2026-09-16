@@ -15,7 +15,16 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 class Directive extends Model
 {
-    protected $fillable = ['subject_type', 'subject_id', 'sender_id', 'body'];
+    protected $fillable = ['subject_type', 'subject_id', 'sender_id', 'body', 'deadline_at'];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        // مهلة الرد التي اختارتها الإدارة — null = «بدون مهلة».
+        return ['deadline_at' => 'datetime'];
+    }
 
     /*
      * ميلي‑ثانية في الطابع: «جديد» يُقارن وقت الرسالة بوقت آخر اطّلاع، ورسالةٌ

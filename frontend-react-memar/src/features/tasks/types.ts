@@ -25,6 +25,8 @@ export interface TaskDirective {
   body: string;
   sender: TaskRef | null;
   created_at: string | null;
+  /** مهلة الرد التي اختارتها الإدارة (لوحة الفرص) — null = بدون مهلة. */
+  deadline_at?: string | null;
   messages: DirectiveMessage[];
   /** آخر رسالة في الخيط — هي ما تعرضه البطاقة. */
   last_message: DirectiveMessage | null;

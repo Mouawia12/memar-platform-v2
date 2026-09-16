@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\ActivityRead;
 use App\Models\Comment;
 use App\Models\Directive;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -20,10 +21,15 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CardActivityService
 {
-    /** توجيه جديد — كل إرسال سطر مستقلّ يحفظ تاريخه. */
-    public function sendDirective(Model $subject, string $body, ?int $senderId): Directive
+    /**
+     * توجيه جديد — كل إرسال سطر مستقلّ يحفظ تاريخه. نصٌّ فارغ = «طلب تحديث»
+     * بلا سؤال، و$deadline مهلة الرد (null = بدون مهلة).
+     */
+    public function sendDirective(Model $subject, string $body, ?int $senderId, ?CarbonInterface $deadline = null): Directive
     {
-        return $subject->directives()->create(['sender_id' => $senderId, 'body' => $body])->load('sender:id,name');
+        return $subject->directives()
+            ->create(['sender_id' => $senderId, 'body' => $body, 'deadline_at' => $deadline])
+            ->load('sender:id,name');
     }
 
     /**

@@ -24,11 +24,16 @@ class ContactService
         private readonly CardActivityService $activity,
     ) {}
 
-    public function list(?string $search, ?string $type, int $perPage = 15): LengthAwarePaginator
+    /**
+     * @param  string|null  $archived  without = خارج الأرشيف · only = المؤرشفة وحدها · null = الكل
+     */
+    public function list(?string $search, ?string $type, int $perPage = 15, ?string $archived = null): LengthAwarePaginator
     {
         return Contact::query()
             ->when($search, fn ($query, string $s) => ArabicSearch::where($query, $s, ['full_name', 'company', 'kunya'], ['email', 'phone']))
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
+            ->when($archived === 'without', fn ($query) => $query->whereNull('archived_at'))
+            ->when($archived === 'only', fn ($query) => $query->whereNotNull('archived_at'))
             ->with(['owner', 'createdBy:id,name', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
             // أعمدة سجل العملاء: مشاريعه وفرصه وإجمالي عقوده (طلب أيمن 2026-09-09)
             ->withCount(['projects', 'opportunities'])
@@ -104,6 +109,14 @@ class ContactService
      * بمشروعه يصير «عميلًا»، وغيره «جهة اتصال». بطاقة الشركة لا تُمسّ.
      * الحذف النهائي يبقى من سجلّ العملاء أو سجلّ الشركات وحدهما.
      */
+    /** أرشفة الفرصة أو إرجاعها — تخرج من اللوحة وتبقى في التقارير والسجلات. */
+    public function setArchived(Contact $contact, bool $archived): Contact
+    {
+        $contact->forceFill(['archived_at' => $archived ? ($contact->archived_at ?? now()) : null])->save();
+
+        return $contact;
+    }
+
     public function removeFromPipeline(Contact $contact): Contact
     {
         $contact->forceFill([

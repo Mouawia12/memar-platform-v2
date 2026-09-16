@@ -154,7 +154,34 @@ class ContactResource extends JsonResource
              * replied  = صاحب الفرصة ردّ آخرًا (أخضر) · null = لا توجيه (أبيض)
              */
             'directive_state' => $this->whenLoaded('directives', fn (): ?string => $this->directiveState()),
+            // ساعات ما بين كل توجيه وأول ردّ لصاحب الفرصة — منها «متوسط زمن الرد»
+            'response_hours' => $this->whenLoaded('directives', fn (): array => $this->responseHours()),
+            'archived_at' => $this->archived_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * زمن الرد على كل توجيه: من إرساله إلى أول رسالة من صاحب الفرصة بعده.
+     * التوجيهات التي لم يُردّ عليها لا تدخل المتوسط.
+     *
+     * @return list<float>
+     */
+    private function responseHours(): array
+    {
+        $owner = $this->activityOwnerId();
+        if ($owner === null) {
+            return [];
+        }
+
+        return $this->directives
+            ->map(function ($d) use ($owner): ?float {
+                $reply = $d->messages->first(fn ($m): bool => $m->user_id === $owner && $m->created_at?->gte($d->created_at));
+
+                return $reply ? round($d->created_at->diffInSeconds($reply->created_at) / 3600, 2) : null;
+            })
+            ->filter(fn (?float $h): bool => $h !== null)
+            ->values()
+            ->all();
     }
 
     /** حالة آخر خيط توجيه: أينتظر ردّ صاحب الفرصة أم رُدّ عليه؟ */

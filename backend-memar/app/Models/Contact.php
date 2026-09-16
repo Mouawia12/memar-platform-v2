@@ -100,6 +100,7 @@ class Contact extends Model
         return [
             'deal_value_kwd' => 'decimal:3',
             'moved_at' => 'datetime',
+            'archived_at' => 'datetime',
             'notification_prefs' => 'array',
             'tags' => 'array',
             'loyalty_points' => 'integer',

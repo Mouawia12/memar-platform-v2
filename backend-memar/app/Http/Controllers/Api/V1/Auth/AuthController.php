@@ -171,6 +171,16 @@ class AuthController extends ApiController
             'nav_hidden.*' => ['boolean'],
             'nav_collapsed' => ['sometimes', 'array'],
             'nav_collapsed.*' => ['boolean'],
+            // العروض المحفوظة في لوحة الفرص — لكل مستخدم على حدة (2026-09-16)
+            'crm_views' => ['sometimes', 'array', 'max:30'],
+            'crm_views.*.id' => ['required', 'string', 'max:40'],
+            'crm_views.*.name' => ['required', 'string', 'max:60'],
+            'crm_views.*.search' => ['nullable', 'string', 'max:120'],
+            'crm_views.*.status' => ['nullable', 'string', 'max:30'],
+            'crm_views.*.owner' => ['nullable', 'string', 'max:30'],
+            'crm_views.*.priority' => ['nullable', 'string', 'max:30'],
+            'crm_views.*.temperature' => ['nullable', 'string', 'max:30'],
+            'crm_views.*.tag' => ['nullable', 'string', 'max:60'],
         ]);
 
         // دمج جزئي: لا يمسح المفتاح الآخر إن أُرسل أحدهما فقط.

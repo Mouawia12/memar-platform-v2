@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->group(function (): void {
     // مراحل مسار الفرص (أعمدة اللوحة) — قابلة للتعديل والإضافة من الأدمن
     // إزالة الفرصة من لوحة CRM دون حذفها من السجلات
+    Route::post('/crm/opportunities/{contact}/archive', [ContactController::class, 'archive'])->middleware('permission:crm.delete');
+    Route::post('/crm/opportunities/{contact}/unarchive', [ContactController::class, 'unarchive'])->middleware('permission:crm.delete');
     Route::delete('/crm/opportunities/{contact}', [ContactController::class, 'removeFromCrm'])->middleware('permission:crm.delete');
     // كل متابعات العملاء في لوحة واحدة (لوحة المتابعة أسفل صفحة المهام)
     Route::get('/crm/follow-ups', [ContactController::class, 'followUps'])->middleware('permission:crm.view');

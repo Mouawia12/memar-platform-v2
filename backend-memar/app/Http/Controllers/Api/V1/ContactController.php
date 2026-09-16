@@ -29,6 +29,7 @@ class ContactController extends ApiController
             $request->string('search')->toString() ?: null,
             $request->string('type')->toString() ?: null,
             $this->perPage($request, 15),
+            in_array($request->query('archived'), ['without', 'only'], true) ? $request->query('archived') : null,
         );
 
         return $this->paginated($paginator, ContactResource::class);
@@ -86,6 +87,20 @@ class ContactController extends ApiController
      * إزالة الفرصة من لوحة CRM مع بقاء صاحبها في سجلّ العملاء وشركتِه في
      * سجلّ الشركات (طلب أيمن 2026-08-25).
      */
+    /** أرشفة الفرصة من لوحة الفرص (2026-09-16). */
+    public function archive(Contact $contact): JsonResponse
+    {
+        return $this->ok(['archived_at' => $this->contacts->setArchived($contact, true)->archived_at?->toIso8601String()], 'تمت أرشفة الفرصة');
+    }
+
+    /** إرجاع الفرصة من الأرشيف إلى اللوحة. */
+    public function unarchive(Contact $contact): JsonResponse
+    {
+        $this->contacts->setArchived($contact, false);
+
+        return $this->ok(['archived_at' => null], 'أُعيدت الفرصة من الأرشيف');
+    }
+
     public function removeFromCrm(Contact $contact): JsonResponse
     {
         $this->contacts->removeFromPipeline($contact);
@@ -99,7 +114,7 @@ class ContactController extends ApiController
      */
     public function urgentCount(): JsonResponse
     {
-        $urgentLeads = Contact::query()->where('type', 'lead')->where('is_urgent', true)
+        $urgentLeads = Contact::query()->where('type', 'lead')->whereNull('archived_at')->where('is_urgent', true)
             ->orderByDesc('updated_at')
             ->pluck('id');
         $urgent = $urgentLeads->count();
@@ -107,7 +122,7 @@ class ContactController extends ApiController
         $due = LeadReminder::query()
             ->where('done', false)
             ->where('remind_at', '<=', now())
-            ->whereHas('contact', fn ($q) => $q->where('type', 'lead'))
+            ->whereHas('contact', fn ($q) => $q->where('type', 'lead')->whereNull('archived_at'))
             ->count();
 
         // معرّف أحدث فرصة عاجلة — ليفتحها الإشعار العائم مباشرة بدل فتح اللوحة كلّها.

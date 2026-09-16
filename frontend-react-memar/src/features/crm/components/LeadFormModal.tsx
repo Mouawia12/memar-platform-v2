@@ -182,7 +182,15 @@ export function LeadFormModal({ lead, onClose }: Props) {
     <div className="crm-scope" style={overlay} onClick={handleBackdrop}>
       <form className="crm-modal-in crm-form-compact" style={modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <div style={modalHeader}>
-          <span style={modalTitle}>🎯 {lead ? 'تعديل الفرصة' : 'إضافة فرصة / عميل محتمل جديد'}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'grid', placeItems: 'center', background: '#EBF5FF', color: '#1B6CA8' }}>
+              <i className="fa-solid fa-user-plus" />
+            </span>
+            <span>
+              <span style={{ ...modalTitle, display: 'block' }}>{lead ? 'تعديل الفرصة' : 'إضافة فرصة جديدة'}</span>
+              <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#64748B' }}>الحقول المعلّمة بنجمة إلزامية</span>
+            </span>
+          </span>
           <button type="button" onClick={handleBackdrop} aria-label="إغلاق" style={closeBtn}>×</button>
         </div>
 
@@ -447,7 +455,7 @@ export function LeadFormModal({ lead, onClose }: Props) {
         </div>
 
         <div style={footer}>
-          <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'جارٍ الحفظ…' : '💾 حفظ الفرصة'}</button>
+          <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'جارٍ الحفظ…' : lead ? '✓ حفظ التعديلات' : '✓ إضافة الفرصة'}</button>
           <button className="btn" type="button" onClick={handleBackdrop}>إلغاء</button>
         </div>
       </form>

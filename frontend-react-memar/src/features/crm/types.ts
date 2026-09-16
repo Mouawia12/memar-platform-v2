@@ -69,6 +69,10 @@ export interface Lead {
   directive_unread?: number;
   /** لون البطاقة: awaiting أحمر · replied أخضر · غياب الحقل أبيض. */
   directive_state?: 'awaiting' | 'replied' | null;
+  /** ساعات ما بين كل توجيه وأول ردّ لصاحب الفرصة — منها «متوسط زمن الرد». */
+  response_hours?: number[];
+  /** تاريخ الأرشفة — المؤرشفة تخرج من اللوحة وتبقى في التقارير. */
+  archived_at?: string | null;
   // حقول الفرصة (المرحلة 3 — طلب أيمن 2026-08-15)
   priority: Priority;
   is_vip: boolean;

@@ -1,7 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { liveChatApi, type ConversationMessage, type OutgoingMessage } from './liveChatApi';
+import { notifyDesktop } from '../../lib/desktopNotify';
+import { playSound } from '../crm/opsNotify';
+import { liveChatApi, type Conversation, type ConversationMessage, type MessagePage, type OutgoingMessage } from './liveChatApi';
 
 const KEY = ['live-chat'];
 
@@ -19,14 +21,28 @@ export function useConversations() {
   return useQuery({ queryKey: [...KEY, 'conversations'], queryFn: liveChatApi.conversations, refetchInterval: 8000 });
 }
 
-/** رسائل محادثة — والبحث يوقف التحديث الدوري كي لا تُمسح النتيجة تحت يد الباحث. */
+/**
+ * رسائل محادثة صفحةً صفحة: الأحدث أولًا، و«تحميل الأقدم» يجلب ما قبلها.
+ * البحث يوقف التحديث الدوري كي لا تُمسح النتيجة تحت يد الباحث.
+ */
 export function useConversationMessages(id: number | null, search = '') {
-  return useQuery({
+  const query = useInfiniteQuery({
     queryKey: [...KEY, 'messages', id, search],
-    queryFn: () => liveChatApi.messages(id as number, search || undefined),
+    queryFn: ({ pageParam }) => liveChatApi.messages(id as number, { search: search || undefined, before_id: pageParam }),
+    initialPageParam: undefined as number | undefined,
+    // الصفحة التالية = ما قبل أقدم رسالة وصلتنا.
+    getNextPageParam: (last) => (last.has_more ? last.messages[0]?.id : undefined),
     enabled: id !== null,
     refetchInterval: search ? false : 5000,
   });
+
+  // الصفحات تصل من الأحدث للأقدم، والعرض من الأقدم للأحدث.
+  const messages = useMemo(
+    () => [...(query.data?.pages ?? [])].reverse().flatMap((p) => p.messages),
+    [query.data],
+  );
+
+  return { ...query, messages };
 }
 
 export function useCreateDirect() {
@@ -59,13 +75,17 @@ export function useSendMessage(id: number | null) {
     mutationFn: (message: OutgoingMessage) => liveChatApi.send(id as number, message),
     onMutate: async (message) => {
       await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<ConversationMessage[]>(key);
+      const previous = qc.getQueryData<InfiniteData<MessagePage>>(key);
       const optimistic: ConversationMessage = {
         id: -Date.now(), body: message.body, mine: true, system: false, sender: null, sender_id: null,
-        at: new Date().toISOString(), read: false,
+        at: new Date().toISOString(), read: false, reply_to: null, mentions: message.mentions ?? [],
         file: message.file ? { id: -1, name: message.file.name, mime: message.file.type, size: message.file.size, is_image: message.file.type.startsWith('image/') } : null,
       };
-      qc.setQueryData<ConversationMessage[]>(key, [...(previous ?? []), optimistic]);
+      // تُضاف لأحدث صفحة (الأولى) فتظهر في آخر الخيط فورًا.
+      if (previous) {
+        const pages = previous.pages.map((p, i) => (i === 0 ? { ...p, messages: [...p.messages, optimistic] } : p));
+        qc.setQueryData<InfiniteData<MessagePage>>(key, { ...previous, pages });
+      }
 
       return { previous };
     },
@@ -117,6 +137,43 @@ export function useClientSend(contactId: number | null) {
       void qc.invalidateQueries({ queryKey: [...KEY, 'client-threads'] });
     },
   });
+}
+
+/**
+ * تنبيه الرسائل الجديدة: نغمة + إشعار على مستوى الجهاز + عدّاد في عنوان
+ * التبويب — فتصل الرسالة صاحبها ولو كان في صفحة أخرى أو تطبيق آخر.
+ */
+export function useChatAlerts(conversations: Conversation[] | undefined, openId: number | null, onOpen: (id: number) => void): void {
+  const seen = useRef<Map<number, string> | null>(null);
+  const total = (conversations ?? []).reduce((sum, c) => sum + c.unread, 0);
+
+  useEffect(() => {
+    const current = new Map((conversations ?? []).map((c) => [c.id, `${c.last_message_at ?? ''}:${c.unread}`]));
+    if (seen.current === null) { seen.current = current; return; }
+
+    (conversations ?? []).forEach((c) => {
+      const before = seen.current?.get(c.id);
+      // جديدٌ فعلًا: تغيّرت بصمة المحادثة وفيها غير مقروء، وليست المفتوحة أمامي.
+      if (before === undefined || before === current.get(c.id) || c.unread === 0 || c.id === openId) return;
+      playSound('notification', { throttleMs: 1500 });
+      notifyDesktop({
+        title: `رسالة جديدة — ${c.title}`,
+        body: c.last_message ?? 'رسالة جديدة في الشات',
+        tag: `chat-${c.id}`,
+        url: '/whatsapp',
+        onOpen: () => onOpen(c.id),
+      });
+    });
+    seen.current = current;
+  }, [conversations, openId, onOpen]);
+
+  // عدّاد في عنوان التبويب يعود كما كان عند مغادرة الصفحة.
+  useEffect(() => {
+    const original = document.title.replace(/^\(\d+\)\s*/, '');
+    document.title = total > 0 ? `(${total}) ${original}` : original;
+
+    return () => { document.title = original; };
+  }, [total]);
 }
 
 /**

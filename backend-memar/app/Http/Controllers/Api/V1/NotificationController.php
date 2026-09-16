@@ -58,6 +58,14 @@ class NotificationController extends ApiController
             }
         }
 
+        // ذكرك زميل في الشات الداخلي (@اسمك) ولم تقرأ رسالته بعد
+        if ($user !== null && $user->contact_id === null) {
+            $mentions = app(ChatController::class)->unreadMentions($user->id);
+            if ($mentions > 0) {
+                $items[] = $this->item('💬', 'ذكرك زميل في الشات', "{$mentions} رسالة تُشير إليك", '/whatsapp', 'info', $mentions);
+            }
+        }
+
         // متابعات تواصل سجّلتُها وحان موعدها (صفحة التواصل، 2026-09-15)
         if ($user?->can('crm.view')) {
             $followUps = Communication::followUpDue()->where('logged_by', $user->id)->count();

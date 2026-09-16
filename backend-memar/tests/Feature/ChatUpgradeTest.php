@@ -84,14 +84,14 @@ class ChatUpgradeTest extends TestCase
         $conversation = $this->group($me, $mate);
 
         $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['body' => 'وصلك المخطط؟'])->assertCreated();
-        $this->assertFalse($this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->json('data.0.read'));
+        $this->assertFalse($this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->json('data.messages.0.read'));
 
         // فتح الزميل للخيط = اطّلاع
         $this->actingAs($mate);
         $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->assertOk();
 
         $this->actingAs($me);
-        $this->assertTrue($this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->json('data.0.read'));
+        $this->assertTrue($this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->json('data.messages.0.read'));
     }
 
     public function test_searching_messages_returns_matches_without_marking_the_thread_read(): void
@@ -106,7 +106,7 @@ class ChatUpgradeTest extends TestCase
 
         $this->actingAs($me);
         $found = $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages?".http_build_query(['search' => 'عرض']))->assertOk();
-        $this->assertCount(1, $found->json('data'));
+        $this->assertCount(1, $found->json('data.messages'));
 
         // ما زالت المحادثة غير مقروءة: البحث تصفّح لا اطّلاع.
         $this->assertSame(2, $this->getJson('/api/v1/chat/conversations')->json('data.0.unread'));
@@ -158,5 +158,73 @@ class ChatUpgradeTest extends TestCase
 
         $this->assertTrue($sent->json('data.file.is_image'));
         $this->get("/api/v1/chat/clients/{$contact->id}/messages/{$sent->json('data.id')}/file")->assertOk();
+    }
+
+    public function test_older_messages_arrive_page_by_page(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $conversation = $this->group($me, User::factory()->create());
+        foreach (range(1, 12) as $i) {
+            $conversation->messages()->create(['sender_user_id' => $me->id, 'body' => "رسالة {$i}"]);
+        }
+
+        $first = $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages?limit=10")->assertOk();
+        $this->assertTrue($first->json('data.has_more'));
+        $this->assertCount(10, $first->json('data.messages'));
+        // الصفحة الأولى هي الأحدث، مرتّبة من الأقدم للأحدث داخلها.
+        $this->assertSame('رسالة 3', $first->json('data.messages.0.body'));
+        $this->assertSame('رسالة 12', $first->json('data.messages.9.body'));
+
+        $older = $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages?limit=10&before_id=".$first->json('data.messages.0.id'))->assertOk();
+        $this->assertFalse($older->json('data.has_more'));
+        $this->assertSame(['رسالة 1', 'رسالة 2'], array_column($older->json('data.messages'), 'body'));
+    }
+
+    public function test_a_reply_quotes_the_message_it_answers(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $mate = User::factory()->create(['name' => 'زميل']);
+        $conversation = $this->group($me, $mate);
+
+        $this->actingAs($mate);
+        $original = $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['body' => 'متى يصل العرض؟'])->json('data.id');
+
+        $this->actingAs($me);
+        $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['body' => 'غدًا صباحًا', 'reply_to_id' => $original])
+            ->assertCreated()
+            ->assertJsonPath('data.reply_to.body', 'متى يصل العرض؟')
+            ->assertJsonPath('data.reply_to.sender', 'زميل');
+    }
+
+    public function test_a_reply_cannot_quote_a_message_from_another_conversation(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $mine = $this->group($me, User::factory()->create());
+        $elsewhere = $this->group($me, User::factory()->create());
+        $foreign = $elsewhere->messages()->create(['sender_user_id' => $me->id, 'body' => 'رسالة أخرى']);
+
+        $this->postJson("/api/v1/chat/conversations/{$mine->id}/messages", ['body' => 'ردّ', 'reply_to_id' => $foreign->id])
+            ->assertCreated()
+            ->assertJsonPath('data.reply_to', null);
+    }
+
+    public function test_mentioning_a_member_alerts_them_until_they_read_it(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $mate = User::factory()->create(['name' => 'زميل']);
+        $stranger = User::factory()->create();
+        $conversation = $this->group($me, $mate);
+
+        $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", [
+            'body' => '@زميل راجع المخطط من فضلك',
+            'mentions' => [$mate->id, $stranger->id],
+        ])->assertCreated()->assertJsonPath('data.mentions', [$mate->id]); // من ليس عضوًا يُهمَل
+
+        $this->actingAs($mate);
+        $this->assertSame(1, $this->getJson('/api/v1/chat/unread')->json('data.mentions'));
+        $this->assertContains('ذكرك زميل في الشات', collect($this->getJson('/api/v1/notifications')->json('data.items'))->pluck('title'));
+
+        $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->assertOk();
+        $this->assertSame(0, $this->getJson('/api/v1/chat/unread')->json('data.mentions'));
     }
 }

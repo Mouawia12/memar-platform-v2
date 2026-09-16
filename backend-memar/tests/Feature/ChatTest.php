@@ -57,7 +57,7 @@ class ChatTest extends TestCase
         $this->assertSame(1, $list->json('data.0.unread'));
 
         // بعد فتح الرسائل تصبح مقروءة
-        $this->getJson("/api/v1/chat/conversations/{$convId}/messages")->assertOk()->assertJsonCount(1, 'data');
+        $this->getJson("/api/v1/chat/conversations/{$convId}/messages")->assertOk()->assertJsonCount(1, 'data.messages');
         $after = $this->getJson('/api/v1/chat/conversations')->assertOk();
         $this->assertSame(0, $after->json('data.0.unread'));
     }

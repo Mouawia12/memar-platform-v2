@@ -165,6 +165,14 @@ class ChatController extends ApiController
             'sender_id' => $m->sender_user_id,
             'at' => $m->created_at?->toIso8601String(),
             'file' => $this->fileRow($m->file),
+            'mentions' => $m->mentions ?? [],
+            // الرسالة المقتبسة: مقتطف منها يكفي لفهم سياق الردّ
+            'reply_to' => $m->replyTo === null ? null : [
+                'id' => $m->replyTo->id,
+                'body' => mb_substr((string) $m->replyTo->body, 0, 140),
+                'sender' => $m->replyTo->sender?->name,
+                'has_file' => $m->replyTo->file_id !== null,
+            ],
             // «قُرئت» لرسائلي وحدها: كل الأعضاء الآخرين اطّلعوا بعد وقت إرسالها.
             'read' => $mine && $othersReadUpTo !== null && $m->created_at !== null && $othersReadUpTo->gte($m->created_at),
         ];
@@ -206,22 +214,33 @@ class ChatController extends ApiController
         $conversation->load('participants');
         $readUpTo = $this->othersReadUpTo($conversation, $me->id);
 
-        $messages = $conversation->messages()
-            ->with(['sender:id,name', 'file'])
+        /*
+         * صفحة واحدة في كل طلب (الأحدث أولًا ثم تُقلب للعرض)، و`before_id`
+         * يجلب ما قبلها — فلا تُحمَّل محادثةٌ طويلة كلّها دفعةً واحدة.
+         */
+        $limit = min(max($request->integer('limit') ?: 50, 10), 100);
+        $before = $request->integer('before_id');
+
+        $page = $conversation->messages()
+            ->with(['sender:id,name', 'file', 'replyTo.sender:id,name'])
             // بحث في نصّ الرسائل — يعيد المطابق وحده مهما قدُم.
             ->when($search !== '', fn ($q) => $q->where('body', 'like', '%'.$search.'%'))
-            ->orderBy('created_at')
-            ->limit(500)
-            ->get()
+            ->when($before > 0, fn ($q) => $q->where('id', '<', $before))
+            ->orderByDesc('id')
+            ->limit($limit + 1)
+            ->get();
+
+        $hasMore = $page->count() > $limit;
+        $messages = $page->take($limit)->reverse()->values()
             ->map(fn (ConversationMessage $m): array => $this->messageRow($m, $me->id, $readUpTo))
             ->all();
 
-        // البحث تصفّحٌ لا قراءة: لا يُعلّم المحادثة مقروءة.
-        if ($search === '') {
+        // البحث وتصفّح الأقدم ليسا قراءةً: لا يُعلّمان المحادثة مقروءة.
+        if ($search === '' && $before === 0) {
             $mine->update(['last_read_at' => now()]);
         }
 
-        return $this->ok($messages);
+        return $this->ok(['messages' => $messages, 'has_more' => $hasMore]);
     }
 
     /** إرسال رسالة في محادثة داخلية. */
@@ -234,16 +253,29 @@ class ChatController extends ApiController
         $data = $request->validate([
             'body' => ['required_without:file', 'nullable', 'string', 'max:5000'],
             'file' => ['nullable', 'file', 'max:10240'],
+            'reply_to_id' => ['nullable', 'integer'],
+            'mentions' => ['nullable', 'array', 'max:20'],
+            'mentions.*' => ['integer'],
         ]);
 
         $file = $request->hasFile('file')
             ? $this->files->store($request->file('file'), ['folder' => 'chat'], $me->id)
             : null;
 
+        // لا يُقتبس إلا من رسائل هذه المحادثة، ولا يُشار إلا إلى أعضائها.
+        $replyTo = isset($data['reply_to_id'])
+            ? $conversation->messages()->whereKey($data['reply_to_id'])->value('id')
+            : null;
+        $members = $conversation->participants()->pluck('user_id');
+        $mentions = collect($data['mentions'] ?? [])->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $members->contains($id))->unique()->values()->all();
+
         $message = $conversation->messages()->create([
             'sender_user_id' => $me->id,
             'body' => (string) ($data['body'] ?? ''),
             'file_id' => $file?->id,
+            'reply_to_id' => $replyTo,
+            'mentions' => $mentions ?: null,
         ]);
         $conversation->update(['last_message_at' => $message->created_at]);
         $mine->update(['last_read_at' => now()]);
@@ -251,7 +283,7 @@ class ChatController extends ApiController
         $conversation->load('participants');
 
         return $this->created(
-            $this->messageRow($message->load(['sender:id,name', 'file']), $me->id, $this->othersReadUpTo($conversation, $me->id)),
+            $this->messageRow($message->load(['sender:id,name', 'file', 'replyTo.sender:id,name']), $me->id, $this->othersReadUpTo($conversation, $me->id)),
             'تم الإرسال',
         );
     }
@@ -477,6 +509,28 @@ class ChatController extends ApiController
             $q->selectRaw('MAX(id)')->from('client_messages')->groupBy('contact_id');
         })->where('from_staff', false)->count();
 
-        return $this->ok(['internal' => $internal, 'client_awaiting' => $clientAwaiting]);
+        return $this->ok([
+            'internal' => $internal,
+            'client_awaiting' => $clientAwaiting,
+            'mentions' => $this->unreadMentions($me->id),
+        ]);
+    }
+
+    /** رسائل تُشير إليّ ولم أقرأها بعد — لها تنبيهها الخاصّ في الجرس. */
+    public function unreadMentions(int $userId): int
+    {
+        return ConversationMessage::query()
+            ->whereJsonContains('mentions', $userId)
+            ->where('sender_user_id', '!=', $userId)
+            ->whereIn('conversation_id', function ($q) use ($userId): void {
+                $q->select('conversation_id')->from('conversation_participants')->where('user_id', $userId);
+            })
+            ->whereRaw(
+                'conversation_messages.created_at > coalesce((select last_read_at from conversation_participants'
+                .' where conversation_participants.conversation_id = conversation_messages.conversation_id'
+                .' and conversation_participants.user_id = ?), ?)',
+                [$userId, '1970-01-01 00:00:00'],
+            )
+            ->count();
     }
 }

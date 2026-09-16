@@ -28,6 +28,14 @@ export interface ChatFile {
   is_image: boolean;
 }
 
+/** مقتطف من الرسالة المقتبسة في الردّ. */
+export interface QuotedMessage {
+  id: number;
+  body: string;
+  sender: string | null;
+  has_file: boolean;
+}
+
 export interface ConversationMessage {
   id: number;
   body: string;
@@ -40,6 +48,16 @@ export interface ConversationMessage {
   file: ChatFile | null;
   /** رسالتي اطّلع عليها كل الأعضاء الآخرين. */
   read: boolean;
+  /** الرسالة التي يردّ عليها هذا الردّ. */
+  reply_to: QuotedMessage | null;
+  /** معرّفات من أُشير إليهم في نصّها. */
+  mentions: number[];
+}
+
+/** صفحة رسائل: الأحدث أولًا في الطلب، ومرتّبة زمنيًّا في الردّ. */
+export interface MessagePage {
+  messages: ConversationMessage[];
+  has_more: boolean;
 }
 
 /** محادثة عميل (من client_messages). */
@@ -69,19 +87,27 @@ export interface ClientThreadDetail {
 export interface UnreadSummary {
   internal: number;
   client_awaiting: number;
+  /** رسائل تُشير إليّ ولم أقرأها. */
+  mentions: number;
 }
 
 /** نصّ ومرفق — أحدهما يكفي لإرسال رسالة. */
 export interface OutgoingMessage {
   body: string;
   file?: File | null;
+  /** ردٌّ على رسالة بعينها. */
+  replyToId?: number | null;
+  /** من أُشير إليهم بـ @اسمهم. */
+  mentions?: number[];
 }
 
-function formData({ body, file }: OutgoingMessage): FormData | { body: string } {
-  if (!file) return { body };
+function formData({ body, file, replyToId, mentions }: OutgoingMessage): FormData | Record<string, unknown> {
+  if (!file) return { body, reply_to_id: replyToId ?? null, mentions: mentions ?? [] };
   const form = new FormData();
   form.append('body', body);
   form.append('file', file);
+  if (replyToId) form.append('reply_to_id', String(replyToId));
+  (mentions ?? []).forEach((id) => form.append('mentions[]', String(id)));
 
   return form;
 }
@@ -101,7 +127,8 @@ export const liveChatApi = {
   conversations: () => apiGet<Conversation[]>('/chat/conversations'),
   createDirect: (userId: number) => apiPost<{ id: number }>('/chat/conversations', { type: 'direct', user_id: userId }),
   createGroup: (title: string, userIds: number[]) => apiPost<{ id: number }>('/chat/conversations', { type: 'group', title, user_ids: userIds }),
-  messages: (id: number, search?: string) => apiGet<ConversationMessage[]>(`/chat/conversations/${id}/messages`, { params: search ? { search } : undefined }),
+  messages: (id: number, params: { search?: string; before_id?: number; limit?: number } = {}) =>
+    apiGet<MessagePage>(`/chat/conversations/${id}/messages`, { params }),
   send: (id: number, message: OutgoingMessage) => apiPost<ConversationMessage>(`/chat/conversations/${id}/messages`, formData(message)),
   attachment: (id: number, messageId: number) => blobUrl(`/chat/conversations/${id}/messages/${messageId}/file`),
 

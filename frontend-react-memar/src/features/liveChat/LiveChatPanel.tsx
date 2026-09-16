@@ -1,10 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { liveChatApi, type ChatFile, type ClientMessage, type Conversation, type OutgoingMessage } from './liveChatApi';
+import { liveChatApi, type ChatFile, type ClientMessage, type Conversation, type ConversationMessage, type OutgoingMessage, type QuotedMessage, type StaffUser } from './liveChatApi';
 import {
-  useAttachmentUrl, useChatUnread, useClientMessages, useClientSend, useClientThreads, useConversationMessages,
-  useConversations, useCreateDirect, useCreateGroup, useGroupActions, useSendMessage, useStaffList,
+  useAttachmentUrl, useChatAlerts, useChatUnread, useClientMessages, useClientSend, useClientThreads,
+  useConversationMessages, useConversations, useCreateDirect, useCreateGroup, useGroupActions, useSendMessage, useStaffList,
 } from './useLiveChat';
 import './liveChat.css';
 
@@ -37,6 +37,9 @@ export function LiveChatPanel() {
   const [convId, setConvId] = useState<number | null>(null);
   const [contactId, setContactId] = useState<number | null>(null);
   const { data: unread } = useChatUnread();
+  const { data: conversations } = useConversations();
+  const openConversation = useCallback((id: number) => { setTab('team'); setConvId(id); }, []);
+  useChatAlerts(conversations, tab === 'team' ? convId : null, openConversation);
 
   const onThread = tab === 'team' ? convId !== null : contactId !== null;
 
@@ -46,6 +49,7 @@ export function LiveChatPanel() {
         <button type="button" className={`lchat-tab${tab === 'team' ? ' on' : ''}`} onClick={() => setTab('team')}>
           <i className="fa-solid fa-users" /> الفريق (داخلي)
           {(unread?.internal ?? 0) > 0 && <span className="lchat-tab-count">{unread?.internal}</span>}
+          {(unread?.mentions ?? 0) > 0 && <span className="lchat-tab-count" style={{ background: '#7C3AED' }} title="رسائل تُشير إليك">@{unread?.mentions}</span>}
         </button>
         <button type="button" className={`lchat-tab${tab === 'clients' ? ' on' : ''}`} onClick={() => setTab('clients')}>
           <i className="fa-solid fa-user-tie" /> العملاء
@@ -149,7 +153,9 @@ function TeamThread({ conversation, onBack }: { conversation: Conversation; onBa
   const [searching, setSearching] = useState(false);
   const [menu, setMenu] = useState(false);
   const [adding, setAdding] = useState(false);
-  const { data: messages } = useConversationMessages(conversation.id, search.trim());
+  const [replyTo, setReplyTo] = useState<ConversationMessage | null>(null);
+  const { messages, hasNextPage, fetchNextPage, isFetchingNextPage } = useConversationMessages(conversation.id, search.trim());
+  const { data: staff } = useStaffList();
   const send = useSendMessage(conversation.id);
   const group = useGroupActions(conversation.id);
   const isGroup = conversation.type === 'group';
@@ -209,6 +215,8 @@ function TeamThread({ conversation, onBack }: { conversation: Conversation; onBa
         messages={messages}
         searching={!!search.trim()}
         emptyText="لا رسائل بعد — اكتب أول رسالة."
+        onLoadOlder={hasNextPage && !search.trim() ? () => void fetchNextPage() : undefined}
+        loadingOlder={isFetchingNextPage}
         render={(m, grouped) => (m.system ? (
           // حركة مجموعة (إضافة/مغادرة/تغيير اسم): سطر في الوسط بلا فقاعة.
           <span key={m.id} className="lchat-system">{m.body}</span>
@@ -224,15 +232,20 @@ function TeamThread({ conversation, onBack }: { conversation: Conversation; onBa
             read={m.read}
             file={m.file}
             loadFile={m.file && m.id > 0 ? () => liveChatApi.attachment(conversation.id, m.id) : null}
+            quote={m.reply_to}
+            onReply={m.id > 0 ? () => setReplyTo(m) : undefined}
           />
         ))}
       />
 
       <Composer
-        onSend={(message) => send.mutate(message)}
+        onSend={(message) => { send.mutate(message); setReplyTo(null); }}
         disabled={send.isPending}
         failed={send.isError}
         onRetry={() => send.reset()}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
+        mentionable={conversation.type === 'group' ? (staff ?? []).filter((u) => conversation.members.includes(u.name)) : []}
       />
 
       {adding && <AddMembersModal current={conversation.members} onClose={() => setAdding(false)} onAdd={(ids) => group.addMembers.mutate(ids, { onSuccess: () => setAdding(false) })} busy={group.addMembers.isPending} />}
@@ -362,11 +375,14 @@ interface Timed { id: number; at: string | null; body: string }
  * قائمة الرسائل: فواصل الأيام، وتجميع رسائل المرسل الواحد المتتابعة، وتمرير
  * تلقائي لآخر رسالة ما دام القارئ في الأسفل — وإلا زرّ «رسائل جديدة».
  */
-function MessageList<T extends Timed>({ messages, render, emptyText, searching }: {
+function MessageList<T extends Timed>({ messages, render, emptyText, searching, onLoadOlder, loadingOlder }: {
   messages: T[] | undefined;
   render: (m: T, grouped: boolean) => ReactNode;
   emptyText: string;
   searching?: boolean;
+  /** تحميل صفحة أقدم — يظهر زرّها أعلى الخيط. */
+  onLoadOlder?: () => void;
+  loadingOlder?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
@@ -401,6 +417,11 @@ function MessageList<T extends Timed>({ messages, render, emptyText, searching }
 
   return (
     <div className="lchat-msgs" ref={ref} onScroll={onScroll}>
+      {onLoadOlder && (
+        <button type="button" className="lchat-older" onClick={onLoadOlder} disabled={loadingOlder}>
+          {loadingOlder ? 'جارٍ التحميل…' : '↑ تحميل الرسائل الأقدم'}
+        </button>
+      )}
       {messages && messages.length === 0 && (
         <p style={{ color: '#8a93a3', fontSize: 12.5, textAlign: 'center', margin: 'auto' }}>{searching ? 'لا رسائل مطابقة لبحثك.' : emptyText}</p>
       )}
@@ -428,13 +449,25 @@ function MessageList<T extends Timed>({ messages, render, emptyText, searching }
   );
 }
 
-function Bubble({ mine, grouped, pending, sender, body, at, read, file, loadFile }: {
+function Bubble({ mine, grouped, pending, sender, body, at, read, file, loadFile, quote, onReply }: {
   mine: boolean; grouped: boolean; pending?: boolean; sender: string | null; body: string; at: string | null;
   read?: boolean; file: ChatFile | null; loadFile: (() => Promise<string>) | null;
+  quote?: QuotedMessage | null; onReply?: () => void;
 }) {
   return (
     <div className={`lchat-line ${mine ? 'mine' : 'theirs'}`}>
       <div className={`lchat-bubble ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}${pending ? ' pending' : ''}`}>
+        {onReply && (
+          <button type="button" className="lchat-reply-btn" onClick={onReply} title="ردّ على هذه الرسالة" aria-label="ردّ على هذه الرسالة">
+            <i className="fa-solid fa-reply" />
+          </button>
+        )}
+        {quote && (
+          <div className="lchat-quote">
+            <b>{quote.sender ?? 'رسالة'}</b>
+            <span>{quote.body || (quote.has_file ? 'مرفق' : '')}</span>
+          </div>
+        )}
         {sender && !grouped && <div className="lchat-sender">{sender}</div>}
         {body && <div>{body}</div>}
         {file && <Attachment file={file} load={loadFile} mine={mine} />}
@@ -484,13 +517,32 @@ function Attachment({ file, load, mine }: { file: ChatFile; load: (() => Promise
 }
 
 /** حقل الكتابة: Enter يُرسل، Shift+Enter سطر جديد، ومرفق واحد لكل رسالة. */
-function Composer({ onSend, disabled, failed, onRetry, placeholder }: {
+function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onCancelReply, mentionable = [] }: {
   onSend: (message: OutgoingMessage) => void; disabled: boolean; failed?: boolean; onRetry?: () => void; placeholder?: string;
+  replyTo?: ConversationMessage | null; onCancelReply?: () => void;
+  /** زملاء يمكن الإشارة إليهم بـ @ داخل هذه المحادثة. */
+  mentionable?: StaffUser[];
 }) {
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // اقتراحات @: تبدأ بعد @ في آخر كلمة، وتنتهي باختيار زميل أو بمسافة.
+  const suggestions = mentionQuery === null ? [] : mentionable.filter((u) => u.name.includes(mentionQuery)).slice(0, 6);
+
+  const onText = (value: string) => {
+    setText(value);
+    const match = /(?:^|\s)@([^\s@]*)$/.exec(value);
+    setMentionQuery(mentionable.length > 0 && match ? match[1] : null);
+  };
+
+  const pickMention = (user: StaffUser) => {
+    setText((t) => t.replace(/(?:^|\s)@([^\s@]*)$/, (m) => `${m.startsWith('@') ? '' : ' '}@${user.name} `));
+    setMentionQuery(null);
+    areaRef.current?.focus();
+  };
 
   const grow = () => {
     const el = areaRef.current;
@@ -502,9 +554,12 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder }: {
   const submit = () => {
     const body = text.trim();
     if ((!body && !file) || disabled) return;
-    onSend({ body, file });
+    // من ذُكر اسمه في النصّ يُرسَل معرّفه ليصله تنبيه.
+    const mentions = mentionable.filter((u) => body.includes(`@${u.name}`)).map((u) => u.id);
+    onSend({ body, file, replyToId: replyTo?.id ?? null, mentions });
     setText('');
     setFile(null);
+    setMentionQuery(null);
     window.setTimeout(grow, 0);
   };
 
@@ -514,6 +569,24 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder }: {
         <div className="lchat-attached" style={{ borderColor: '#FCA5A5', background: '#FEF2F2', color: '#C0382C' }}>
           <i className="fa-solid fa-triangle-exclamation" /> تعذّر إرسال الرسالة.
           <button type="button" onClick={onRetry}>إخفاء</button>
+        </div>
+      )}
+      {replyTo && (
+        <div className="lchat-attached">
+          <i className="fa-solid fa-reply" />
+          <b>{replyTo.sender ?? 'ردّ على'}:</b>
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{replyTo.body || 'مرفق'}</span>
+          <button type="button" onClick={onCancelReply} aria-label="إلغاء الردّ">✕</button>
+        </div>
+      )}
+      {suggestions.length > 0 && (
+        <div className="lchat-mentions">
+          {suggestions.map((u) => (
+            <button type="button" key={u.id} onClick={() => pickMention(u)}>
+              <span className="lchat-avatar" style={{ width: 24, height: 24, fontSize: 11, background: '#1B6CA8' }}>{initialOf(u.name)}</span>
+              {u.name}
+            </button>
+          ))}
         </div>
       )}
       {file && (
@@ -545,8 +618,11 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder }: {
           value={text}
           rows={1}
           placeholder={placeholder ?? 'اكتب رسالتك… (Enter إرسال · Shift+Enter سطر جديد)'}
-          onChange={(e) => { setText(e.target.value); grow(); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
+          onChange={(e) => { onText(e.target.value); grow(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && replyTo) { onCancelReply?.(); return; }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+          }}
         />
         <button type="button" className="lchat-send" onClick={submit} disabled={disabled || (!text.trim() && !file)} aria-label="إرسال">
           <i className="fa-solid fa-paper-plane" />

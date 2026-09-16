@@ -12,14 +12,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ConversationMessage extends Model
 {
-    protected $fillable = ['conversation_id', 'sender_user_id', 'body', 'file_id', 'is_system'];
+    protected $fillable = ['conversation_id', 'sender_user_id', 'body', 'file_id', 'is_system', 'reply_to_id', 'mentions'];
 
     /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
-        return ['is_system' => 'boolean'];
+        return ['is_system' => 'boolean', 'mentions' => 'array'];
+    }
+
+    /**
+     * الرسالة المُقتبَسة التي يردّ عليها هذا الردّ.
+     *
+     * @return BelongsTo<ConversationMessage, $this>
+     */
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id');
     }
 
     /**

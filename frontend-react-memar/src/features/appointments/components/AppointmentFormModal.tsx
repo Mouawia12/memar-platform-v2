@@ -1,9 +1,9 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '../../../lib/api';
-import { useProjects } from '../../projects/hooks/useProjects';
 import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveAppointment } from '../hooks/useAppointments';
+import { ProjectPicker } from './ProjectPicker';
 import { LOCATION_KINDS, STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentFormData, type AppointmentStatus, type AppointmentType, type LocationKind } from '../types';
 
 interface Props {
@@ -22,7 +22,6 @@ const toLocalInput = (iso: string | null) => (iso ? iso.slice(0, 16) : '');
 
 export function AppointmentFormModal({ appointment, initialStart, onClose }: Props) {
   const save = useSaveAppointment();
-  const { data: projectsData } = useProjects({ per_page: 100 });
   const { data: usersData } = useAssignableUsers();
   const [form, setForm] = useState<AppointmentFormData>({ ...empty, start_at: initialStart ?? '' });
 
@@ -70,11 +69,13 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
               {(Object.keys(TYPE_LABELS) as AppointmentType[]).map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
             </select>
           </label>
-          <label style={label}>المشروع
-            <select className="input" style={input} value={form.project_id} onChange={(e) => set('project_id', e.target.value ? Number(e.target.value) : '')}>
-              <option value="">— بدون —</option>
-              {projectsData?.data.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+          {/* المشروع بالبحث لا بقائمة طويلة (طلب أيمن 2026-09-16) — واختياريّ كما كان. */}
+          <label style={label}>المشروع <span style={{ color: '#94A3B8', fontWeight: 400 }}>(اختياري)</span>
+            <ProjectPicker
+              value={form.project_id}
+              onChange={(id) => set('project_id', id)}
+              initialLabel={appointment?.project?.name ?? null}
+            />
           </label>
           <label style={label}>الموظف المكلَّف
             <select className="input" style={input} value={form.assignee_id} onChange={(e) => set('assignee_id', e.target.value ? Number(e.target.value) : '')}>

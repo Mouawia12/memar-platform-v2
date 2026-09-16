@@ -26,11 +26,11 @@ export function AppointmentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [initialStart, setInitialStart] = useState<string | undefined>(undefined);
-  // «مواعيدي فقط» هو الوضع الدائم للجميع — الإدارة والموظف سواء (طلب أيمن
-  // 2026-08-31)، و«جميع المواعيد» خيار إضافي بضغطة. null = لم يُختر بعد.
+  // «جميع المواعيد» هو الوضع التلقائي للوحة (طلب أيمن 2026-09-16)، و«مواعيدي
+  // فقط» خيار بضغطة. null = لم يُختر بعد.
   const meId = useAuthStore((st) => st.user?.id);
   const [scope, setScope] = useState<'all' | 'mine' | null>(null);
-  const effScope = scope ?? 'mine';
+  const effScope = scope ?? 'all';
   const mine = effScope === 'mine' || undefined;
 
   const listQuery = useAppointments({ search: search || undefined, location_kind: kind || undefined, status: status || undefined, page, mine });
@@ -60,8 +60,8 @@ export function AppointmentsPage() {
       </div>
 
       <div style={scopeRow}>
-        <button type="button" onClick={() => { setScope('mine'); setPage(1); }} style={{ ...scopeBtn, ...(effScope === 'mine' ? scopeOn : null) }}>مواعيدي فقط</button>
         <button type="button" onClick={() => { setScope('all'); setPage(1); }} style={{ ...scopeBtn, ...(effScope === 'all' ? scopeOn : null) }}>جميع المواعيد</button>
+        <button type="button" onClick={() => { setScope('mine'); setPage(1); }} style={{ ...scopeBtn, ...(effScope === 'mine' ? scopeOn : null) }}>مواعيدي فقط</button>
         {effScope === 'all' && meId && <span style={legend}>🔷 مواعيدي مميّزة باسم المكلَّف</span>}
       </div>
 

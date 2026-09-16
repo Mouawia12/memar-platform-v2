@@ -28,7 +28,7 @@ import { KanbanBoard } from '../board/KanbanBoard';
 import { ColorLegend, KpiStrip, ReportsModal } from '../board/Reports';
 import { TableView } from '../board/TableView';
 import { STATUS_ORDER, boardStatus, nextStageOf, promptOf, slaLabel, valueOf, type BoardStatus } from '../board/model';
-import { useAcknowledge, useArchiveLead, useBlinkPref, useIncomingAlerts, useReplyDirective, useRequestUpdate, useSavedViews, useSoundPref } from '../board/useBoard';
+import { readBackupFile, useAcknowledge, useArchiveLead, useBackup, useBlinkPref, useIncomingAlerts, useReplyDirective, useRequestUpdate, useRestore, useSavedViews, useSoundPref } from '../board/useBoard';
 import '../crm.css';
 import '../board/board.css';
 
@@ -112,6 +112,8 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const reply = useReplyDirective();
   const archive = useArchiveLead();
   const acknowledge = useAcknowledge();
+  const backup = useBackup();
+  const restore = useRestore();
   const savedViews = useSavedViews();
 
   const leads = useMemo(() => data?.data ?? [], [data]);
@@ -253,6 +255,32 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     });
   };
 
+  const handleBackup = () => backup.mutate(undefined, {
+    onSuccess: (b) => showToast(`💾 تم تنزيل نسخة احتياطية — ${b.count} فرصة`),
+    onError: () => showToast('تعذّر إنشاء النسخة الاحتياطية', 'danger'),
+  });
+
+  /**
+   * الاستعادة لا تحذف شيئًا: تُحدّث الموجود، وتُعيد المحذوف، وتُنشئ الناقص.
+   * نُطلع المستخدم على عدد ما في الملف قبل التنفيذ.
+   */
+  const handleRestore = async (file: File) => {
+    const rows = await readBackupFile(file);
+    if (!rows) { showToast('الملف غير صالح — اختر ملف نسخة احتياطية صادرًا من هذه اللوحة', 'danger'); return; }
+    const ok = confirm(
+      `استعادة ${rows.length} فرصة من الملف؟\n\n`
+      + '• الفرص الموجودة ستُحدَّث ببيانات الملف\n'
+      + '• الفرص المحذوفة ستعود بمعرّفاتها وروابطها\n'
+      + '• الفرص الناقصة ستُنشأ من جديد\n\n'
+      + 'لن تُحذف أي فرصة على اللوحة.',
+    );
+    if (!ok) return;
+    restore.mutate(rows, {
+      onSuccess: (r) => showToast(`✅ تمت الاستعادة — حُدِّثت ${r.updated}، وأُعيدت ${r.restored}، وأُنشئت ${r.created}`),
+      onError: () => showToast('تعذّرت استعادة النسخة', 'danger'),
+    });
+  };
+
   const applyView = (v: CrmSavedView) => {
     setFilters({
       search: v.search ?? '', status: (v.status || 'all') as BoardFilters['status'], owner: v.owner || 'all',
@@ -325,6 +353,9 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
         onApplyView={applyView}
         onDeleteView={savedViews.remove}
         canArchive={isManager}
+        onBackup={isManager && !exportDisabled ? handleBackup : undefined}
+        onRestore={isManager ? (file) => void handleRestore(file) : undefined}
+        busyBackup={backup.isPending}
         showArchived={showArchived}
         onToggleArchived={() => setShowArchived((v) => !v)}
         archivedCount={archivedCount}

@@ -123,4 +123,77 @@ class CrmBoardTest extends TestCase
 
         $this->assertSame('فرص ساخنة', $user->fresh()->ui_prefs['crm_views'][0]['name']);
     }
+
+    public function test_backup_carries_every_board_opportunity_with_its_owner(): void
+    {
+        $this->actingAsUserWith(['crm.view', 'crm.delete']);
+        $employee = $this->employee();
+        $this->opportunity($employee, ['full_name' => 'فرصة أولى', 'stage' => 'quote', 'tags' => ['VIP']]);
+        $archived = $this->opportunity($employee, ['full_name' => 'مؤرشفة']);
+        $this->postJson("/api/v1/crm/opportunities/{$archived->id}/archive")->assertOk();
+
+        $res = $this->getJson('/api/v1/crm/backup')->assertOk();
+
+        $res->assertJsonPath('data.count', 2)
+            ->assertJsonPath('data.opportunities.0.full_name', 'فرصة أولى')
+            ->assertJsonPath('data.opportunities.0.stage', 'quote')
+            ->assertJsonPath('data.opportunities.0.owner.id', $employee->id);
+        $this->assertNotNull($res->json('data.opportunities.1.archived_at'));
+    }
+
+    public function test_restore_updates_existing_revives_deleted_and_creates_missing(): void
+    {
+        $this->actingAsUserWith(['crm.view', 'crm.delete']);
+        $employee = $this->employee();
+        $kept = $this->opportunity($employee, ['full_name' => 'اسم قديم']);
+        $deleted = $this->opportunity($employee, ['full_name' => 'محذوفة']);
+        $untouched = $this->opportunity($employee, ['full_name' => 'لم تكن في النسخة']);
+        $deleted->delete();
+
+        $this->postJson('/api/v1/crm/restore', ['opportunities' => [
+            ['id' => $kept->id, 'full_name' => 'اسم من النسخة', 'stage' => 'quote', 'owner' => ['id' => $employee->id]],
+            ['id' => $deleted->id, 'full_name' => 'محذوفة', 'owner' => ['id' => $employee->id]],
+            ['id' => 99999, 'full_name' => 'ناقصة', 'owner' => ['id' => $employee->id]],
+        ]])->assertOk()
+            ->assertJsonPath('data.updated', 1)
+            ->assertJsonPath('data.restored', 1)
+            ->assertJsonPath('data.created', 1);
+
+        $this->assertSame('اسم من النسخة', $kept->fresh()->full_name);
+        $this->assertNull($deleted->fresh()->deleted_at);
+        // لا تُحذف فرصة غائبة عن الملف، ولا تُنشأ الناقصة بمعرّف وهمي.
+        $this->assertNotNull($untouched->fresh());
+        $this->assertNull(Contact::find(99999));
+        $this->assertNotNull(Contact::where('full_name', 'ناقصة')->first());
+    }
+
+    public function test_restore_ignores_an_owner_whose_account_is_gone(): void
+    {
+        $this->actingAsUserWith(['crm.view', 'crm.delete']);
+
+        $this->postJson('/api/v1/crm/restore', ['opportunities' => [
+            ['full_name' => 'بلا مكلّف', 'owner' => ['id' => 4242]],
+        ]])->assertOk()->assertJsonPath('data.created', 1);
+
+        $this->assertNull(Contact::where('full_name', 'بلا مكلّف')->first()->owner_id);
+    }
+
+    public function test_backup_and_restore_need_management_permission(): void
+    {
+        $employee = $this->employee();
+        $this->actingAs($employee);
+
+        $this->getJson('/api/v1/crm/backup')->assertForbidden();
+        $this->postJson('/api/v1/crm/restore', ['opportunities' => [['full_name' => 'ممنوعة']]])->assertForbidden();
+        $this->assertNull(Contact::where('full_name', 'ممنوعة')->first());
+    }
+
+    public function test_restore_rejects_a_file_without_opportunities(): void
+    {
+        $this->actingAsUserWith(['crm.view', 'crm.delete']);
+
+        $this->postJson('/api/v1/crm/restore', ['exported_at' => 'x'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('opportunities');
+    }
 }

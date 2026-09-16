@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 
 import type { CrmSavedView } from '../../../types/api';
 import { TEMPERATURE_ORDER } from '../types';
@@ -26,6 +26,10 @@ interface Props {
   onApplyView: (v: CrmSavedView) => void;
   onDeleteView: (id: string) => void;
   canArchive: boolean;
+  /** نسخة احتياطية واستعادة — للإدارة وحدها. */
+  onBackup?: () => void;
+  onRestore?: (file: File) => void;
+  busyBackup?: boolean;
   showArchived: boolean;
   onToggleArchived: () => void;
   archivedCount: number;
@@ -37,6 +41,7 @@ interface Props {
 export function BoardToolbar(p: Props) {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof BoardFilters>(k: K, v: BoardFilters[K]) => p.onFilters({ ...p.filters, [k]: v });
 
   const commit = () => {
@@ -163,8 +168,32 @@ export function BoardToolbar(p: Props) {
               {p.archivedCount > 0 && <span className="num">({p.archivedCount})</span>}
             </button>
           )}
+          {p.onBackup && (
+            <button type="button" className="crmx-btn sm green" onClick={p.onBackup} disabled={p.busyBackup}>
+              <i className="fa-solid fa-download" /> {p.busyBackup ? 'جارٍ التنزيل…' : 'نسخة احتياطية'}
+            </button>
+          )}
+          {p.onRestore && (
+            <>
+              <button type="button" className="crmx-btn sm blue" onClick={() => fileRef.current?.click()}>
+                <i className="fa-solid fa-upload" /> استعادة نسخة
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) p.onRestore?.(file);
+                  e.target.value = '';
+                }}
+              />
+            </>
+          )}
           {p.extraActions}
           <button type="button" className="crmx-btn sm muted" onClick={p.onReset}><i className="fa-solid fa-rotate-left" /> إعادة تعيين</button>
+          {p.onBackup && <span className="crmx-hint" style={{ marginInlineStart: 'auto' }}><i className="fa-solid fa-database" /> الفرص محفوظة في قاعدة البيانات — والنسخة الاحتياطية ملف تحتفظ به عندك</span>}
         </div>
       </div>
     </header>

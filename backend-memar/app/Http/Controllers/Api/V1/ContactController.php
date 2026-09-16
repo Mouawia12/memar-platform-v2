@@ -13,6 +13,7 @@ use App\Models\Contact;
 use App\Models\LeadReminder;
 use App\Services\CardActivityService;
 use App\Services\ContactService;
+use App\Services\CrmBackupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -87,6 +88,28 @@ class ContactController extends ApiController
      * إزالة الفرصة من لوحة CRM مع بقاء صاحبها في سجلّ العملاء وشركتِه في
      * سجلّ الشركات (طلب أيمن 2026-08-25).
      */
+    /** نسخة احتياطية من كل فرص اللوحة — ملف JSON يُنزَّل من الواجهة. */
+    public function backup(CrmBackupService $backups): JsonResponse
+    {
+        return $this->ok($backups->export());
+    }
+
+    /**
+     * استعادة نسخة احتياطية: تُحدِّث الموجود، وتُعيد المحذوف، وتُنشئ الناقص —
+     * ولا تحذف أي فرصة قائمة.
+     */
+    public function restore(Request $request, CrmBackupService $backups): JsonResponse
+    {
+        $data = $request->validate([
+            'opportunities' => ['required', 'array', 'max:5000'],
+            'opportunities.*.id' => ['nullable', 'integer'],
+            'opportunities.*.full_name' => ['required', 'string', 'max:255'],
+            'opportunities.*.stage' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        return $this->ok($backups->restore($data['opportunities']), 'تمت استعادة النسخة الاحتياطية');
+    }
+
     /** أرشفة الفرصة من لوحة الفرص (2026-09-16). */
     public function archive(Contact $contact): JsonResponse
     {

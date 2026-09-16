@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { authApi } from '../../auth/api/authApi';
 import { useAuthStore } from '../../../store/auth';
 import type { CrmSavedView } from '../../../types/api';
-import { crmApi } from '../api/crmApi';
+import { crmApi, type CrmBackup, type CrmBackupRow } from '../api/crmApi';
 import { playSound } from '../opsNotify';
 import type { Lead } from '../types';
 
@@ -52,6 +52,47 @@ export function useAcknowledge() {
     pending.current.add(id);
     crmApi.readDirectives(id).then(invalidate).catch(() => {}).finally(() => pending.current.delete(id));
   }, [invalidate]);
+}
+
+/** تنزيل نسخة احتياطية من فرص اللوحة كملف JSON. */
+export function useBackup() {
+  return useMutation({
+    mutationFn: async () => {
+      const backup = await crmApi.backup();
+      const stamp = new Date().toISOString().slice(0, 10);
+      const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `crm-نسخة-احتياطية-${stamp}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+
+      return backup;
+    },
+  });
+}
+
+/** قراءة ملف النسخة الاحتياطية — يقبل ظرف الخادم أو المصفوفة مباشرة. */
+export async function readBackupFile(file: File): Promise<CrmBackupRow[] | null> {
+  try {
+    const parsed = JSON.parse(await file.text()) as Partial<CrmBackup> & { data?: Partial<CrmBackup> };
+    const rows = parsed.opportunities ?? parsed.data?.opportunities;
+    if (!Array.isArray(rows) || rows.some((r) => typeof r?.full_name !== 'string')) return null;
+
+    return rows;
+  } catch {
+    return null;
+  }
+}
+
+export function useRestore() {
+  const invalidate = useInvalidateLeads();
+  return useMutation({
+    mutationFn: (rows: CrmBackupRow[]) => crmApi.restore(rows),
+    onSuccess: invalidate,
+  });
 }
 
 // ── تفضيلات اللوحة لكل جهاز: الصوت والوميض ──

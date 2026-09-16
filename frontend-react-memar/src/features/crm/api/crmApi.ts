@@ -55,6 +55,26 @@ export interface QuickAction {
   is_active: boolean;
 }
 
+/** صفّ فرصة في ملف النسخة الاحتياطية — حقول الفرصة كما حفظها الخادم. */
+export interface CrmBackupRow extends Record<string, unknown> {
+  id?: number;
+  full_name: string;
+}
+
+export interface CrmBackup {
+  version: number;
+  exported_at: string;
+  count: number;
+  opportunities: CrmBackupRow[];
+}
+
+/** حصيلة الاستعادة: كم فرصة حُدّثت، وكم أُعيدت من المحذوفة، وكم أُنشئت. */
+export interface CrmRestoreResult {
+  updated: number;
+  restored: number;
+  created: number;
+}
+
 export const crmApi = {
   list: (params: CrmQuery) => apiGetPaginated<Lead>('/contacts', { params }),
   create: (payload: Record<string, unknown>) => apiPost<Lead>('/contacts', payload),
@@ -71,6 +91,9 @@ export const crmApi = {
   /** أرشفة الفرصة أو إرجاعها (لوحة الفرص 2026-09-16). */
   archive: (id: number) => apiPost<{ archived_at: string | null }>(`/crm/opportunities/${id}/archive`),
   unarchive: (id: number) => apiPost<{ archived_at: string | null }>(`/crm/opportunities/${id}/unarchive`),
+  /** نسخة احتياطية من فرص اللوحة، واستعادتها من ملف (لا تحذف شيئًا). */
+  backup: () => apiGet<CrmBackup>('/crm/backup'),
+  restore: (opportunities: CrmBackupRow[]) => apiPost<CrmRestoreResult>('/crm/restore', { opportunities }),
   /** «اسأل / اطلب تحديث»: السؤال اختياري، والمهلة بالساعات أو null = بدون مهلة. */
   requestUpdate: (id: number, body: string, hours: number | null) => apiPost<unknown>(`/contacts/${id}/directives`, { body, hours }),
   replyDirective: (id: number, directiveId: number, body: string) => apiPost<unknown>(`/contacts/${id}/directives/${directiveId}/messages`, { body }),

@@ -33,6 +33,11 @@ interface Props extends CardHandlers {
   nextStage: PipelineStage | null;
   flashing: boolean;
   dimmed?: boolean;
+  /** تحريك البطاقة داخل عمودها (أعلى/أسفل) — بالأزرار أو بـ Alt + سهم. */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   tagColors: Map<string, string>;
 }
 
@@ -40,7 +45,7 @@ const HOVER_INTENT_MS = 110;
 /** مواعيد انتهاء رنّ جرسها في هذه الجلسة — لا يتكرّر مع كل رسم. */
 const RUNG = new Set<string>();
 
-export function OpportunityCard({ lead, isManager, canWrite, nextStage, flashing, dimmed, tagColors, ...h }: Props) {
+export function OpportunityCard({ lead, isManager, canWrite, nextStage, flashing, dimmed, tagColors, onMoveUp, onMoveDown, canMoveUp, canMoveDown, ...h }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [writing, setWriting] = useState(false);
   const [requesting, setRequesting] = useState(false);
@@ -138,7 +143,17 @@ export function OpportunityCard({ lead, isManager, canWrite, nextStage, flashing
       role="button"
       tabIndex={0}
       onClick={() => h.onOpen(lead)}
-      onKeyDown={(e) => { if (!writing && !requesting && (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); h.onOpen(lead); } }}
+      onKeyDown={(e) => {
+        if (writing || requesting || e.target !== e.currentTarget) return;
+        // Alt + سهم: تحريك البطاقة في عمودها دون ماوس.
+        if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+          e.preventDefault();
+          if (e.key === 'ArrowUp' && canMoveUp) onMoveUp?.();
+          if (e.key === 'ArrowDown' && canMoveDown) onMoveDown?.();
+          return;
+        }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); h.onOpen(lead); }
+      }}
       onMouseEnter={enter}
       onMouseLeave={leave}
       aria-label={`الفرصة رقم ${lead.id} — ${lead.full_name} — ${meta.label}`}
@@ -161,6 +176,14 @@ export function OpportunityCard({ lead, isManager, canWrite, nextStage, flashing
               <p className="crmx-card-proj" title={project}>{project}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              {(onMoveUp || onMoveDown) && (
+                <span className="crmx-reorder" onClick={stop} onPointerDown={(e) => e.stopPropagation()}>
+                  <button type="button" title="تحريك لأعلى (Alt + ↑)" aria-label="تحريك لأعلى" disabled={!canMoveUp}
+                    onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}><i className="fa-solid fa-chevron-up" /></button>
+                  <button type="button" title="تحريك لأسفل (Alt + ↓)" aria-label="تحريك لأسفل" disabled={!canMoveDown}
+                    onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}><i className="fa-solid fa-chevron-down" /></button>
+                </span>
+              )}
               {unread > 0 && (
                 <span className="crmx-unread num" style={{ background: actionRequired ? '#DC4A3D' : '#2D9B6F' }} title={`${unread} رسالة غير مقروءة`}>{unread}</span>
               )}

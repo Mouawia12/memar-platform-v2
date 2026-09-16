@@ -234,3 +234,10 @@ button.crmx-chip.on { box-shadow: 0 0 0 2px currentColor inset; }
   .crmx-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .crmx-select { flex: 1 1 45%; min-width: 0; }
 }
+
+/* أزرار تحريك البطاقة داخل عمودها (▲▼) — تظهر خافتة وتتضح بالمرور. */
+.crmx-reorder { display: inline-flex; flex-direction: column; gap: 1px; opacity: .45; transition: opacity .2s; }
+.crmx-card:hover .crmx-reorder, .crmx-card:focus-within .crmx-reorder { opacity: 1; }
+.crmx-reorder button { display: grid; place-items: center; width: 18px; height: 12px; padding: 0; border: 1px solid #E4E8EF; border-radius: 4px; background: #F7F9FC; color: #5A6478; font-size: 7px; cursor: pointer; }
+.crmx-reorder button:hover:not(:disabled) { background: var(--x-brand-50); color: var(--x-brand); border-color: var(--x-brand-100); }
+.crmx-reorder button:disabled { opacity: .3; cursor: default; }

@@ -81,7 +81,17 @@ export function KanbanBoard({ leads, stages, isManager, meId, showTotals, flashi
     onReorder(ids);
   };
 
-  const card = (lead: Lead) => (
+  /** تبديل بطاقة بجارتها في العمود — نفس مسار السحب، فالترتيب مصدره واحد. */
+  const moveInColumn = (lead: Lead, dir: -1 | 1) => {
+    const ids = leads.filter((l) => l.stage === lead.stage).map((l) => l.id);
+    const from = ids.indexOf(lead.id);
+    const to = from + dir;
+    if (from === -1 || to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    onReorder(ids);
+  };
+
+  const card = (lead: Lead, index?: number, columnLength?: number) => (
     <OpportunityCard
       lead={lead}
       isManager={isManager}
@@ -89,6 +99,10 @@ export function KanbanBoard({ leads, stages, isManager, meId, showTotals, flashi
       nextStage={nextStageOf(lead.stage, stages)}
       flashing={flashing.has(lead.id)}
       tagColors={tagColors}
+      onMoveUp={index === undefined ? undefined : () => moveInColumn(lead, -1)}
+      onMoveDown={index === undefined ? undefined : () => moveInColumn(lead, 1)}
+      canMoveUp={index !== undefined && index > 0}
+      canMoveDown={index !== undefined && columnLength !== undefined && index < columnLength - 1}
       {...handlers}
     />
   );
@@ -103,7 +117,7 @@ export function KanbanBoard({ leads, stages, isManager, meId, showTotals, flashi
             <Column key={stage.key} stage={stage} count={col.length} total={col.reduce((s, l) => s + valueOf(l), 0)} urgent={urgent} showTotals={showTotals}>
               {col.length === 0 ? (
                 <p className="crmx-col-empty"><i className="fa-solid fa-layer-group" /> لا توجد فرص في هذه المرحلة</p>
-              ) : col.map((lead) => <Draggable key={lead.id} lead={lead}>{card(lead)}</Draggable>)}
+              ) : col.map((lead, i) => <Draggable key={lead.id} lead={lead}>{card(lead, i, col.length)}</Draggable>)}
             </Column>
           );
         })}

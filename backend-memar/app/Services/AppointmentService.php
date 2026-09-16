@@ -18,11 +18,15 @@ class AppointmentService
      * لا يشمل ما سجّله لغيره: المدير يُنشئ مواعيد الفريق كلّها، فلو حُسبت له
      * لظهرت «مواعيدي» وكأنها الكلّ (طلب أيمن 2026-08-31).
      */
-    public function list(?string $search, ?string $type, ?string $status, int $perPage = 15, ?int $mineFor = null): LengthAwarePaginator
+    /**
+     * @param  string|null  $kind  نوع الموعد = مكانه (مكتب/موقع/أونلاين/هاتف) — طلب أيمن 2026-09-16
+     */
+    public function list(?string $search, ?string $type, ?string $status, int $perPage = 15, ?int $mineFor = null, ?string $kind = null): LengthAwarePaginator
     {
         return Appointment::query()
             ->when($search, fn ($q, string $s) => $q->where('title', 'like', "%{$s}%"))
             ->when($type, fn ($q, string $t) => $q->where('type', $t))
+            ->when($kind, fn ($q, string $k) => $q->where('location_kind', $k))
             ->when($status, fn ($q, string $st) => $q->where('status', $st))
             ->when($mineFor, fn ($q, int $id) => $q->where('assignee_id', $id))
             ->with(['project', 'assignee'])

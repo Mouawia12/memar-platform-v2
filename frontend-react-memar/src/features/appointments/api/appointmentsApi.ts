@@ -4,6 +4,8 @@ import type { Appointment } from '../types';
 export interface AppointmentsQuery {
   search?: string;
   type?: string;
+  /** نوع الموعد = مكانه: office · site · online · call */
+  location_kind?: string;
   status?: string;
   page?: number;
   per_page?: number;

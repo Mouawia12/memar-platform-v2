@@ -4,7 +4,7 @@ import { apiErrorMessage } from '../../../lib/api';
 import { useAssignableUsers } from '../../users/hooks/useUsers';
 import { useSaveAppointment } from '../hooks/useAppointments';
 import { ProjectPicker } from './ProjectPicker';
-import { LOCATION_KINDS, STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentFormData, type AppointmentStatus, type AppointmentType, type LocationKind } from '../types';
+import { LOCATION_KINDS, STATUS_LABELS, type Appointment, type AppointmentFormData, type AppointmentStatus, type LocationKind } from '../types';
 
 interface Props {
   appointment: Appointment | null;
@@ -64,9 +64,27 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
         </label>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {/*
+            «النوع» صار مكان الموعد: مكتب/موقع/أونلاين/هاتف (طلب أيمن 2026-09-16)
+            — وحُذف النوع القديم (موعد/اجتماع) لأنه لم يكن يفرّق شيئًا في العمل.
+          */}
           <label style={label}>النوع
-            <select className="input" style={input} value={form.type} onChange={(e) => set('type', e.target.value as AppointmentType)}>
-              {(Object.keys(TYPE_LABELS) as AppointmentType[]).map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+            <select
+              className="input"
+              style={input}
+              value={form.location_kind}
+              onChange={(e) => {
+                const kind = e.target.value as LocationKind | '';
+                setForm((f) => ({
+                  ...f,
+                  location_kind: kind,
+                  // «أونلاين» اجتماع فيديو بطبعه، فيُفعَّل الرابط التلقائي معه.
+                  is_video: kind === 'online' ? true : f.is_video,
+                }));
+              }}
+            >
+              <option value="">— غير محدّد —</option>
+              {LOCATION_KINDS.map((k) => <option key={k.key} value={k.key}>{k.icon} {k.label}</option>)}
             </select>
           </label>
           {/* المشروع بالبحث لا بقائمة طويلة (طلب أيمن 2026-09-16) — واختياريّ كما كان. */}
@@ -88,25 +106,6 @@ export function AppointmentFormModal({ appointment, initialStart, onClose }: Pro
           </label>
           <label style={label}>ينتهي
             <input className="input" style={input} type="datetime-local" value={form.end_at} onChange={(e) => set('end_at', e.target.value)} />
-          </label>
-          <label style={label}>المكان
-            <select
-              className="input"
-              style={input}
-              value={form.location_kind}
-              onChange={(e) => {
-                const kind = e.target.value as LocationKind | '';
-                setForm((f) => ({
-                  ...f,
-                  location_kind: kind,
-                  // «أونلاين» اجتماع فيديو بطبعه، فيُفعَّل الرابط التلقائي معه.
-                  is_video: kind === 'online' ? true : f.is_video,
-                }));
-              }}
-            >
-              <option value="">— غير محدّد —</option>
-              {LOCATION_KINDS.map((k) => <option key={k.key} value={k.key}>{k.icon} {k.label}</option>)}
-            </select>
           </label>
           <label style={label}>الحالة
             <select className="input" style={input} value={form.status} onChange={(e) => set('status', e.target.value as AppointmentStatus)}>

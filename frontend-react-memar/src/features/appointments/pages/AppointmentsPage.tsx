@@ -8,7 +8,7 @@ import { AppointmentsCalendar } from '../components/AppointmentsCalendar';
 import { AppointmentsTable } from '../components/AppointmentsTable';
 import { AppointmentHistory, AppointmentSidebar } from '../components/AppointmentPanels';
 import { useAppointments, useConfirmAppointment, useDeleteAppointment } from '../hooks/useAppointments';
-import { STATUS_LABELS, TYPE_LABELS, type Appointment, type AppointmentStatus, type AppointmentType } from '../types';
+import { LOCATION_KINDS, STATUS_LABELS, type Appointment, type AppointmentStatus, type LocationKind } from '../types';
 
 type Mode = 'calendar' | 'list';
 
@@ -19,7 +19,8 @@ export function AppointmentsPage() {
 
   const [mode, setMode] = useState<Mode>('calendar');
   const [search, setSearch] = useState('');
-  const [type, setType] = useState<'' | AppointmentType>('');
+  // «النوع» صار مكان الموعد (طلب أيمن 2026-09-16).
+  const [kind, setKind] = useState<'' | LocationKind>('');
   const [status, setStatus] = useState<'' | AppointmentStatus>('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
@@ -32,7 +33,7 @@ export function AppointmentsPage() {
   const effScope = scope ?? 'mine';
   const mine = effScope === 'mine' || undefined;
 
-  const listQuery = useAppointments({ search: search || undefined, type: type || undefined, status: status || undefined, page, mine });
+  const listQuery = useAppointments({ search: search || undefined, location_kind: kind || undefined, status: status || undefined, page, mine });
   const calQuery = useAppointments({ per_page: 500, mine });
   const del = useDeleteAppointment();
   const confirm_ = useConfirmAppointment();
@@ -85,9 +86,9 @@ export function AppointmentsPage() {
         <div className="card" style={{ padding: '16px' }}>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
             <input className="input" placeholder="بحث بالعنوان…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ flex: 1, minWidth: '200px' }} />
-            <select className="input" value={type} onChange={(e) => { setType(e.target.value as '' | AppointmentType); setPage(1); }}>
+            <select className="input" value={kind} onChange={(e) => { setKind(e.target.value as '' | LocationKind); setPage(1); }}>
               <option value="">كل الأنواع</option>
-              {(Object.keys(TYPE_LABELS) as AppointmentType[]).map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+              {LOCATION_KINDS.map((k) => <option key={k.key} value={k.key}>{k.icon} {k.label}</option>)}
             </select>
             <select className="input" value={status} onChange={(e) => { setStatus(e.target.value as '' | AppointmentStatus); setPage(1); }}>
               <option value="">كل الحالات</option>

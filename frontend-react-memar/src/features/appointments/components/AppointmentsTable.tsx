@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import { ROW_NO_CELL } from '../../../lib/rowNumber';
 import { personColor, shortName } from '../../crm/types';
 import { useCloseAppointment } from '../hooks/useAppointments';
-import { LOCATION_KIND_LABELS, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, type Appointment } from '../types';
+import { LOCATION_KIND_LABELS, STATUS_COLORS, STATUS_LABELS, type Appointment } from '../types';
 import { MINE_TAG, OTHERS_MUTED } from './mineStyles';
 
 interface Props {
@@ -48,7 +48,6 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
             <th style={th}>النوع</th>
             <th style={th}>المكلَّف</th>
             <th style={th}>الموعد</th>
-            <th style={th}>المكان</th>
             <th style={th}>فيديو</th>
             <th style={th}>الحالة</th>
             {showActions && <th style={th}>إجراءات</th>}
@@ -66,7 +65,15 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
                 <b>{a.title}</b>
                 {a.project && <div style={{ fontSize: '12px', opacity: 0.6 }}>🏗️ {a.project.name}</div>}
               </td>
-              <td style={td}>{TYPE_LABELS[a.type]}</td>
+              <td style={td}>
+                {/* النوع = مكان الموعد وتفصيله (طلب أيمن 2026-09-16). */}
+                {a.location_kind ? (
+                  <span title={a.location ?? undefined}>
+                    {LOCATION_KIND_LABELS[a.location_kind]}
+                    {a.location ? <span style={{ color: '#94A3B8' }}> · {a.location}</span> : null}
+                  </span>
+                ) : (a.location ?? '—')}
+              </td>
               <td style={td}>
                 {a.assignee
                   ? (
@@ -78,15 +85,6 @@ export function AppointmentsTable({ appointments, onEdit, onDelete, canManage = 
                   : <span style={{ color: '#B6BECC' }}>غير مكلَّف</span>}
               </td>
               <td style={td}>{fmt(a.start_at)}</td>
-              <td style={td}>
-                {/* نوع المكان أوّلًا ثم تفصيله — الجدول كان يعرض النصّ الحرّ وحده. */}
-                {a.location_kind ? (
-                  <span title={a.location ?? undefined}>
-                    {LOCATION_KIND_LABELS[a.location_kind]}
-                    {a.location ? <span style={{ color: '#94A3B8' }}> · {a.location}</span> : null}
-                  </span>
-                ) : (a.location ?? '—')}
-              </td>
               <td style={td}>
                 {a.video_url
                   ? <a className="btn btn-sm" href={a.video_url} target="_blank" rel="noreferrer" style={{ background: '#059669', color: '#fff' }}>📹 دخول</a>

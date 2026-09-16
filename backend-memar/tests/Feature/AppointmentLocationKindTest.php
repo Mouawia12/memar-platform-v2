@@ -63,4 +63,17 @@ class AppointmentLocationKindTest extends TestCase
         $this->patchJson("/api/v1/appointments/{$appointment->id}", ['location_kind' => 'site'])
             ->assertOk()->assertJsonPath('data.location_kind', 'site');
     }
+
+    public function test_the_list_can_be_filtered_by_appointment_kind(): void
+    {
+        $this->actingAsUserWith(['appointments.view', 'appointments.manage']);
+
+        Appointment::create(['title' => 'اجتماع المكتب', 'type' => 'appointment', 'status' => 'scheduled', 'start_at' => now(), 'location_kind' => 'office']);
+        Appointment::create(['title' => 'زيارة الموقع', 'type' => 'appointment', 'status' => 'scheduled', 'start_at' => now(), 'location_kind' => 'site']);
+
+        $res = $this->getJson('/api/v1/appointments?location_kind=site')->assertOk();
+
+        $this->assertSame(['زيارة الموقع'], array_column($res->json('data'), 'title'));
+        $this->assertCount(2, $this->getJson('/api/v1/appointments')->json('data'));
+    }
 }

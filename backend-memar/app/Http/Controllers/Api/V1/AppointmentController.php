@@ -26,6 +26,7 @@ class AppointmentController extends ApiController
             $this->perPage($request, 15),
             // «مواعيدي فقط» — الموظف يرى ما يخصّه وحده (طلب أيمن 2026-08-31)
             $request->boolean('mine') ? $request->user()?->id : null,
+            $request->string('location_kind')->toString() ?: null,
         );
 
         return $this->paginated($paginator, AppointmentResource::class);

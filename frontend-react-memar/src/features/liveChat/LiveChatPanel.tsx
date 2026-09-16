@@ -1,14 +1,16 @@
+import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { usePermission } from '../auth/hooks/usePermission';
 import { TaskFormModal } from '../tasks/components/TaskFormModal';
 import type { TaskFormData } from '../tasks/types';
+import { filesApi } from '../files/api/filesApi';
 import { REACTION_EMOJIS, liveChatApi, type ChatFile, type ClientMessage, type Conversation, type ConversationMessage, type OutgoingMessage, type QuotedMessage, type Reaction, type StaffUser } from './liveChatApi';
 import {
   useAttachmentUrl, useChatAlerts, useChatUnread, useClientMessages, useClientSend, useClientThreads,
   useConversationMessages, useConversationPrefs, useConversations, useCreateDirect, useCreateGroup, useDraft,
-  useGroupActions, useMessageActions, useSendMessage, useStaffList,
+  useGlobalSearch, useGroupActions, useMessageActions, useReplyTemplates, useSendMessage, useStaffList,
 } from './useLiveChat';
 import './liveChat.css';
 
@@ -128,6 +130,7 @@ function TeamPane({ convId, setConvId, onTask }: { convId: number | null; setCon
             </p>
           )}
           {visible.map((c) => <ConversationRow key={c.id} conversation={c} active={convId === c.id} onOpen={() => setConvId(c.id)} />)}
+          <SearchHits term={search} onOpen={setConvId} />
         </div>
       </div>
 
@@ -228,6 +231,11 @@ function TeamThread({ conversation, onBack, onTask }: { conversation: Conversati
           <button type="button" className={`lchat-icon${searching ? ' on' : ''}`} onClick={() => { setSearching((s) => !s); setSearch(''); }} aria-label="بحث في الرسائل">
             <i className="fa-solid fa-magnifying-glass" />
           </button>
+          {!isGroup && (
+            <button type="button" className="lchat-icon" onClick={() => printConversation(conversation.title, messages)} title="طباعة / PDF" aria-label="طباعة المحادثة">
+              <i className="fa-solid fa-print" />
+            </button>
+          )}
           {isGroup && (
             <>
               <button type="button" className="lchat-icon" onClick={() => setMenu((m) => !m)} aria-label="خيارات المجموعة" aria-expanded={menu}>
@@ -235,6 +243,9 @@ function TeamThread({ conversation, onBack, onTask }: { conversation: Conversati
               </button>
               {menu && (
                 <div className="lchat-menu" role="menu">
+                  <button type="button" onClick={() => { setMenu(false); printConversation(conversation.title, messages); }}>
+                    <i className="fa-solid fa-print" /> طباعة / PDF
+                  </button>
                   <button type="button" onClick={rename}><i className="fa-solid fa-pen" /> تغيير اسم المجموعة</button>
                   <button type="button" onClick={() => { setMenu(false); setAdding(true); }}><i className="fa-solid fa-user-plus" /> إضافة أعضاء</button>
                   <button type="button" className="danger" onClick={leave}><i className="fa-solid fa-right-from-bracket" /> مغادرة المجموعة</button>
@@ -645,9 +656,19 @@ function ImageLightbox({ image, onClose }: { image: Lightbox; onClose: () => voi
 
 /** مرفق: الصور تُعرض، وغيرها زرّ تنزيل باسم الملف وحجمه. */
 function Attachment({ file, load, mine, onZoom }: { file: ChatFile; load: (() => Promise<string>) | null; mine: boolean; onZoom?: (image: Lightbox) => void }) {
-  const imageLoader = useMemo(() => (file.is_image && load ? load : null), [file.is_image, load]);
-  const url = useAttachmentUrl(imageLoader);
+  // الصور والصوت يُجلبان فورًا للعرض/التشغيل، وبقيّة الملفات عند طلب التنزيل.
+  const inlineLoader = useMemo(
+    () => ((file.is_image || (file.mime ?? '').startsWith('audio/')) && load ? load : null),
+    [file.is_image, file.mime, load],
+  );
+  const url = useAttachmentUrl(inlineLoader);
   const [busy, setBusy] = useState(false);
+
+  if ((file.mime ?? '').startsWith('audio/')) {
+    return url
+      ? <audio className="lchat-audio" controls src={url} />
+      : <div className="lchat-file"><i className="fa-solid fa-microphone" /> رسالة صوتية…</div>;
+  }
 
   if (file.is_image) {
     return url
@@ -690,7 +711,12 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
 }) {
   const [text, setText] = useDraft(draftKey ?? null);
   const [file, setFile] = useState<File | null>(null);
+  // ملف من مدير الملفات: نرسل معرّفه بدل رفع نسخة ثانية.
+  const [shared, setShared] = useState<{ id: number; name: string } | null>(null);
+  const [picking, setPicking] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const templates = useReplyTemplates();
+  const [showTemplates, setShowTemplates] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -725,15 +751,19 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
 
   const submit = () => {
     const body = text.trim();
-    if ((!body && !file) || disabled) return;
+    if ((!body && !file && !shared) || disabled) return;
     // من ذُكر اسمه في النصّ يُرسَل معرّفه ليصله تنبيه.
     const mentions = mentionable.filter((u) => body.includes(`@${u.name}`)).map((u) => u.id);
-    onSend({ body, file, replyToId: replyTo?.id ?? null, mentions });
+    onSend({ body, file, fileId: shared?.id ?? null, replyToId: replyTo?.id ?? null, mentions });
     setText('');
     setFile(null);
+    setShared(null);
     setMentionQuery(null);
     window.setTimeout(grow, 0);
   };
+
+  // الرسالة الصوتية تُرسَل فور انتهاء التسجيل.
+  const voice = useVoiceRecorder((recorded) => { setFile(recorded); setShared(null); });
 
   return (
     <>
@@ -761,6 +791,36 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
           ))}
         </div>
       )}
+      {voice.recording && (
+        <div className="lchat-recording">
+          <span className="dot" aria-hidden /> جارٍ التسجيل… {voice.seconds} ث
+          <button type="button" className="btn btn-sm" style={{ marginInlineStart: 'auto' }} onClick={voice.stop}>إيقاف وإرفاق</button>
+        </div>
+      )}
+      {showTemplates && (
+        <div className="lchat-templates">
+          {templates.templates.map((t, i) => (
+            <button type="button" key={`${t}-${i}`} onClick={() => { setText(text ? `${text} ${t}` : t); setShowTemplates(false); }}>{t}</button>
+          ))}
+          <button type="button" className="manage" onClick={() => {
+            const added = prompt('نصّ الردّ الجاهز:')?.trim();
+            if (added) templates.add(added);
+          }}><i className="fa-solid fa-plus" /> قالب جديد</button>
+          {templates.templates.length > 0 && (
+            <button type="button" className="manage" onClick={() => {
+              const index = Number(prompt(`رقم القالب المراد حذفه (1 - ${templates.templates.length}):`));
+              if (index >= 1 && index <= templates.templates.length) templates.remove(index - 1);
+            }}><i className="fa-solid fa-trash" /> حذف قالب</button>
+          )}
+        </div>
+      )}
+      {shared && (
+        <div className="lchat-attached">
+          <i className="fa-solid fa-folder-open" />
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shared.name}</span>
+          <button type="button" onClick={() => setShared(null)} aria-label="إزالة الملف">✕</button>
+        </div>
+      )}
       {file && (
         <div className="lchat-attached">
           <i className="fa-solid fa-paperclip" />
@@ -780,6 +840,21 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
       >
         <button type="button" className="lchat-icon" onClick={() => fileRef.current?.click()} title="إرفاق ملف أو صورة" aria-label="إرفاق ملف">
           <i className="fa-solid fa-paperclip" />
+        </button>
+        <button type="button" className="lchat-icon" onClick={() => setPicking(true)} title="مشاركة ملف من مدير الملفات" aria-label="مشاركة ملف من مدير الملفات">
+          <i className="fa-solid fa-folder-open" />
+        </button>
+        <button
+          type="button"
+          className={`lchat-icon${voice.recording ? ' on' : ''}`}
+          onClick={() => (voice.recording ? voice.stop() : void voice.start())}
+          title={voice.recording ? 'إيقاف التسجيل' : 'رسالة صوتية'}
+          aria-label={voice.recording ? 'إيقاف التسجيل' : 'رسالة صوتية'}
+        >
+          <i className="fa-solid fa-microphone" />
+        </button>
+        <button type="button" className={`lchat-icon${showTemplates ? ' on' : ''}`} onClick={() => setShowTemplates((v) => !v)} title="ردود جاهزة" aria-label="ردود جاهزة">
+          <i className="fa-solid fa-bolt" />
         </button>
         <input
           ref={fileRef}
@@ -808,12 +883,140 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
           }}
         />
-        <button type="button" className="lchat-send" onClick={submit} disabled={disabled || (!text.trim() && !file)} aria-label="إرسال">
+        <button type="button" className="lchat-send" onClick={submit} disabled={disabled || (!text.trim() && !file && !shared)} aria-label="إرسال">
           <i className="fa-solid fa-paper-plane" />
         </button>
       </div>
+      {picking && <FilePickerModal onClose={() => setPicking(false)} onPick={(picked) => { setShared(picked); setFile(null); setPicking(false); }} />}
     </>
   );
+}
+
+/** نتائج البحث العامّ: رسائل من كل محادثاتي، والنقر يفتح محادثتها. */
+function SearchHits({ term, onOpen }: { term: string; onOpen: (id: number) => void }) {
+  const { data: hits, isFetching } = useGlobalSearch(term);
+  if (term.trim().length < 2) return null;
+
+  return (
+    <div className="lchat-hits">
+      <b>رسائل مطابقة {isFetching && '…'}</b>
+      {hits?.length === 0 && <p style={{ color: '#8a93a3', fontSize: 12, padding: '4px 12px 10px' }}>لا رسائل مطابقة.</p>}
+      {hits?.map((hit) => (
+        <button type="button" key={hit.message_id} className="lchat-hit" onClick={() => onOpen(hit.conversation_id)}>
+          <b>{hit.conversation_title}{hit.sender ? ` · ${hit.sender}` : ''} <span style={{ color: '#9aa6b6', fontWeight: 600 }}>{whenOf(hit.at)}</span></b>
+          <span>{hit.body}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** تسجيل رسالة صوتية قصيرة من الميكروفون. */
+function useVoiceRecorder(onReady: (file: File) => void) {
+  const [recording, setRecording] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const recorder = useRef<MediaRecorder | null>(null);
+  const timer = useRef<number | null>(null);
+
+  const stop = useCallback(() => {
+    recorder.current?.stop();
+    recorder.current?.stream.getTracks().forEach((t) => t.stop());
+    recorder.current = null;
+    if (timer.current) window.clearInterval(timer.current);
+    setRecording(false);
+    setSeconds(0);
+  }, []);
+
+  const start = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      alert('متصفّحك لا يدعم التسجيل الصوتي.');
+
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const chunks: BlobPart[] = [];
+      const rec = new MediaRecorder(stream);
+      rec.ondataavailable = (e) => chunks.push(e.data);
+      rec.onstop = () => {
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+        if (blob.size > 0) onReady(new File([blob], `رسالة-صوتية-${Date.now()}.webm`, { type: blob.type }));
+      };
+      rec.start();
+      recorder.current = rec;
+      setRecording(true);
+      setSeconds(0);
+      // حدٌّ أعلى دقيقتان كي لا يثقل المرفق.
+      timer.current = window.setInterval(() => setSeconds((s) => (s >= 120 ? (stop(), s) : s + 1)), 1000);
+    } catch {
+      alert('تعذّر الوصول إلى الميكروفون — تأكّد من الإذن.');
+    }
+  }, [onReady, stop]);
+
+  useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
+
+  return { recording, seconds, start, stop };
+}
+
+/** اختيار ملف قائم من «مدير الملفات» لمشاركته كما هو. */
+function FilePickerModal({ onClose, onPick }: { onClose: () => void; onPick: (file: { id: number; name: string }) => void }) {
+  const [search, setSearch] = useState('');
+  const { data, isLoading } = useQuery({
+    queryKey: ['chat-file-picker', search],
+    queryFn: () => filesApi.list({ search: search || undefined, per_page: 20 }),
+  });
+
+  return (
+    <div className="lchat" style={overlay} onClick={onClose}>
+      <div className="card lchat-files" style={modal} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ margin: '0 0 12px' }}>مشاركة ملف من مدير الملفات</h3>
+        <input className="input" placeholder="ابحث باسم الملف…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', marginBottom: 10 }} />
+        <div style={{ maxHeight: 280, overflowY: 'auto', border: '1px solid #eef2f7', borderRadius: 10 }}>
+          {isLoading && <p style={{ color: '#8a93a3', fontSize: 12.5, padding: 10 }}>جارٍ التحميل…</p>}
+          {data?.data.length === 0 && <p style={{ color: '#8a93a3', fontSize: 12.5, padding: 10 }}>لا ملفات مطابقة.</p>}
+          {data?.data.map((f) => (
+            <button type="button" key={f.id} className="lchat-row" onClick={() => onPick({ id: f.id, name: f.original_name || f.name })}>
+              <span className="lchat-avatar" style={{ width: 30, height: 30, fontSize: 12, background: '#1B6CA8' }}><i className="fa-solid fa-file" /></span>
+              <span style={{ flex: 1, minWidth: 0, textAlign: 'start' }}>
+                <b className="lchat-ellipsis">{f.original_name || f.name}</b>
+                <span style={{ display: 'block', fontSize: 11, color: '#8a93a3' }}>{sizeOf(f.size)}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="btn" style={{ marginTop: 12 }} onClick={onClose}>إلغاء</button>
+      </div>
+    </div>
+  );
+}
+
+/** طباعة المحادثة (أو حفظها PDF) بترتيبها وتواريخها. */
+function printConversation(title: string, messages: { body: string; at: string | null; sender?: string | null; mine?: boolean; file?: ChatFile | null }[]): void {
+  const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
+  const rows = messages.map((m) => `<tr><td class="who">${esc(m.sender ?? (m.mine ? 'أنا' : ''))}</td><td>${esc(m.body)}${m.file ? ` <i>(مرفق: ${esc(m.file.name)})</i>` : ''}</td><td class="at">${esc(m.at ? new Date(m.at).toLocaleString('ar') : '')}</td></tr>`).join('');
+
+  const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8" /><title>محادثة — ${esc(title)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>body{font-family:'Cairo',sans-serif;margin:24px;color:#1E293B}h1{font-size:20px;color:#145A8C;margin:0 0 4px}
+p.sub{font-size:12px;color:#64748B;margin:0 0 16px}table{width:100%;border-collapse:collapse;font-size:12px}
+td{padding:6px;border:1px solid #E2E8F0;vertical-align:top}td.who{width:120px;font-weight:700;color:#1B6CA8}
+td.at{width:150px;color:#94A3B8;white-space:nowrap}tr:nth-child(even) td{background:#F8FAFC}@media print{body{margin:10mm}}</style></head><body>
+<h1>محادثة: ${esc(title)}</h1><p class="sub">عدد الرسائل: ${messages.length} · طُبعت في ${new Date().toLocaleString('ar')}</p>
+<table><tbody>${rows}</tbody></table></body></html>`;
+
+  const frame = document.createElement('iframe');
+  Object.assign(frame.style, { position: 'fixed', inset: '0', width: '0', height: '0', border: '0' });
+  document.body.appendChild(frame);
+  const doc = frame.contentDocument;
+  if (!doc) { frame.remove(); return; }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  window.setTimeout(() => {
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
+    window.setTimeout(() => frame.remove(), 1000);
+  }, 400);
 }
 
 function Empty({ icon, text }: { icon: string; text: string }) {

@@ -21,6 +21,8 @@ export interface UiPrefs {
   nav_collapsed?: Record<string, boolean>;
   /** العروض المحفوظة في لوحة الفرص (فلاتر بأسماء). */
   crm_views?: CrmSavedView[];
+  /** قوالب ردود جاهزة في الشات. */
+  chat_templates?: string[];
 }
 
 export interface CrmSavedView {

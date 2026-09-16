@@ -181,6 +181,9 @@ class AuthController extends ApiController
             'crm_views.*.priority' => ['nullable', 'string', 'max:30'],
             'crm_views.*.temperature' => ['nullable', 'string', 'max:30'],
             'crm_views.*.tag' => ['nullable', 'string', 'max:60'],
+            // قوالب ردود الشات الجاهزة
+            'chat_templates' => ['sometimes', 'array', 'max:20'],
+            'chat_templates.*' => ['required', 'string', 'max:500'],
         ]);
 
         // دمج جزئي: لا يمسح المفتاح الآخر إن أُرسل أحدهما فقط.

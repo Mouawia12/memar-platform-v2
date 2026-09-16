@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\StoredFile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -314,5 +315,49 @@ class ChatUpgradeTest extends TestCase
 
         $this->patchJson("/api/v1/chat/conversations/{$older->id}/prefs", ['pinned' => false])->assertOk();
         $this->assertSame('أحدث', $this->getJson('/api/v1/chat/conversations')->json('data.0.title'));
+    }
+
+    public function test_global_search_finds_messages_across_my_conversations_only(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $mate = User::factory()->create(['name' => 'زميل']);
+        $mine = $this->group($me, $mate);
+        $mine->update(['title' => 'فريق المشروع']);
+        $mine->messages()->create(['sender_user_id' => $mate->id, 'body' => 'رفعت مخطط الواجهة الجنوبية']);
+
+        // محادثة لا أنتمي إليها: لا تظهر في نتائجي مهما طابقت.
+        $theirs = Conversation::create(['type' => 'group', 'title' => 'فريق آخر', 'created_by' => $mate->id]);
+        $theirs->participants()->create(['user_id' => $mate->id]);
+        $theirs->messages()->create(['sender_user_id' => $mate->id, 'body' => 'مخطط الواجهة الشمالية']);
+
+        $hits = $this->getJson('/api/v1/chat/search?'.http_build_query(['q' => 'مخطط الواجهة']))->assertOk()->json('data');
+
+        $this->assertCount(1, $hits);
+        $this->assertSame('فريق المشروع', $hits[0]['conversation_title']);
+        $this->assertSame('زميل', $hits[0]['sender']);
+        $this->assertSame([], $this->getJson('/api/v1/chat/search?q=م')->json('data'));
+    }
+
+    public function test_sharing_a_file_from_the_file_manager_needs_access_to_it(): void
+    {
+        Storage::fake('local');
+        $me = $this->actingAsUserWith([]);
+        $conversation = $this->group($me, User::factory()->create());
+
+        $mine = StoredFile::create([
+            'name' => 'عقد.pdf', 'original_name' => 'عقد.pdf', 'path' => 'files/x.pdf', 'disk' => 'local',
+            'mime' => 'application/pdf', 'extension' => 'pdf', 'size' => 120, 'uploaded_by' => $me->id,
+        ]);
+        $theirs = StoredFile::create([
+            'name' => 'سرّي.pdf', 'original_name' => 'سرّي.pdf', 'path' => 'files/y.pdf', 'disk' => 'local',
+            'mime' => 'application/pdf', 'extension' => 'pdf', 'size' => 120, 'uploaded_by' => User::factory()->create()->id,
+        ]);
+
+        $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['file_id' => $mine->id])
+            ->assertCreated()
+            ->assertJsonPath('data.file.name', 'عقد.pdf');
+
+        $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['file_id' => $theirs->id])
+            ->assertForbidden();
     }
 }

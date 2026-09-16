@@ -112,6 +112,43 @@ class ChatController extends ApiController
         return $this->ok($conversations);
     }
 
+    /** بحث في رسائل كل محادثاتي — نتيجة مختصرة تنقل إلى موضعها. */
+    public function search(Request $request): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $term = trim($request->string('q')->toString());
+        if (mb_strlen($term) < 2) {
+            return $this->ok([]);
+        }
+
+        $conversationIds = $me->conversations()->pluck('conversations.id');
+
+        $hits = ConversationMessage::query()
+            ->with(['sender:id,name', 'conversation.participants.user:id,name'])
+            ->whereIn('conversation_id', $conversationIds)
+            ->whereNull('deleted_at')
+            ->where('is_system', false)
+            ->where('body', 'like', '%'.$term.'%')
+            ->orderByDesc('id')
+            ->limit(40)
+            ->get()
+            ->map(function (ConversationMessage $m) use ($me): array {
+                $c = $m->conversation;
+                $others = $c->participants->where('user_id', '!=', $me->id)->map(fn ($p) => $p->user?->name)->filter();
+
+                return [
+                    'message_id' => $m->id,
+                    'conversation_id' => $c->id,
+                    'conversation_title' => $c->type === 'group' ? ($c->title ?: 'محادثة جماعية') : ($others->first() ?? 'محادثة'),
+                    'sender' => $m->sender?->name,
+                    'body' => mb_substr((string) $m->body, 0, 160),
+                    'at' => $m->created_at?->toIso8601String(),
+                ];
+            })->all();
+
+        return $this->ok($hits);
+    }
+
     /** إنشاء محادثة داخلية: فردية (user_id) أو جماعية (title + user_ids[]). */
     public function createConversation(Request $request): JsonResponse
     {
@@ -275,16 +312,16 @@ class ChatController extends ApiController
         abort_if($mine === null, 403, 'لست عضوًا في هذه المحادثة.');
 
         $data = $request->validate([
-            'body' => ['required_without:file', 'nullable', 'string', 'max:5000'],
+            'body' => ['required_without_all:file,file_id', 'nullable', 'string', 'max:5000'],
             'file' => ['nullable', 'file', 'max:10240'],
             'reply_to_id' => ['nullable', 'integer'],
             'mentions' => ['nullable', 'array', 'max:20'],
             'mentions.*' => ['integer'],
+            // ملف من «مدير الملفات» يُشارَك كما هو بلا رفع نسخة ثانية.
+            'file_id' => ['nullable', 'integer', 'exists:stored_files,id'],
         ]);
 
-        $file = $request->hasFile('file')
-            ? $this->files->store($request->file('file'), ['folder' => 'chat'], $me->id)
-            : null;
+        $file = $this->resolveAttachment($request, $me, ['folder' => 'chat']);
 
         // لا يُقتبس إلا من رسائل هذه المحادثة، ولا يُشار إلا إلى أعضائها.
         $replyTo = isset($data['reply_to_id'])
@@ -490,6 +527,29 @@ class ChatController extends ApiController
             : Storage::disk($file->disk)->download($file->path, $file->original_name);
     }
 
+    /**
+     * مرفق الرسالة: ملفٌ مرفوع الآن، أو ملف قائم من مدير الملفات يملك
+     * المستخدم حقّ الاطّلاع عليه.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    private function resolveAttachment(Request $request, User $me, array $meta): ?StoredFile
+    {
+        if ($request->hasFile('file')) {
+            return $this->files->store($request->file('file'), $meta, $me->id);
+        }
+
+        $id = $request->integer('file_id');
+        if ($id === 0) {
+            return null;
+        }
+
+        $file = StoredFile::findOrFail($id);
+        abort_unless($this->files->canAccess($file, $me), 403, 'لا تملك صلاحية مشاركة هذا الملف.');
+
+        return $file;
+    }
+
     /** يتأكّد أن المستخدم عضو في المحادثة، وإلا 403. */
     private function member(Conversation $conversation, int $userId): void
     {
@@ -567,13 +627,12 @@ class ChatController extends ApiController
     {
         $me = $this->staffOnly($request);
         $data = $request->validate([
-            'body' => ['required_without:file', 'nullable', 'string', 'max:5000'],
+            'body' => ['required_without_all:file,file_id', 'nullable', 'string', 'max:5000'],
             'file' => ['nullable', 'file', 'max:10240'],
+            'file_id' => ['nullable', 'integer', 'exists:stored_files,id'],
         ]);
 
-        $file = $request->hasFile('file')
-            ? $this->files->store($request->file('file'), ['folder' => 'chat', 'contact_id' => $contact->id], $me->id)
-            : null;
+        $file = $this->resolveAttachment($request, $me, ['folder' => 'chat', 'contact_id' => $contact->id]);
 
         $message = ClientMessage::create([
             'contact_id' => $contact->id,

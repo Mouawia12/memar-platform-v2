@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->prefix('chat')->group(function (): void {
     // محادثات داخلية
     Route::get('/staff', [ChatController::class, 'staff']);
     Route::get('/conversations', [ChatController::class, 'conversations']);
+    Route::get('/search', [ChatController::class, 'search']);
     Route::post('/conversations', [ChatController::class, 'createConversation']);
     Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'send']);

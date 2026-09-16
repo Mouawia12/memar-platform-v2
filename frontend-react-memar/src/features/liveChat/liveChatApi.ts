@@ -112,18 +112,30 @@ export interface UnreadSummary {
   mentions: number;
 }
 
+/** نتيجة بحث عامّ: رسالة ومكانها. */
+export interface SearchHit {
+  message_id: number;
+  conversation_id: number;
+  conversation_title: string;
+  sender: string | null;
+  body: string;
+  at: string | null;
+}
+
 /** نصّ ومرفق — أحدهما يكفي لإرسال رسالة. */
 export interface OutgoingMessage {
   body: string;
   file?: File | null;
+  /** ملف قائم من «مدير الملفات» يُشارَك كما هو. */
+  fileId?: number | null;
   /** ردٌّ على رسالة بعينها. */
   replyToId?: number | null;
   /** من أُشير إليهم بـ @اسمهم. */
   mentions?: number[];
 }
 
-function formData({ body, file, replyToId, mentions }: OutgoingMessage): FormData | Record<string, unknown> {
-  if (!file) return { body, reply_to_id: replyToId ?? null, mentions: mentions ?? [] };
+function formData({ body, file, fileId, replyToId, mentions }: OutgoingMessage): FormData | Record<string, unknown> {
+  if (!file) return { body, file_id: fileId ?? null, reply_to_id: replyToId ?? null, mentions: mentions ?? [] };
   const form = new FormData();
   form.append('body', body);
   form.append('file', file);
@@ -146,6 +158,7 @@ export const liveChatApi = {
   // داخلي (طاقم ↔ طاقم / أدمن)
   staff: () => apiGet<StaffUser[]>('/chat/staff'),
   conversations: () => apiGet<Conversation[]>('/chat/conversations'),
+  searchAll: (q: string) => apiGet<SearchHit[]>('/chat/search', { params: { q } }),
   createDirect: (userId: number) => apiPost<{ id: number }>('/chat/conversations', { type: 'direct', user_id: userId }),
   createGroup: (title: string, userIds: number[]) => apiPost<{ id: number }>('/chat/conversations', { type: 'group', title, user_ids: userIds }),
   messages: (id: number, params: { search?: string; before_id?: number; limit?: number } = {}) =>

@@ -164,6 +164,16 @@ class User extends Authenticatable
         return $this->hasMany(AppNotification::class)->latest();
     }
 
+    /**
+     * محادثات الشات التي أنا عضو فيها — منها يُبحث في رسائلي كلّها.
+     *
+     * @return BelongsToMany<Conversation, $this>
+     */
+    public function conversations(): BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')->withPivot('last_read_at');
+    }
+
     /** ملف الصورة الشخصية المخزّن (على القرص الخاص). */
     public function avatarFile(): BelongsTo
     {

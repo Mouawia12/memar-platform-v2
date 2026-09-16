@@ -1,6 +1,8 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { authApi } from '../auth/api/authApi';
+import { useAuthStore } from '../../store/auth';
 import { notifyDesktop } from '../../lib/desktopNotify';
 import { playSound } from '../crm/opsNotify';
 import { liveChatApi, type Conversation, type ConversationMessage, type MessagePage, type OutgoingMessage } from './liveChatApi';
@@ -33,6 +35,37 @@ function useLiveInterval(activeMs: number): number | false {
 /** ملخّص غير المقروء — يُحدَّث كل 20 ثانية (شارة الشات). */
 export function useChatUnread() {
   return useQuery({ queryKey: [...KEY, 'unread'], queryFn: liveChatApi.unread, refetchInterval: 20000 });
+}
+
+/** بحث عامّ في رسائل كل محادثاتي — يبدأ من حرفين. */
+export function useGlobalSearch(term: string) {
+  const q = term.trim();
+
+  return useQuery({
+    queryKey: [...KEY, 'search', q],
+    queryFn: () => liveChatApi.searchAll(q),
+    enabled: q.length >= 2,
+    staleTime: 15_000,
+  });
+}
+
+/** قوالب ردود جاهزة لكل مستخدم — تُحفظ مع تفضيلاته على الخادم. */
+export function useReplyTemplates() {
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const templates = user?.ui_prefs?.chat_templates ?? [];
+
+  const persist = useCallback((next: string[]) => {
+    if (!user) return;
+    setUser({ ...user, ui_prefs: { ...(user.ui_prefs ?? {}), chat_templates: next } });
+    void authApi.updateUiPrefs({ chat_templates: next }).catch(() => {});
+  }, [setUser, user]);
+
+  return {
+    templates,
+    add: (text: string) => persist([...templates, text].slice(0, 20)),
+    remove: (index: number) => persist(templates.filter((_, i) => i !== index)),
+  };
 }
 
 export function useStaffList() {

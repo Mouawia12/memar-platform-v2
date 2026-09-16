@@ -18,8 +18,18 @@ class ClientMessage extends Model
     use HasFactory;
 
     protected $fillable = [
-        'contact_id', 'chat_thread_id', 'from_staff', 'body', 'sender_user_id', 'read_at',
+        'contact_id', 'chat_thread_id', 'from_staff', 'body', 'sender_user_id', 'read_at', 'file_id',
     ];
+
+    /**
+     * مرفق الرسالة — صورة أو ملف مخزّن على القرص الخاص.
+     *
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function file(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'file_id');
+    }
 
     /**
      * @return array<string, string>

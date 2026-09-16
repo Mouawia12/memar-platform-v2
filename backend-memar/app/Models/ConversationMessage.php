@@ -12,7 +12,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ConversationMessage extends Model
 {
-    protected $fillable = ['conversation_id', 'sender_user_id', 'body'];
+    protected $fillable = ['conversation_id', 'sender_user_id', 'body', 'file_id', 'is_system'];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return ['is_system' => 'boolean'];
+    }
+
+    /**
+     * مرفق الرسالة — صورة أو ملف مخزّن على القرص الخاص.
+     *
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function file(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'file_id');
+    }
 
     /**
      * @return BelongsTo<Conversation, $this>

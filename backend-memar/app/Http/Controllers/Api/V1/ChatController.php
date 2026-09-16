@@ -9,12 +9,17 @@ use App\Models\ClientMessage;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\StoredFile;
 use App\Models\User;
+use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * الشات المباشر لطاقم معمار (الأدمن + الموظفين):
@@ -25,6 +30,8 @@ use Illuminate\Validation\ValidationException;
  */
 class ChatController extends ApiController
 {
+    public function __construct(private readonly FileStorageService $files) {}
+
     /** يتأكّد أن المستخدم من الطاقم (ليس حساب عميل)، وإلا 403. */
     private function staffOnly(Request $request): User
     {
@@ -80,6 +87,7 @@ class ChatController extends ApiController
                 return [
                     'id' => $c->id,
                     'type' => $c->type,
+                    'members_count' => $c->participants->count(),
                     'title' => $c->type === 'group' ? ($c->title ?: 'محادثة جماعية') : ($others->first() ?? 'محادثة'),
                     'members' => $others->all(),
                     'last_message' => $last?->body,
@@ -139,6 +147,54 @@ class ChatController extends ApiController
         return $this->created(['id' => $conversation->id], 'تم إنشاء المحادثة الجماعية');
     }
 
+    /**
+     * صفّ رسالة داخلية كما تعرضه الواجهة: نصّها ومرفقها وهل قرأها الآخرون.
+     *
+     * @return array<string, mixed>
+     */
+    private function messageRow(ConversationMessage $m, int $meId, ?Carbon $othersReadUpTo): array
+    {
+        $mine = $m->sender_user_id === $meId;
+
+        return [
+            'id' => $m->id,
+            'body' => $m->body,
+            'mine' => $mine,
+            'system' => $m->is_system,
+            'sender' => $m->sender?->name,
+            'sender_id' => $m->sender_user_id,
+            'at' => $m->created_at?->toIso8601String(),
+            'file' => $this->fileRow($m->file),
+            // «قُرئت» لرسائلي وحدها: كل الأعضاء الآخرين اطّلعوا بعد وقت إرسالها.
+            'read' => $mine && $othersReadUpTo !== null && $m->created_at !== null && $othersReadUpTo->gte($m->created_at),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fileRow(?StoredFile $file): ?array
+    {
+        return $file === null ? null : [
+            'id' => $file->id,
+            'name' => $file->original_name ?: $file->name,
+            'mime' => $file->mime,
+            'size' => $file->size,
+            'is_image' => str_starts_with((string) $file->mime, 'image/'),
+        ];
+    }
+
+    /** آخر لحظة اطّلع عندها كل الأعضاء الآخرين (أقدم اطّلاع بينهم). */
+    private function othersReadUpTo(Conversation $conversation, int $meId): ?Carbon
+    {
+        $others = $conversation->participants->where('user_id', '!=', $meId);
+        if ($others->isEmpty() || $others->contains(fn ($p): bool => $p->last_read_at === null)) {
+            return null;
+        }
+
+        return $others->min('last_read_at');
+    }
+
     /** رسائل محادثة داخلية + تعليمها مقروءة. */
     public function messages(Request $request, Conversation $conversation): JsonResponse
     {
@@ -146,20 +202,24 @@ class ChatController extends ApiController
         $mine = $conversation->participants()->where('user_id', $me->id)->first();
         abort_if($mine === null, 403, 'لست عضوًا في هذه المحادثة.');
 
+        $search = $request->string('search')->toString();
+        $conversation->load('participants');
+        $readUpTo = $this->othersReadUpTo($conversation, $me->id);
+
         $messages = $conversation->messages()
-            ->with('sender:id,name')
+            ->with(['sender:id,name', 'file'])
+            // بحث في نصّ الرسائل — يعيد المطابق وحده مهما قدُم.
+            ->when($search !== '', fn ($q) => $q->where('body', 'like', '%'.$search.'%'))
             ->orderBy('created_at')
             ->limit(500)
             ->get()
-            ->map(fn (ConversationMessage $m): array => [
-                'id' => $m->id,
-                'body' => $m->body,
-                'mine' => $m->sender_user_id === $me->id,
-                'sender' => $m->sender?->name,
-                'at' => $m->created_at?->toIso8601String(),
-            ])->all();
+            ->map(fn (ConversationMessage $m): array => $this->messageRow($m, $me->id, $readUpTo))
+            ->all();
 
-        $mine->update(['last_read_at' => now()]);
+        // البحث تصفّحٌ لا قراءة: لا يُعلّم المحادثة مقروءة.
+        if ($search === '') {
+            $mine->update(['last_read_at' => now()]);
+        }
 
         return $this->ok($messages);
     }
@@ -171,19 +231,143 @@ class ChatController extends ApiController
         $mine = $conversation->participants()->where('user_id', $me->id)->first();
         abort_if($mine === null, 403, 'لست عضوًا في هذه المحادثة.');
 
-        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $data = $request->validate([
+            'body' => ['required_without:file', 'nullable', 'string', 'max:5000'],
+            'file' => ['nullable', 'file', 'max:10240'],
+        ]);
 
-        $message = $conversation->messages()->create(['sender_user_id' => $me->id, 'body' => $data['body']]);
+        $file = $request->hasFile('file')
+            ? $this->files->store($request->file('file'), ['folder' => 'chat'], $me->id)
+            : null;
+
+        $message = $conversation->messages()->create([
+            'sender_user_id' => $me->id,
+            'body' => (string) ($data['body'] ?? ''),
+            'file_id' => $file?->id,
+        ]);
         $conversation->update(['last_message_at' => $message->created_at]);
         $mine->update(['last_read_at' => now()]);
 
-        return $this->created([
-            'id' => $message->id,
-            'body' => $message->body,
-            'mine' => true,
-            'sender' => $me->name,
-            'at' => $message->created_at?->toIso8601String(),
-        ], 'تم الإرسال');
+        $conversation->load('participants');
+
+        return $this->created(
+            $this->messageRow($message->load(['sender:id,name', 'file']), $me->id, $this->othersReadUpTo($conversation, $me->id)),
+            'تم الإرسال',
+        );
+    }
+
+    /** تعديل اسم المحادثة الجماعية — لأي عضو فيها. */
+    public function renameConversation(Request $request, Conversation $conversation): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($conversation->type !== 'group', 422, 'الاسم للمحادثات الجماعية فقط.');
+
+        $data = $request->validate(['title' => ['required', 'string', 'min:2', 'max:120']]);
+        $old = $conversation->title;
+        $conversation->update(['title' => $data['title']]);
+        $this->systemMessage($conversation, "غيّر {$me->name} اسم المجموعة من «{$old}» إلى «{$data['title']}»");
+
+        return $this->ok(['id' => $conversation->id, 'title' => $conversation->title], 'تم تغيير اسم المجموعة');
+    }
+
+    /** إضافة أعضاء إلى محادثة جماعية — بحدود صلاحيات التواصل. */
+    public function addParticipants(Request $request, Conversation $conversation): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($conversation->type !== 'group', 422, 'الإضافة للمحادثات الجماعية فقط.');
+
+        $data = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1', 'max:50'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $targets = User::whereIn('id', $data['user_ids'])->get();
+        if ($targets->contains(fn (User $u): bool => $u->contact_id !== null || ! $me->canChatWith($u))) {
+            throw ValidationException::withMessages(['user_ids' => 'لا يمكن إضافة أحد المستخدمين المحدّدين إلى هذه المحادثة.']);
+        }
+
+        $existing = $conversation->participants()->pluck('user_id');
+        $added = $targets->reject(fn (User $u): bool => $existing->contains($u->id));
+        $conversation->participants()->createMany($added->map(fn (User $u): array => ['user_id' => $u->id])->all());
+
+        if ($added->isNotEmpty()) {
+            $this->systemMessage($conversation, "أضاف {$me->name}: ".$added->pluck('name')->join('، '));
+        }
+
+        return $this->ok(['added' => $added->count()], $added->isEmpty() ? 'الأعضاء موجودون أصلًا' : 'تمت الإضافة');
+    }
+
+    /** إخراج عضو من محادثة جماعية. */
+    public function removeParticipant(Request $request, Conversation $conversation, User $user): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($conversation->type !== 'group', 422, 'الإخراج للمحادثات الجماعية فقط.');
+        abort_if($user->id === $me->id, 422, 'لمغادرة المحادثة استخدم «مغادرة».');
+
+        $removed = $conversation->participants()->where('user_id', $user->id)->delete();
+        if ($removed > 0) {
+            $this->systemMessage($conversation, "أخرج {$me->name} {$user->name} من المجموعة");
+        }
+
+        return $this->ok(null, 'تم إخراج العضو');
+    }
+
+    /** مغادرة محادثة جماعية — تختفي من قائمتي وتبقى لبقيّة الأعضاء. */
+    public function leaveConversation(Request $request, Conversation $conversation): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($conversation->type !== 'group', 422, 'المغادرة للمحادثات الجماعية فقط.');
+
+        $conversation->participants()->where('user_id', $me->id)->delete();
+        $this->systemMessage($conversation, "غادر {$me->name} المجموعة");
+
+        return $this->ok(null, 'غادرت المحادثة');
+    }
+
+    /** تنزيل مرفق رسالة داخلية — لأعضاء المحادثة وحدهم. */
+    public function downloadMessageFile(Request $request, Conversation $conversation, ConversationMessage $message): StreamedResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($message->conversation_id !== $conversation->id || $message->file === null, 404, 'المرفق غير موجود');
+
+        return $this->streamFile($message->file);
+    }
+
+    /** تنزيل مرفق رسالة عميل — لطاقم معمار. */
+    public function downloadClientFile(Request $request, Contact $contact, ClientMessage $message): StreamedResponse
+    {
+        $this->staffOnly($request);
+        abort_if($message->contact_id !== $contact->id || $message->file === null, 404, 'المرفق غير موجود');
+
+        return $this->streamFile($message->file);
+    }
+
+    private function streamFile(StoredFile $file): StreamedResponse
+    {
+        abort_unless(Storage::disk($file->disk)->exists($file->path), 404, 'الملف غير موجود على القرص');
+
+        // الصور تُعرض داخل المحادثة، وغيرها يُنزَّل باسمه الأصلي.
+        return str_starts_with((string) $file->mime, 'image/')
+            ? Storage::disk($file->disk)->response($file->path, $file->original_name)
+            : Storage::disk($file->disk)->download($file->path, $file->original_name);
+    }
+
+    /** يتأكّد أن المستخدم عضو في المحادثة، وإلا 403. */
+    private function member(Conversation $conversation, int $userId): void
+    {
+        abort_if($conversation->participants()->where('user_id', $userId)->doesntExist(), 403, 'لست عضوًا في هذه المحادثة.');
+    }
+
+    /** سطر نظام داخل المحادثة يوثّق حركة المجموعة (بلا مُرسِل). */
+    private function systemMessage(Conversation $conversation, string $body): void
+    {
+        $message = $conversation->messages()->create(['sender_user_id' => null, 'body' => $body, 'is_system' => true]);
+        $conversation->update(['last_message_at' => $message->created_at]);
     }
 
     // ─────────────────────────── محادثات العملاء ───────────────────────────
@@ -227,6 +411,7 @@ class ChatController extends ApiController
         $this->staffOnly($request);
 
         $messages = ClientMessage::where('contact_id', $contact->id)
+            ->with('file')
             ->orderBy('created_at')
             ->limit(500)
             ->get()
@@ -235,6 +420,7 @@ class ChatController extends ApiController
                 'body' => $m->body,
                 'from_staff' => $m->from_staff,
                 'at' => $m->created_at?->toIso8601String(),
+                'file' => $this->fileRow($m->file),
             ])->all();
 
         return $this->ok([
@@ -247,13 +433,21 @@ class ChatController extends ApiController
     public function clientSend(Request $request, Contact $contact): JsonResponse
     {
         $me = $this->staffOnly($request);
-        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $data = $request->validate([
+            'body' => ['required_without:file', 'nullable', 'string', 'max:5000'],
+            'file' => ['nullable', 'file', 'max:10240'],
+        ]);
+
+        $file = $request->hasFile('file')
+            ? $this->files->store($request->file('file'), ['folder' => 'chat', 'contact_id' => $contact->id], $me->id)
+            : null;
 
         $message = ClientMessage::create([
             'contact_id' => $contact->id,
             'from_staff' => true,
-            'body' => $data['body'],
+            'body' => (string) ($data['body'] ?? ''),
             'sender_user_id' => $me->id,
+            'file_id' => $file?->id,
         ]);
 
         return $this->created([
@@ -261,6 +455,7 @@ class ChatController extends ApiController
             'body' => $message->body,
             'from_staff' => true,
             'at' => $message->created_at?->toIso8601String(),
+            'file' => $this->fileRow($file),
         ], 'تم إرسال الرد للعميل');
     }
 

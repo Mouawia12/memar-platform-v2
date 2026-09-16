@@ -7,6 +7,29 @@ import { liveChatApi, type Conversation, type ConversationMessage, type MessageP
 
 const KEY = ['live-chat'];
 
+/**
+ * إيقاع التحديث: أسرع ما دامت النافذة أمام المستخدم، ويتوقّف تمامًا إن خفيت
+ * (تبويب آخر أو نافذة أخرى) فلا تُستهلك طلبات بلا قارئ. يعود فور العودة إليها.
+ *
+ * هذا أقرب ما يمكن للحظي دون خدمة WebSocket دائمة على الخادم.
+ */
+function useLiveInterval(activeMs: number): number | false {
+  const [visible, setVisible] = useState(() => !document.hidden);
+
+  useEffect(() => {
+    const sync = () => setVisible(!document.hidden);
+    document.addEventListener('visibilitychange', sync);
+    window.addEventListener('focus', sync);
+
+    return () => {
+      document.removeEventListener('visibilitychange', sync);
+      window.removeEventListener('focus', sync);
+    };
+  }, []);
+
+  return visible ? activeMs : false;
+}
+
 /** ملخّص غير المقروء — يُحدَّث كل 20 ثانية (شارة الشات). */
 export function useChatUnread() {
   return useQuery({ queryKey: [...KEY, 'unread'], queryFn: liveChatApi.unread, refetchInterval: 20000 });
@@ -18,7 +41,9 @@ export function useStaffList() {
 
 /** محادثاتي الداخلية — تحديث دوري خفيف (شات شبه لحظي). */
 export function useConversations() {
-  return useQuery({ queryKey: [...KEY, 'conversations'], queryFn: liveChatApi.conversations, refetchInterval: 8000 });
+  const every = useLiveInterval(4000);
+
+  return useQuery({ queryKey: [...KEY, 'conversations'], queryFn: liveChatApi.conversations, refetchInterval: every, refetchOnWindowFocus: true });
 }
 
 /**
@@ -26,6 +51,7 @@ export function useConversations() {
  * البحث يوقف التحديث الدوري كي لا تُمسح النتيجة تحت يد الباحث.
  */
 export function useConversationMessages(id: number | null, search = '') {
+  const every = useLiveInterval(2000);
   const query = useInfiniteQuery({
     queryKey: [...KEY, 'messages', id, search],
     queryFn: ({ pageParam }) => liveChatApi.messages(id as number, { search: search || undefined, before_id: pageParam }),
@@ -33,7 +59,8 @@ export function useConversationMessages(id: number | null, search = '') {
     // الصفحة التالية = ما قبل أقدم رسالة وصلتنا.
     getNextPageParam: (last) => (last.has_more ? last.messages[0]?.id : undefined),
     enabled: id !== null,
-    refetchInterval: search ? false : 5000,
+    refetchInterval: search ? false : every,
+    refetchOnWindowFocus: true,
   });
 
   // الصفحات تصل من الأحدث للأقدم، والعرض من الأقدم للأحدث.
@@ -115,15 +142,20 @@ export function useGroupActions(id: number | null) {
 // ── العملاء ──
 
 export function useClientThreads() {
-  return useQuery({ queryKey: [...KEY, 'client-threads'], queryFn: liveChatApi.clientThreads, refetchInterval: 15000 });
+  const every = useLiveInterval(8000);
+
+  return useQuery({ queryKey: [...KEY, 'client-threads'], queryFn: liveChatApi.clientThreads, refetchInterval: every, refetchOnWindowFocus: true });
 }
 
 export function useClientMessages(contactId: number | null) {
+  const every = useLiveInterval(3000);
+
   return useQuery({
     queryKey: [...KEY, 'client-messages', contactId],
     queryFn: () => liveChatApi.clientMessages(contactId as number),
     enabled: contactId !== null,
-    refetchInterval: 8000,
+    refetchInterval: every,
+    refetchOnWindowFocus: true,
   });
 }
 

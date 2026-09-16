@@ -85,8 +85,10 @@
 .lchat-older { align-self: center; margin-bottom: 8px; padding: 4px 14px; border-radius: 999px; border: 1px solid var(--l-border); background: #fff; color: var(--l-brand); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
 .lchat-older:disabled { color: var(--l-muted); cursor: default; }
 .lchat-bubble { position: relative; }
-.lchat-reply-btn { position: absolute; top: 4px; inset-inline-start: -30px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--l-border); background: #fff; color: var(--l-muted); font-size: 10px; cursor: pointer; opacity: 0; transition: opacity .15s; }
-.lchat-bubble:hover .lchat-reply-btn, .lchat-bubble:focus-within .lchat-reply-btn { opacity: 1; }
+.lchat-msg-actions { position: absolute; top: 2px; inset-inline-start: -58px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+.lchat-msg-actions button { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--l-border); background: #fff; color: var(--l-muted); font-size: 10px; cursor: pointer; }
+.lchat-msg-actions button:hover { color: var(--l-brand); border-color: #bfdbf0; }
+.lchat-bubble:hover .lchat-msg-actions, .lchat-bubble:focus-within .lchat-msg-actions { opacity: 1; }
 .lchat-quote { margin-bottom: 4px; padding: 4px 8px; border-inline-start: 3px solid currentColor; border-radius: 6px; background: rgb(255 255 255 / .16); font-size: 11.5px; line-height: 1.5; opacity: .9; }
 .lchat-bubble.theirs .lchat-quote { background: var(--l-soft); }
 .lchat-quote b { display: block; font-size: 11px; }

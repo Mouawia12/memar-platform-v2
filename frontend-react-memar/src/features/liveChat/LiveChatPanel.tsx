@@ -1,6 +1,9 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { usePermission } from '../auth/hooks/usePermission';
+import { TaskFormModal } from '../tasks/components/TaskFormModal';
+import type { TaskFormData } from '../tasks/types';
 import { liveChatApi, type ChatFile, type ClientMessage, type Conversation, type ConversationMessage, type OutgoingMessage, type QuotedMessage, type StaffUser } from './liveChatApi';
 import {
   useAttachmentUrl, useChatAlerts, useChatUnread, useClientMessages, useClientSend, useClientThreads,
@@ -34,6 +37,9 @@ type Tab = 'team' | 'clients';
 /** الشات المباشر لطاقم معمار: تبويب «الفريق» (داخلي) + تبويب «العملاء». */
 export function LiveChatPanel() {
   const [tab, setTab] = useState<Tab>('team');
+  // مهمة تُنشأ من رسالة: نفس نموذج المهام، بنصّ الرسالة وسياقها.
+  const [taskDraft, setTaskDraft] = useState<Partial<TaskFormData> | null>(null);
+  const canCreateTask = usePermission('tasks.manage');
   const [convId, setConvId] = useState<number | null>(null);
   const [contactId, setContactId] = useState<number | null>(null);
   const { data: unread } = useChatUnread();
@@ -59,16 +65,18 @@ export function LiveChatPanel() {
 
       <div className={`lchat-body${onThread ? ' on-thread' : ''}`}>
         {tab === 'team'
-          ? <TeamPane convId={convId} setConvId={setConvId} />
-          : <ClientPane contactId={contactId} setContactId={setContactId} />}
+          ? <TeamPane convId={convId} setConvId={setConvId} onTask={canCreateTask ? setTaskDraft : undefined} />
+          : <ClientPane contactId={contactId} setContactId={setContactId} onTask={canCreateTask ? setTaskDraft : undefined} />}
       </div>
+
+      {taskDraft && <TaskFormModal task={null} initial={taskDraft} onClose={() => setTaskDraft(null)} />}
     </div>
   );
 }
 
 // ─────────────────────────── الفريق (داخلي) ───────────────────────────
 
-function TeamPane({ convId, setConvId }: { convId: number | null; setConvId: (id: number | null) => void }) {
+function TeamPane({ convId, setConvId, onTask }: { convId: number | null; setConvId: (id: number | null) => void; onTask?: (draft: Partial<TaskFormData>) => void }) {
   const { data: conversations, isLoading } = useConversations();
   const [picking, setPicking] = useState(false);
   const [search, setSearch] = useState('');
@@ -122,7 +130,7 @@ function TeamPane({ convId, setConvId }: { convId: number | null; setConvId: (id
       <div className="lchat-pane">
         {convId === null || !current
           ? <Empty icon="fa-comments" text="اختر محادثة أو ابدأ واحدة جديدة للتواصل مع زملائك." />
-          : <TeamThread conversation={current} onBack={() => setConvId(null)} />}
+          : <TeamThread conversation={current} onBack={() => setConvId(null)} onTask={onTask} />}
       </div>
 
       {picking && <NewChatModal onClose={() => setPicking(false)} onCreated={(id) => { setPicking(false); setConvId(id); }} />}
@@ -148,7 +156,7 @@ function ConversationRow({ conversation: c, active, onOpen }: { conversation: Co
   );
 }
 
-function TeamThread({ conversation, onBack }: { conversation: Conversation; onBack: () => void }) {
+function TeamThread({ conversation, onBack, onTask }: { conversation: Conversation; onBack: () => void; onTask?: (draft: Partial<TaskFormData>) => void }) {
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -234,6 +242,10 @@ function TeamThread({ conversation, onBack }: { conversation: Conversation; onBa
             loadFile={m.file && m.id > 0 ? () => liveChatApi.attachment(conversation.id, m.id) : null}
             quote={m.reply_to}
             onReply={m.id > 0 ? () => setReplyTo(m) : undefined}
+            onTask={onTask && m.body ? () => onTask({
+              title: m.body.slice(0, 80),
+              description: `من محادثة «${conversation.title}»${m.sender ? ` — ${m.sender}` : ''}:\n${m.body}`,
+            }) : undefined}
           />
         ))}
       />
@@ -255,7 +267,7 @@ function TeamThread({ conversation, onBack }: { conversation: Conversation; onBa
 
 // ─────────────────────────── العملاء ───────────────────────────
 
-function ClientPane({ contactId, setContactId }: { contactId: number | null; setContactId: (id: number | null) => void }) {
+function ClientPane({ contactId, setContactId, onTask }: { contactId: number | null; setContactId: (id: number | null) => void; onTask?: (draft: Partial<TaskFormData>) => void }) {
   const { data: threads, isLoading } = useClientThreads();
   const [search, setSearch] = useState('');
   const [awaitingOnly, setAwaitingOnly] = useState(false);
@@ -309,13 +321,13 @@ function ClientPane({ contactId, setContactId }: { contactId: number | null; set
       <div className="lchat-pane">
         {contactId === null
           ? <Empty icon="fa-user-tie" text="اختر عميلاً للردّ على رسائله — سيصله ردّك مباشرة في بوابته." />
-          : <ClientThreadView contactId={contactId} onBack={() => setContactId(null)} />}
+          : <ClientThreadView contactId={contactId} onBack={() => setContactId(null)} onTask={onTask} />}
       </div>
     </>
   );
 }
 
-function ClientThreadView({ contactId, onBack }: { contactId: number; onBack: () => void }) {
+function ClientThreadView({ contactId, onBack, onTask }: { contactId: number; onBack: () => void; onTask?: (draft: Partial<TaskFormData>) => void }) {
   const { data } = useClientMessages(contactId);
   const send = useClientSend(contactId);
   const contact = data?.contact;
@@ -358,6 +370,10 @@ function ClientThreadView({ contactId, onBack }: { contactId: number; onBack: ()
             at={m.at}
             file={m.file}
             loadFile={m.file ? () => liveChatApi.clientAttachment(contactId, m.id) : null}
+            onTask={onTask && m.body ? () => onTask({
+              title: m.body.slice(0, 80),
+              description: `من محادثة العميل «${contact?.name ?? ''}»:\n${m.body}`,
+            }) : undefined}
           />
         )}
       />
@@ -449,18 +465,29 @@ function MessageList<T extends Timed>({ messages, render, emptyText, searching, 
   );
 }
 
-function Bubble({ mine, grouped, pending, sender, body, at, read, file, loadFile, quote, onReply }: {
+function Bubble({ mine, grouped, pending, sender, body, at, read, file, loadFile, quote, onReply, onTask }: {
   mine: boolean; grouped: boolean; pending?: boolean; sender: string | null; body: string; at: string | null;
   read?: boolean; file: ChatFile | null; loadFile: (() => Promise<string>) | null;
   quote?: QuotedMessage | null; onReply?: () => void;
+  /** تحويل الرسالة إلى مهمة — طلبٌ في الشات يصير عملًا مُسنَدًا. */
+  onTask?: () => void;
 }) {
   return (
     <div className={`lchat-line ${mine ? 'mine' : 'theirs'}`}>
       <div className={`lchat-bubble ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}${pending ? ' pending' : ''}`}>
-        {onReply && (
-          <button type="button" className="lchat-reply-btn" onClick={onReply} title="ردّ على هذه الرسالة" aria-label="ردّ على هذه الرسالة">
-            <i className="fa-solid fa-reply" />
-          </button>
+        {(onReply || onTask) && (
+          <span className="lchat-msg-actions">
+            {onReply && (
+              <button type="button" onClick={onReply} title="ردّ على هذه الرسالة" aria-label="ردّ على هذه الرسالة">
+                <i className="fa-solid fa-reply" />
+              </button>
+            )}
+            {onTask && (
+              <button type="button" onClick={onTask} title="تحويل الرسالة إلى مهمة" aria-label="تحويل الرسالة إلى مهمة">
+                <i className="fa-solid fa-list-check" />
+              </button>
+            )}
+          </span>
         )}
         {quote && (
           <div className="lchat-quote">

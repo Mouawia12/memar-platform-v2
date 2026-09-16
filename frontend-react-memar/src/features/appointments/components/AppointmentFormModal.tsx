@@ -15,7 +15,9 @@ interface Props {
 
 const empty: AppointmentFormData = {
   title: '', type: 'appointment', project_id: '', assignee_id: '', start_at: '', end_at: '',
-  location: '', location_kind: '', is_video: false, status: 'scheduled', notes: '',
+  // اجتماع الفيديو مفعَّل دائمًا في الموعد الجديد فيُنشأ رابطه تلقائيًّا (طلب أيمن 2026-09-16)
+  // — ويبقى الصندوق قابلًا لإلغاء التفعيل في المواعيد الحضورية البحتة.
+  location: '', location_kind: '', is_video: true, status: 'scheduled', notes: '',
 };
 
 const toLocalInput = (iso: string | null) => (iso ? iso.slice(0, 16) : '');

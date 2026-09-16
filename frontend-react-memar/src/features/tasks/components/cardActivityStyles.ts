@@ -23,9 +23,9 @@ export const CARD_ACTIVITY_STYLES = {
   doneChip: { background: '#DCFCE7', color: '#166534' },
   directiveBtn: { fontSize: '9.5px', fontWeight: 800, lineHeight: 1, padding: '3px 8px', borderRadius: '20px', border: '1px solid #BFDBF0', background: '#EFF6FC', color: '#1B6CA8', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
 
-  // سطر التوجيه نفسه (رأس الخيط): كهرمانيّ كنبرة «بانتظار الرد» في النافذة —
-  // كان لا يظهر على البطاقة إطلاقًا حتى يردّ أحد، فالتوجيه الجديد يصل صامتًا
-  // (طلب أيمن 2026-08-29). يظهر الآن دائمًا ما دام على البطاقة توجيه.
+  // سطر التوجيه نفسه (رأس الخيط): كهرمانيّ كنبرة «بانتظار الرد» في النافذة.
+  // يظهر حين يكون التوجيه آخر ما في الخيط — فإن رُدّ عليه حلّ محلّه سطر الردّ،
+  // فالبطاقة سطرٌ واحد مهما كثرت الرسائل (طلب أيمن 2026-09-16).
   directiveLine: { marginTop: '6px', background: '#FFFBEB', border: '1px solid #FDE9B4', borderInlineStart: '3px solid #E8A838', borderRadius: '8px', padding: '5px 7px', cursor: 'pointer' },
 
   // سطر آخر رسالة في خيط التوجيه: صاحبها وتاريخها ثم نصّها في سطرين.

@@ -45,6 +45,10 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, mu
   const msgCount = task.directive_messages_count ?? 0;
   // آخر رسالة في الخيط: ردّ الموظف أو ردّ المدير عليه — تظهر تحت البطاقة.
   const lastMessage = directive?.last_message ?? null;
+  // آخر ما قيل في الخيط: ردٌّ إن وُجد، وإلا نصّ التوجيه نفسه.
+  const thread = directive && (lastMessage
+    ? { body: lastMessage.body, author: lastMessage.user ? shortName(lastMessage.user.name) : 'مستخدم', at: lastMessage.created_at, fromAdmin: false }
+    : { body: directive.body, author: directive.sender ? shortName(directive.sender.name) : 'الإدارة', at: directive.created_at, fromAdmin: true });
   /*
    * شارة الخيط: أيقونة ورقم فقط، والشرح في التلميح (طلب أيمن 2026-08-29).
    * الدور يُقرأ منها: بانتظار ردّك لصاحب البطاقة، وتم الرد لمن ردّوا عليه.
@@ -113,42 +117,24 @@ export function TaskKanbanCard({ task, onOpen, avatarUrl, acked, onAck, mine, mu
 
       {lastUpdate && <div style={updatedLine} title={`آخر تحديث: ${fullStamp(lastUpdate)}`}>🕒 آخر تحديث: {shortStamp(lastUpdate)}</div>}
 
-      {/* نصّ التوجيه نفسه ثم آخر ردّ عليه (طلب أيمن 2026-08-29) — كان يظهر
-          الردّ وحده، فالتوجيه الجديد يصل بلا نصّ حتى يردّ أحد. كلا السطرين
-          يفتحان الخيط، وعلامة ↩ على الأخير تفتحه عند حقل الكتابة. */}
-      {directive && (
+      {/* سطرٌ واحد لآخر رسالة في الخيط فقط — لا يطول الكرت مهما كثرت الرسائل
+          (طلب أيمن 2026-09-16). بقيّتها في الخيط، ويفتحه النقر على السطر. */}
+      {thread && (
         <div
-          style={directiveLine}
-          title={`${directive.sender?.name ?? 'الإدارة'} · ${fullStamp(directive.created_at)}\n${directive.body}`}
+          style={thread.fromAdmin ? directiveLine : { ...replyLine, ...(unread > 0 ? replyLineNew : null) }}
+          title={`${thread.author} · ${fullStamp(thread.at)}\n${thread.body}`}
           onClick={(e) => { e.stopPropagation(); onDirective?.(task); }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <span style={replyHead}>
-            <span style={{ fontSize: '10px', lineHeight: 1 }}>📣</span>
-            <b style={{ color: '#92400E' }}>{directive.sender ? shortName(directive.sender.name) : 'الإدارة'}</b>
-            <span style={replyDate}>{shortStamp(directive.created_at)}</span>
-            {!lastMessage && onDirective && <span style={replyMark} title="الردّ على هذا التوجيه">↩ ردّ</span>}
-          </span>
-          <span style={replyBody}>{directive.body}</span>
-        </div>
-      )}
-
-      {lastMessage && (
-        <div
-          style={{ ...replyLine, ...(unread > 0 ? replyLineNew : null) }}
-          title={`${lastMessage.user?.name ?? 'مستخدم'} · ${fullStamp(lastMessage.created_at)}\n${lastMessage.body}`}
-          onClick={(e) => { e.stopPropagation(); onDirective?.(task); }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <span style={replyHead}>
-            <span style={{ fontSize: '10px', lineHeight: 1 }}>↩️</span>
-            <b style={{ color: '#475569' }}>{lastMessage.user ? shortName(lastMessage.user.name) : 'مستخدم'}</b>
-            <span style={replyDate}>{shortStamp(lastMessage.created_at)}</span>
+            <span style={{ fontSize: '10px', lineHeight: 1 }}>{thread.fromAdmin ? '📣' : '↩️'}</span>
+            <b style={{ color: thread.fromAdmin ? '#92400E' : '#475569' }}>{thread.author}</b>
+            <span style={replyDate}>{shortStamp(thread.at)}</span>
             {unread > 0 && <span style={replyNewTag}>جديد</span>}
             {msgCount > 1 && <span style={replyDate}>· {msgCount} رسائل</span>}
-            {onDirective && <span style={replyMark} title="الردّ على هذه الرسالة">↩ ردّ</span>}
+            {onDirective && <span style={replyMark} title="فتح الخيط والردّ">↩ ردّ</span>}
           </span>
-          <span style={replyBody}>{lastMessage.body}</span>
+          <span style={replyBody}>{thread.body}</span>
         </div>
       )}
 

@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import { usePermission } from '../auth/hooks/usePermission';
 import { TaskFormModal } from '../tasks/components/TaskFormModal';
 import type { TaskFormData } from '../tasks/types';
-import { liveChatApi, type ChatFile, type ClientMessage, type Conversation, type ConversationMessage, type OutgoingMessage, type QuotedMessage, type StaffUser } from './liveChatApi';
+import { REACTION_EMOJIS, liveChatApi, type ChatFile, type ClientMessage, type Conversation, type ConversationMessage, type OutgoingMessage, type QuotedMessage, type Reaction, type StaffUser } from './liveChatApi';
 import {
   useAttachmentUrl, useChatAlerts, useChatUnread, useClientMessages, useClientSend, useClientThreads,
-  useConversationMessages, useConversations, useCreateDirect, useCreateGroup, useGroupActions, useSendMessage, useStaffList,
+  useConversationMessages, useConversationPrefs, useConversations, useCreateDirect, useCreateGroup, useDraft,
+  useGroupActions, useMessageActions, useSendMessage, useStaffList,
 } from './useLiveChat';
 import './liveChat.css';
 
@@ -33,6 +34,9 @@ const sizeOf = (bytes: number) => (bytes >= 1_048_576 ? `${(bytes / 1_048_576).t
 const digitsOf = (phone: string | null) => (phone ?? '').replace(/\D/g, '');
 
 type Tab = 'team' | 'clients';
+
+/** الصورة المفتوحة بمكبّر — رابطها المؤقّت واسمها. */
+interface Lightbox { url: string; name: string }
 
 /** الشات المباشر لطاقم معمار: تبويب «الفريق» (داخلي) + تبويب «العملاء». */
 export function LiveChatPanel() {
@@ -139,8 +143,17 @@ function TeamPane({ convId, setConvId, onTask }: { convId: number | null; setCon
 }
 
 function ConversationRow({ conversation: c, active, onOpen }: { conversation: Conversation; active: boolean; onOpen: () => void }) {
+  const prefs = useConversationPrefs();
+
+  // صفٌّ لا زرّ: بداخله أزرار التثبيت والكتم، وزرٌّ داخل زرّ لا يصحّ.
   return (
-    <button type="button" className={`lchat-row${active ? ' on' : ''}`} onClick={onOpen}>
+    <div
+      role="button"
+      tabIndex={0}
+      className={`lchat-row${active ? ' on' : ''}`}
+      onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+    >
       <div className="lchat-avatar" style={{ background: c.type === 'group' ? '#7C3AED' : '#1B6CA8' }}>
         {c.type === 'group' ? <i className="fa-solid fa-users" style={{ fontSize: 15 }} /> : initialOf(c.title)}
       </div>
@@ -151,8 +164,26 @@ function ConversationRow({ conversation: c, active, onOpen }: { conversation: Co
         </div>
         <div className="lchat-ellipsis" style={{ color: '#8a93a3', fontSize: 12.5 }}>{c.last_message ?? 'لا رسائل بعد'}</div>
       </div>
-      {c.unread > 0 && <span className="lchat-badge">{c.unread}</span>}
-    </button>
+      <span className="lchat-row-side">
+        {c.unread > 0 && <span className={`lchat-badge${c.muted ? ' muted' : ''}`}>{c.unread}</span>}
+        <span className="lchat-row-tools">
+          <button
+            type="button"
+            className={c.pinned ? 'on' : ''}
+            title={c.pinned ? 'إلغاء التثبيت' : 'تثبيت أعلى القائمة'}
+            aria-label={c.pinned ? 'إلغاء التثبيت' : 'تثبيت أعلى القائمة'}
+            onClick={(e) => { e.stopPropagation(); prefs.mutate({ id: c.id, pinned: !c.pinned }); }}
+          ><i className="fa-solid fa-thumbtack" /></button>
+          <button
+            type="button"
+            className={c.muted ? 'on' : ''}
+            title={c.muted ? 'إلغاء الكتم' : 'كتم التنبيه'}
+            aria-label={c.muted ? 'إلغاء الكتم' : 'كتم التنبيه'}
+            onClick={(e) => { e.stopPropagation(); prefs.mutate({ id: c.id, muted: !c.muted }); }}
+          ><i className={`fa-solid ${c.muted ? 'fa-bell-slash' : 'fa-bell'}`} /></button>
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -162,6 +193,8 @@ function TeamThread({ conversation, onBack, onTask }: { conversation: Conversati
   const [menu, setMenu] = useState(false);
   const [adding, setAdding] = useState(false);
   const [replyTo, setReplyTo] = useState<ConversationMessage | null>(null);
+  const [lightbox, setLightbox] = useState<Lightbox | null>(null);
+  const actions = useMessageActions(conversation.id);
   const { messages, hasNextPage, fetchNextPage, isFetchingNextPage } = useConversationMessages(conversation.id, search.trim());
   const { data: staff } = useStaffList();
   const send = useSendMessage(conversation.id);
@@ -241,7 +274,14 @@ function TeamThread({ conversation, onBack, onTask }: { conversation: Conversati
             file={m.file}
             loadFile={m.file && m.id > 0 ? () => liveChatApi.attachment(conversation.id, m.id) : null}
             quote={m.reply_to}
-            onReply={m.id > 0 ? () => setReplyTo(m) : undefined}
+            deleted={m.deleted}
+            edited={m.edited}
+            reactions={m.reactions}
+            onReact={m.id > 0 && !m.deleted ? (emoji) => actions.react.mutate({ messageId: m.id, emoji }) : undefined}
+            onEdit={m.editable ? (body) => actions.edit.mutate({ messageId: m.id, body }) : undefined}
+            onDelete={m.mine && m.id > 0 && !m.deleted ? () => { if (confirm('حذف هذه الرسالة؟')) actions.remove.mutate(m.id); } : undefined}
+            onZoom={setLightbox}
+            onReply={m.id > 0 && !m.deleted ? () => setReplyTo(m) : undefined}
             onTask={onTask && m.body ? () => onTask({
               title: m.body.slice(0, 80),
               description: `من محادثة «${conversation.title}»${m.sender ? ` — ${m.sender}` : ''}:\n${m.body}`,
@@ -251,6 +291,7 @@ function TeamThread({ conversation, onBack, onTask }: { conversation: Conversati
       />
 
       <Composer
+        draftKey={`conversation-${conversation.id}`}
         onSend={(message) => { send.mutate(message); setReplyTo(null); }}
         disabled={send.isPending}
         failed={send.isError}
@@ -260,6 +301,7 @@ function TeamThread({ conversation, onBack, onTask }: { conversation: Conversati
         mentionable={conversation.type === 'group' ? (staff ?? []).filter((u) => conversation.members.includes(u.name)) : []}
       />
 
+      {lightbox && <ImageLightbox image={lightbox} onClose={() => setLightbox(null)} />}
       {adding && <AddMembersModal current={conversation.members} onClose={() => setAdding(false)} onAdd={(ids) => group.addMembers.mutate(ids, { onSuccess: () => setAdding(false) })} busy={group.addMembers.isPending} />}
     </>
   );
@@ -330,6 +372,7 @@ function ClientPane({ contactId, setContactId, onTask }: { contactId: number | n
 function ClientThreadView({ contactId, onBack, onTask }: { contactId: number; onBack: () => void; onTask?: (draft: Partial<TaskFormData>) => void }) {
   const { data } = useClientMessages(contactId);
   const send = useClientSend(contactId);
+  const [lightbox, setLightbox] = useState<Lightbox | null>(null);
   const contact = data?.contact;
   const phone = digitsOf(contact?.phone ?? null);
 
@@ -370,6 +413,7 @@ function ClientThreadView({ contactId, onBack, onTask }: { contactId: number; on
             at={m.at}
             file={m.file}
             loadFile={m.file ? () => liveChatApi.clientAttachment(contactId, m.id) : null}
+            onZoom={setLightbox}
             onTask={onTask && m.body ? () => onTask({
               title: m.body.slice(0, 80),
               description: `من محادثة العميل «${contact?.name ?? ''}»:\n${m.body}`,
@@ -378,7 +422,8 @@ function ClientThreadView({ contactId, onBack, onTask }: { contactId: number; on
         )}
       />
 
-      <Composer onSend={(message) => send.mutate(message)} disabled={send.isPending} failed={send.isError} onRetry={() => send.reset()} placeholder="اكتب ردّك للعميل…" />
+      <Composer draftKey={`client-${contactId}`} onSend={(message) => send.mutate(message)} disabled={send.isPending} failed={send.isError} onRetry={() => send.reset()} placeholder="اكتب ردّك للعميل…" />
+      {lightbox && <ImageLightbox image={lightbox} onClose={() => setLightbox(null)} />}
     </>
   );
 }
@@ -465,28 +510,71 @@ function MessageList<T extends Timed>({ messages, render, emptyText, searching, 
   );
 }
 
-function Bubble({ mine, grouped, pending, sender, body, at, read, file, loadFile, quote, onReply, onTask }: {
+function Bubble({
+  mine, grouped, pending, sender, body, at, read, file, loadFile, quote, onReply, onTask,
+  deleted, edited, reactions, onReact, onEdit, onDelete, onZoom,
+}: {
   mine: boolean; grouped: boolean; pending?: boolean; sender: string | null; body: string; at: string | null;
   read?: boolean; file: ChatFile | null; loadFile: (() => Promise<string>) | null;
   quote?: QuotedMessage | null; onReply?: () => void;
   /** تحويل الرسالة إلى مهمة — طلبٌ في الشات يصير عملًا مُسنَدًا. */
   onTask?: () => void;
+  deleted?: boolean; edited?: boolean; reactions?: Reaction[];
+  onReact?: (emoji: string) => void;
+  /** التعديل متاح لصاحب الرسالة خلال مهلة قصيرة. */
+  onEdit?: (body: string) => void;
+  onDelete?: () => void;
+  onZoom?: (image: Lightbox) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(body);
+  const [picker, setPicker] = useState(false);
+
+  if (deleted) {
+    return (
+      <div className={`lchat-line ${mine ? 'mine' : 'theirs'}`}>
+        <div className="lchat-bubble deleted"><i className="fa-solid fa-ban" /> حُذفت الرسالة</div>
+      </div>
+    );
+  }
+
   return (
     <div className={`lchat-line ${mine ? 'mine' : 'theirs'}`}>
+      {(onReply || onTask || onReact || onEdit || onDelete) && (
+        <span className="lchat-msg-actions">
+          {onReact && (
+            <button type="button" onClick={() => setPicker((p) => !p)} title="تفاعل سريع" aria-label="تفاعل سريع">
+            <i className="fa-regular fa-face-smile" />
+            </button>
+          )}
+          {onReply && (
+            <button type="button" onClick={onReply} title="ردّ على هذه الرسالة" aria-label="ردّ على هذه الرسالة">
+            <i className="fa-solid fa-reply" />
+            </button>
+          )}
+          {onTask && (
+            <button type="button" onClick={onTask} title="تحويل الرسالة إلى مهمة" aria-label="تحويل الرسالة إلى مهمة">
+            <i className="fa-solid fa-list-check" />
+            </button>
+          )}
+          {onEdit && (
+            <button type="button" onClick={() => { setDraft(body); setEditing(true); }} title="تعديل الرسالة" aria-label="تعديل الرسالة">
+            <i className="fa-solid fa-pen" />
+            </button>
+          )}
+          {onDelete && (
+            <button type="button" onClick={onDelete} title="حذف الرسالة" aria-label="حذف الرسالة">
+            <i className="fa-solid fa-trash" />
+            </button>
+          )}
+        </span>
+      )}
       <div className={`lchat-bubble ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}${pending ? ' pending' : ''}`}>
-        {(onReply || onTask) && (
-          <span className="lchat-msg-actions">
-            {onReply && (
-              <button type="button" onClick={onReply} title="ردّ على هذه الرسالة" aria-label="ردّ على هذه الرسالة">
-                <i className="fa-solid fa-reply" />
-              </button>
-            )}
-            {onTask && (
-              <button type="button" onClick={onTask} title="تحويل الرسالة إلى مهمة" aria-label="تحويل الرسالة إلى مهمة">
-                <i className="fa-solid fa-list-check" />
-              </button>
-            )}
+        {picker && onReact && (
+          <span className="lchat-picker">
+            {REACTION_EMOJIS.map((emoji) => (
+              <button type="button" key={emoji} onClick={() => { onReact(emoji); setPicker(false); }}>{emoji}</button>
+            ))}
           </span>
         )}
         {quote && (
@@ -496,10 +584,40 @@ function Bubble({ mine, grouped, pending, sender, body, at, read, file, loadFile
           </div>
         )}
         {sender && !grouped && <div className="lchat-sender">{sender}</div>}
-        {body && <div>{body}</div>}
-        {file && <Attachment file={file} load={loadFile} mine={mine} />}
+        {editing && onEdit ? (
+          <div>
+            <textarea
+              className="lchat-edit"
+              value={draft}
+              autoFocus
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setEditing(false);
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (draft.trim()) { onEdit(draft.trim()); setEditing(false); }
+                }
+              }}
+            />
+            <div style={{ display: 'flex', gap: 6, marginTop: 4, fontSize: 10.5 }}>
+              <button type="button" className="lchat-edit-btn" onClick={() => { if (draft.trim()) { onEdit(draft.trim()); setEditing(false); } }}>حفظ</button>
+              <button type="button" className="lchat-edit-btn" onClick={() => setEditing(false)}>إلغاء</button>
+            </div>
+          </div>
+        ) : body && <div>{body}</div>}
+        {file && <Attachment file={file} load={loadFile} mine={mine} onZoom={onZoom} />}
+        {(reactions ?? []).length > 0 && (
+          <div className="lchat-reactions">
+            {(reactions ?? []).map((r) => (
+              <button type="button" key={r.emoji} className={r.mine ? 'on' : ''} onClick={() => onReact?.(r.emoji)} title={r.mine ? 'إزالة تفاعلك' : 'تفاعل مثله'}>
+                {r.emoji} <span className="num">{r.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="lchat-meta">
           {pending ? <span>جارٍ الإرسال…</span> : <span>{timeOf(at)}</span>}
+          {edited && <span title="عُدّلت بعد الإرسال">· عُدّلت</span>}
           {mine && !pending && <i className={`fa-solid ${read ? 'fa-check-double' : 'fa-check'}`} title={read ? 'قُرئت' : 'أُرسلت'} />}
         </div>
       </div>
@@ -507,15 +625,33 @@ function Bubble({ mine, grouped, pending, sender, body, at, read, file, loadFile
   );
 }
 
+/** معاينة الصورة بمكبّر داخل النافذة. */
+function ImageLightbox({ image, onClose }: { image: Lightbox; onClose: () => void }) {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', esc);
+
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose]);
+
+  return (
+    <div className="lchat-lightbox" onClick={onClose} role="dialog" aria-modal="true" aria-label={image.name}>
+      <img src={image.url} alt={image.name} onClick={(e) => e.stopPropagation()} />
+      <a className="lchat-icon" href={image.url} download={image.name} onClick={(e) => e.stopPropagation()} title="تنزيل الصورة"><i className="fa-solid fa-download" /></a>
+      <button type="button" className="lchat-icon" onClick={onClose} aria-label="إغلاق"><i className="fa-solid fa-xmark" /></button>
+    </div>
+  );
+}
+
 /** مرفق: الصور تُعرض، وغيرها زرّ تنزيل باسم الملف وحجمه. */
-function Attachment({ file, load, mine }: { file: ChatFile; load: (() => Promise<string>) | null; mine: boolean }) {
+function Attachment({ file, load, mine, onZoom }: { file: ChatFile; load: (() => Promise<string>) | null; mine: boolean; onZoom?: (image: Lightbox) => void }) {
   const imageLoader = useMemo(() => (file.is_image && load ? load : null), [file.is_image, load]);
   const url = useAttachmentUrl(imageLoader);
   const [busy, setBusy] = useState(false);
 
   if (file.is_image) {
     return url
-      ? <a href={url} target="_blank" rel="noreferrer"><img className="lchat-image" src={url} alt={file.name} /></a>
+      ? <img className="lchat-image" src={url} alt={file.name} onClick={() => onZoom?.({ url, name: file.name })} />
       : <div className="lchat-file"><i className="fa-regular fa-image" /> {file.name}</div>;
   }
 
@@ -544,13 +680,15 @@ function Attachment({ file, load, mine }: { file: ChatFile; load: (() => Promise
 }
 
 /** حقل الكتابة: Enter يُرسل، Shift+Enter سطر جديد، ومرفق واحد لكل رسالة. */
-function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onCancelReply, mentionable = [] }: {
+function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onCancelReply, mentionable = [], draftKey }: {
   onSend: (message: OutgoingMessage) => void; disabled: boolean; failed?: boolean; onRetry?: () => void; placeholder?: string;
   replyTo?: ConversationMessage | null; onCancelReply?: () => void;
   /** زملاء يمكن الإشارة إليهم بـ @ داخل هذه المحادثة. */
   mentionable?: StaffUser[];
+  /** مفتاح حفظ المسودة لهذه المحادثة على هذا الجهاز. */
+  draftKey?: string;
 }) {
-  const [text, setText] = useState('');
+  const [text, setText] = useDraft(draftKey ?? null);
   const [file, setFile] = useState<File | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -566,7 +704,8 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
   };
 
   const pickMention = (user: StaffUser) => {
-    setText((t) => t.replace(/(?:^|\s)@([^\s@]*)$/, (m) => `${m.startsWith('@') ? '' : ' '}@${user.name} `));
+    // المسودة نصّ لا دالّة (تُحفظ على الجهاز)، فنبني القيمة الجديدة من الحالية.
+    setText(text.replace(/(?:^|\s)@([^\s@]*)$/, (m) => `${m.startsWith('@') ? '' : ' '}@${user.name} `));
     setMentionQuery(null);
     areaRef.current?.focus();
   };
@@ -576,6 +715,12 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
+  /** يقبل الملف بعد التأكّد من حجمه — من الزرّ أو السحب أو اللصق. */
+  const pickFile = (picked: File) => {
+    if (picked.size > 10 * 1_048_576) { alert('حجم الملف أكبر من 10 م.ب.'); return; }
+    setFile(picked);
   };
 
   const submit = () => {
@@ -624,7 +769,15 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
           <button type="button" onClick={() => setFile(null)} aria-label="إزالة المرفق">✕</button>
         </div>
       )}
-      <div className="lchat-composer">
+      <div
+        className="lchat-composer"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          // إفلات ملف على حقل الكتابة يرفقه مباشرة.
+          const dropped = e.dataTransfer.files?.[0];
+          if (dropped) { e.preventDefault(); pickFile(dropped); }
+        }}
+      >
         <button type="button" className="lchat-icon" onClick={() => fileRef.current?.click()} title="إرفاق ملف أو صورة" aria-label="إرفاق ملف">
           <i className="fa-solid fa-paperclip" />
         </button>
@@ -634,9 +787,7 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
           hidden
           onChange={(e) => {
             const picked = e.target.files?.[0];
-            // الخادم يقبل حتى 10 م.ب — نمنع الأكبر قبل الرفع.
-            if (picked && picked.size > 10 * 1_048_576) alert('حجم الملف أكبر من 10 م.ب.');
-            else if (picked) setFile(picked);
+            if (picked) pickFile(picked);
             e.target.value = '';
           }}
         />
@@ -646,6 +797,12 @@ function Composer({ onSend, disabled, failed, onRetry, placeholder, replyTo, onC
           rows={1}
           placeholder={placeholder ?? 'اكتب رسالتك… (Enter إرسال · Shift+Enter سطر جديد)'}
           onChange={(e) => { onText(e.target.value); grow(); }}
+          onPaste={(e) => {
+            // لصق صورة من الحافظة يرفقها بدل لصق مسارها.
+            const item = [...e.clipboardData.items].find((i) => i.type.startsWith('image/'));
+            const pasted = item?.getAsFile();
+            if (pasted) { e.preventDefault(); pickFile(pasted); }
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Escape' && replyTo) { onCancelReply?.(); return; }
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }

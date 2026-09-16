@@ -9,6 +9,7 @@ use App\Models\ClientMessage;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\MessageReaction;
 use App\Models\StoredFile;
 use App\Models\User;
 use App\Services\FileStorageService;
@@ -30,6 +31,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ChatController extends ApiController
 {
+    /** مهلة تعديل الرسالة بعد إرسالها (بالدقائق). */
+    private const EDIT_WINDOW_MINUTES = 15;
+
+    /** التفاعلات المسموح بها — قائمة قصيرة تُقرأ بلمحة. */
+    private const EMOJIS = ['👍', '✅', '❗', '❤️', '😀', '🙏'];
+
     public function __construct(private readonly FileStorageService $files) {}
 
     /** يتأكّد أن المستخدم من الطاقم (ليس حساب عميل)، وإلا 403. */
@@ -88,13 +95,19 @@ class ChatController extends ApiController
                     'id' => $c->id,
                     'type' => $c->type,
                     'members_count' => $c->participants->count(),
+                    'pinned' => $mine?->pinned_at !== null,
+                    'muted' => $mine?->muted_at !== null,
                     'title' => $c->type === 'group' ? ($c->title ?: 'محادثة جماعية') : ($others->first() ?? 'محادثة'),
                     'members' => $others->all(),
                     'last_message' => $last?->body,
                     'last_message_at' => ($last?->created_at ?? $c->last_message_at)?->toIso8601String(),
                     'unread' => $unread,
                 ];
-            })->all();
+            })
+            // المثبّتة أعلى القائمة، ثم الأحدث رسالةً (ترتيب الاستعلام محفوظ).
+            ->sortByDesc(fn (array $c): int => $c['pinned'] ? 1 : 0)
+            ->values()
+            ->all();
 
         return $this->ok($conversations);
     }
@@ -155,17 +168,28 @@ class ChatController extends ApiController
     private function messageRow(ConversationMessage $m, int $meId, ?Carbon $othersReadUpTo): array
     {
         $mine = $m->sender_user_id === $meId;
+        $deleted = $m->deleted_at !== null;
 
         return [
             'id' => $m->id,
-            'body' => $m->body,
+            'body' => $deleted ? '' : $m->body,
+            'deleted' => $deleted,
+            'edited' => $m->edited_at !== null,
+            // تفاعلات مجمّعة: الرمز وعدده وهل تفاعلتُ به أنا
+            'reactions' => $m->reactions->groupBy('emoji')->map(fn ($group, $emoji): array => [
+                'emoji' => $emoji,
+                'count' => $group->count(),
+                'mine' => $group->contains(fn (MessageReaction $r): bool => $r->user_id === $meId),
+            ])->values()->all(),
             'mine' => $mine,
             'system' => $m->is_system,
             'sender' => $m->sender?->name,
             'sender_id' => $m->sender_user_id,
             'at' => $m->created_at?->toIso8601String(),
-            'file' => $this->fileRow($m->file),
+            'file' => $deleted ? null : $this->fileRow($m->file),
             'mentions' => $m->mentions ?? [],
+            // التعديل متاح لصاحبها وحده وخلال ربع ساعة من إرسالها
+            'editable' => $mine && ! $deleted && ! $m->is_system && $m->created_at?->gt(now()->subMinutes(self::EDIT_WINDOW_MINUTES)),
             // الرسالة المقتبسة: مقتطف منها يكفي لفهم سياق الردّ
             'reply_to' => $m->replyTo === null ? null : [
                 'id' => $m->replyTo->id,
@@ -222,7 +246,7 @@ class ChatController extends ApiController
         $before = $request->integer('before_id');
 
         $page = $conversation->messages()
-            ->with(['sender:id,name', 'file', 'replyTo.sender:id,name'])
+            ->with(['sender:id,name', 'file', 'replyTo.sender:id,name', 'reactions'])
             // بحث في نصّ الرسائل — يعيد المطابق وحده مهما قدُم.
             ->when($search !== '', fn ($q) => $q->where('body', 'like', '%'.$search.'%'))
             ->when($before > 0, fn ($q) => $q->where('id', '<', $before))
@@ -283,9 +307,86 @@ class ChatController extends ApiController
         $conversation->load('participants');
 
         return $this->created(
-            $this->messageRow($message->load(['sender:id,name', 'file', 'replyTo.sender:id,name']), $me->id, $this->othersReadUpTo($conversation, $me->id)),
+            $this->messageRow($message->load(['sender:id,name', 'file', 'replyTo.sender:id,name', 'reactions']), $me->id, $this->othersReadUpTo($conversation, $me->id)),
             'تم الإرسال',
         );
+    }
+
+    /** تعديل نصّ رسالتي خلال مهلة قصيرة — يبقى أثر «عُدّلت». */
+    public function editMessage(Request $request, Conversation $conversation, ConversationMessage $message): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($message->conversation_id !== $conversation->id, 404, 'الرسالة غير موجودة');
+        abort_if($message->sender_user_id !== $me->id || $message->is_system, 403, 'لا يمكن تعديل رسالة غيرك.');
+        abort_if($message->deleted_at !== null, 422, 'الرسالة محذوفة.');
+        abort_if($message->created_at?->lte(now()->subMinutes(self::EDIT_WINDOW_MINUTES)), 422, 'مضت مهلة تعديل الرسالة.');
+
+        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $message->update(['body' => $data['body'], 'edited_at' => now()]);
+        $conversation->load('participants');
+
+        return $this->ok(
+            $this->messageRow($message->load(['sender:id,name', 'file', 'replyTo.sender:id,name', 'reactions']), $me->id, $this->othersReadUpTo($conversation, $me->id)),
+            'تم تعديل الرسالة',
+        );
+    }
+
+    /** حذف رسالتي — يبقى موضعها في الخيط بعلامة «حُذفت الرسالة». */
+    public function deleteMessage(Request $request, Conversation $conversation, ConversationMessage $message): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($message->conversation_id !== $conversation->id, 404, 'الرسالة غير موجودة');
+        abort_if($message->sender_user_id !== $me->id || $message->is_system, 403, 'لا يمكن حذف رسالة غيرك.');
+
+        $message->update(['deleted_at' => now(), 'body' => '', 'file_id' => null]);
+
+        return $this->ok(null, 'تم حذف الرسالة');
+    }
+
+    /** تفاعل سريع على رسالة — الضغط مرّتين يزيله. */
+    public function toggleReaction(Request $request, Conversation $conversation, ConversationMessage $message): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+        abort_if($message->conversation_id !== $conversation->id, 404, 'الرسالة غير موجودة');
+
+        $data = $request->validate(['emoji' => ['required', 'string', Rule::in(self::EMOJIS)]]);
+        $existing = MessageReaction::where(['message_id' => $message->id, 'user_id' => $me->id, 'emoji' => $data['emoji']])->first();
+
+        if ($existing !== null) {
+            $existing->delete();
+        } else {
+            MessageReaction::create(['message_id' => $message->id, 'user_id' => $me->id, 'emoji' => $data['emoji']]);
+        }
+
+        $conversation->load('participants');
+
+        return $this->ok(
+            $this->messageRow($message->load(['sender:id,name', 'file', 'replyTo.sender:id,name', 'reactions']), $me->id, $this->othersReadUpTo($conversation, $me->id)),
+            $existing !== null ? 'أُزيل التفاعل' : 'تم التفاعل',
+        );
+    }
+
+    /** تثبيت المحادثة أعلى قائمتي أو كتم تنبيهها — لكل مستخدم على حدة. */
+    public function updatePrefs(Request $request, Conversation $conversation): JsonResponse
+    {
+        $me = $this->staffOnly($request);
+        $this->member($conversation, $me->id);
+
+        $data = $request->validate(['pinned' => ['nullable', 'boolean'], 'muted' => ['nullable', 'boolean']]);
+        $participant = $conversation->participants()->where('user_id', $me->id)->first();
+
+        $participant->update(array_filter([
+            'pinned_at' => array_key_exists('pinned', $data) ? ($data['pinned'] ? now() : null) : $participant->pinned_at,
+            'muted_at' => array_key_exists('muted', $data) ? ($data['muted'] ? now() : null) : $participant->muted_at,
+        ], fn ($v): bool => true));
+
+        return $this->ok([
+            'pinned' => $participant->fresh()->pinned_at !== null,
+            'muted' => $participant->fresh()->muted_at !== null,
+        ], 'تم حفظ التفضيل');
     }
 
     /** تعديل اسم المحادثة الجماعية — لأي عضو فيها. */

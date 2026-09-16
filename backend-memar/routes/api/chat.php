@@ -20,6 +20,10 @@ Route::middleware('auth:sanctum')->prefix('chat')->group(function (): void {
     Route::post('/conversations', [ChatController::class, 'createConversation']);
     Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'send']);
+    Route::match(['put', 'patch'], '/conversations/{conversation}/messages/{message}', [ChatController::class, 'editMessage']);
+    Route::delete('/conversations/{conversation}/messages/{message}', [ChatController::class, 'deleteMessage']);
+    Route::post('/conversations/{conversation}/messages/{message}/reactions', [ChatController::class, 'toggleReaction']);
+    Route::match(['put', 'patch'], '/conversations/{conversation}/prefs', [ChatController::class, 'updatePrefs']);
     Route::get('/conversations/{conversation}/messages/{message}/file', [ChatController::class, 'downloadMessageFile']);
     // إدارة المحادثة الجماعية: الاسم والأعضاء والمغادرة
     Route::match(['put', 'patch'], '/conversations/{conversation}', [ChatController::class, 'renameConversation']);

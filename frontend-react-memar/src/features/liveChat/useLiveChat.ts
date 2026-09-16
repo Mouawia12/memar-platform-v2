@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { notifyDesktop } from '../../lib/desktopNotify';
 import { playSound } from '../crm/opsNotify';
@@ -106,6 +106,7 @@ export function useSendMessage(id: number | null) {
       const optimistic: ConversationMessage = {
         id: -Date.now(), body: message.body, mine: true, system: false, sender: null, sender_id: null,
         at: new Date().toISOString(), read: false, reply_to: null, mentions: message.mentions ?? [],
+        deleted: false, edited: false, editable: false, reactions: [],
         file: message.file ? { id: -1, name: message.file.name, mime: message.file.type, size: message.file.size, is_image: message.file.type.startsWith('image/') } : null,
       };
       // تُضاف لأحدث صفحة (الأولى) فتظهر في آخر الخيط فورًا.
@@ -122,6 +123,53 @@ export function useSendMessage(id: number | null) {
       void qc.invalidateQueries({ queryKey: [...KEY, 'conversations'] });
     },
   });
+}
+
+/** تعديل رسالة أو حذفها أو التفاعل عليها. */
+export function useMessageActions(id: number | null) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: [...KEY, 'messages', id] });
+    void qc.invalidateQueries({ queryKey: [...KEY, 'conversations'] });
+  };
+
+  return {
+    edit: useMutation({ mutationFn: ({ messageId, body }: { messageId: number; body: string }) => liveChatApi.editMessage(id as number, messageId, body), onSuccess: refresh }),
+    remove: useMutation({ mutationFn: (messageId: number) => liveChatApi.deleteMessage(id as number, messageId), onSuccess: refresh }),
+    react: useMutation({ mutationFn: ({ messageId, emoji }: { messageId: number; emoji: string }) => liveChatApi.react(id as number, messageId, emoji), onSuccess: refresh }),
+  };
+}
+
+/** تثبيت المحادثة أو كتمها — لكل مستخدم على حدة. */
+export function useConversationPrefs() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...prefs }: { id: number; pinned?: boolean; muted?: boolean }) => liveChatApi.setPrefs(id, prefs),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, 'conversations'] }),
+  });
+}
+
+/** مسوّدة لكل محادثة على هذا الجهاز — لا تضيع عند التنقّل بينها. */
+export function useDraft(key: string | null): [string, (v: string) => void] {
+  const storageKey = key ? `chat-draft-${key}` : null;
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    if (!storageKey) return;
+    try { setText(window.localStorage.getItem(storageKey) ?? ''); } catch { setText(''); }
+  }, [storageKey]);
+
+  const update = useCallback((value: string) => {
+    setText(value);
+    if (!storageKey) return;
+    try {
+      if (value.trim()) window.localStorage.setItem(storageKey, value);
+      else window.localStorage.removeItem(storageKey);
+    } catch { /* التخزين غير متاح — تبقى المسودة للجلسة */ }
+  }, [storageKey]);
+
+  return [text, update];
 }
 
 /** إدارة المحادثة الجماعية: الاسم والأعضاء والمغادرة. */
@@ -186,7 +234,7 @@ export function useChatAlerts(conversations: Conversation[] | undefined, openId:
     (conversations ?? []).forEach((c) => {
       const before = seen.current?.get(c.id);
       // جديدٌ فعلًا: تغيّرت بصمة المحادثة وفيها غير مقروء، وليست المفتوحة أمامي.
-      if (before === undefined || before === current.get(c.id) || c.unread === 0 || c.id === openId) return;
+      if (before === undefined || before === current.get(c.id) || c.unread === 0 || c.id === openId || c.muted) return;
       playSound('notification', { throttleMs: 1500 });
       notifyDesktop({
         title: `رسالة جديدة — ${c.title}`,

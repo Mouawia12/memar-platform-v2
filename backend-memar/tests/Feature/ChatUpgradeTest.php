@@ -227,4 +227,92 @@ class ChatUpgradeTest extends TestCase
         $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->assertOk();
         $this->assertSame(0, $this->getJson('/api/v1/chat/unread')->json('data.mentions'));
     }
+
+    public function test_i_can_edit_my_message_within_the_window_but_not_after_it(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $conversation = $this->group($me, User::factory()->create());
+        $id = $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['body' => 'الاجتماع الساعة 4'])->json('data.id');
+
+        $this->patchJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}", ['body' => 'الاجتماع الساعة 5'])
+            ->assertOk()
+            ->assertJsonPath('data.body', 'الاجتماع الساعة 5')
+            ->assertJsonPath('data.edited', true);
+
+        ConversationMessage::whereKey($id)->update(['created_at' => now()->subHour()]);
+        $this->patchJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}", ['body' => 'متأخر'])->assertStatus(422);
+    }
+
+    public function test_only_the_sender_may_edit_or_delete_a_message(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $mate = User::factory()->create();
+        $conversation = $this->group($me, $mate);
+        $id = $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['body' => 'رسالتي'])->json('data.id');
+
+        $this->actingAs($mate);
+        $this->patchJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}", ['body' => 'عبث'])->assertForbidden();
+        $this->deleteJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}")->assertForbidden();
+        $this->assertSame('رسالتي', ConversationMessage::find($id)->body);
+    }
+
+    public function test_a_deleted_message_keeps_its_place_without_its_content(): void
+    {
+        Storage::fake('local');
+        $me = $this->actingAsUserWith([]);
+        $conversation = $this->group($me, User::factory()->create());
+        $id = $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", [
+            'body' => 'خطأ', 'file' => UploadedFile::fake()->image('x.png'),
+        ])->json('data.id');
+
+        $this->deleteJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}")->assertOk();
+
+        $row = $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")->json('data.messages.0');
+        $this->assertTrue($row['deleted']);
+        $this->assertSame('', $row['body']);
+        $this->assertNull($row['file']);
+    }
+
+    public function test_a_reaction_toggles_off_when_repeated(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $conversation = $this->group($me, User::factory()->create());
+        $id = $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages", ['body' => 'تم التسليم'])->json('data.id');
+
+        $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}/reactions", ['emoji' => '👍'])
+            ->assertOk()
+            ->assertJsonPath('data.reactions.0.emoji', '👍')
+            ->assertJsonPath('data.reactions.0.count', 1)
+            ->assertJsonPath('data.reactions.0.mine', true);
+
+        $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}/reactions", ['emoji' => '👍'])
+            ->assertOk()
+            ->assertJsonPath('data.reactions', []);
+
+        $this->postJson("/api/v1/chat/conversations/{$conversation->id}/messages/{$id}/reactions", ['emoji' => '🚀'])
+            ->assertUnprocessable();
+    }
+
+    public function test_pinning_lifts_a_conversation_to_the_top_and_muting_is_remembered(): void
+    {
+        $me = $this->actingAsUserWith([]);
+        $older = $this->group($me, User::factory()->create());
+        $older->update(['title' => 'قديمة', 'last_message_at' => now()->subDay()]);
+        $newer = $this->group($me, User::factory()->create());
+        $newer->update(['title' => 'أحدث', 'last_message_at' => now()]);
+
+        $this->assertSame('أحدث', $this->getJson('/api/v1/chat/conversations')->json('data.0.title'));
+
+        $this->patchJson("/api/v1/chat/conversations/{$older->id}/prefs", ['pinned' => true, 'muted' => true])
+            ->assertOk()
+            ->assertJsonPath('data.pinned', true)
+            ->assertJsonPath('data.muted', true);
+
+        $list = $this->getJson('/api/v1/chat/conversations')->json('data');
+        $this->assertSame('قديمة', $list[0]['title']);
+        $this->assertTrue($list[0]['muted']);
+
+        $this->patchJson("/api/v1/chat/conversations/{$older->id}/prefs", ['pinned' => false])->assertOk();
+        $this->assertSame('أحدث', $this->getJson('/api/v1/chat/conversations')->json('data.0.title'));
+    }
 }

@@ -14,6 +14,10 @@ export interface Conversation {
   title: string;
   members: string[];
   members_count: number;
+  /** مثبّتة أعلى قائمتي. */
+  pinned: boolean;
+  /** مكتومة: تبقى في القائمة بلا صوت ولا إشعار جهاز. */
+  muted: boolean;
   last_message: string | null;
   last_message_at: string | null;
   unread: number;
@@ -27,6 +31,16 @@ export interface ChatFile {
   size: number;
   is_image: boolean;
 }
+
+/** تفاعل مجمَّع على رسالة. */
+export interface Reaction {
+  emoji: string;
+  count: number;
+  mine: boolean;
+}
+
+/** الرموز المتاحة للتفاعل السريع — نفس ما يقبله الخادم. */
+export const REACTION_EMOJIS = ['👍', '✅', '❗', '❤️', '😀', '🙏'] as const;
 
 /** مقتطف من الرسالة المقتبسة في الردّ. */
 export interface QuotedMessage {
@@ -52,6 +66,13 @@ export interface ConversationMessage {
   reply_to: QuotedMessage | null;
   /** معرّفات من أُشير إليهم في نصّها. */
   mentions: number[];
+  /** حُذفت: يبقى موضعها في الخيط بلا نصّ. */
+  deleted: boolean;
+  /** عُدّلت بعد إرسالها. */
+  edited: boolean;
+  /** يمكنني تعديلها الآن (رسالتي وخلال مهلة قصيرة). */
+  editable: boolean;
+  reactions: Reaction[];
 }
 
 /** صفحة رسائل: الأحدث أولًا في الطلب، ومرتّبة زمنيًّا في الردّ. */
@@ -131,6 +152,10 @@ export const liveChatApi = {
     apiGet<MessagePage>(`/chat/conversations/${id}/messages`, { params }),
   send: (id: number, message: OutgoingMessage) => apiPost<ConversationMessage>(`/chat/conversations/${id}/messages`, formData(message)),
   attachment: (id: number, messageId: number) => blobUrl(`/chat/conversations/${id}/messages/${messageId}/file`),
+  editMessage: (id: number, messageId: number, body: string) => apiPatch<ConversationMessage>(`/chat/conversations/${id}/messages/${messageId}`, { body }),
+  deleteMessage: (id: number, messageId: number) => apiDelete<null>(`/chat/conversations/${id}/messages/${messageId}`),
+  react: (id: number, messageId: number, emoji: string) => apiPost<ConversationMessage>(`/chat/conversations/${id}/messages/${messageId}/reactions`, { emoji }),
+  setPrefs: (id: number, prefs: { pinned?: boolean; muted?: boolean }) => apiPatch<{ pinned: boolean; muted: boolean }>(`/chat/conversations/${id}/prefs`, prefs),
 
   // إدارة المجموعة
   rename: (id: number, title: string) => apiPatch<{ id: number; title: string }>(`/chat/conversations/${id}`, { title }),

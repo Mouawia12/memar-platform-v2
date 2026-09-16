@@ -42,7 +42,7 @@
 .lchat-msgs { position: relative; flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 4px; background: var(--l-soft); }
 .lchat-day { align-self: center; margin: 8px 0 4px; padding: 2px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--l-border); font-size: 11px; font-weight: 700; color: var(--l-muted); }
 .lchat-system { align-self: center; margin: 4px 0; padding: 3px 12px; border-radius: 999px; background: #eef2f7; color: #64748b; font-size: 11.5px; font-weight: 600; text-align: center; }
-.lchat-line { display: flex; }
+.lchat-line { display: flex; align-items: center; gap: 6px; }
 .lchat-line.mine { justify-content: flex-start; }
 .lchat-line.theirs { justify-content: flex-end; }
 .lchat-bubble { max-width: 72%; padding: 7px 11px; border-radius: 12px; font-size: 13.5px; line-height: 1.6; box-shadow: 0 1px 2px rgb(0 0 0 / .05); word-break: break-word; }
@@ -85,13 +85,39 @@
 .lchat-older { align-self: center; margin-bottom: 8px; padding: 4px 14px; border-radius: 999px; border: 1px solid var(--l-border); background: #fff; color: var(--l-brand); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
 .lchat-older:disabled { color: var(--l-muted); cursor: default; }
 .lchat-bubble { position: relative; }
-.lchat-msg-actions { position: absolute; top: 2px; inset-inline-start: -58px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+/* أزرار الرسالة شقيقةٌ للفقاعة لا فوقها — فلا تتداخل مع الرسائل المجاورة. */
+.lchat-msg-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity .15s; }
+.lchat-line:hover .lchat-msg-actions, .lchat-line:focus-within .lchat-msg-actions { opacity: 1; }
 .lchat-msg-actions button { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--l-border); background: #fff; color: var(--l-muted); font-size: 10px; cursor: pointer; }
 .lchat-msg-actions button:hover { color: var(--l-brand); border-color: #bfdbf0; }
-.lchat-bubble:hover .lchat-msg-actions, .lchat-bubble:focus-within .lchat-msg-actions { opacity: 1; }
+
 .lchat-quote { margin-bottom: 4px; padding: 4px 8px; border-inline-start: 3px solid currentColor; border-radius: 6px; background: rgb(255 255 255 / .16); font-size: 11.5px; line-height: 1.5; opacity: .9; }
 .lchat-bubble.theirs .lchat-quote { background: var(--l-soft); }
 .lchat-quote b { display: block; font-size: 11px; }
 .lchat-quote span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .lchat-mentions { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 12px 8px; }
 .lchat-mentions button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border-radius: 999px; border: 1px solid #bfdbf0; background: #eef4fb; color: var(--l-brand); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* تفاعلات، تعديل، حذف، تثبيت وكتم، ومكبّر الصور (2026-09-16). */
+.lchat-bubble.deleted { background: #f1f5f9; color: var(--l-muted); border: 1px dashed #cbd5e1; font-size: 12px; font-style: italic; }
+.lchat-picker { position: absolute; bottom: calc(100% + 4px); inset-inline-start: 0; z-index: 5; display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: #fff; border: 1px solid var(--l-border); box-shadow: 0 8px 20px rgb(15 23 42 / .14); }
+.lchat-picker button { width: 28px; height: 28px; border: 0; border-radius: 50%; background: none; font-size: 15px; cursor: pointer; }
+.lchat-picker button:hover { background: var(--l-soft); }
+.lchat-reactions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.lchat-reactions button { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--l-border); background: #fff; color: var(--l-ink); font: inherit; font-size: 11px; cursor: pointer; }
+.lchat-reactions button.on { border-color: #bfdbf0; background: #eef4fb; color: var(--l-brand); font-weight: 700; }
+.lchat-edit { width: 100%; min-height: 54px; resize: vertical; border-radius: 8px; border: 1px solid rgb(255 255 255 / .4); background: rgb(255 255 255 / .92); color: var(--l-ink); padding: 6px 8px; font: inherit; font-size: 13px; outline: none; }
+.lchat-edit-btn { border: 0; border-radius: 6px; padding: 3px 10px; background: rgb(255 255 255 / .22); color: inherit; font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; }
+.lchat-bubble.theirs .lchat-edit-btn { background: var(--l-soft); }
+.lchat-row-side { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.lchat-badge.muted { background: #cbd5e1; color: #475569; }
+/* أدوات الصفّ ظاهرة دائمًا بلون خافت — إخفاؤها حتى المرور يُخفي وجودها. */
+.lchat-row-tools { display: flex; flex-direction: column; gap: 2px; }
+.lchat-row-tools button { width: 20px; height: 20px; display: grid; place-items: center; padding: 0; border-radius: 6px; border: 1px solid var(--l-border); background: #fff; color: #b6c0cd; font-size: 9px; cursor: pointer; }
+.lchat-row-tools button.on, .lchat-row-tools button:hover { color: var(--l-brand); border-color: #bfdbf0; background: #eef4fb; }
+
+.lchat-lightbox { position: fixed; inset: 0; z-index: 1000001; display: grid; place-items: center; gap: 10px; padding: 24px; background: rgb(15 23 42 / .82); }
+.lchat-lightbox img { max-width: min(92vw, 1100px); max-height: 82vh; border-radius: 12px; box-shadow: 0 20px 60px rgb(0 0 0 / .5); }
+.lchat-lightbox .lchat-icon { position: absolute; top: 20px; }
+.lchat-lightbox .lchat-icon:first-of-type { inset-inline-start: 64px; }
+.lchat-lightbox .lchat-icon:last-of-type { inset-inline-start: 20px; }

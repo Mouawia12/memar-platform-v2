@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\Contact;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
 use App\Services\ProjectMemberService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -111,6 +112,67 @@ class MyProjectsTest extends TestCase
         $row = collect($res->json('data.team'))->firstWhere('id', $staff->id);
         $this->assertSame(2, $row['projects_count']);
         $this->assertGreaterThanOrEqual(1, $res->json('data.totals.assignments'));
+    }
+
+    public function test_my_projects_includes_projects_i_manage_and_have_tasks_in(): void
+    {
+        $me = $this->actingAsUserWith(['projects.view']);
+        Project::factory()->create(['name' => 'برج السالمية', 'manager_id' => $me->id]);
+        $withTask = Project::factory()->create(['name' => 'فيلا الشامية']);
+        Task::create(['title' => 'رفع المساحة', 'project_id' => $withTask->id, 'assignee_id' => $me->id, 'status' => 'todo', 'created_by' => $me->id]);
+        Project::factory()->create(['name' => 'مشروع لا صلة لي به']);
+
+        $res = $this->getJson('/api/v1/my/projects')->assertOk();
+        $names = array_column($res->json('data.projects'), 'name');
+
+        $this->assertContains('برج السالمية', $names);
+        $this->assertContains('فيلا الشامية', $names);
+        $this->assertNotContains('مشروع لا صلة لي به', $names);
+
+        $byName = collect($res->json('data.projects'))->keyBy('name');
+        $this->assertSame('manager', $byName['برج السالمية']['relation']);
+        $this->assertSame('tasks', $byName['فيلا الشامية']['relation']);
+        $this->assertSame(1, $byName['فيلا الشامية']['my_open_tasks']);
+    }
+
+    public function test_scope_all_shows_every_project_for_whoever_may_view_projects(): void
+    {
+        $this->actingAsUserWith(['projects.view']);
+        Project::factory()->create(['name' => 'مشروع لا صلة لي به']);
+
+        $this->getJson('/api/v1/my/projects')->assertOk()->assertJsonCount(0, 'data.projects');
+
+        $res = $this->getJson('/api/v1/my/projects?scope=all')->assertOk();
+        $res->assertJsonPath('data.scope', 'all')
+            ->assertJsonPath('data.can_view_all', true)
+            ->assertJsonPath('data.projects.0.name', 'مشروع لا صلة لي به')
+            ->assertJsonPath('data.projects.0.relation', 'none')
+            // لا «جديد» على مشروع أتصفّحه بلا صلة
+            ->assertJsonPath('data.projects.0.has_new', false);
+    }
+
+    public function test_scope_all_is_refused_for_whoever_may_not_view_projects(): void
+    {
+        $this->actingAsUserWith([]); // موظف بلا صلاحية عرض المشاريع
+        Project::factory()->create();
+
+        $this->getJson('/api/v1/my/projects?scope=all')->assertOk()
+            ->assertJsonPath('data.scope', 'mine')
+            ->assertJsonPath('data.can_view_all', false)
+            ->assertJsonCount(0, 'data.projects');
+    }
+
+    public function test_seen_clears_the_new_flag_for_a_manager_who_is_not_a_team_member(): void
+    {
+        $me = $this->actingAsUserWith(['projects.view']);
+        $project = Project::factory()->create(['manager_id' => $me->id]);
+
+        $this->getJson('/api/v1/my/projects')->assertOk()->assertJsonPath('data.projects.0.has_new', true);
+
+        $this->postJson("/api/v1/projects/{$project->id}/seen")->assertOk();
+        $this->getJson('/api/v1/my/projects')->assertOk()
+            ->assertJsonPath('data.projects.0.has_new', false)
+            ->assertJsonPath('data.new_count', 0);
     }
 
     public function test_assign_requires_manage_permission(): void

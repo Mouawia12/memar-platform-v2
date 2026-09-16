@@ -1,5 +1,8 @@
 import { apiDelete, apiGet, apiPost } from '../../../lib/api';
 
+/** صلتي بالمشروع: عضو في فريقه، أو مديره، أو لي فيه مهمّة، أو لا صلة (تصفّح الكلّ). */
+export type ProjectRelation = 'member' | 'manager' | 'tasks' | 'none';
+
 /** بطاقة مشروع مُسنَد (صفحة «مشاريعي» ونظرة الأدمن). */
 export interface MyProjectCard {
   id: number;
@@ -8,6 +11,9 @@ export interface MyProjectCard {
   status: string;
   client: string | null;
   manager?: string | null;
+  relation?: ProjectRelation;
+  /** مهامّي المفتوحة في هذا المشروع. */
+  my_open_tasks?: number;
   role_on_project: string | null;
   progress: number;
   stages_done?: number;
@@ -45,8 +51,17 @@ export interface TeamOverview {
   totals: { staff: number; assignments: number; with_new: number };
 }
 
+/** ردّ «مشاريعي» — البطاقات وعدّاد الجديد ومدى العرض المتاح. */
+export interface MyProjectsResponse {
+  projects: MyProjectCard[];
+  new_count: number;
+  scope: 'mine' | 'all';
+  /** يملك «عرض المشاريع» فيُعرض له خيار «كل المشاريع». */
+  can_view_all: boolean;
+}
+
 export const myProjectsApi = {
-  mine: () => apiGet<{ projects: MyProjectCard[]; new_count: number }>('/my/projects'),
+  mine: (scope: 'mine' | 'all' = 'mine') => apiGet<MyProjectsResponse>('/my/projects', { params: { scope } }),
   markSeen: (projectId: number) => apiPost<null>(`/projects/${projectId}/seen`, {}),
   // إسناد الموظفين (الأدمن)
   members: (projectId: number) => apiGet<ProjectMemberRow[]>(`/projects/${projectId}/members`),

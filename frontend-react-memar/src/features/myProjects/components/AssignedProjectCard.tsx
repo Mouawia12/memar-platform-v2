@@ -1,15 +1,7 @@
 import { type CSSProperties } from 'react';
 
 import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS, type ProjectStatus } from '../../projects/types';
-import type { MyProjectCard, ProjectRelation } from '../api/myProjectsApi';
-
-/** شارة الصلة بالمشروع — «لا صلة» بلا شارة (مشروع يتصفّحه الأدمن). */
-const RELATION_CHIPS: Record<ProjectRelation, { label: string; icon: string; color: string; bg: string } | null> = {
-  member: { label: 'مُسنَد إليّ', icon: 'fa-user-check', color: '#1B6CA8', bg: '#E4F0FA' },
-  manager: { label: 'أُديره', icon: 'fa-user-gear', color: '#0F766E', bg: '#DCFCE7' },
-  tasks: { label: 'لي فيه مهامّ', icon: 'fa-list-check', color: '#7C3AED', bg: '#F3EEFF' },
-  none: null,
-};
+import type { MyProjectCard } from '../api/myProjectsApi';
 
 /** وقت نسبي بالعربية (الآن/قبل N دقيقة/ساعة/يوم/شهر). */
 export function timeAgo(iso: string | null): string {
@@ -38,7 +30,6 @@ export function AssignedProjectCard({ card, onOpen, seenLabel }: {
   seenLabel?: string;
 }) {
   const statusColor = PROJECT_STATUS_COLORS[card.status as ProjectStatus] ?? '#5A6478';
-  const relation = RELATION_CHIPS[card.relation ?? 'none'];
 
   return (
     <button
@@ -57,13 +48,7 @@ export function AssignedProjectCard({ card, onOpen, seenLabel }: {
       <div style={metaRow}>
         {card.code && <span style={metaChip}>#{card.code}</span>}
         {card.client && <span style={metaChip}><i className="fas fa-building-columns" /> {card.client}</span>}
-        {card.manager && card.relation !== 'manager' && <span style={metaChip}><i className="fas fa-user-gear" /> {card.manager}</span>}
-        {/* صلتي بالمشروع — لا كلّها إسناد: منه ما أُديره ومنه ما لي فيه مهامّ (طلب أيمن 2026-09-16). */}
-        {relation && !(card.relation === 'tasks' && !!card.my_open_tasks) && (
-          <span style={{ ...metaChip, color: relation.color, background: relation.bg, borderColor: 'transparent' }}><i className={`fas ${relation.icon}`} /> {relation.label}</span>
-        )}
         {card.role_on_project && <span style={{ ...metaChip, color: '#7C3AED', background: '#F3EEFF', borderColor: 'rgba(124,58,237,.15)' }}><i className="fas fa-user-tag" /> {card.role_on_project}</span>}
-        {!!card.my_open_tasks && <span style={{ ...metaChip, color: '#B87514', background: 'rgba(232,168,56,.12)', borderColor: 'transparent' }}><i className="fas fa-list-check" /> {card.my_open_tasks} مهمّة لي</span>}
       </div>
 
       {/* التقدّم */}

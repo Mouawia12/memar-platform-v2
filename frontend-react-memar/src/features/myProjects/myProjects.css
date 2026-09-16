@@ -1,0 +1,378 @@
+/*
+ * «مشاريعي» — لوحة الموظف عن مشاريعه وحدها (طلب أيمن 2026-09-16).
+ * الأصناف كلها بسابقة .mypr- كي لا تصطدم بأنماط الصفحات الأخرى.
+ */
+
+/* ===== الترويسة ===== */
+.mypr-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 22px 26px;
+  margin-bottom: 18px;
+  color: #fff;
+  background: linear-gradient(120deg, #0F2E4D 0%, #1B6CA8 55%, #2E8FC9 100%);
+  box-shadow: 0 14px 34px rgba(15, 46, 77, .22);
+}
+
+/* وهجٌ خفيف يعطي الترويسة عمقًا بلا صورة. */
+.mypr-hero::after {
+  content: '';
+  position: absolute;
+  inset-block-start: -70px;
+  inset-inline-start: -40px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 168, 56, .35), transparent 65%);
+  pointer-events: none;
+}
+
+.mypr-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.mypr-hero h1 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -.2px;
+}
+
+.mypr-hero p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, .78);
+}
+
+.mypr-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(255, 255, 255, .14);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s ease, transform .15s ease;
+}
+
+.mypr-hero-btn:hover { background: rgba(255, 255, 255, .26); transform: translateY(-1px); }
+
+/* ===== بطاقات الأرقام ===== */
+.mypr-stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.mypr-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .18);
+  backdrop-filter: blur(6px);
+}
+
+.mypr-stat i { font-size: 15px; opacity: .95; }
+.mypr-stat b { display: block; font-size: 19px; line-height: 1.1; font-weight: 800; }
+.mypr-stat span { font-size: 11.5px; color: rgba(255, 255, 255, .8); }
+
+/* ===== شريط الأدوات ===== */
+.mypr-tools {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.mypr-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+
+.mypr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid #E2E8F0;
+  background: #fff;
+  color: #5A6478;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+
+.mypr-chip:hover { border-color: #BFDBF0; color: #1B6CA8; }
+.mypr-chip.is-on { background: #1B6CA8; border-color: #1B6CA8; color: #fff; }
+.mypr-chip .mypr-chip-n {
+  font-size: 11px;
+  background: #F1F5F9;
+  color: #475569;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.mypr-chip.is-on .mypr-chip-n { background: rgba(255, 255, 255, .24); color: #fff; }
+
+.mypr-search { flex: 1 1 220px; min-width: 190px; }
+.mypr-sort { width: auto; min-width: 158px; flex: 0 0 auto; }
+
+/* ===== الشبكة والبطاقة ===== */
+.mypr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
+}
+
+.mypr-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: start;
+  font-family: inherit;
+  background: #fff;
+  border: 1px solid #E7ECF3;
+  border-radius: 18px;
+  padding: 16px 18px 14px;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(39, 74, 120, .06);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  animation: mypr-in .32s ease both;
+}
+
+.mypr-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(39, 74, 120, .14);
+  border-color: #BFDBF0;
+}
+
+/* شريط علوي بلون الحالة — علامة بصرية سريعة. */
+.mypr-tile::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 4px;
+  background: var(--mypr-accent, #1B6CA8);
+}
+
+.mypr-tile.is-new { border-color: rgba(232, 168, 56, .5); }
+
+@keyframes mypr-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mypr-tile { animation: none; }
+  .mypr-tile:hover { transform: none; }
+}
+
+.mypr-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mypr-badges { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+.mypr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.mypr-badge-new {
+  color: #fff;
+  background: linear-gradient(135deg, #E8A838, #D4881F);
+  box-shadow: 0 2px 8px rgba(232, 168, 56, .4);
+  animation: mypr-pulse 2.4s ease-in-out infinite;
+}
+
+.mypr-badge-late { color: #B91C1C; background: #FEE2E2; }
+
+@keyframes mypr-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(232, 168, 56, .4); }
+  50% { box-shadow: 0 2px 16px rgba(232, 168, 56, .75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mypr-badge-new { animation: none; }
+}
+
+.mypr-body { display: flex; gap: 14px; align-items: flex-start; }
+.mypr-body-main { flex: 1; min-width: 0; }
+
+.mypr-name {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #0F2E4D;
+  line-height: 1.45;
+}
+
+.mypr-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.mypr-mchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypr-mchip.is-rel { border-color: transparent; }
+.mypr-mchip.is-tasks { color: #B87514; background: rgba(232, 168, 56, .13); border-color: transparent; }
+.mypr-mchip.is-overdue { color: #B91C1C; background: #FEE2E2; border-color: transparent; }
+
+/* حلقة التقدّم */
+.mypr-ring { position: relative; flex: 0 0 auto; width: 62px; height: 62px; }
+.mypr-ring svg { transform: rotate(-90deg); display: block; }
+.mypr-ring circle { fill: none; stroke-linecap: round; }
+.mypr-ring .mypr-ring-bg { stroke: #EEF2F7; }
+.mypr-ring .mypr-ring-fg { stroke: var(--mypr-accent, #1B6CA8); transition: stroke-dashoffset .6s ease; }
+
+.mypr-ring-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0F2E4D;
+}
+
+.mypr-stage {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.mypr-stage b { color: #0F2E4D; font-weight: 700; }
+.mypr-stage .mypr-stage-n { margin-inline-start: auto; font-size: 10.5px; color: #8A93A3; }
+
+.mypr-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #F1F5F9;
+  font-size: 11px;
+  color: #8A93A3;
+}
+
+.mypr-foot .is-new { color: #B87514; font-weight: 700; }
+
+/* ===== حالات الصفحة ===== */
+.mypr-empty {
+  text-align: center;
+  padding: 46px 22px;
+  background: #fff;
+  border: 1px dashed #D9E1EC;
+  border-radius: 18px;
+}
+
+.mypr-empty h3 { margin: 12px 0 4px; font-size: 16px; color: #0F2E4D; }
+.mypr-empty p { margin: 0 auto; max-width: 420px; color: #8A93A3; font-size: 13px; line-height: 1.7; }
+.mypr-empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+.mypr-skel {
+  height: 190px;
+  border-radius: 18px;
+  background: linear-gradient(100deg, #F1F5F9 30%, #E7EEF6 50%, #F1F5F9 70%);
+  background-size: 220% 100%;
+  animation: mypr-shine 1.3s linear infinite;
+}
+
+@keyframes mypr-shine {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* ===== نافذة «تابِع مشروعًا» ===== */
+.mypr-modal-back {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 1000000;
+}
+
+.mypr-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .3);
+}
+
+.mypr-modal h2 { margin: 0 0 4px; font-size: 17px; color: #0F2E4D; }
+.mypr-modal-hint { margin: 0 0 12px; font-size: 12.5px; color: #8A93A3; }
+.mypr-modal-list { overflow-y: auto; margin: 12px -6px 0; padding: 0 6px; list-style: none; }
+
+.mypr-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: start;
+  font-family: inherit;
+  border: 1px solid #E7ECF3;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.mypr-pick:hover:not(:disabled) { border-color: #1B6CA8; background: #F6FAFD; }
+.mypr-pick:disabled { opacity: .55; cursor: default; }
+.mypr-pick b { font-size: 13px; color: #0F2E4D; }
+.mypr-pick span { font-size: 11px; color: #8A93A3; }
+.mypr-pick .mypr-pick-go { margin-inline-start: auto; font-size: 11.5px; font-weight: 700; color: #1B6CA8; }

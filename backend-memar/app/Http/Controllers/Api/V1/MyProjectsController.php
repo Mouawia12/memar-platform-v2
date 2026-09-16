@@ -20,8 +20,8 @@ use Illuminate\Support\Facades\DB;
  *
  * الصلة ثلاث: مُسنَد إليّ في فريق المشروع، أو أنا مديره، أو لي فيه مهمّة.
  * كانت مقصورة على الإسناد وحده فتظهر الصفحة فارغة لمدير المشروع ولمن يعمل
- * فيه بمهامّه (طلب أيمن 2026-09-16) — ومن يملك «عرض المشاريع» له فوقها خيار
- * «كل المشاريع».
+ * فيه بمهامّه (طلب أيمن 2026-09-16). ولا تعرض هذه الصفحة مشاريع لا صلة لي
+ * بها — سجل المشاريع موضعها.
  */
 class MyProjectsController extends ApiController
 {
@@ -40,9 +40,6 @@ class MyProjectsController extends ApiController
         // فتح الصفحة = إقرار بإشعارات الإسناد (يصفّر جرس التوب‌بار لهذه البنود).
         $this->notifications->markAllRead($user);
 
-        $canViewAll = (bool) $user->can('projects.view');
-        $scope = $canViewAll && $request->string('scope')->toString() === 'all' ? 'all' : 'mine';
-
         /** @var array<int, int> $myTaskProjectIds */
         $myTaskProjectIds = Task::query()
             ->where('assignee_id', $user->id)
@@ -52,11 +49,11 @@ class MyProjectsController extends ApiController
             ->all();
 
         $projects = Project::query()
-            ->when($scope === 'mine', fn ($q) => $q->where(function ($q) use ($user, $myTaskProjectIds): void {
+            ->where(function ($q) use ($user, $myTaskProjectIds): void {
                 $q->whereHas('members', fn ($m) => $m->whereKey($user->id))
                     ->orWhere('manager_id', $user->id)
                     ->when($myTaskProjectIds !== [], fn ($q) => $q->orWhereIn('id', $myTaskProjectIds));
-            }))
+            })
             ->with(['client:id,full_name', 'manager:id,name', 'stages:id,project_id,name,status,position'])
             ->orderByDesc('updated_at')
             ->get();
@@ -66,8 +63,9 @@ class MyProjectsController extends ApiController
         $membership = $this->membershipMap($user->id, $ids);
         $seenElsewhere = $this->seenMap($user->id, $ids);
         $openTasks = $this->openTaskMap($user->id, $ids);
+        $overdueTasks = $this->openTaskMap($user->id, $ids, overdueOnly: true);
 
-        $cards = $projects->map(function (Project $p) use ($user, $activity, $membership, $seenElsewhere, $openTasks, $myTaskProjectIds) {
+        $cards = $projects->map(function (Project $p) use ($user, $activity, $membership, $seenElsewhere, $openTasks, $overdueTasks, $myTaskProjectIds) {
             $pivot = $membership[$p->id] ?? null;
             $relation = match (true) {
                 $pivot !== null => 'member',
@@ -83,19 +81,24 @@ class MyProjectsController extends ApiController
             ])->filter()->max();
 
             $lastActivity = $activity[$p->id] ?? null;
-            // «جديد» لمن له صلة فقط — لا يُنبَّه الأدمن على مشاريع يتصفّحها لا غير.
-            $hasNew = $relation !== 'none'
-                && $lastActivity !== null
-                && ($lastSeen === null || $lastActivity->gt($lastSeen));
+            $hasNew = $lastActivity !== null && ($lastSeen === null || $lastActivity->gt($lastSeen));
 
-            return $this->card($p, $lastActivity, $lastSeen, $hasNew, $relation, $pivot?->role_on_project, $pivot?->assigned_at, $openTasks[$p->id] ?? 0);
+            return $this->card(
+                $p,
+                $lastActivity,
+                $lastSeen,
+                $hasNew,
+                $relation,
+                $pivot?->role_on_project,
+                $pivot?->assigned_at,
+                $openTasks[$p->id] ?? 0,
+                $overdueTasks[$p->id] ?? 0,
+            );
         })->values();
 
         return $this->ok([
             'projects' => $cards,
             'new_count' => $cards->where('has_new', true)->count(),
-            'scope' => $scope,
-            'can_view_all' => $canViewAll,
         ]);
     }
 
@@ -156,12 +159,12 @@ class MyProjectsController extends ApiController
     }
 
     /**
-     * عدد مهامّي المفتوحة في كل مشروع.
+     * عدد مهامّي المفتوحة في كل مشروع — أو المتأخّرة منها وحدها.
      *
      * @param  array<int, int>  $ids
      * @return array<int, int>
      */
-    private function openTaskMap(int $userId, array $ids): array
+    private function openTaskMap(int $userId, array $ids, bool $overdueOnly = false): array
     {
         if ($ids === []) {
             return [];
@@ -171,6 +174,7 @@ class MyProjectsController extends ApiController
             ->where('assignee_id', $userId)
             ->whereIn('project_id', $ids)
             ->whereIn('status', self::OPEN_TASK_STATUSES)
+            ->when($overdueOnly, fn ($q) => $q->whereNotNull('due_date')->whereDate('due_date', '<', now()->toDateString()))
             ->selectRaw('project_id, COUNT(*) as c')
             ->groupBy('project_id')
             ->pluck('c', 'project_id')
@@ -188,11 +192,16 @@ class MyProjectsController extends ApiController
         ?string $roleOnProject,
         ?string $assignedAt,
         int $myOpenTasks,
+        int $myOverdueTasks,
     ): array {
         $stages = $project->stages;
         $total = $stages->count();
         $done = $stages->where('status', 'done')->count();
         $active = $stages->firstWhere('status', 'active');
+        // متأخّر: مرّ موعد تسليمه والمشروع ما زال قائمًا.
+        $isLate = $project->end_date !== null
+            && $project->end_date->isPast()
+            && ! in_array($project->status, ['done', 'cancelled'], true);
 
         return [
             'id' => $project->id,
@@ -204,6 +213,9 @@ class MyProjectsController extends ApiController
             'relation' => $relation,
             'role_on_project' => $roleOnProject,
             'my_open_tasks' => $myOpenTasks,
+            'my_overdue_tasks' => $myOverdueTasks,
+            'end_date' => $project->end_date?->toDateString(),
+            'is_late' => $isLate,
             'progress' => $total > 0 ? (int) round($done / $total * 100) : (int) ($project->progress ?? 0),
             'stages_done' => $done,
             'stages_total' => $total,

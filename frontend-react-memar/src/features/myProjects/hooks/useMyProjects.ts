@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { myProjectsApi } from '../api/myProjectsApi';
 
-/** مشاريع الموظف الحالي («مشاريعي») + عدّاد الجديد — أو كلّ المشاريع لمن يملك عرضها. */
-export function useMyProjects(scope: 'mine' | 'all' = 'mine') {
-  return useQuery({ queryKey: ['my-projects', scope], queryFn: () => myProjectsApi.mine(scope) });
+/** مشاريع الموظف الحالي («مشاريعي») + عدّاد الجديد. */
+export function useMyProjects() {
+  return useQuery({ queryKey: ['my-projects'], queryFn: myProjectsApi.mine });
 }
 
 /** نظرة الأدمن على مشاريع الفريق. */

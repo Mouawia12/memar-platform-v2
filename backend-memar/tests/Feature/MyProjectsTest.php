@@ -135,31 +135,14 @@ class MyProjectsTest extends TestCase
         $this->assertSame(1, $byName['فيلا الشامية']['my_open_tasks']);
     }
 
-    public function test_scope_all_shows_every_project_for_whoever_may_view_projects(): void
+    public function test_my_projects_never_shows_a_project_i_have_no_link_to(): void
     {
-        $this->actingAsUserWith(['projects.view']);
+        // سجل المشاريع موضع «كل المشاريع» — لا هذه الصفحة (طلب أيمن 2026-09-16).
+        $this->actingAsUserWith(['projects.view', 'projects.manage']);
         Project::factory()->create(['name' => 'مشروع لا صلة لي به']);
 
         $this->getJson('/api/v1/my/projects')->assertOk()->assertJsonCount(0, 'data.projects');
-
-        $res = $this->getJson('/api/v1/my/projects?scope=all')->assertOk();
-        $res->assertJsonPath('data.scope', 'all')
-            ->assertJsonPath('data.can_view_all', true)
-            ->assertJsonPath('data.projects.0.name', 'مشروع لا صلة لي به')
-            ->assertJsonPath('data.projects.0.relation', 'none')
-            // لا «جديد» على مشروع أتصفّحه بلا صلة
-            ->assertJsonPath('data.projects.0.has_new', false);
-    }
-
-    public function test_scope_all_is_refused_for_whoever_may_not_view_projects(): void
-    {
-        $this->actingAsUserWith([]); // موظف بلا صلاحية عرض المشاريع
-        Project::factory()->create();
-
-        $this->getJson('/api/v1/my/projects?scope=all')->assertOk()
-            ->assertJsonPath('data.scope', 'mine')
-            ->assertJsonPath('data.can_view_all', false)
-            ->assertJsonCount(0, 'data.projects');
+        $this->getJson('/api/v1/my/projects?scope=all')->assertOk()->assertJsonCount(0, 'data.projects');
     }
 
     public function test_seen_clears_the_new_flag_for_a_manager_who_is_not_a_team_member(): void

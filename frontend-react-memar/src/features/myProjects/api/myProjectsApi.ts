@@ -12,8 +12,12 @@ export interface MyProjectCard {
   client: string | null;
   manager?: string | null;
   relation?: ProjectRelation;
-  /** مهامّي المفتوحة في هذا المشروع. */
+  /** مهامّي المفتوحة في هذا المشروع، وما تأخّر منها. */
   my_open_tasks?: number;
+  my_overdue_tasks?: number;
+  end_date?: string | null;
+  /** مرّ موعد التسليم والمشروع ما زال قائمًا. */
+  is_late?: boolean;
   role_on_project: string | null;
   progress: number;
   stages_done?: number;
@@ -51,17 +55,14 @@ export interface TeamOverview {
   totals: { staff: number; assignments: number; with_new: number };
 }
 
-/** ردّ «مشاريعي» — البطاقات وعدّاد الجديد ومدى العرض المتاح. */
+/** ردّ «مشاريعي» — البطاقات وعدّاد ما فيه جديد. */
 export interface MyProjectsResponse {
   projects: MyProjectCard[];
   new_count: number;
-  scope: 'mine' | 'all';
-  /** يملك «عرض المشاريع» فيُعرض له خيار «كل المشاريع». */
-  can_view_all: boolean;
 }
 
 export const myProjectsApi = {
-  mine: (scope: 'mine' | 'all' = 'mine') => apiGet<MyProjectsResponse>('/my/projects', { params: { scope } }),
+  mine: () => apiGet<MyProjectsResponse>('/my/projects'),
   markSeen: (projectId: number) => apiPost<null>(`/projects/${projectId}/seen`, {}),
   // إسناد الموظفين (الأدمن)
   members: (projectId: number) => apiGet<ProjectMemberRow[]>(`/projects/${projectId}/members`),

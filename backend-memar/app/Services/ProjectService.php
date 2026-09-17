@@ -15,16 +15,23 @@ class ProjectService
 {
     public function __construct(private readonly ContractService $contracts) {}
 
-    public function list(?string $search, ?string $status, int $perPage = 15, ?User $user = null): LengthAwarePaginator
+    public function list(?string $search, ?string $status, int $perPage = 15, ?User $user = null, bool $mineOnly = false): LengthAwarePaginator
     {
+        // «ما يخصّني» = ما أديره أو أُسنِدت إليه عضويته.
+        $mine = fn ($query) => $query->where(function ($q) use ($user): void {
+            $q->where('manager_id', $user->id)
+                ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
+        });
+
         return Project::query()
             // إنفاذ نطاق RBAC: غير «all» ⇒ يرى فقط ما يديره أو أُسنِد إليه كعضو (طلب أيمن 2026-08-13).
-            ->when($user && $user->rbacProjectScope() !== 'all', function ($query) use ($user): void {
-                $query->where(function ($q) use ($user): void {
-                    $q->where('manager_id', $user->id)
-                        ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
-                });
-            })
+            ->when($user && $user->rbacProjectScope() !== 'all', $mine)
+            /*
+             * «مشاريعي فقط» فلتر يختاره المستخدم لا سجن يُوضع فيه (طلب أيمن 2026-09-17):
+             * السجل يفتح على كل المشاريع، ومن أراد شغله وحده ضغط الفلتر. يُطبَّق على
+             * الخادم كي يصحّ مع الترقيم والعدّ.
+             */
+            ->when($mineOnly && $user, $mine)
             ->when($search, function ($query, string $s): void {
                 $query->where(function ($q) use ($s): void {
                     $q->where('name', 'like', "%{$s}%")

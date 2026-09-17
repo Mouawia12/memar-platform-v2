@@ -16,6 +16,11 @@ export function ProjectsPage() {
   // فلترا النوع والمسؤول — يعملان على الصفحة المعروضة (طلب أيمن 2026-09-09).
   const [type, setType] = useState('');
   const [manager, setManager] = useState('');
+  /*
+   * السجل يفتح على كل المشاريع لكل الأدوار (طلب أيمن 2026-09-17)، و«مشاريعي فقط»
+   * تبديل اختياري يعود به الموظف إلى شغله وحده.
+   */
+  const [mineOnly, setMineOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
@@ -25,8 +30,8 @@ export function ProjectsPage() {
   const canManage = usePermission('projects.manage');
   const canDelete = usePermission('projects.delete');
 
-  const { data, isLoading, isError } = useProjects({ search: search || undefined, status: status || undefined, page });
-  const allQuery = useProjects({ per_page: 500 });
+  const { data, isLoading, isError } = useProjects({ search: search || undefined, status: status || undefined, page, mine: mineOnly || undefined });
+  const allQuery = useProjects({ per_page: 500, mine: mineOnly || undefined });
   const del = useDeleteProject();
 
   const all = allQuery.data?.data ?? [];
@@ -111,6 +116,13 @@ export function ProjectsPage() {
             <option value="">جميع المهندسين</option>
             {managers.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
+          {/* السجل يعرض كل المشاريع؛ وهذا التبديل يعود بالمستخدم إلى شغله وحده. */}
+          <button
+            type="button"
+            onClick={() => { setMineOnly((v) => !v); setPage(1); }}
+            title={mineOnly ? 'عرض كل مشاريع المكتب' : 'عرض ما أديره أو أنا عضو فيه فقط'}
+            style={{ ...scopeBtn, ...(mineOnly ? scopeOn : null) }}
+          >{mineOnly ? '🗂️ مشاريعي فقط' : '🏢 كل المشاريع'}</button>
         </div>
 
         {/* ترويسة الجدول: ما يُعرض الآن وكم عدده (طلب أيمن 2026-09-09). */}
@@ -156,6 +168,8 @@ function Kpi({ label, value, accent = '#fff' }: { label: string; value: string; 
 }
 
 const tableHead: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', paddingBottom: '12px', marginBottom: '10px', borderBottom: '1px solid #EEF2F7' };
+const scopeBtn: CSSProperties = { padding: '0 14px', borderRadius: '8px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '13px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
+const scopeOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };
 const banner: CSSProperties = { background: 'linear-gradient(135deg,#274A78,#1B6CA8)', borderRadius: '14px', padding: '22px', marginBottom: '16px', boxShadow: '0 4px 16px rgba(39,74,120,.25)' };
 const kpiRow: CSSProperties = { display: 'flex', gap: '10px', marginTop: '18px', flexWrap: 'wrap' };
 const kpiTile: CSSProperties = { flex: '1 1 auto', minWidth: '110px', background: 'rgba(255,255,255,.1)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,.14)' };

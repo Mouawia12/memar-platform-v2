@@ -226,7 +226,7 @@ class RoleController extends ApiController
             $role->settings = $newSettings;
         }
         $role->save();
-        $role->syncPermissions($this->clampPermissions($data['permissions'], $dashboard));
+        $role->syncPermissions($this->withFineGrained($role, $this->clampPermissions($data['permissions'], $dashboard)));
 
         return $this->ok(['id' => $role->id], 'تم تحديث الدور وصلاحياته');
     }
@@ -267,6 +267,34 @@ class RoleController extends ApiController
      * @param  array<int, string>  $permissions
      * @return array<int, string>
      */
+    /**
+     * يحفظ الصلاحيات الدقيقة التي لا تعبّر عنها مصفوفة الوحدات (طلب أيمن 2026-09-17).
+     *
+     * المصفوفة تعرف ثلاثة أفعال لكل وحدة (view/manage/delete)، فكل حفظ كان يمحو صامتًا
+     * ما هو أدقّ منها: `clients.finance.view` (إجمالي عقود العميل) و`documents.view.all`
+     * (ملفات المكتب كلها) و`requests.view.all` — فيشكو المكتب أن «إخفاء وحدة أخفى غيرها».
+     * الآن تبقى هذه الصلاحيات ما دامت وحدتها الأمّ مؤشَّرة، وتسقط معها إن أُلغيت الوحدة.
+     *
+     * @param  array<int, string>  $permissions
+     * @return array<int, string>
+     */
+    private function withFineGrained(Role $role, array $permissions): array
+    {
+        $groupsKept = collect($permissions)
+            ->filter(fn (string $p): bool => str_ends_with($p, '.view'))
+            ->map(fn (string $p): string => explode('.', $p)[0])
+            ->unique();
+
+        $fine = $role->permissions
+            ->pluck('name')
+            // ما زاد على «وحدة.فعل» = صلاحية دقيقة لا تمثّلها المصفوفة.
+            ->filter(fn (string $p): bool => substr_count($p, '.') > 1)
+            ->filter(fn (string $p): bool => $groupsKept->contains(explode('.', $p)[0]))
+            ->all();
+
+        return array_values(array_unique(array_merge($permissions, $fine)));
+    }
+
     private function clampPermissions(array $permissions, string $dashboard): array
     {
         return array_values(array_filter($permissions, function (string $name) use ($dashboard): bool {
@@ -289,7 +317,12 @@ class RoleController extends ApiController
              */
             'module_rights' => [],
             'visibility' => ['pricing' => 'none', 'financial' => 'none'],
-            'scope' => ['projects' => 'assigned'],
+            /*
+             * سجل المشاريع يفتح على «كل المشاريع» لكل الأدوار (طلب أيمن 2026-09-17):
+             * كان الافتراضي «assigned» فيُحبس الموظف في مشاريعه دون أن يختار الأدمن ذلك.
+             * وقيمة المشروع تبقى محجوبة عمّن لا يملك finance.view.
+             */
+            'scope' => ['projects' => 'all'],
             'approval_authority' => false,
             'chat' => ['types' => ['all'], 'restrict' => 'none'],
         ];
@@ -341,7 +374,7 @@ class RoleController extends ApiController
                 'pricing' => $has('pricing.view') ? 'full' : 'none',
                 'financial' => $has('finance.view') ? 'full' : 'none',
             ],
-            'scope' => ['projects' => $this->dashboardOf($role) === 'admin' ? 'all' : 'assigned'],
+            'scope' => ['projects' => 'all'],
             'approval_authority' => $this->dashboardOf($role) === 'admin',
         ]);
     }

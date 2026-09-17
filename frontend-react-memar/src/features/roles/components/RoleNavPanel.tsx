@@ -51,6 +51,10 @@ export function RoleNavPanel({ role }: { role: Role }) {
 
   const save = () => setNav.mutate({ id: role.id, navHidden: [...hidden] }, { onSuccess: () => { setSaved(true); window.setTimeout(() => setSaved(false), 2500); } });
 
+  // مفاتيح مخفيّة لا يعرفها فهرس هذا الدور — تُعرض ليتمكّن الأدمن من إلغائها.
+  const known = useMemo(() => new Set(sections.flatMap((s) => [s.id, ...s.items.map((i) => i.key)])), [sections]);
+  const orphanKeys = [...hidden].filter((k) => !known.has(k));
+
   return (
     <div>
       <div style={hint}>حدِّد ما يظهر لهذا الدور في القائمة الجانبية. إخفاء قسم يُخفي كل عناصره. (لا يمنح صلاحية — يخفي العرض فقط.)</div>
@@ -81,6 +85,22 @@ export function RoleNavPanel({ role }: { role: Role }) {
           );
         })}
       </div>
+      {/*
+        مفاتيح مخفيّة لا تظهر في فهرس هذا الدور (بقايا فهرس آخر أو عنصر أُزيل) —
+        كانت تبقى نافذة بلا مربّع يلغيها، فيُنسب الاختفاء لآخر تعديل لمسه الأدمن
+        (شكوى أيمن 2026-09-17: «حاجات لما بخفيها بتخفي حاجات تانية»).
+      */}
+      {orphanKeys.length > 0 && (
+        <div style={orphanBox}>
+          <b style={{ fontSize: '12.5px', color: '#92400E' }}>مفاتيح إخفاء قديمة لا تخصّ قائمة هذا الدور:</b>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '7px' }}>
+            {orphanKeys.map((k) => (
+              <button key={k} type="button" onClick={() => toggle(k)} title="إلغاء هذا الإخفاء" style={orphanChip}>{k} ✕</button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
         <button type="button" className="btn btn-primary btn-sm" onClick={save} disabled={!dirty || setNav.isPending}>
           {setNav.isPending ? 'جارٍ الحفظ…' : 'حفظ ظهور القائمة'}
@@ -99,3 +119,5 @@ const secOff: CSSProperties = { background: '#F8FAFC', borderStyle: 'dashed' };
 const secHead: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', paddingBottom: '8px', borderBottom: '1px solid #EEF2F7', marginBottom: '8px' };
 const itemsWrap: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '5px' };
 const itemRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 2px' };
+const orphanBox: CSSProperties = { marginTop: '12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px' };
+const orphanChip: CSSProperties = { background: '#fff', border: '1px solid #FCD34D', borderRadius: '999px', padding: '3px 10px', fontSize: '11.5px', fontWeight: 700, color: '#92400E', cursor: 'pointer', fontFamily: 'inherit' };

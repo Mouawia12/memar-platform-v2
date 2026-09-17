@@ -34,6 +34,7 @@ class ProjectController extends ApiController
             $request->string('status')->toString() ?: null,
             $this->perPage($request, 15),
             $request->user(),
+            $request->boolean('mine'),
         );
 
         return $this->paginated($paginator, ProjectResource::class);

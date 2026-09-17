@@ -18,6 +18,7 @@ import { TasksPage } from '../tasks/pages/TasksPage';
 import { ProjectsPage } from '../projects/pages/ProjectsPage';
 import { ClientsPage } from '../clients/pages/ClientsPage';
 import { CompaniesPage } from '../companies/pages/CompaniesPage';
+import { ContractsPage } from '../contracts/pages/ContractsPage';
 import { AttendanceEp, LeavesEp, SalaryEp, ReportsEp, DocumentsEp, ProfileEp, ReferralEp } from './SelfServicePages';
 import { EpNotifBell, EpUserMenu } from './EmployeeTopbarMenus';
 import { useNotifications } from '../workspace/hooks/useWorkspace';
@@ -54,6 +55,12 @@ export const GROUPS: { id: string; icon: string; title: string; links: SbLink[] 
       { id: 'ep-rec-projects', icon: '📚', text: navLabel('projects', 'المشاريع'), perm: 'projects.view' },
       { id: 'ep-rec-clients', icon: '👥', text: navLabel('clients', 'سجل العملاء'), perm: 'crm.view' },
       { id: 'ep-rec-companies', icon: '🏢', text: navLabel('companies', 'سجل الشركات'), perm: 'crm.view' },
+      /*
+       * سجل العقود (طلب أيمن 2026-09-17): «السجل للعقود… ما كانش يلاقيها» — لم يكن
+       * للبوابة مدخل عقود أصلًا، فلا مربّع يُظهره الأدمن لدور. يظهر لمن يملك
+       * contracts.view وحده، وقيمة العقد تبقى محجوبة عمّن لا يملك finance.view.
+       */
+      { id: 'ep-rec-contracts', icon: '📄', text: navLabel('contracts', 'سجل العقود'), perm: 'contracts.view' },
     ],
   },
   {
@@ -283,6 +290,7 @@ export function EmployeePortalPage() {
           : active === 'ep-rec-projects' ? <Bare><ProjectsPage /></Bare>
           : active === 'ep-rec-clients' ? <Bare><ClientsPage /></Bare>
           : active === 'ep-rec-companies' ? <Bare><CompaniesPage /></Bare>
+          : active === 'ep-rec-contracts' ? <Bare><ContractsPage /></Bare>
           : active === 'ep-notifications' ? <SharedPage title="🔔 الإشعارات" subtitle="كل البنود التي تحتاج إجراءً — محسوبة من بياناتك الحيّة"><NotificationsPanel /></SharedPage>
           // شؤوني + حسابي — طبق أصل Atoms (الحضور والملف الشخصي ببيانات حيّة)
           : active === 'ep-attendance' ? <AttendanceEp />

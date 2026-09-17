@@ -112,7 +112,7 @@ export function RolesPage() {
   const handleCreate = () => {
     const name = newName.trim();
     if (!name) return;
-    save.mutate({ data: { name, dashboard: newDash, modules: [], rights: { view: 'assigned', edit: 'none', delete: false }, visibility: { pricing: 'none', financial: 'none' }, scope: { projects: 'assigned' }, approval_authority: false, chat: { types: ['all'], restrict: 'none' } } }, {
+    save.mutate({ data: { name, dashboard: newDash, modules: [], rights: { view: 'assigned', edit: 'none', delete: false }, visibility: { pricing: 'none', financial: 'none' }, scope: { projects: 'all' }, approval_authority: false, chat: { types: ['all'], restrict: 'none' } } }, {
       onSuccess: () => { setCreateOpen(false); setNewName(''); },
     });
   };

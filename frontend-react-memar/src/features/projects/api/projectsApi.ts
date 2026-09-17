@@ -9,6 +9,8 @@ export interface ProjectsQuery {
   status?: string;
   page?: number;
   per_page?: number;
+  /** «مشاريعي فقط» — ما أديره أو أنا عضو فيه (يُطبَّق على الخادم ليصحّ مع الترقيم). */
+  mine?: boolean;
 }
 
 export const projectsApi = {

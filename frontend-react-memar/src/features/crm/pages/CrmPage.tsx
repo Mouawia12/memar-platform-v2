@@ -8,10 +8,8 @@ import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { useStaffAvatars } from '../../users/hooks/useUsers';
 import { useAuthStore } from '../../../store/auth';
 import { useExportDisabled } from '../../../components/ExportGuard';
-import type { CrmSavedView } from '../../../types/api';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
-import { DirectiveModal } from '../../tasks/components/DirectiveModal';
 import { crmApi } from '../api/crmApi';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadFormModal } from '../components/LeadFormModal';
@@ -27,8 +25,8 @@ import { EMPTY_FILTERS, type BoardFilters, type BoardView } from '../board/filte
 import { KanbanBoard } from '../board/KanbanBoard';
 import { ColorLegend, KpiStrip, ReportsModal } from '../board/Reports';
 import { TableView } from '../board/TableView';
-import { STATUS_ORDER, boardStatus, nextStageOf, promptOf, slaLabel, valueOf, type BoardStatus } from '../board/model';
-import { readBackupFile, useAcknowledge, useArchiveLead, useBackup, useBlinkPref, useIncomingAlerts, useReplyDirective, useRequestUpdate, useRestore, useSavedViews, useSoundPref } from '../board/useBoard';
+import { boardStatus, nextStageOf, promptOf, slaLabel } from '../board/model';
+import { readBackupFile, useAcknowledge, useArchiveLead, useBackup, useBlinkPref, useIncomingAlerts, useReplyDirective, useRequestUpdate, useRestore, useSoundPref } from '../board/useBoard';
 import '../crm.css';
 import '../board/board.css';
 
@@ -54,8 +52,9 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
 
   const [view, setView] = useState<BoardView>('kanban');
-  const [soundOn, setSoundOn] = useSoundPref();
-  const [blinkOn, setBlinkOn] = useBlinkPref();
+  // الصوت والوميض بلا زرّين في الشريط بعد اختصاره — يبقيان على ما حُفظ سابقًا.
+  const [soundOn] = useSoundPref();
+  const [blinkOn] = useBlinkPref();
   const [showArchived, setShowArchived] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
@@ -82,7 +81,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const [editing, setEditing] = useState<Lead | null>(null);
   const [taskInitial, setTaskInitial] = useState<Partial<TaskFormData> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
-  const [directiveFor, setDirectiveFor] = useState<Lead | null>(null);
   const [stagesOpen, setStagesOpen] = useState(false);
   const [pointsSettingsOpen, setPointsSettingsOpen] = useState(false);
 
@@ -114,7 +112,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const acknowledge = useAcknowledge();
   const backup = useBackup();
   const restore = useRestore();
-  const savedViews = useSavedViews();
 
   const leads = useMemo(() => data?.data ?? [], [data]);
   const allStages = useMemo(() => [...(stagesData ?? [])].sort((a, b) => a.position - b.position), [stagesData]);
@@ -136,12 +133,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     return [...names].sort((a, b) => a.localeCompare(b, 'ar'));
   }, [crmTags, leads]);
 
-  const owners = useMemo(() => {
-    const map = new Map<number, string>();
-    leads.forEach((l) => { if (l.owner) map.set(l.owner.id, l.owner.name); });
-    if (userId && meName && !map.has(userId)) map.set(userId, meName);
-    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ar'));
-  }, [leads, userId, meName]);
 
   const visibleLeads = useMemo(() => {
     const term = eff.search.trim().toLowerCase().replace(/^#/, '');
@@ -158,12 +149,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     });
   }, [leads, eff]);
 
-  const statusCounts = useMemo(() => {
-    const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<BoardStatus, number>;
-    visibleLeads.forEach((l) => { counts[boardStatus(l)] += 1; });
-    return counts;
-  }, [visibleLeads]);
-  const pipelineValue = visibleLeads.reduce((s, l) => s + valueOf(l), 0);
 
   const ownerIds = useMemo(() => [...new Set(leads.flatMap((l) => [l.owner?.id, l.mover?.id]).filter((v): v is number => !!v))], [leads]);
   const { data: staffAvatars } = useStaffAvatars(ownerIds);
@@ -281,13 +266,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
     });
   };
 
-  const applyView = (v: CrmSavedView) => {
-    setFilters({
-      search: v.search ?? '', status: (v.status || 'all') as BoardFilters['status'], owner: v.owner || 'all',
-      priority: (v.priority || 'all') as BoardFilters['priority'], temperature: (v.temperature || 'all') as BoardFilters['temperature'], tag: v.tag || 'all',
-    });
-    showToast(`تم تطبيق العرض المحفوظ — ${v.name}`, 'info');
-  };
 
   const resetFilters = () => {
     setFilters({ ...EMPTY_FILTERS });
@@ -335,23 +313,11 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       <BoardToolbar
         view={view}
         onView={setView}
-        soundOn={soundOn}
-        onSound={() => setSoundOn(!soundOn)}
-        blinkOn={blinkOn}
-        onBlink={() => setBlinkOn(!blinkOn)}
-        pipelineValue={pipelineValue}
-        showTotals={showTotals}
         canCreate={canCreate}
         onAdd={openCreate}
         filters={eff}
         onFilters={setFilters}
-        statusCounts={statusCounts}
-        owners={owners}
         tags={tagLibrary}
-        savedViews={savedViews.views}
-        onSaveView={(name) => { savedViews.save({ name, ...eff }); showToast(`تم حفظ العرض — ${name}`); }}
-        onApplyView={applyView}
-        onDeleteView={savedViews.remove}
         canArchive={isManager}
         onBackup={isManager && !exportDisabled ? handleBackup : undefined}
         onRestore={isManager ? (file) => void handleRestore(file) : undefined}
@@ -406,14 +372,6 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
         <ReportsModal leads={visibleLeads} stages={allStages} showTotals={showTotals} canExport={!exportDisabled} onClose={() => setReportOpen(false)} />
       )}
 
-      {directiveFor && (
-        <DirectiveModal
-          card={{ kind: 'opportunity', id: directiveFor.id, code: `#${directiveFor.id}`, title: directiveFor.full_name, owner: directiveFor.owner?.name ?? null, ownerLabel: 'صاحب الفرصة' }}
-          canSend={isManager}
-          canReply={isManager || directiveFor.owner?.id === userId}
-          onClose={() => setDirectiveFor(null)}
-        />
-      )}
 
       {detailLead && (
         <LeadDetailModal
@@ -426,10 +384,12 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
           onDelete={handleDelete}
           onMove={handleMove}
           onAddTask={handleAddTask}
-          onDirective={(l) => { setDetailId(null); setDirectiveFor(l); }}
+          onWriteEntry={handleWriteEntry}
           onArchive={isManager ? (l) => { setDetailId(null); handleArchive(l); } : undefined}
           canManage={canCreate}
           canDelete={isManager}
+          isManager={isManager}
+          meId={userId}
         />
       )}
       {modalOpen && <LeadFormModal lead={editing} onClose={() => setModalOpen(false)} />}

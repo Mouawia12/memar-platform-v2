@@ -27,17 +27,31 @@ class ContactService
     /**
      * @param  string|null  $archived  without = خارج الأرشيف · only = المؤرشفة وحدها · null = الكل
      */
-    public function list(?string $search, ?string $type, int $perPage = 15, ?string $archived = null): LengthAwarePaginator
+    /**
+     * حالات العقد التي تعني «تعاقدنا فعلًا» (طلب أيمن 2026-09-17).
+     * المسودة لا تُحتسب: كل مشروع يُنشئ مسودة عقد تلقائيًّا، فوجود صفّ عقد وحده
+     * لا يعني توقيعًا. والملغاة خرجت من التعاقد.
+     */
+    public const SIGNED_STATES = ['signed', 'active', 'closed'];
+
+    public function list(?string $search, ?string $type, int $perPage = 15, ?string $archived = null, ?string $contractState = null): LengthAwarePaginator
     {
+        $signed = fn ($q) => $q->whereIn('status', self::SIGNED_STATES);
+
         return Contact::query()
             ->when($search, fn ($query, string $s) => ArabicSearch::where($query, $s, ['full_name', 'company', 'kunya'], ['email', 'phone']))
             ->when($type, fn ($query, string $t) => $query->where('type', $t))
             ->when($archived === 'without', fn ($query) => $query->whereNull('archived_at'))
             ->when($archived === 'only', fn ($query) => $query->whereNotNull('archived_at'))
+            // فلتر التعاقد: موقّعون عقودًا · تواصل فقط (بلا عقد موقّع).
+            ->when($contractState === 'contracted', fn ($query) => $query->whereHas('contracts', $signed))
+            ->when($contractState === 'prospect', fn ($query) => $query->whereDoesntHave('contracts', $signed))
             ->with(['owner', 'createdBy:id,name', 'movedBy:id,name', 'convertedProject', 'latestUpdate.user:id,name', 'reminders' => fn ($q) => $q->where('done', false)->orderBy('remind_at')])
             // أعمدة سجل العملاء: مشاريعه وفرصه وإجمالي عقوده (طلب أيمن 2026-09-09)
             ->withCount(['projects', 'opportunities'])
-            ->withSum('contracts', 'value_kwd')
+            // «إجمالي العقود» و«متعاقد» بالحالات الموقّعة وحدها — لا المسودات ولا الملغاة.
+            ->withCount(['contracts as signed_contracts_count' => $signed])
+            ->withSum(['contracts as contracts_sum_value_kwd' => $signed], 'value_kwd')
             // توجيهات الإدارة على الفرصة: منها لون البطاقة وعدّاد الجديد (طلب أيمن 2026-09-13)
             ->tap(fn ($q) => $this->activity->withCardActivity($q, auth()->id(), Contact::class))
             // الترتيب اليدوي داخل العمود أولًا (board_position)، ثم الأحدث للبقية (الافتراضي 0).

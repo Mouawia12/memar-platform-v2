@@ -6,6 +6,8 @@ export interface ContactsQuery {
   type?: string;
   page?: number;
   per_page?: number;
+  /** حالة التعاقد: contracted = له عقد موقّع/نشط/منتهٍ · prospect = تواصل بلا عقد. */
+  contract_state?: 'contracted' | 'prospect';
 }
 
 export const contactsApi = {

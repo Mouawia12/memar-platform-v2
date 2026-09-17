@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { ExportCsvButton } from '../../../components/ExportCsvButton';
@@ -25,7 +25,13 @@ export function ClientsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
 
-  const { data, isLoading, isError } = useContacts({ search: search || undefined, type: type || undefined, page });
+  /*
+   * فلتر التعاقد (طلب أيمن 2026-09-17): «أظهر العملاء اللي موقّعين عقود، واللي
+   * تواصلوا معنا بس». المسودة التلقائية لكل مشروع لا تُحتسب عقدًا (يُنفّذه الخادم).
+   */
+  const [contractState, setContractState] = useState<'' | 'contracted' | 'prospect'>('');
+
+  const { data, isLoading, isError } = useContacts({ search: search || undefined, type: type || undefined, page, contract_state: contractState || undefined });
   const del = useDeleteContact();
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
@@ -36,7 +42,8 @@ export function ClientsPage() {
 
   /** يجلب كل جهات الاتصال المطابقة للفلاتر الحالية لتصديرها. */
   const fetchAllContacts = async () => {
-    const all = await contactsApi.list({ search: search || undefined, type: type || undefined, per_page: 500 });
+    // التصدير يطابق ما يراه المستخدم على الشاشة — بالفلاتر نفسها.
+    const all = await contactsApi.list({ search: search || undefined, type: type || undefined, contract_state: contractState || undefined, per_page: 500 });
 
     return all.data;
   };
@@ -57,6 +64,7 @@ export function ClientsPage() {
               { header: 'الشركة', value: (r: Contact) => r.company },
               { header: 'المسمّى', value: (r: Contact) => r.position },
               { header: 'المسؤول', value: (r: Contact) => r.owner?.name },
+              { header: 'حالة التعاقد', value: (r: Contact) => (r.has_signed_contract ? 'متعاقد' : 'تواصل فقط') },
             ]}
           />
           {canManage && <button className="btn btn-primary" onClick={openCreate} type="button">+ عميل جديد</button>}
@@ -78,6 +86,15 @@ export function ClientsPage() {
               <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>
             ))}
           </select>
+          {CONTRACT_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              title={f.hint}
+              onClick={() => { setContractState(f.key); setPage(1); }}
+              style={{ ...chipBtn, ...(contractState === f.key ? chipOn : null) }}
+            >{f.label}</button>
+          ))}
         </div>
 
         {isLoading && <p>جارٍ التحميل…</p>}
@@ -107,3 +124,12 @@ export function ClientsPage() {
     </div>
   );
 }
+
+const CONTRACT_FILTERS: { key: '' | 'contracted' | 'prospect'; label: string; hint: string }[] = [
+  { key: '', label: 'الكل', hint: 'كل من في السجل' },
+  { key: 'contracted', label: '📄 موقّعون عقودًا', hint: 'له عقد موقّع أو نشط أو منتهٍ — المسودة لا تُحتسب' },
+  { key: 'prospect', label: '☎️ تواصل فقط', hint: 'تواصلنا معه ولا عقد رسميّ بيننا بعد' },
+];
+
+const chipBtn: CSSProperties = { padding: '0 12px', borderRadius: '999px', border: '1.5px solid #E2E8F0', background: '#fff', color: '#5A6478', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
+const chipOn: CSSProperties = { background: '#1B6CA8', color: '#fff', borderColor: '#1B6CA8' };

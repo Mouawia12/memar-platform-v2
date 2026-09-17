@@ -33,6 +33,8 @@ export interface Contact {
   opportunities_count?: number;
   /** إجمالي عقوده — لا يصل إلا من يملك clients.finance.view. */
   contracts_total_kwd?: string;
+  /** له عقد موقّع/نشط/منتهٍ — شارة «متعاقد» (المسودة التلقائية لا تُحتسب). */
+  has_signed_contract?: boolean;
   /** تاريخ آخر تواصل (آخر تحديث مسجَّل على العميل). */
   last_contact_at?: string | null;
 }

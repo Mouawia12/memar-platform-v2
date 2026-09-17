@@ -57,6 +57,7 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canMa
   // عمود الإجراءات يظهر لمن يملك عرض البروفيل أو التعديل أو الحذف
   const showActions = !!onViewProfile || canManage || canDelete;
   const canSeeFinance = usePermission('clients.finance.view');
+  const canViewProfile = usePermission('clients.view');
 
   if (contacts.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا يوجد عملاء.</p>;
@@ -74,6 +75,8 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canMa
             <th style={th}>البريد</th>
             <th style={th}>المشاريع</th>
             <th style={th}>الفرص</th>
+            {/* المسؤول عن العميل — «زي ما أنا بشوفها» في سجل المشاريع (طلب أيمن 2026-09-17). */}
+            <th style={th}>المسؤول</th>
             {canSeeFinance && <th style={th}>إجمالي العقود</th>}
             <th style={th}>آخر تواصل</th>
             <th style={th}>الحالة</th>
@@ -85,8 +88,14 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canMa
             <tr key={c.id} style={c.is_vip ? vipRow : undefined}>
               <td style={{ ...td, ...ROW_NO_CELL }}>{rowOffset + i + 1}</td>
               <td style={td}>
-                {/* الاسم يفتح ملف العميل — نفس ما يفعله زرّ 👁 (طلب أيمن 2026-09-09). */}
-                <Link to={`/clients/${c.id}/profile`} style={nameLink} title={`ملف العميل: ${c.full_name}`}>{c.full_name}</Link>
+                {/*
+                  الاسم يفتح ملف العميل — نفس ما يفعله زرّ 👁 (طلب أيمن 2026-09-09).
+                  ومن لا يملك صلاحية الملف يرى الاسم نصًّا: كان الرابط يظهر للجميع
+                  فيصطدم الموظف بحائط صلاحية عند الضغط.
+                */}
+                {canViewProfile
+                  ? <Link to={`/clients/${c.id}/profile`} style={nameLink} title={`ملف العميل: ${c.full_name}`}>{c.full_name}</Link>
+                  : <span style={{ fontWeight: 800, color: '#1A1F2E' }}>{c.full_name}</span>}
                 {!!c.internal_rating && <Stars value={c.internal_rating} />}
                 {/* المسمّى والشركة سطرًا واحدًا تحت الاسم — يُعرف الشخص بموقعه. */}
                 {(c.position || c.company) && (
@@ -115,6 +124,7 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canMa
                   )
                   : <span style={{ ...countPill, background: '#F1F5F9', color: '#94A3B8' }}>0</span>}
               </td>
+              <td style={{ ...td, whiteSpace: 'nowrap' }}>{c.owner?.name ?? '—'}</td>
               {canSeeFinance && (
                 <td style={{ ...td, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{money(c.contracts_total_kwd)}</td>
               )}
@@ -123,6 +133,10 @@ export function ContactsTable({ contacts, onEdit, onDelete, onViewProfile, canMa
                 {c.is_vip
                   ? <span style={{ ...badge, background: '#FEF3C7', color: '#B45309' }}><span style={{ ...dot, background: '#B45309' }} />VIP</span>
                   : <span style={{ ...badge, background: '#ECFDF5', color: '#059669' }}><span style={{ ...dot, background: '#059669' }} />نشط</span>}
+                {/* متعاقد = له عقد موقّع/نشط/منتهٍ؛ شارة لا مبلغ فتظهر للجميع. */}
+                {c.has_signed_contract && (
+                  <span style={{ ...badge, background: '#EAF2FB', color: '#1B6CA8', marginInlineStart: '4px' }} title="له عقد موقّع مع المكتب">📄 متعاقد</span>
+                )}
               </td>
               {showActions && (
                 <td style={{ ...td, whiteSpace: 'nowrap' }}>

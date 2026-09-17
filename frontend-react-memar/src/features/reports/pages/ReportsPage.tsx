@@ -7,6 +7,7 @@ import { downloadCsv } from '../../../lib/csv';
 import { KpiCard } from '../../dashboard/components/KpiCard';
 import { REPORT_PERIODS, type ReportPeriod, type StatusBreak } from '../api/reportsApi';
 import { useReportAnalytics, useReportSummary } from '../hooks/useReports';
+import { useCanExport } from '../../../components/ExportGuard';
 
 const money = (v: number) => `${v.toLocaleString('ar', { maximumFractionDigits: 3 })} د.ك`;
 
@@ -24,6 +25,8 @@ const PROJECT_STATUS_COLORS: Record<string, string> = {
 };
 
 export function ReportsPage() {
+  // التصدير للإدارة وحدها (exports.view).
+  const canExport = useCanExport();
   const [period, setPeriod] = useState<ReportPeriod>('quarter');
   const summary = useReportSummary();
   const analytics = useReportAnalytics(period);
@@ -68,7 +71,8 @@ export function ReportsPage() {
           <select className="form-input" value={period} onChange={(e) => setPeriod(e.target.value as ReportPeriod)} style={{ width: 'auto' }}>
             {REPORT_PERIODS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
-          <button className="btn btn-primary" type="button" onClick={exportSeries} disabled={!a}>📥 تصدير التقرير</button>
+          {/* تصدير التقرير كبقيّة التصدير: للإدارة وحدها (طلب أيمن 2026-09-17). */}
+          {canExport && <button className="btn btn-primary" type="button" onClick={exportSeries} disabled={!a}>📥 تصدير التقرير</button>}
         </div>
       </div>
 

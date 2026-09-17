@@ -31,6 +31,8 @@ class ContactController extends ApiController
             $request->string('type')->toString() ?: null,
             $this->perPage($request, 15),
             in_array($request->query('archived'), ['without', 'only'], true) ? $request->query('archived') : null,
+            // قائمة بيضاء: موقّعون عقودًا · تواصل فقط (طلب أيمن 2026-09-17).
+            in_array($request->query('contract_state'), ['contracted', 'prospect'], true) ? $request->query('contract_state') : null,
         );
 
         return $this->paginated($paginator, ContactResource::class);

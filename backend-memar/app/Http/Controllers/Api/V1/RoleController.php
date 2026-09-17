@@ -51,6 +51,7 @@ class RoleController extends ApiController
         'hr' => 'الموارد البشرية',
         'pricing' => 'الأسعار والخدمات',
         'settings' => 'الإعدادات والصلاحيات',
+        'exports' => 'تصدير البيانات',
         'users' => 'المستخدمون',
         'roles' => 'الأدوار',
         'self' => 'الخدمة الذاتية (شؤوني/حسابي)',

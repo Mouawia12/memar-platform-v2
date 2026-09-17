@@ -46,6 +46,14 @@ class ContactResource extends JsonResource
                 (bool) $request->user()?->can('clients.finance.view'),
                 fn () => (string) round((float) ($this->contracts_sum_value_kwd ?? 0), 3),
             ),
+            /*
+             * «متعاقد» أم «تواصل فقط» (طلب أيمن 2026-09-17) — شارة لا مبلغ، فتصل
+             * للجميع بلا صلاحية مالية. المسودة التلقائية لكل مشروع لا تُحتسب.
+             */
+            'has_signed_contract' => $this->when(
+                $this->signed_contracts_count !== null,
+                fn (): bool => (int) $this->signed_contracts_count > 0,
+            ),
             'last_contact_at' => $this->whenLoaded('latestUpdate', fn () => $this->latestUpdate?->created_at?->toDateString()),
             'is_urgent' => (bool) $this->is_urgent,
             'price_1_kwd' => $this->price_1_kwd,

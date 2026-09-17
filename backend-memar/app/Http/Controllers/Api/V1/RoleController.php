@@ -227,7 +227,10 @@ class RoleController extends ApiController
             $role->settings = $newSettings;
         }
         $role->save();
-        $role->syncPermissions($this->withFineGrained($role, $this->clampPermissions($data['permissions'], $dashboard)));
+        $permissions = $this->clampPermissions($data['permissions'], $dashboard);
+        // مسار المصفوفة وحده يحتاج استبقاء الصلاحيات الدقيقة (لا يعبّر عنها)؛ ومسار
+        // قائمة الصلاحيات الصريحة يبقى قادرًا على سحبها وإلا استحال سحبها إطلاقًا.
+        $role->syncPermissions($data['settings'] !== null ? $this->withFineGrained($role, $permissions) : $permissions);
 
         return $this->ok(['id' => $role->id], 'تم تحديث الدور وصلاحياته');
     }

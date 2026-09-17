@@ -84,8 +84,13 @@ class ClientsContractFilterTest extends TestCase
         $this->actingAsUserWith(['crm.view', 'clients.finance.view']);
         $c = $this->contact('عميل');
         $this->contract($c, 'active', 2500);
+        // مسودة صريحة: لا نعتمد على توليد تلقائي قد لا يقع، وإلا مرّ الاختبار بلا مسودة أصلًا.
         $draftProject = Project::create(['name' => 'مشروع بمسودة', 'status' => 'active', 'client_id' => $c->id]);
-        Contract::where('project_id', $draftProject->id)->update(['status' => 'draft', 'value_kwd' => 9000, 'client_id' => $c->id]);
+        Contract::updateOrCreate(
+            ['project_id' => $draftProject->id],
+            ['client_id' => $c->id, 'status' => 'draft', 'value_kwd' => 9000],
+        );
+        $this->assertSame(1, Contract::where('client_id', $c->id)->where('status', 'draft')->count(), 'المسودة موجودة فعلًا');
 
         $row = $this->getJson('/api/v1/contacts')->assertOk()->json('data.0');
         $this->assertSame(2500.0, (float) $row['contracts_total_kwd'], 'المسودة لا تُضاف إلى الإجمالي');

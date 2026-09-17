@@ -25,7 +25,7 @@ class ProjectService
 
         return Project::query()
             // إنفاذ نطاق RBAC: غير «all» ⇒ يرى فقط ما يديره أو أُسنِد إليه كعضو (طلب أيمن 2026-08-13).
-            ->when($user && $user->rbacProjectScope() !== 'all', $mine)
+            ->when($user && ($mineOnly || $user->rbacProjectScope() !== 'all'), $mine)
             /*
              * «مشاريعي فقط» فلتر يختاره المستخدم لا سجن يُوضع فيه (طلب أيمن 2026-09-17):
              * السجل يفتح على كل المشاريع، ومن أراد شغله وحده ضغط الفلتر. يُطبَّق على

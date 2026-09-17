@@ -16,11 +16,15 @@ interface Props {
   rowOffset?: number;
 }
 
-// مسودة العقد تُنشأ بلا قيمة، فالرقم الغائب يُعرض شرطةً لا «ليس رقمًا».
-const money = (v: string | null | undefined) => {
+/*
+ * مسودة العقد تُنشأ تلقائيًّا مع كل مشروع بلا قيمة (null أو صفر حسب ميزانية المشروع)،
+ * فتُعرض شرطةً: «ليس رقمًا د.ك» كانت خطأ، و«٠٫٠٠٠ د.ك» تُوهم بعقد قيمته صفر.
+ */
+const money = (v: string | null | undefined, status?: string) => {
   const n = Number(v);
+  const missing = v === null || v === undefined || v === '' || Number.isNaN(n) || (status === 'draft' && n === 0);
 
-  return v === null || v === undefined || v === '' || Number.isNaN(n) ? '—' : `${n.toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
+  return missing ? '—' : `${n.toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
 };
 
 export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices, canManage = true, canDelete = true, showValue = true, rowOffset = 0 }: Props) {
@@ -51,7 +55,7 @@ export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices
               <td style={td}><code>{c.number ?? '—'}</code></td>
               <td style={td}>{c.project?.name ?? '—'}</td>
               <td style={td}>{c.client?.name ?? '—'}</td>
-              {showValue && <td style={{ ...td, fontWeight: 700, color: '#274A78' }}>{money(c.value_kwd)}</td>}
+              {showValue && <td style={{ ...td, fontWeight: 700, color: '#274A78' }}>{money(c.value_kwd, c.status)}</td>}
               <td style={td}>{c.quotation?.number ?? '—'}</td>
               <td style={td}>
                 <span style={{ ...badge, background: `${STATUS_COLORS[c.status]}1a`, color: STATUS_COLORS[c.status] }}>{STATUS_LABELS[c.status]}</span>

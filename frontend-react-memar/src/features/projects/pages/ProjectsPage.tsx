@@ -49,7 +49,8 @@ export function ProjectsPage() {
 
   /** يجلب كل المشاريع المطابقة للفلاتر الحالية لتصديرها. */
   const fetchAllProjects = async () => {
-    const all = await projectsApi.list({ search: search || undefined, status: status || undefined, per_page: 500 });
+    // بالفلاتر نفسها التي يراها المستخدم — وإلا صدّر كل مشاريع المكتب وهو يرى مشاريعه.
+    const all = await projectsApi.list({ search: search || undefined, status: status || undefined, mine: mineOnly || undefined, per_page: 500 });
 
     return all.data;
   };
@@ -119,7 +120,9 @@ export function ProjectsPage() {
           {/* السجل يعرض كل المشاريع؛ وهذا التبديل يعود بالمستخدم إلى شغله وحده. */}
           <button
             type="button"
-            onClick={() => { setMineOnly((v) => !v); setPage(1); }}
+            // تصفير فلترَي النوع والمسؤول: يعملان على الصفحة المعروضة، فبقاؤهما بعد
+            // التبديل يُفرِّغ الجدول بفلتر لا يظهر في القائمة فيبدو الجدول «معطّلًا».
+            onClick={() => { setMineOnly((v) => !v); setManager(''); setType(''); setPage(1); }}
             title={mineOnly ? 'عرض كل مشاريع المكتب' : 'عرض ما أديره أو أنا عضو فيه فقط'}
             style={{ ...scopeBtn, ...(mineOnly ? scopeOn : null) }}
           >{mineOnly ? '🗂️ مشاريعي فقط' : '🏢 كل المشاريع'}</button>

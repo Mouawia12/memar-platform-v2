@@ -7,7 +7,7 @@ import { useIsAdmin } from '../../auth/hooks/useIsAdmin';
 import { useCrmSettings } from '../../settings/hooks/useSettings';
 import { useStaffAvatars } from '../../users/hooks/useUsers';
 import { useAuthStore } from '../../../store/auth';
-import { useExportDisabled } from '../../../components/ExportGuard';
+import { useCanExport } from '../../../components/ExportGuard';
 import type { TaskFormData } from '../../tasks/types';
 import { TaskFormModal } from '../../tasks/components/TaskFormModal';
 import { crmApi } from '../api/crmApi';
@@ -47,7 +47,8 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
   const isManager = usePermission('crm.delete');
   const canLoyalty = usePermission('loyalty.view');
   const canManagePoints = usePermission('loyalty.manage');
-  const exportDisabled = useExportDisabled();
+  // التصدير والنسخة الاحتياطية للإدارة وحدها (exports.view — طلب أيمن 2026-09-17).
+  const canExport = useCanExport();
   const { settings: crmSettings } = useCrmSettings();
   const showTotals = canManagePoints || !crmSettings.finance_privacy.hide_totals_from_staff;
 
@@ -319,7 +320,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
         onFilters={setFilters}
         tags={tagLibrary}
         canArchive={isManager}
-        onBackup={isManager && !exportDisabled ? handleBackup : undefined}
+        onBackup={isManager && canExport ? handleBackup : undefined}
         onRestore={isManager ? (file) => void handleRestore(file) : undefined}
         busyBackup={backup.isPending}
         showArchived={showArchived}
@@ -369,7 +370,7 @@ export function CrmPage({ hideKpis = false }: { hideKpis?: boolean }) {
       )}
 
       {reportOpen && (
-        <ReportsModal leads={visibleLeads} stages={allStages} showTotals={showTotals} canExport={!exportDisabled} onClose={() => setReportOpen(false)} />
+        <ReportsModal leads={visibleLeads} stages={allStages} showTotals={showTotals} canExport={canExport} onClose={() => setReportOpen(false)} />
       )}
 
 

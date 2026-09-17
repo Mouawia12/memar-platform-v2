@@ -85,6 +85,9 @@ class RoleMatrixKeepsFineGrainedTest extends TestCase
     {
         $this->actingAsUserWith(['users.view', 'users.manage']);
         $role = $this->roleWith(['projects.view']);
+        // دور مقيَّد فعلًا كما تحفظه الشاشة القديمة — لا دور بلا إعدادات.
+        $role->settings = ['scope' => ['projects' => 'assigned']];
+        $role->save();
 
         $this->saveMatrix($role, ['projects']);
 
@@ -95,6 +98,9 @@ class RoleMatrixKeepsFineGrainedTest extends TestCase
     {
         $this->perms(['projects.view']);
         $role = $this->roleWith(['projects.view']);
+        // كان مقيَّدًا بمشاريعه، ففتحُ السجل هو ما يجب أن يُختبر لا غياب الإعدادات.
+        $role->settings = ['scope' => ['projects' => 'all']];
+        $role->save();
         $employee = User::factory()->create();
         $employee->assignRole($role);
         $other = User::factory()->create(['name' => 'م. أحمد فوزي']);
@@ -110,6 +116,43 @@ class RoleMatrixKeepsFineGrainedTest extends TestCase
         $this->assertContains('مشروع غيره', $names);
         $managers = array_map(fn (array $r): ?string => $r['manager']['name'] ?? null, $rows);
         $this->assertContains('م. أحمد فوزي', $managers, 'اسم المسؤول ظاهر أمام كل مشروع');
+    }
+
+    public function test_list_keeps_internal_notes_out_of_the_registry(): void
+    {
+        $this->perms(['projects.view', 'projects.manage']);
+        $role = $this->roleWith(['projects.view', 'projects.manage']);
+        $employee = User::factory()->create();
+        $employee->assignRole($role);
+        $other = User::factory()->create();
+        $project = Project::create([
+            'name' => 'مشروع غيره', 'status' => 'active', 'manager_id' => $other->id,
+            'internal_notes' => 'سرّي: العميل متعثّر ماليًا',
+        ]);
+
+        $this->actingAs($employee);
+        $row = $this->getJson('/api/v1/projects')->assertOk()->json('data.0');
+        $this->assertArrayNotHasKey('internal_notes', $row, 'الملاحظات الداخلية لا تُرسَل مع السجل');
+        $this->assertArrayNotHasKey('assessment', $row);
+
+        // وتبقى في صفحة المشروع لمن يملك الحق
+        $single = $this->getJson("/api/v1/projects/{$project->id}")->assertOk()->json('data');
+        $this->assertSame('سرّي: العميل متعثّر ماليًا', $single['internal_notes']);
+    }
+
+    public function test_explicit_permission_list_can_still_revoke_a_fine_grained_permission(): void
+    {
+        $this->actingAsUserWith(['users.view', 'users.manage']);
+        $role = $this->roleWith(['documents.view', 'documents.view.all']);
+
+        // المسار الصريح (بلا modules) — لا مصفوفة، فالسحب يجب أن يمرّ
+        $this->putJson("/api/v1/roles/{$role->id}", [
+            'name' => $role->name,
+            'dashboard' => 'employee',
+            'permissions' => ['documents.view'],
+        ])->assertOk();
+
+        $this->assertNotContains('documents.view.all', $role->fresh()->permissions->pluck('name')->all());
     }
 
     public function test_mine_filter_narrows_to_my_projects(): void

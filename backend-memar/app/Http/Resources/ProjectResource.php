@@ -34,8 +34,14 @@ class ProjectResource extends JsonResource
             'end_date' => $this->end_date?->toDateString(),
             'description' => $this->description,
             'is_vip' => (bool) $this->is_vip,
-            // التقييمات والملاحظات الداخلية سرية — للطاقم المخوّل فقط، لا تصل العميل.
-            $this->mergeWhen((bool) $request->user()?->can('projects.manage'), fn (): array => [
+            /*
+             * التقييمات والملاحظات الداخلية سرية — للطاقم المخوّل فقط، لا تصل العميل.
+             * ولا تُرسَل في قوائم السجل (طلب أيمن 2026-09-17 فتح السجل لكل الموظفين):
+             * صفحة المشروع تعرضها لمن يملك الحق، أمّا السجل فبياناته العامة وحدها،
+             * فلا تُسحب ملاحظات المكتب عن كل مشاريعه بنداء واحد. المميّز: مسار
+             * المشروع المفرد يحمل معرّفه في العنوان، والقائمة لا تحمله.
+             */
+            $this->mergeWhen($request->route('project') !== null && (bool) $request->user()?->can('projects.manage'), fn (): array => [
                 'assessment' => [
                     'rating_profitability' => $this->rating_profitability,
                     'rating_ease' => $this->rating_ease,

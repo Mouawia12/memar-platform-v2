@@ -24,7 +24,9 @@ return new class extends Migration
                 continue;
             }
 
-            $scope['projects_legacy'] = $scope['projects'];
+            // النسخة القديمة خارج scope: شاشة الأدوار تقصّ مفاتيح scope على المعروفة
+            // فتمحوها مع أول حفظ، فيصير التراجع لا-عملية صامتة.
+            $settings['scope_projects_legacy'] = $scope['projects'];
             $scope['projects'] = 'all';
             $settings['scope'] = $scope;
             $role->settings = $settings;
@@ -36,13 +38,13 @@ return new class extends Migration
     {
         foreach (Role::all() as $role) {
             $settings = (array) ($role->getAttribute('settings') ?? []);
-            $scope = (array) ($settings['scope'] ?? []);
-            if (! isset($scope['projects_legacy'])) {
+            if (! isset($settings['scope_projects_legacy'])) {
                 continue;
             }
 
-            $scope['projects'] = $scope['projects_legacy'];
-            unset($scope['projects_legacy']);
+            $scope = (array) ($settings['scope'] ?? []);
+            $scope['projects'] = $settings['scope_projects_legacy'];
+            unset($settings['scope_projects_legacy']);
             $settings['scope'] = $scope;
             $role->settings = $settings;
             $role->save();

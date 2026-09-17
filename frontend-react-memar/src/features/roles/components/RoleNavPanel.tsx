@@ -30,8 +30,11 @@ export function RoleNavPanel({ role }: { role: Role }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set(role.nav_hidden ?? []));
   const [saved, setSaved] = useState(false);
 
-  // إعادة التهيئة عند تبديل الدور المحدَّد.
-  useEffect(() => { setHidden(new Set(role.nav_hidden ?? [])); setSaved(false); }, [role.id, role.nav_hidden]);
+  /*
+   * إعادة التهيئة عند تبديل الدور المحدَّد وحده: كانت تعتمد على role.nav_hidden أيضًا،
+   * فإعادة الجلب بعد الحفظ تمسح رسالة «✓ حُفظ» فورًا فيظنّ الأدمن أن الحفظ لم يقع.
+   */
+  useEffect(() => { setHidden(new Set(role.nav_hidden ?? [])); setSaved(false); }, [role.id]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (key: string) => setHidden((prev) => {
     const next = new Set(prev);

@@ -15,6 +15,8 @@ export function ContractsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | null>(null);
   // بوّابة الإجراءات: إضافة/تعديل = manage؛ حذف = delete. طلب أيمن 2026-08-12.
+  // قيمة العقد كقيمة المشروع: لأصحاب الصلاحية المالية وحدهم (طلب أيمن 2026-08-09).
+  const canFinance = usePermission('finance.view');
   const canManage = usePermission('contracts.manage');
   const canDelete = usePermission('contracts.delete');
 
@@ -61,7 +63,7 @@ export function ContractsPage() {
 
         {isLoading && <p>جارٍ التحميل…</p>}
         {isError && <p style={{ color: '#ef4444' }}>تعذّر تحميل العقود.</p>}
-        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} onGenerateInvoices={handleGenerate} canManage={canManage} canDelete={canDelete} rowOffset={rowOffset(meta)} />}
+        {data && <ContractsTable contracts={data.data} onEdit={openEdit} onDelete={handleDelete} onGenerateInvoices={handleGenerate} canManage={canManage} canDelete={canDelete} showValue={canFinance} rowOffset={rowOffset(meta)} />}
 
         {meta && meta.last_page > 1 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '14px' }}>

@@ -10,13 +10,20 @@ interface Props {
   onGenerateInvoices: (c: Contract) => void;
   canManage?: boolean;  // إظهار توليد الفواتير + التعديل (contracts.manage)
   canDelete?: boolean;  // إظهار زر الحذف (contracts.delete)
+  /** قيمة العقد تُعرض لأصحاب الصلاحية المالية وحدهم (finance.view) — كقيمة المشروع. */
+  showValue?: boolean;
   /** إزاحة الترقيم في الجداول المقسّمة صفحات — الصفحة الثانية تبدأ بعد الأولى. */
   rowOffset?: number;
 }
 
-const money = (v: string) => `${Number(v).toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
+// مسودة العقد تُنشأ بلا قيمة، فالرقم الغائب يُعرض شرطةً لا «ليس رقمًا».
+const money = (v: string | null | undefined) => {
+  const n = Number(v);
 
-export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices, canManage = true, canDelete = true, rowOffset = 0 }: Props) {
+  return v === null || v === undefined || v === '' || Number.isNaN(n) ? '—' : `${n.toLocaleString('ar', { minimumFractionDigits: 3 })} د.ك`;
+};
+
+export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices, canManage = true, canDelete = true, showValue = true, rowOffset = 0 }: Props) {
   const showActions = canManage || canDelete; // عمود الإجراءات يظهر فقط لمن يملك تعديلًا أو حذفًا
   if (contracts.length === 0) {
     return <p style={{ opacity: 0.6, padding: '20px' }}>لا توجد عقود.</p>;
@@ -31,7 +38,7 @@ export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices
             <th style={th}>الرقم</th>
             <th style={th}>المشروع</th>
             <th style={th}>العميل</th>
-            <th style={th}>القيمة</th>
+            {showValue && <th style={th}>القيمة</th>}
             <th style={th}>العرض</th>
             <th style={th}>الحالة</th>
             {showActions && <th style={th}>إجراءات</th>}
@@ -44,7 +51,7 @@ export function ContractsTable({ contracts, onEdit, onDelete, onGenerateInvoices
               <td style={td}><code>{c.number ?? '—'}</code></td>
               <td style={td}>{c.project?.name ?? '—'}</td>
               <td style={td}>{c.client?.name ?? '—'}</td>
-              <td style={{ ...td, fontWeight: 700, color: '#274A78' }}>{money(c.value_kwd)}</td>
+              {showValue && <td style={{ ...td, fontWeight: 700, color: '#274A78' }}>{money(c.value_kwd)}</td>}
               <td style={td}>{c.quotation?.number ?? '—'}</td>
               <td style={td}>
                 <span style={{ ...badge, background: `${STATUS_COLORS[c.status]}1a`, color: STATUS_COLORS[c.status] }}>{STATUS_LABELS[c.status]}</span>
